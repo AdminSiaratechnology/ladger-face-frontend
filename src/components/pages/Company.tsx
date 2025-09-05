@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useRef } from "react";
-import { Button } from "../components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
-import { Input } from "../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
+import { Button } from "../ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Input } from "../ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
 import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit,Settings2 } from "lucide-react";
 // import { ICountry, IState, ICity } from 'country-state-city';
 import { Country, State, City } from 'country-state-city';
-import CustomInputBox from "./customComponents/CustomInputBox";
+import CustomInputBox from "../customComponents/CustomInputBox";
 
 // Bank interface
 interface Bank {

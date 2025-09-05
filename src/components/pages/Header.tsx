@@ -1,8 +1,8 @@
 import React from 'react';
 import { Bell, Menu, Search, Sun, Moon } from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -10,7 +10,7 @@ import {
   DropdownMenuLabel, 
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
-} from './ui/dropdown-menu';
+} from '../ui/dropdown-menu';
 
 interface HeaderProps {
   onMenuClick: () => void;

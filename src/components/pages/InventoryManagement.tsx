@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Badge } from './ui/badge';
-import { Textarea } from './ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Badge } from '../ui/badge';
+import { Textarea } from '../ui/textarea';
 import { 
   Table, 
   TableBody, 
@@ -12,7 +12,7 @@ import {
   TableHead, 
   TableHeader, 
   TableRow 
-} from './ui/table';
+} from '../ui/table';
 import {
   Dialog,
   DialogContent,
@@ -20,14 +20,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from './ui/dialog';
+} from '../ui/dialog';
 import { 
   Select, 
   SelectContent, 
   SelectItem, 
   SelectTrigger, 
   SelectValue 
-} from './ui/select';
+} from '../ui/select';
 import { 
   Package, 
   Plus, 
@@ -55,9 +55,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu';
+} from '../ui/dropdown-menu';
 import { toast } from 'sonner';
-import MainGradientCards from './customComponents/mainGradientCards';
+import MainGradientCards from '../customComponents/mainGradientCards';
 
 interface InventoryItem {
   id: number;

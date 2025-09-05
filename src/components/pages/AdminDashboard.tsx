@@ -1,7 +1,7 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Progress } from './ui/progress';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Progress } from '../ui/progress';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, AreaChart, Area
@@ -18,10 +18,10 @@ import {
   Activity,
   Target
 } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
-import SalesmanCard from './dashbord/ModernSalesmanCard';
-import { DashboardCards } from './dashbord/DashboardCards';
-import HeaderGradient from './customComponents/HeaderGradint';
+import { ImageWithFallback } from '../figma/ImageWithFallback';
+import SalesmanCard from '../dashbord/ModernSalesmanCard';
+import { DashboardCards } from '../dashbord/DashboardCards';
+import HeaderGradient from '../customComponents/HeaderGradint';
 
 const salesData = [
   { name: 'Jan', sales: 4000, orders: 240 },

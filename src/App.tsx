@@ -1,26 +1,26 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Login } from './components/Login';
-import { AdminDashboard } from './components/AdminDashboard';
-import { UserManagement } from './components/UserManagement';
-import { InventoryManagement } from './components/InventoryManagement';
-import { OrderManagement } from './components/OrderManagement';
-import { PriceListManagement } from './components/PriceListManagement';
-import { LocationTracking } from './components/LocationTracking';
-import { Settings } from './components/Settings';
+import { Login } from './components/pages/Login';
+import { AdminDashboard } from './components/pages/AdminDashboard';
+import { UserManagement } from './components/pages/UserManagement';
+import { InventoryManagement } from './components/pages/InventoryManagement';
+import { OrderManagement } from './components/pages/OrderManagement';
+import { PriceListManagement } from './components/pages/PriceListManagement';
+import { LocationTracking } from './components/pages/LocationTracking';
+import { Settings } from './components/pages/Settings';
 import { Sidebar } from './components/Sidebar';
-import { Header } from './components/Header';
-import Company from './components/Company';
+import { Header } from './components/pages/Header';
+import Company from './components/pages/Company';
 import { Toaster } from './components/ui/sonner';
   import "./index.css";
-import VendorRegistration from './components/VendorRegistration';
-import CustomerRegistration from './components/CustomerRegistration';
-import Agent from './components/Agent';
-import Product from './components/Product';
-import Godown from './components/Godown';
-import StockCategory from './components/StockCategory';
-import StockGroup from './components/StockGroup';
-import UOM from './components/UOM';
+import VendorRegistration from './components/pages/VendorRegistration';
+import CustomerRegistration from './components/pages/CustomerRegistration';
+import Agent from './components/pages/Agent';
+import Product from './components/pages/Product';
+import Godown from './components/pages/Godown';
+import StockCategory from './components/pages/StockCategory';
+import StockGroup from './components/pages/StockGroup';
+import UOM from './components/pages/UOM';
 
 
 // Mock user data
@@ -258,7 +258,7 @@ export default function App() {
           </Routes>
         </div>
       </Router>
-      {/* <Toaster /> */}
+      <Toaster />
     </AuthProvider>
   );
 }
