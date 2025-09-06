@@ -18,13 +18,15 @@ import {
   Warehouse,
   FolderOpen,
   Layers,
-  Ruler
+  Ruler,
+  X
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 interface SidebarProps {
   isOpen: boolean;
+  onClose?: () => void; // Add onClose prop
 }
 
 interface MenuItem {
@@ -44,23 +46,14 @@ interface SubMenuItem {
   roles: string[];
 }
 
-export function Sidebar({ isOpen }: SidebarProps) {
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
-//   Godown 
-
-// Stock category 
-
-// Stock Group 
-
-// UOM
-
-// Product
 
   const menuItems: MenuItem[] = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'agent', 'salesman'], type: 'link' },
     { path: '/company', icon: LayoutDashboard, label: 'Company', roles: ['admin', 'agent', 'salesman'], type: 'link' },
-       {
+    {
       id: 'business-partners',
       icon: Building2,
       label: 'Business Partners',
@@ -74,29 +67,24 @@ export function Sidebar({ isOpen }: SidebarProps) {
       ]
     },
     { path: '/users', icon: Users, label: 'User Management', roles: ['admin'], type: 'link' },
-    { path: '/inventory', icon: Package, label: 'Inventory', roles: ['admin', 'agent'], type: 'link' },
-       {
-      id: 'inventory',
+    {
+      id: 'inventory-management',
       icon: Package,
-      label: 'Inventory',
+      label: 'Inventory Management',
       roles: ['admin', 'agent', 'salesman'],
       type: 'accordion',
       subItems: [
-        { path: '/godown', icon: UserPlus, label: 'Godown', roles: ['admin', 'agent'] },
         { path: '/godown', icon: Warehouse, label: 'Godown', roles: ['admin', 'agent'] },
-{ path: '/stock-category', icon: FolderOpen, label: 'Stock Category', roles: ['admin', 'agent'] },
-{ path: '/stock-group', icon: Layers, label: 'Stock Group', roles: ['admin', 'agent'] },
-{ path: '/uom', icon: Ruler, label: 'UOM', roles: ['admin', 'agent'] },
-{ path: '/product', icon: Package, label: 'Product', roles: ['admin', 'agent'] },
-{ path: '/pricing', icon: DollarSign, label: 'Price Lists', roles: ['admin'] },
+        { path: '/stock-category', icon: FolderOpen, label: 'Stock Category', roles: ['admin', 'agent'] },
+        { path: '/stock-group', icon: Layers, label: 'Stock Group', roles: ['admin', 'agent'] },
+        { path: '/uom', icon: Ruler, label: 'UOM', roles: ['admin', 'agent'] },
+        { path: '/product', icon: Package, label: 'Product', roles: ['admin', 'agent'] },
+        { path: '/pricing', icon: DollarSign, label: 'Price Lists', roles: ['admin'] },
       ]
     },
-
     { path: '/orders', icon: ShoppingCart, label: 'Orders', roles: ['admin', 'agent', 'salesman'], type: 'link' },
-    
     { path: '/tracking', icon: MapPin, label: 'Location Tracking', roles: ['admin'], type: 'link' },
     { path: '/settings', icon: Settings, label: 'Settings', roles: ['admin'], type: 'link' },
- 
   ];
 
   const filteredMenuItems = menuItems.filter(item => 
@@ -124,10 +112,30 @@ export function Sidebar({ isOpen }: SidebarProps) {
     return subItems.some(subItem => location.pathname === subItem.path);
   };
 
+  // Get the ID of the accordion that should be expanded based on current location
+  const getActiveAccordionId = () => {
+    for (const item of filteredMenuItems) {
+      if (item.type === 'accordion' && item.subItems) {
+        if (isAccordionItemActive(item.subItems)) {
+          return item.id;
+        }
+      }
+    }
+    return undefined;
+  };
+
+  // Handle link click - close sidebar on mobile
+  const handleLinkClick = () => {
+    if (window.innerWidth < 768 && onClose) {
+      onClose();
+    }
+  };
+
   const SimpleLinkComponent = ({ to, icon: Icon, label }: { to: string, icon: React.ElementType, label: string }) => {
     return (
       <Link
         to={to}
+        onClick={handleLinkClick}
         className={`flex items-center space-x-3 px-6 py-3 transition-colors ${
           location.pathname === to
             ? 'bg-teal-600 text-white border-r-2 border-teal-200'
@@ -149,7 +157,13 @@ export function Sidebar({ isOpen }: SidebarProps) {
     const isActive = isAccordionItemActive(accordionItem.subItems);
 
     return (
-      <Accordion type="single" collapsible className="w-full">
+      <Accordion 
+        type="single" 
+        collapsible 
+        className="w-full"
+        defaultValue={getActiveAccordionId()}
+        value={getActiveAccordionId()}
+      >
         <AccordionItem value={accordionItem.id!} className="border-none">
           <AccordionTrigger 
             className={`flex items-center space-x-3 rounded-none px-6 pr-2 py-3 transition-colors hover:no-underline [&>svg]:w-4 [&>svg]:h-4 ${
@@ -170,6 +184,7 @@ export function Sidebar({ isOpen }: SidebarProps) {
                 <Link
                   key={subItem.path}
                   to={subItem.path}
+                  onClick={handleLinkClick}
                   className={`flex items-center space-x-3 px-12 pr-2 py-2 transition-colors ${
                     location.pathname === subItem.path
                       ? 'bg-teal-700 text-white border-r-2 border-teal-200'
@@ -187,105 +202,137 @@ export function Sidebar({ isOpen }: SidebarProps) {
     );
   };
 
-  if (!isOpen) {
-    return (
-      <div className="w-16 max-h-[40px]] bg-gradient-to-b from-teal-800 to-teal-900  text-white flex flex-col overflow-hidden overflow-y-scroll">
-        <div className="p-4 border-b border-gray-700">
-          <Shield className="w-8 h-8 text-blue-400" />
-        </div>
-        <nav className="flex-1 py-4">
-          {filteredMenuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = item.type === 'link' 
-              ? location.pathname === item.path
-              : item.subItems ? isAccordionItemActive(item.subItems) : false;
+  // Collapsed sidebar for desktop
+  // if (!isOpen) {
+  //   return (
+  //     <div className="hidden md:flex w-16 max-h-[40px] bg-gradient-to-b from-teal-800 to-teal-900 text-white flex-col overflow-hidden overflow-y-scroll">
+  //       <div className="p-4 border-b border-gray-700">
+  //         <Shield className="w-8 h-8 text-blue-400" />
+  //       </div>
+  //       <nav className="flex-1 py-4">
+  //         {filteredMenuItems.map((item) => {
+  //           const Icon = item.icon;
+  //           const isActive = item.type === 'link' 
+  //             ? location.pathname === item.path
+  //             : item.subItems ? isAccordionItemActive(item.subItems) : false;
             
+  //           return (
+  //             <div
+  //               key={item.path || item.id}
+  //               className={`flex items-center justify-center p-3 mx-2 rounded-lg transition-colors ${
+  //                 isActive
+  //                   ? 'bg-teal-400 text-white'
+  //                   : 'text-gray-300 hover:bg-gray-700'
+  //               }`}
+  //               title={item.label}
+  //             >
+  //               {item.type === 'link' ? (
+  //                 <Link to={item.path!}>
+  //                   <Icon className="w-6 h-6" />
+  //                 </Link>
+  //               ) : (
+  //                 <Icon className="w-6 h-6" />
+  //               )}
+  //             </div>
+  //           );
+  //         })}
+  //       </nav>
+  //       <div className="p-4 border-t border-gray-700">
+  //         <Button
+  //           variant="ghost"
+  //           size="sm"
+  //           onClick={logout}
+  //           className="w-full p-2 text-gray-300 hover:bg-gray-700"
+  //           title="Logout"
+  //         >
+  //           <LogOut className="w-6 h-6" />
+  //         </Button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  return (
+    <>
+      {/* Backdrop overlay for mobile */}
+      <div 
+        className={`fixed inset-0 bg-black/15 bg-opacity-50 z-40 md:hidden transition-opacity ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onClose}
+      />
+      
+      {/* Sidebar */}
+      <div className={`
+        fixed md:relative top-0 left-0 h-full z-50
+        w-64 bg-gradient-to-b from-teal-800 to-teal-900 text-white flex flex-col
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        {/* Header with close button */}
+        <div className="p-6 border-b border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Shield className="w-8 h-8 text-blue-400" />
+              <div>
+                <h1 className="font-bold">BMS</h1>
+                <p className="text-xs text-gray-400">Business Management</p>
+              </div>
+            </div>
+            {/* Close button - only visible on mobile */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="md:hidden p-1 text-gray-300 hover:bg-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* User info */}
+        <div className="p-4 border-b border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-b from-teal-600 to-teal-400 rounded-full flex items-center justify-center">
+              <span className="font-medium text-sm">
+                {user?.name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <p className="font-medium text-sm">{user?.name}</p>
+              <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 py-4 overflow-y-auto">
+          {filteredMenuItems.map((item) => {
             return (
-              <div
-                key={item.path || item.id}
-                className={`flex items-center justify-center p-3 mx-2 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-teal-400 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-                title={item.label}
-              >
+              <div key={item.path || item.id}>
                 {item.type === 'link' ? (
-                  <Link to={item.path!}>
-                    <Icon className="w-6 h-6" />
-                  </Link>
+                  <SimpleLinkComponent to={item.path!} icon={item.icon} label={item.label} />
                 ) : (
-                  <Icon className="w-6 h-6" />
+                  <SimpleAccordionComponent accordionItem={item} />
                 )}
               </div>
             );
           })}
         </nav>
-        <div className="p-4 border-t border-gray-700">
+
+        {/* Logout button */}
+        <div className="p-6 border-t border-gray-700">
           <Button
             variant="ghost"
-            size="sm"
             onClick={logout}
-            className="w-full p-2 text-gray-300 hover:bg-gray-700"
-            title="Logout"
+            className="w-full justify-start text-gray-300 hover:bg-gray-700"
           >
-            <LogOut className="w-6 h-6" />
+            <LogOut className="w-5 h-5 mr-3" />
+            Logout
           </Button>
         </div>
       </div>
-    );
-  }
-
-  return (
-    <div className="w-64 bg-gradient-to-b from-teal-800 to-teal-900 text-white flex flex-col">
-      <div className="p-6 border-b border-gray-700">
-        <div className="flex items-center space-x-3">
-          <Shield className="w-8 h-8 text-blue-400" />
-          <div>
-            <h1 className="font-bold">BMS</h1>
-            <p className="text-xs text-gray-400">Business Management</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-4 border-b border-gray-700">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-b from-teal-600 to-teal-400 rounded-full flex items-center justify-center">
-            <span className="font-medium text-sm">
-              {user?.name.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div>
-            <p className="font-medium text-sm">{user?.name}</p>
-            <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
-          </div>
-        </div>
-      </div>
-
-      <nav className="flex-1 py-4">
-        {filteredMenuItems.map((item) => {
-          return (
-            <div key={item.path || item.id}>
-              {item.type === 'link' ? (
-                <SimpleLinkComponent to={item.path!} icon={item.icon} label={item.label} />
-              ) : (
-                <SimpleAccordionComponent accordionItem={item} />
-              )}
-            </div>
-          );
-        })}
-      </nav>
-
-      <div className="p-6 border-t border-gray-700">
-        <Button
-          variant="ghost"
-          onClick={logout}
-          className="w-full justify-start text-gray-300 hover:bg-gray-700"
-        >
-          <LogOut className="w-5 h-5 mr-3" />
-          Logout
-        </Button>
-      </div>
-    </div>
+    </>
   );
 }
