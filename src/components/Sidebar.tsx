@@ -70,6 +70,7 @@ export function Sidebar({ isOpen }: SidebarProps) {
         { path: '/customer-registration', icon: UserPlus, label: 'Customer Registration', roles: ['admin', 'agent'] },
         { path: '/vendor-registration', icon: Truck, label: 'Vendor Registration', roles: ['admin', 'agent'] },
         { path: '/agent', icon: HatGlasses, label: 'Agent', roles: ['admin', 'agent'] },
+        { path: '/ladger-registration', icon: HatGlasses, label: 'Ladger', roles: ['admin', 'agent'] },
       ]
     },
     { path: '/users', icon: Users, label: 'User Management', roles: ['admin'], type: 'link' },

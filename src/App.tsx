@@ -12,10 +12,11 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/pages/Header';
 import Company from './components/pages/Company';
 import { Toaster } from './components/ui/sonner';
-  import "./index.css";
+import "./index.css";
 import VendorRegistration from './components/pages/VendorRegistration';
 import CustomerRegistration from './components/pages/CustomerRegistration';
 import Agent from './components/pages/Agent';
+import Ladger from './components/pages/Ladger';
 import Product from './components/pages/Product';
 import Godown from './components/pages/Godown';
 import StockCategory from './components/pages/StockCategory';
@@ -208,6 +209,13 @@ export default function App() {
               <ProtectedRoute allowedRoles={['admin']}>
                 <AppLayout>
                   <CustomerRegistration />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/ladger-registration" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AppLayout>
+                  <Ladger />
                 </AppLayout>
               </ProtectedRoute>
             } />
