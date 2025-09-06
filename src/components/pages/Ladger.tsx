@@ -4,9 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit, Settings2, Users, UserCheck, Target } from "lucide-react";
+import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit, Settings2, Users } from "lucide-react";
 import { Country, State, City } from 'country-state-city';
 import CustomInputBox from "../customComponents/CustomInputBox";
+import {dummyVendors} from "../../lib/dummyData"
 
 // Bank interface
 interface Bank {
@@ -28,19 +29,18 @@ interface RegistrationDocument {
   fileName: string;
 }
 
-// Agent interface
-interface Agent {
+// Ledger interface
+interface Ledger {
   id: number;
-  agentType: string;
-  agentCode: string;
-  agentName: string;
+  ledgerType: string;
+  ledgerCode: string;
+  ledgerName: string;
   shortName: string;
-  agentCategory: string;
-  specialty: string;
+  ledgerGroup: string;
+  industryType: string;
   territory: string;
-  supervisor: string;
-  agentStatus: string;
-  experienceLevel: string;
+  ledgerStatus: string;
+  companySize: string;
   contactPerson: string;
   designation: string;
   phoneNumber: string;
@@ -55,49 +55,30 @@ interface Agent {
   country: string;
   website: string;
   currency: string;
-  commissionStructure: string;
-  paymentTerms: string;
-  commissionRate: string;
-  taxId: string;
-  vatNumber: string;
-  gstNumber: string;
-  panNumber: string;
-  tanNumber: string;
-  taxCategory: string;
-  taxTemplate: string;
-  withholdingTaxCategory: string;
-  isTaxExempt: boolean;
-  reverseCharge: boolean;
+  isFrozenAccount: boolean;
+  disabled: boolean;
   bankName: string;
   branchName: string;
   accountNumber: string;
   accountHolderName: string;
   ifscCode: string;
   swiftCode: string;
-  preferredPaymentMethod: string;
-  acceptedPaymentMethods: string[];
-  paymentInstructions: string;
   banks: Bank[];
-  approvalWorkflow: string;
-  documentRequired: string;
   externalSystemId: string;
-  crmIntegration: string;
   dataSource: string;
-  agentPriority: string;
+  ledgerPriority: string;
   leadSource: string;
   internalNotes: string;
   logo: string | null;
   notes: string;
   createdAt: string;
   registrationDocs: RegistrationDocument[];
-  performanceRating: number;
-  activeContracts: number;
 }
 
-const AgentRegistration: React.FC = () => {
+const LedgerRegistration: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("basic");
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [ledgers, setLedgers] = useState<Ledger[]>(dummyVendors);
   const [bankForm, setBankForm] = useState<Bank>({
     id: Date.now(),
     accountHolderName: "",
@@ -111,18 +92,17 @@ const AgentRegistration: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<RegistrationDocument[]>([]);
   
-  const [formData, setFormData] = useState<Agent>({
+  const [formData, setFormData] = useState<Ledger>({
     id: 0,
-    agentType: 'individual',
-    agentCode: '',
-    agentName: '',
+    ledgerType: 'individual',
+    ledgerCode: '',
+    ledgerName: '',
     shortName: '',
-    agentCategory: '',
-    specialty: '',
+    ledgerGroup: '',
+    industryType: '',
     territory: '',
-    supervisor: '',
-    agentStatus: 'active',
-    experienceLevel: '',
+    ledgerStatus: 'active',
+    companySize: '',
     contactPerson: '',
     designation: '',
     phoneNumber: '',
@@ -137,34 +117,17 @@ const AgentRegistration: React.FC = () => {
     country: 'India',
     website: '',
     currency: 'INR',
-    commissionStructure: '',
-    paymentTerms: '',
-    commissionRate: '',
-    taxId: '',
-    vatNumber: '',
-    gstNumber: '',
-    panNumber: '',
-    tanNumber: '',
-    taxCategory: '',
-    taxTemplate: '',
-    withholdingTaxCategory: '',
-    isTaxExempt: false,
-    reverseCharge: false,
+    isFrozenAccount: false,
+    disabled: false,
     bankName: '',
     branchName: '',
     accountNumber: '',
     accountHolderName: '',
     ifscCode: '',
     swiftCode: '',
-    preferredPaymentMethod: '',
-    acceptedPaymentMethods: [],
-    paymentInstructions: '',
-    approvalWorkflow: '',
-    documentRequired: '',
     externalSystemId: '',
-    crmIntegration: '',
     dataSource: 'manual',
-    agentPriority: 'medium',
+    ledgerPriority: 'medium',
     leadSource: '',
     internalNotes: '',
     banks: [],
@@ -172,8 +135,6 @@ const AgentRegistration: React.FC = () => {
     notes: '',
     createdAt: '',
     registrationDocs: [],
-    performanceRating: 0,
-    activeContracts: 0
   });
 
   // Get all countries
@@ -224,7 +185,7 @@ const AgentRegistration: React.FC = () => {
     }));
   };
 
-  const handleSelectChange = (name: keyof Agent, value: string): void => {
+  const handleSelectChange = (name: keyof Ledger, value: string): void => {
     if (name === "country") {
       setFormData(prev => ({
         ...prev,
@@ -344,16 +305,15 @@ const AgentRegistration: React.FC = () => {
   const resetForm = () => {
     setFormData({
       id: 0,
-      agentType: 'individual',
-      agentCode: '',
-      agentName: '',
+      ledgerType: 'individual',
+      ledgerCode: '',
+      ledgerName: '',
       shortName: '',
-      agentCategory: '',
-      specialty: '',
+      ledgerGroup: '',
+      industryType: '',
       territory: '',
-      supervisor: '',
-      agentStatus: 'active',
-      experienceLevel: '',
+      ledgerStatus: 'active',
+      companySize: '',
       contactPerson: '',
       designation: '',
       phoneNumber: '',
@@ -368,34 +328,17 @@ const AgentRegistration: React.FC = () => {
       country: 'India',
       website: '',
       currency: 'INR',
-      commissionStructure: '',
-      paymentTerms: '',
-      commissionRate: '',
-      taxId: '',
-      vatNumber: '',
-      gstNumber: '',
-      panNumber: '',
-      tanNumber: '',
-      taxCategory: '',
-      taxTemplate: '',
-      withholdingTaxCategory: '',
-      isTaxExempt: false,
-      reverseCharge: false,
+      isFrozenAccount: false,
+      disabled: false,
       bankName: '',
       branchName: '',
       accountNumber: '',
       accountHolderName: '',
       ifscCode: '',
       swiftCode: '',
-      preferredPaymentMethod: '',
-      acceptedPaymentMethods: [],
-      paymentInstructions: '',
-      approvalWorkflow: '',
-      documentRequired: '',
       externalSystemId: '',
-      crmIntegration: '',
       dataSource: 'manual',
-      agentPriority: 'medium',
+      ledgerPriority: 'medium',
       leadSource: '',
       internalNotes: '',
       banks: [],
@@ -403,14 +346,12 @@ const AgentRegistration: React.FC = () => {
       notes: '',
       createdAt: '',
       registrationDocs: [],
-      performanceRating: 0,
-      activeContracts: 0
     });
   };
 
   const handleSubmit = (): void => {
-    if (!formData.agentName.trim() || !formData.emailAddress.trim()) {
-      alert("Please fill in Agent Name and Email Address");
+    if (!formData.ledgerName.trim() || !formData.emailAddress.trim()) {
+      alert("Please fill in Ledger Name and Email Address");
       return;
     }
 
@@ -421,15 +362,13 @@ const AgentRegistration: React.FC = () => {
       return;
     }
 
-    const newAgent: Agent = { 
+    const newLedger: Ledger = { 
       ...formData, 
       id: Date.now(),
-      createdAt: new Date().toLocaleDateString(),
-      performanceRating: Math.floor(Math.random() * 5) + 1, // Random rating for demo
-      activeContracts: Math.floor(Math.random() * 20) + 1 // Random contract count for demo
+      createdAt: new Date().toLocaleDateString()
     };
     
-    setAgents(prev => [...prev, newAgent]);
+    setLedgers(prev => [...prev, newLedger]);
     resetForm();
     setOpen(false);
     setActiveTab("basic");
@@ -437,18 +376,14 @@ const AgentRegistration: React.FC = () => {
 
   // Statistics calculations
   const stats = useMemo(() => ({
-    totalAgents: agents.length,
-    gstRegistered: agents.filter(c => c.gstNumber.trim() !== "").length,
-    activeAgents: agents.filter(c => c.agentStatus === 'active').length,
-    topPerformers: agents.filter(c => c.performanceRating >= 4).length
-  }), [agents]);
+    totalLedgers: ledgers.length,
+    activeLedgers: ledgers.filter(c => c.ledgerStatus === 'active').length
+  }), [ledgers]);
 
   // Form tabs
   const tabs = [
     { id: "basic", label: "Basic Info" },
     { id: "contact", label: "Contact Details" },
-    { id: "commission", label: "Commission Details" },
-    { id: "tax", label: "Tax Information" },
     { id: "bank", label: "Banking Details" },
     { id: "settings", label: "Settings" }
   ];
@@ -458,15 +393,15 @@ const AgentRegistration: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Agent Management</h1>
-          <p className="text-gray-600">Manage your agent information and registrations</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Ledger Management</h1>
+          <p className="text-gray-600">Manage your ledger information and registrations</p>
         </div>
         <Button 
           onClick={() => setOpen(true)} 
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
         >
-          <UserCheck className="w-4 h-4 mr-2" />
-          Add Agent
+          <Users className="w-4 h-4 mr-2" />
+          Add Ledger
         </Button>
       </div>
 
@@ -476,10 +411,10 @@ const AgentRegistration: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-teal-100 text-sm font-medium">Total Agents</p>
-                <p className="text-3xl font-bold">{stats.totalAgents}</p>
+                <p className="text-teal-100 text-sm font-medium">Total Ledgers</p>
+                <p className="text-3xl font-bold">{stats.totalLedgers}</p>
               </div>
-              <UserCheck className="w-8 h-8 text-teal-200" />
+              <Users className="w-8 h-8 text-teal-200" />
             </div>
           </CardContent>
         </Card>
@@ -488,10 +423,10 @@ const AgentRegistration: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">GST Registered</p>
-                <p className="text-3xl font-bold">{stats.gstRegistered}</p>
+                <p className="text-blue-100 text-sm font-medium">Active Ledgers</p>
+                <p className="text-3xl font-bold">{stats.activeLedgers}</p>
               </div>
-              <FileText className="w-8 h-8 text-blue-200" />
+              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
             </div>
           </CardContent>
         </Card>
@@ -500,10 +435,10 @@ const AgentRegistration: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Active Agents</p>
-                <p className="text-3xl font-bold">{stats.activeAgents}</p>
+                <p className="text-green-100 text-sm font-medium">Individual Accounts</p>
+                <p className="text-3xl font-bold">{ledgers.filter(l => l.ledgerType === 'individual').length}</p>
               </div>
-              <Star className="w-8 h-8 text-green-200" />
+              <Users className="w-8 h-8 text-green-200" />
             </div>
           </CardContent>
         </Card>
@@ -512,153 +447,119 @@ const AgentRegistration: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Top Performers</p>
-                <p className="text-3xl font-bold">{stats.topPerformers}</p>
+                <p className="text-purple-100 text-sm font-medium">Business Accounts</p>
+                <p className="text-3xl font-bold">{ledgers.filter(l => l.ledgerType === 'company').length}</p>
               </div>
-              <Target className="w-8 h-8 text-purple-200" />
+              <Building2 className="w-8 h-8 text-purple-200" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Agent List */}
-      {agents.length === 0 ? (
+      {/* Ledger List */}
+      {ledgers.length === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <UserCheck className="w-16 h-16 text-gray-400 mb-4" />
-            <p className="text-gray-500 text-lg font-medium mb-2">No agents registered yet</p>
-            <p className="text-gray-400 text-sm mb-6">Create your first agent to get started</p>
+            <Users className="w-16 h-16 text-gray-400 mb-4" />
+            <p className="text-gray-500 text-lg font-medium mb-2">No ledgers registered yet</p>
+            <p className="text-gray-400 text-sm mb-6">Create your first ledger to get started</p>
             <Button 
               onClick={() => setOpen(true)}
               className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
             >
-              Add Your First Agent
+              Add Your First Ledger
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {agents.map((agent: Agent) => (
-            <Card key={agent.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
+          {ledgers.map((ledger: Ledger) => (
+            <Card key={ledger.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center">
-                    {agent.logo && (
-                      <img src={agent.logo} alt="Agent Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
+                    {ledger.logo && (
+                      <img src={ledger.logo} alt="Ledger Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
                     )}
                     <div>
                       <CardTitle className="text-xl font-bold text-gray-800 mb-1">
-                        {agent.agentName}
+                        {ledger.ledgerName}
                       </CardTitle>
-                      {agent.shortName && (
-                        <p className="text-teal-600 font-medium">{agent.shortName}</p>
+                      {ledger.shortName && (
+                        <p className="text-teal-600 font-medium">{ledger.shortName}</p>
                       )}
-                      <p className="text-sm text-gray-500">{agent.agentCode}</p>
+                      <p className="text-sm text-gray-500">{ledger.ledgerCode}</p>
                     </div>
                   </div>
-                  <Badge className={`${agent.agentStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
-                    {agent.agentStatus}
+                  <Badge className={`${ledger.ledgerStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
+                    {ledger.ledgerStatus}
                   </Badge>
                 </div>
               </CardHeader>
               
               <CardContent className="p-6 space-y-4">
                 <div className="space-y-3">
-                  {agent.contactPerson && (
+                  {ledger.contactPerson && (
                     <div className="flex items-center text-sm">
                       <Users className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-gray-600">{agent.contactPerson}</span>
+                      <span className="text-gray-600">{ledger.contactPerson}</span>
                     </div>
                   )}
                   
-                  {(agent.city || agent.state || agent.zipCode) && (
+                  {(ledger.city || ledger.state || ledger.zipCode) && (
                     <div className="flex items-center text-sm">
                       <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                       <span className="text-gray-600">
-                        {[agent.city, agent.state, agent.zipCode].filter(Boolean).join(", ")}
+                        {[ledger.city, ledger.state, ledger.zipCode].filter(Boolean).join(", ")}
                       </span>
                     </div>
                   )}
                   
-                  {agent.mobileNumber && (
+                  {ledger.mobileNumber && (
                     <div className="flex items-center text-sm">
                       <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-gray-600">{agent.mobileNumber}</span>
+                      <span className="text-gray-600">{ledger.mobileNumber}</span>
                     </div>
                   )}
                   
                   <div className="flex items-center text-sm">
                     <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                    <span className="text-gray-600 truncate">{agent.emailAddress}</span>
+                    <span className="text-gray-600 truncate">{ledger.emailAddress}</span>
                   </div>
                   
-                  {agent.website && (
+                  {ledger.website && (
                     <div className="flex items-center text-sm">
                       <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-teal-600 truncate">{agent.website}</span>
+                      <span className="text-teal-600 truncate">{ledger.website}</span>
                     </div>
                   )}
                 </div>
 
-                {/* Performance Metrics */}
-                <div className="pt-3 border-t border-gray-100">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">Performance</span>
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-3 h-3 ${
-                            i < agent.performanceRating
-                              ? "text-yellow-500 fill-yellow-500"
-                              : "text-gray-300"
-                          }`}
-                        />
+                {/* Bank Accounts */}
+                {ledger.banks.length > 0 && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <p className="text-xs font-medium text-gray-500 mb-2">Bank Accounts</p>
+                    <div className="space-y-2">
+                      {ledger.banks.slice(0, 2).map(bank => (
+                        <div key={bank.id} className="text-xs bg-gray-100 p-2 rounded">
+                          <p className="font-medium truncate">{bank.bankName}</p>
+                          <p className="text-gray-600 truncate">A/C: ••••{bank.accountNumber.slice(-4)}</p>
+                        </div>
                       ))}
+                      {ledger.banks.length > 2 && (
+                        <p className="text-xs text-gray-500">+{ledger.banks.length - 2} more</p>
+                      )}
                     </div>
                   </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs font-medium text-gray-500">Active Contracts</span>
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                      {agent.activeContracts}
-                    </span>
+                )}
+
+                {/* Currency */}
+                <div className="pt-3 border-t border-gray-100">
+                  <div className="flex items-center text-sm">
+                    <CreditCard className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                    <span className="text-gray-600">{ledger.currency}</span>
                   </div>
                 </div>
-
-                {/* Registration Numbers */}
-                {(agent.gstNumber || agent.panNumber) && (
-                  <div className="pt-3 border-t border-gray-100 space-y-2">
-                    {agent.gstNumber && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-500">GST</span>
-                        <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
-                          {agent.gstNumber}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {agent.panNumber && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-500">PAN</span>
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
-                          {agent.panNumber}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Commission Rate */}
-                {agent.commissionRate && (
-                  <div className="pt-3 border-t border-gray-100">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-medium text-gray-500">Commission Rate</span>
-                      <span className="text-xs font-semibold text-teal-700">
-                        {agent.commissionRate}%
-                      </span>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           ))}
@@ -670,10 +571,10 @@ const AgentRegistration: React.FC = () => {
         <DialogContent className="sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
           <DialogHeader className="pb-4 border-b border-gray-200 h-16">
             <DialogTitle className="text-2xl font-bold text-gray-800">
-              Add New Agent
+              Add New Ledger
             </DialogTitle>
             <p className="text-gray-600 text-sm">
-              Fill in the agent details and registration information
+              Fill in the ledger details and registration information
             </p>
           </DialogHeader>
           
@@ -700,33 +601,33 @@ const AgentRegistration: React.FC = () => {
               {activeTab === "basic" && (
                 <div className="bg-white p-4">
                   <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <UserCheck className="w-5 h-5 mr-2" />
-                    Agent Information
+                    <Users className="w-5 h-5 mr-2" />
+                    Ledger Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <select
-                      value={formData.agentType}
-                      onChange={(e) => handleSelectChange("agentType", e.target.value)}
+                      value={formData.ledgerType}
+                      onChange={(e) => handleSelectChange("ledgerType", e.target.value)}
                       className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                     >
                       <option value="individual">Individual</option>
                       <option value="company">Company</option>
                       <option value="partnership">Partnership</option>
-                      <option value="broker">Broker</option>
+                      <option value="trust">Trust</option>
                     </select>
                     <CustomInputBox
-                      placeholder="Agent Code *"
-                      name="agentCode"
-                      value={formData.agentCode}
+                      placeholder="Ledger Code *"
+                      name="ledgerCode"
+                      value={formData.ledgerCode}
                       onChange={handleChange}
                     />
                   </div>
 
                   <div className="mt-4 flex flex-col gap-4">
                     <CustomInputBox
-                      placeholder="Agent Name *"
-                      name="agentName"
-                      value={formData.agentName}
+                      placeholder="Ledger Name *"
+                      name="ledgerName"
+                      value={formData.ledgerName}
                       onChange={handleChange}
                     />
                     <CustomInputBox
@@ -739,27 +640,27 @@ const AgentRegistration: React.FC = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                     <select
-                      value={formData.agentCategory}
-                      onChange={(e) => handleSelectChange("agentCategory", e.target.value)}
+                      value={formData.ledgerGroup}
+                      onChange={(e) => handleSelectChange("ledgerGroup", e.target.value)}
                       className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                     >
-                      <option value="">Select Agent Category</option>
-                      <option value="sales">Sales Agent</option>
-                      <option value="procurement">Procurement Agent</option>
-                      <option value="broker">Broker</option>
-                      <option value="independent">Independent Agent</option>
+                      <option value="">Select Ledger Group</option>
+                      <option value="customer">Customer</option>
+                      <option value="supplier">Supplier</option>
+                      <option value="bank">Bank</option>
+                      <option value="cash">Cash</option>
                     </select>
                     
                     <select
-                      value={formData.specialty}
-                      onChange={(e) => handleSelectChange("specialty", e.target.value)}
+                      value={formData.industryType}
+                      onChange={(e) => handleSelectChange("industryType", e.target.value)}
                       className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                     >
-                      <option value="">Select Specialty</option>
-                      <option value="technology">Technology</option>
+                      <option value="">Select Industry Type</option>
                       <option value="manufacturing">Manufacturing</option>
+                      <option value="services">Services</option>
                       <option value="healthcare">Healthcare</option>
-                      <option value="realestate">Real Estate</option>
+                      <option value="technology">Technology</option>
                     </select>
                     
                     <select
@@ -777,37 +678,38 @@ const AgentRegistration: React.FC = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                     <select
-                      value={formData.supervisor}
-                      onChange={(e) => handleSelectChange("supervisor", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select Supervisor</option>
-                      <option value="john">John Smith</option>
-                      <option value="jane">Jane Doe</option>
-                      <option value="mike">Mike Johnson</option>
-                    </select>
-                    
-                    <select
-                      value={formData.agentStatus}
-                      onChange={(e) => handleSelectChange("agentStatus", e.target.value)}
+                      value={formData.ledgerStatus}
+                      onChange={(e) => handleSelectChange("ledgerStatus", e.target.value)}
                       className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
                       <option value="suspended">Suspended</option>
-                      <option value="probation">Probation</option>
                     </select>
                     
                     <select
-                      value={formData.experienceLevel}
-                      onChange={(e) => handleSelectChange("experienceLevel", e.target.value)}
+                      value={formData.companySize}
+                      onChange={(e) => handleSelectChange("companySize", e.target.value)}
                       className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                     >
-                      <option value="">Select Experience Level</option>
-                      <option value="entry">Entry Level</option>
-                      <option value="mid">Mid Level</option>
-                      <option value="senior">Senior Level</option>
-                      <option value="expert">Expert</option>
+                      <option value="">Select Company Size</option>
+                      <option value="small">Small (1-50)</option>
+                      <option value="medium">Medium (51-250)</option>
+                      <option value="large">Large (251-1000)</option>
+                      <option value="enterprise">Enterprise (1000+)</option>
+                    </select>
+
+                    <select
+                      value={formData.currency}
+                      onChange={(e) => handleSelectChange("currency", e.target.value)}
+                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                    >
+                      <option value="USD">USD - US Dollar</option>
+                      <option value="EUR">EUR - Euro</option>
+                      <option value="GBP">GBP - British Pound</option>
+                      <option value="INR">INR - Indian Rupee</option>
+                      <option value="CAD">CAD - Canadian Dollar</option>
+                      <option value="AUD">AUD - Australian Dollar</option>
                     </select>
                   </div>
 
@@ -931,209 +833,8 @@ const AgentRegistration: React.FC = () => {
                     <Button variant="outline" onClick={() => setActiveTab("basic")}>
                       Previous: Basic Info
                     </Button>
-                    <Button onClick={() => setActiveTab("commission")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Commission Details
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Commission Details Tab */}
-              {activeTab === "commission" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    Commission Details
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <select
-                      value={formData.currency}
-                      onChange={(e) => handleSelectChange("currency", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="USD">USD - US Dollar</option>
-                      <option value="EUR">EUR - Euro</option>
-                      <option value="GBP">GBP - British Pound</option>
-                      <option value="INR">INR - Indian Rupee</option>
-                      <option value="CAD">CAD - Canadian Dollar</option>
-                      <option value="AUD">AUD - Australian Dollar</option>
-                    </select>
-                    <select
-                      value={formData.commissionStructure}
-                      onChange={(e) => handleSelectChange("commissionStructure", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select Commission Structure</option>
-                      <option value="fixed">Fixed Rate</option>
-                      <option value="tiered">Tiered Commission</option>
-                      <option value="revenue_share">Revenue Share</option>
-                      <option value="profit_share">Profit Share</option>
-                    </select>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <CustomInputBox
-                      placeholder="Commission Rate %"
-                      name="commissionRate"
-                      value={formData.commissionRate}
-                      onChange={handleChange}
-                      type="number"
-                    />
-                    <select
-                      value={formData.paymentTerms}
-                      onChange={(e) => handleSelectChange("paymentTerms", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select Payment Terms</option>
-                      <option value="net_30">Net 30</option>
-                      <option value="net_60">Net 60</option>
-                      <option value="immediate">Immediate</option>
-                      <option value="advance">Advance Payment</option>
-                    </select>
-                  </div>
-
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("contact")}>
-                      Previous: Contact
-                    </Button>
-                    <Button onClick={() => setActiveTab("tax")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Tax Information
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Tax Information Tab */}
-              {activeTab === "tax" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <FileText className="w-5 h-5 mr-2" />
-                    Tax Details
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <CustomInputBox
-                      placeholder="Tax ID/Registration Number"
-                      name="taxId"
-                      value={formData.taxId}
-                      onChange={handleChange}
-                      maxLength={15}
-                    />
-                    <CustomInputBox
-                      placeholder="VAT Number"
-                      name="vatNumber"
-                      value={formData.vatNumber}
-                      onChange={handleChange}
-                      maxLength={15}
-                    />
-                    <CustomInputBox
-                      placeholder="GST Number"
-                      name="gstNumber"
-                      value={formData.gstNumber}
-                      onChange={handleChange}
-                      maxLength={15}
-                    />
-                    <CustomInputBox
-                      placeholder="PAN Number"
-                      name="panNumber"
-                      value={formData.panNumber}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
-                    <CustomInputBox
-                      placeholder="TAN Number"
-                      name="tanNumber"
-                      value={formData.tanNumber}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    <select
-                      value={formData.taxCategory}
-                      onChange={(e) => handleSelectChange("taxCategory", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select Tax Category</option>
-                      <option value="taxable">Taxable</option>
-                      <option value="exempt">Tax Exempt</option>
-                      <option value="zero_rated">Zero Rated</option>
-                      <option value="out_of_scope">Out of Scope</option>
-                    </select>
-                    
-                    <select
-                      value={formData.taxTemplate}
-                      onChange={(e) => handleSelectChange("taxTemplate", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select Tax Template</option>
-                      <option value="standard_tax">Standard Tax</option>
-                      <option value="zero_tax">Zero Tax</option>
-                      <option value="igst_18">IGST 18%</option>
-                      <option value="cgst_sgst_18">CGST+SGST 18%</option>
-                    </select>
-                    
-                    <select
-                      value={formData.withholdingTaxCategory}
-                      onChange={(e) => handleSelectChange("withholdingTaxCategory", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select WHT Category</option>
-                      <option value="tds_contractor">TDS - Contractor</option>
-                      <option value="tds_professional">TDS - Professional</option>
-                      <option value="tds_commission">TDS - Commission</option>
-                    </select>
-                  </div>
-
-                  {/* Document Upload Section */}
-                  <div className="mt-6">
-                    <h4 className="font-medium text-teal-800 mb-3">Registration Documents</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {['TAX', 'VAT', 'GST', 'PAN', 'TAN'].map(docType => (
-                        <div key={docType} className="p-4 bg-white rounded-lg border border-teal-200">
-                          <p className="text-sm font-medium text-teal-700 mb-2">{docType} Document</p>
-                          <div className="flex items-center justify-between">
-                            <Input
-                              type="file"
-                              id={`${docType.toLowerCase()}-doc`}
-                              className="hidden"
-                              onChange={(e) => handleDocumentUpload(docType, e)}
-                              accept="image/*,.pdf"
-                            />
-                            <label
-                              htmlFor={`${docType.toLowerCase()}-doc`}
-                              className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
-                            >
-                              <Upload className="w-4 h-4 mr-2" />
-                              Upload
-                            </label>
-                            {formData.registrationDocs.find(doc => doc.type === docType) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeDocument(formData.registrationDocs.find(doc => doc.type === docType)!.id)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                          {formData.registrationDocs.find(doc => doc.type === docType) && (
-                            <p className="text-xs text-gray-500 mt-2 truncate">
-                              {formData.registrationDocs.find(doc => doc.type === docType)?.fileName}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("commission")}>
-                      Previous: Commission Details
-                    </Button>
                     <Button onClick={() => setActiveTab("bank")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Bank Details
+                      Next: Banking Details
                     </Button>
                   </div>
                 </div>
@@ -1222,8 +923,8 @@ const AgentRegistration: React.FC = () => {
                   )}
 
                   <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("tax")}>
-                      Previous: Tax Information
+                    <Button variant="outline" onClick={() => setActiveTab("contact")}>
+                      Previous: Contact
                     </Button>
                     <Button onClick={() => setActiveTab("settings")} className="bg-teal-600 hover:bg-teal-700">
                       Next: Settings
@@ -1242,11 +943,11 @@ const AgentRegistration: React.FC = () => {
                   
                   {/* Logo Upload */}
                   <div className="mb-6">
-                    <p className="text-sm font-medium text-teal-700 mb-2">Agent Logo</p>
+                    <p className="text-sm font-medium text-teal-700 mb-2">Ledger Logo</p>
                     <div className="flex items-center gap-4">
                       <div className="w-20 h-20 rounded-full border-2 border-dashed border-teal-300 flex items-center justify-center overflow-hidden bg-white">
                         {formData.logo ? (
-                          <img src={formData.logo} alt="Agent Logo" className="w-full h-full object-cover" />
+                          <img src={formData.logo} alt="Ledger Logo" className="w-full h-full object-cover" />
                         ) : (
                           <Image className="w-8 h-8 text-teal-300" />
                         )}
@@ -1275,8 +976,8 @@ const AgentRegistration: React.FC = () => {
                   {/* Advanced Settings */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <select
-                      value={formData.agentPriority}
-                      onChange={(e) => handleSelectChange("agentPriority", e.target.value)}
+                      value={formData.ledgerPriority}
+                      onChange={(e) => handleSelectChange("ledgerPriority", e.target.value)}
                       className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                     >
                       <option value="low">Low Priority</option>
@@ -1291,10 +992,11 @@ const AgentRegistration: React.FC = () => {
                       className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                     >
                       <option value="">Select Lead Source</option>
+                      <option value="website">Website</option>
                       <option value="referral">Referral</option>
-                      <option value="recruitment">Recruitment Agency</option>
-                      <option value="direct">Direct Application</option>
+                      <option value="advertising">Advertising</option>
                       <option value="social_media">Social Media</option>
+                      <option value="cold_call">Cold Call</option>
                     </select>
                   </div>
 
@@ -1303,22 +1005,22 @@ const AgentRegistration: React.FC = () => {
                     <label className="flex items-center">
                       <input
                         type="checkbox"
-                        name="isTaxExempt"
-                        checked={formData.isTaxExempt}
+                        name="isFrozenAccount"
+                        checked={formData.isFrozenAccount}
                         onChange={handleChange}
                         className="mr-2"
                       />
-                      Tax Exempt
+                      Frozen Account
                     </label>
                     <label className="flex items-center">
                       <input
                         type="checkbox"
-                        name="reverseCharge"
-                        checked={formData.reverseCharge}
+                        name="disabled"
+                        checked={formData.disabled}
                         onChange={handleChange}
                         className="mr-2"
                       />
-                      Reverse Charge
+                      Disabled
                     </label>
                   </div>
 
@@ -1326,7 +1028,7 @@ const AgentRegistration: React.FC = () => {
                   <div className="mb-4">
                     <p className="text-sm font-medium text-teal-700 mb-2">Internal Notes</p>
                     <textarea
-                      placeholder="Add any additional notes about the agent..."
+                      placeholder="Add any additional notes about the ledger..."
                       name="internalNotes"
                       value={formData.internalNotes}
                       onChange={handleChange}
@@ -1340,7 +1042,7 @@ const AgentRegistration: React.FC = () => {
                       Previous: Bank Details
                     </Button>
                     <Button onClick={handleSubmit} className="bg-teal-600 hover:bg-teal-700">
-                      Save Agent
+                      Save Ledger
                     </Button>
                   </div>
                 </div>
@@ -1353,7 +1055,7 @@ const AgentRegistration: React.FC = () => {
                     onClick={handleSubmit}
                     className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-8 py-2 shadow-lg"
                   >
-                    Save Agent
+                    Save Ledger
                   </Button>
                 </div>
               )}
@@ -1365,4 +1067,4 @@ const AgentRegistration: React.FC = () => {
   );
 };
 
-export default AgentRegistration;
+export default LedgerRegistration;
