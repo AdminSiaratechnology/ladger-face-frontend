@@ -14,7 +14,7 @@ interface Godown {
   code: string;
   name: string;
   parent: string;
-  address: string;
+  address: string; 
   state: string;
   city: string;
   country: string;
@@ -155,13 +155,14 @@ const GodownRegistration: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Godown Management</h1>
           <p className="text-gray-600">Manage your godown information and registrations</p>
         </div>
-        <Button 
-          onClick={() => setOpen(true)} 
-          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-        >
-          <Warehouse className="w-4 h-4 mr-2" />
-          Add Godown
-        </Button>
+       
+             <Button 
+                  onClick={() => setOpen(true)} 
+                  className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  <Building2 className="w-4 h-4 mr-2" />
+                  Add Godown
+                </Button>
       </div>
 
       {/* Stats Cards */}
@@ -224,7 +225,7 @@ const GodownRegistration: React.FC = () => {
             <p className="text-gray-400 text-sm mb-6">Create your first godown to get started</p>
             <Button 
               onClick={() => setOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+              className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
             >
               Add Your First Godown
             </Button>
@@ -240,7 +241,7 @@ const GodownRegistration: React.FC = () => {
                     <CardTitle className="text-xl font-bold text-gray-800 mb-1">
                       {godown.name}
                     </CardTitle>
-                    <p className="text-blue-600 font-medium">{godown.code}</p>
+                    <p className="text-teal-600 font-medium">{godown.code}</p>
                     {godown.isPrimary && (
                       <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 mt-2">
                         Primary
@@ -319,7 +320,7 @@ const GodownRegistration: React.FC = () => {
           
           <div className="space-y-6 py-4">
             <div className="bg-white p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+              <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
                 <Warehouse className="w-5 h-5 mr-2" />
                 Godown Information
               </h3>
@@ -435,7 +436,7 @@ const GodownRegistration: React.FC = () => {
                 <select
                   value={formData.city}
                   onChange={(e) => handleSelectChange("city", e.target.value)}
-                  className="h-10 px-3 py-2 border border-blue-200 rounded-md focus:border-blue-500 focus:outline-none bg-white"
+                  className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                   disabled={availableCities.length === 0}
                 >
                   <option value="">Select City</option>
@@ -448,7 +449,7 @@ const GodownRegistration: React.FC = () => {
               <div className="flex justify-end mt-6">
                 <Button 
                   onClick={handleSubmit}
-                  className="bg-gradient-to-r from-teal-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-2 shadow-lg"
+                  className="bg-gradient-to-r from-teal-600 to-blue-700 hover:from-teal-700 hover:to-blue-800 text-white px-8 py-2 shadow-lg"
                 >
                   Save Godown
                 </Button>

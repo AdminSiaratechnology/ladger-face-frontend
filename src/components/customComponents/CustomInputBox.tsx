@@ -1,6 +1,7 @@
-
 import { Input } from '../ui/input'
+
 interface CustomInputBoxProps {
+  label?: string;
   placeholder: string;
   name: string;
   value: string;
@@ -9,19 +10,36 @@ interface CustomInputBoxProps {
   type?: string;
 }
 
-function CustomInputBox({placeholder,name,value,onChange,maxLength,type}:CustomInputBoxProps) {
+function CustomInputBox({
+  label,
+  placeholder,
+  name,
+  value,
+  onChange,
+  maxLength,
+  type,
+}: CustomInputBoxProps) {
   return (
-     <Input
-            type={type || "text"}
-      placeholder={placeholder}
-      name={name}
-      value={value}
-    
-      onChange={onChange} // This must be passed down!
-            maxLength={maxLength}
-              className="border-teal-200 focus:border-teal-500  !ring-teal-100   border-1"
-
-          />
+    <div className="flex flex-col gap-1">
+      {label && (
+        <label
+          htmlFor={name}
+          className="text-sm font-medium text-gray-700"
+        >
+          {label}
+        </label>
+      )}
+      <Input
+        id={name}
+        type={type || 'text'}
+        placeholder={placeholder}
+        name={name}
+        value={value}
+        onChange={onChange}
+        maxLength={maxLength}
+        className=" border  border-teal-200 rounded-md focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white "
+      />
+    </div>
   )
 }
 
