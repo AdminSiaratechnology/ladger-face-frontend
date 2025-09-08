@@ -8,6 +8,7 @@ import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus
 // import { ICountry, IState, ICity } from 'country-state-city';
 import { Country, State, City } from 'country-state-city';
 import CustomInputBox from "../customComponents/CustomInputBox";
+import { dummyCompanies } from "../../lib/dummyData";
 
 // Bank interface
 interface Bank {
@@ -90,7 +91,7 @@ interface RegistrationDocument {
 const CompanyPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("basic");
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<Company[]>(dummyCompanies);
   const [bankForm, setBankForm] = useState<Bank>({
     id: Date.now(),
     accountHolderName: "",
