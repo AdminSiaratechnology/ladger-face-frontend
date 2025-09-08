@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
 import { 
@@ -23,10 +23,11 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { dummyCompanies } from '../lib/dummyData';
 
 interface SidebarProps {
   isOpen: boolean;
-  onClose?: () => void; // Add onClose prop
+  onClose?: () => void;
 }
 
 interface MenuItem {
@@ -49,8 +50,47 @@ interface SubMenuItem {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [hasCompany, setHasCompany] = useState(false);
 
-  const menuItems: MenuItem[] = [
+  // Check if company exists in localStorage on component mount
+  useEffect(() => {
+    const checkCompanyExists = () => {
+      try {
+        // const companysData = localStorage.getItem('companys');
+        const companysData = dummyCompanies;
+        if (companysData) {
+          // const companies = JSON.parse(companysData);
+          const companies = companysData;
+          setHasCompany(Array.isArray(companies) && companies.length > 0);
+        } else {
+          setHasCompany(false);
+        }
+      } catch (error) {
+        console.error('Error reading companies from localStorage:', error);
+        setHasCompany(false);
+      }
+    };
+
+    checkCompanyExists();
+
+    // Listen for localStorage changes (in case company is added/removed in another tab)
+    const handleStorageChange = () => {
+      checkCompanyExists();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom events when localStorage is modified in the same tab
+    window.addEventListener('companiesUpdated', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('companiesUpdated', handleStorageChange);
+    };
+  }, []);
+
+  // Full menu items (shown when company exists)
+  const fullMenuItems: MenuItem[] = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'agent', 'salesman'], type: 'link' },
     { path: '/company', icon: LayoutDashboard, label: 'Company', roles: ['admin', 'agent', 'salesman'], type: 'link' },
     {
@@ -86,6 +126,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { path: '/tracking', icon: MapPin, label: 'Location Tracking', roles: ['admin'], type: 'link' },
     { path: '/settings', icon: Settings, label: 'Settings', roles: ['admin'], type: 'link' },
   ];
+
+  // Limited menu items (shown when no company exists)
+  const limitedMenuItems: MenuItem[] = [
+    { path: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'agent', 'salesman'], type: 'link' },
+    { path: '/company', icon: LayoutDashboard, label: 'Company', roles: ['admin', 'agent', 'salesman'], type: 'link' },
+    { path: '/users', icon: Users, label: 'User Management', roles: ['admin'], type: 'link' },
+    { path: '/settings', icon: Settings, label: 'Settings', roles: ['admin'], type: 'link' },
+  ];
+
+  // Choose which menu items to use based on company existence
+  const menuItems = hasCompany ? fullMenuItems : limitedMenuItems;
 
   const filteredMenuItems = menuItems.filter(item => 
     user && item.roles.includes(user.role)
@@ -202,56 +253,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     );
   };
 
-  // Collapsed sidebar for desktop
-  // if (!isOpen) {
-  //   return (
-  //     <div className="hidden md:flex w-16 max-h-[40px] bg-gradient-to-b from-teal-800 to-teal-900 text-white flex-col overflow-hidden overflow-y-scroll">
-  //       <div className="p-4 border-b border-gray-700">
-  //         <Shield className="w-8 h-8 text-blue-400" />
-  //       </div>
-  //       <nav className="flex-1 py-4">
-  //         {filteredMenuItems.map((item) => {
-  //           const Icon = item.icon;
-  //           const isActive = item.type === 'link' 
-  //             ? location.pathname === item.path
-  //             : item.subItems ? isAccordionItemActive(item.subItems) : false;
-            
-  //           return (
-  //             <div
-  //               key={item.path || item.id}
-  //               className={`flex items-center justify-center p-3 mx-2 rounded-lg transition-colors ${
-  //                 isActive
-  //                   ? 'bg-teal-400 text-white'
-  //                   : 'text-gray-300 hover:bg-gray-700'
-  //               }`}
-  //               title={item.label}
-  //             >
-  //               {item.type === 'link' ? (
-  //                 <Link to={item.path!}>
-  //                   <Icon className="w-6 h-6" />
-  //                 </Link>
-  //               ) : (
-  //                 <Icon className="w-6 h-6" />
-  //               )}
-  //             </div>
-  //           );
-  //         })}
-  //       </nav>
-  //       <div className="p-4 border-t border-gray-700">
-  //         <Button
-  //           variant="ghost"
-  //           size="sm"
-  //           onClick={logout}
-  //           className="w-full p-2 text-gray-300 hover:bg-gray-700"
-  //           title="Logout"
-  //         >
-  //           <LogOut className="w-6 h-6" />
-  //         </Button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   return (
     <>
       {/* Backdrop overlay for mobile */}
@@ -305,6 +306,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           </div>
         </div>
+
+        {/* Company Status Indicator (Optional - you can remove this if not needed) */}
+        {!hasCompany && (
+          <div className="px-4 py-2 bg-amber-600/20 border-b border-gray-700">
+            <p className="text-xs text-amber-200">
+              ⚠️ Please add company details to access all features
+            </p>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 py-4 overflow-y-auto">
