@@ -26,19 +26,22 @@ import {
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
+ import { useAuthStore } from '../../../store/authStore'; 
 
 export function Login() {
 
-  const { user, login, loading } = useAuth();
+  // const { user, login, loading } = useAuth();
+  const { login, isLoading:loading ,user} = useAuthStore()
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [phone, setPhone] = useState('');
-  const [error, setError] = useState('');
+  // const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('email');
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
+  console.log(user,'usuario en login');
 
   if (user) {
     return <Navigate to="/" replace />;
@@ -46,12 +49,12 @@ export function Login() {
 
   const handleEmailLogin = async (e:any) => {
     e.preventDefault();
-    setError('');
+    // setError('');
     if (loginAttempts >= 3) {
-      setError('Too many failed attempts. Please try again later.');
+      // setError('Too many failed attempts. Please try again later.');
       return;
     }
-    const success = await login(email, password);
+    const success = await login({email, password});
      if (success) {
       toast.success('Login successful!');
     } else {

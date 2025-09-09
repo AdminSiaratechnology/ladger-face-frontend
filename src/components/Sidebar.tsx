@@ -51,6 +51,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [hasCompany, setHasCompany] = useState(false);
+   const [data, setData] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: "Mohit", role: "admin" }),
+        });
+
+        const result = await res.json();
+        console.log("Response:", result);
+        setData(result);
+      } catch (error) {
+        console.error("Error fetching:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Check if company exists in localStorage on component mount
   useEffect(() => {
