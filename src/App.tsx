@@ -22,6 +22,8 @@ import Godown from './components/pages/Godown';
 import StockCategory from './components/pages/StockCategory';
 import StockGroup from './components/pages/StockGroup';
 import UOM from './components/pages/UOM';
+import { useAuthStore } from '../store/authStore';
+
 
 
 // Mock user data
@@ -58,39 +60,40 @@ export const useAuth = () => {
 };
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+    const { login, isLoading:loading ,user,logout} = useAuthStore()
+  // const [user, setUser] = useState<User | null>(null);
+  // const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Check for existing session
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
-  }, []);
+  // useEffect(() => {
+  //   // Check for existing session
+  //   const savedUser = localStorage.getItem('user');
+  //   if (savedUser) {
+  //     setUser(JSON.parse(savedUser));
+  //   }
+  //   setLoading(false);
+  // }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    setLoading(true);
+  // const login = async (email: string, password: string): Promise<boolean> => {
+  //   setLoading(true);
     
-    // Mock authentication
-    const foundUser = Object.values(mockUsers).find(u => u.email === email);
+  //   // Mock authentication
+  //   const foundUser = Object.values(mockUsers).find(u => u.email === email);
     
-    if (foundUser && password === 'password123') {
-      setUser(foundUser);
-      localStorage.setItem('user', JSON.stringify(foundUser));
-      setLoading(false);
-      return true;
-    }
+  //   if (foundUser && password === 'password123') {
+  //     setUser(foundUser);
+  //     localStorage.setItem('user', JSON.stringify(foundUser));
+  //     setLoading(false);
+  //     return true;
+  //   }
     
-    setLoading(false);
-    return false;
-  };
+  //   setLoading(false);
+  //   return false;
+  // };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-  };
+  // const logout = () => {
+  //   setUser(null);
+  //   localStorage.removeItem('user');
+  // };
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>
@@ -110,9 +113,9 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <div className="flex items-center justify-center min-h-screen">Access Denied</div>;
-  }
+  // if (allowedRoles && !allowedRoles.includes(user.role)) {
+  //   return <div className="flex items-center justify-center min-h-screen">Access Denied</div>;
+  // }
 
   return <>{children}</>;
 }
