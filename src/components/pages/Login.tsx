@@ -37,7 +37,7 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [phone, setPhone] = useState('');
-  // const [error, setError] = useState('');
+  const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('email');
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [showPassword, setShowPassword] = useState(false);

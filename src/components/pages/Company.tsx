@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
@@ -9,6 +9,7 @@ import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus
 import { Country, State, City } from 'country-state-city';
 import CustomInputBox from "../customComponents/CustomInputBox";
 import { dummyCompanies } from "../../lib/dummyData";
+import { useCompanyStore } from "../../../store/companyStore";
 
 // Bank interface
 interface Bank {
@@ -91,7 +92,8 @@ interface RegistrationDocument {
 const CompanyPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("basic");
-  const [companies, setCompanies] = useState<Company[]>(dummyCompanies);
+  const [Companies, setCompanies] = useState<Company[]>(dummyCompanies);
+    const { companies, loading, error, fetchCompanies } = useCompanyStore();
   const [bankForm, setBankForm] = useState<Bank>({
     id: Date.now(),
     accountHolderName: "",
@@ -105,7 +107,9 @@ const CompanyPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
    // Add state for registration documents
   const [documents, setDocuments] = useState<RegistrationDocument[]>([]);
-  
+    useEffect(() => {
+    fetchCompanies("68c1503077fd742fa21575df"); // example agentId
+  }, [fetchCompanies]);
   const [form, setForm] = useState<CompanyForm>({
     namePrint: "",
     nameStreet: "",

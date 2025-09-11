@@ -23,6 +23,7 @@ import StockCategory from './components/pages/StockCategory';
 import StockGroup from './components/pages/StockGroup';
 import UOM from './components/pages/UOM';
 import { useAuthStore } from '../store/authStore';
+import axios from 'axios';
 
 
 
@@ -112,6 +113,7 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+  console.log("User Role:", user, "Allowed Roles:", allowedRoles);
 
   // if (allowedRoles && !allowedRoles.includes(user.role)) {
   //   return <div className="flex items-center justify-center min-h-screen">Access Denied</div>;
@@ -122,6 +124,29 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token =
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OGJmZDQyMWM2MjFlZTJkOGFiYTI3YjYiLCJleHAiOjE3NTgxMDE0MjN9.ooy5Ck7GcZuTkhBQWsFUyfxk2dUOAchaG-1Ghf0AYXc";
+
+        const res = await axios.get("http://192.168.1.7:8000/account/profile", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log("Profile data:", res.data);
+
+        setProfile(res.data);
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   return (
     <div className="flex h-screen bg-indigo-50">
