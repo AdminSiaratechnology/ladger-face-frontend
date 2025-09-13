@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import axios from "axios";
 
+import api from "../src/api/api"
+
 // Types
 export interface Bank {
   name: string;
@@ -46,10 +48,14 @@ interface CompanyStore {
   loading: boolean;
   error: string | null;
   fetchCompanies: (agentId: string) => Promise<void>;
+  addCompany: (companyData: Company) => Promise<void>;
+  updateCompany: (params: { companyId: string; companyData: Company }) => Promise<void>;
+  deleteCompany: (companyId: string) => Promise<void>;
+
 }
 
 // Zustand store
-export const useCompanyStore = create<CompanyStore>((set) => ({
+export const useCompanyStore = create<CompanyStore>((set, get) => ({
   companies: [],
   loading: false,
   error: null,
@@ -59,13 +65,15 @@ export const useCompanyStore = create<CompanyStore>((set) => ({
     try {
       set({ loading: true, error: null });
 
-      const res = await axios.get(
-        "http://localhost:5000/api/company/agent/companies",
-        { _id: agentId }
-      );
+   
+    
+      const res=await api.getCompanies()
+      console.log("Fetched companies response:", res);
+   
+
 
       set({
-        companies: res.data.data,
+        companies: res.data,
         loading: false,
         error: null,
       });
@@ -76,4 +84,78 @@ export const useCompanyStore = create<CompanyStore>((set) => ({
       });
     }
   },
+
+  addCompany: async (companyData) => {
+    console.log("Creating new companyyyyyy:", companyData);
+    try {
+      set({ loading: true, error: null });
+
+   
+   const  res=await api.createCompany(companyData)
+   console.log("Created company responseeeeee:", res);
+
+      const newCompany: Company = res.data;
+
+      // Push new company into state
+      set({
+        companies: [...get().companies, newCompany],
+        loading: false,
+        error: null,
+      });
+    } catch (error: any) {
+        console.log("Error creating company:", error);
+      set({
+        loading: false,
+        error: error.response?.data?.message || "Failed to create company",
+      });
+    }
+  },
+  updateCompany: async ({ companyId, companyData }:{ companyId: string; companyData: Company }) => {
+    console.log("Updating company:", companyId, companyData);
+    try {
+      set({ loading: true, error: null });
+
+      const res=await api.updateCompany(companyId,companyData)
+      console.log("Updated company response:", res);
+
+      const updatedCompany: Company = res.data;
+
+      // Update company in state
+      set({
+        companies: get().companies.map((comp) =>
+          comp._id === companyId ? updatedCompany : comp
+        ),
+        loading: false,
+        error: null,
+      });
+    } catch (error: any) {
+      set({
+        loading: false,
+        error: error.response?.data?.message || "Failed to update company",
+      });       
+
+}
+    },
+    
+    deleteCompany: async (companyId) => {
+      console.log("Deleting company:", companyId);
+        try {
+        set({ loading: true, error: null });
+        const  res=await api.deleteCompany(companyId)
+        console.log("Deleted company response:", res);
+
+        // Remove company from state
+        set({
+          companies: get().companies.filter((comp) => comp._id !== companyId),
+          loading: false,
+          error: null,
+        });
+      } catch (error: any) {
+        set({
+          loading: false,
+          error: error.response?.data?.message || "Failed to delete company",
+        });
+      }
+    }
+
 }));

@@ -4,11 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit,Settings2 } from "lucide-react";
+import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit, Settings2, Eye, Table, Grid3X3, Edit, Trash2, MoreHorizontal } from "lucide-react";
 // import { ICountry, IState, ICity } from 'country-state-city';
 import { Country, State, City } from 'country-state-city';
 import CustomInputBox from "../customComponents/CustomInputBox";
-import { dummyCompanies } from "../../lib/dummyData";
+
 import { useCompanyStore } from "../../../store/companyStore";
 
 // Bank interface
@@ -92,8 +92,15 @@ interface RegistrationDocument {
 const CompanyPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("basic");
-  const [Companies, setCompanies] = useState<Company[]>(dummyCompanies);
-    const { companies, loading, error, fetchCompanies } = useCompanyStore();
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
+  const { companies, loading, error, fetchCompanies, addCompany, updateCompany, deleteCompany } = useCompanyStore();
+  const [Companies, setCompanies] = useState<Company[]>([...companies]);
+
+  console.log("Companies from store:", companies);
+  
   const [bankForm, setBankForm] = useState<Bank>({
     id: Date.now(),
     accountHolderName: "",
@@ -104,12 +111,14 @@ const CompanyPage: React.FC = () => {
     bankName: "",
     branch: ""
   });
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
-   // Add state for registration documents
   const [documents, setDocuments] = useState<RegistrationDocument[]>([]);
-    useEffect(() => {
-    fetchCompanies("68c1503077fd742fa21575df"); // example agentId
+  
+  useEffect(() => {
+    fetchCompanies("68c1503077fd742fa21575df");
   }, [fetchCompanies]);
+  
   const [form, setForm] = useState<CompanyForm>({
     namePrint: "",
     nameStreet: "",
@@ -136,7 +145,6 @@ const CompanyPage: React.FC = () => {
     notes: "",
     registrationDocs: [],
   });
- 
 
   // Get all countries
   const allCountries = useMemo(() => Country.getAllCountries(), []);
@@ -274,28 +282,54 @@ const CompanyPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = (): void => {
-    if (!form.namePrint.trim() || !form.email.trim()) {
-      alert("Please fill in Company Name and Email");
-      return;
-    }
+  // Edit company handler
+  const handleEditCompany = (company: Company): void => {
+    console.log("Editing company:", company);
+    setEditingCompany(company);
+    setForm({
+      namePrint: company.namePrint,
+      nameStreet: company.nameStreet,
+      address1: company.address1,
+      address2: company.address2,
+      address3: company.address3,
+      city: company.city,
+      pincode: company.pincode,
+      state: company.state,
+      country: company.country,
+      telephone: company.telephone,
+      mobile: company.mobile,
+      fax: company.fax,
+      email: company.email,
+      website: company.website,
+      gstNumber: company.gstNumber,
+      panNumber: company.panNumber,
+      tanNumber: company.tanNumber,
+      msmeNumber: company.msmeNumber,
+      udyamNumber: company.udyamNumber,
+      defaultCurrency: company.defaultCurrency,
+      banks: company.banks,
+      logo: company.logo,
+      notes: company.notes,
+      registrationDocs: company.registrationDocs,
+    });
+    setOpen(true);
+  };
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-      alert("Please enter a valid email address");
-      return;
-    }
+  // Delete company handler
+  const handleDeleteCompany = (companyId: string): void => {
+    console.log("Attempting to delete company with ID:", companyId, deleteCompany);
+    // if (deleteConfirm === companyId) {
+      deleteCompany(companyId);
+      // setDeleteConfirm(null);
+    // } else {
+    //   setDeleteConfirm(companyId);
+    //   // Auto-cancel confirmation after 3 seconds
+    //   setTimeout(() => setDeleteConfirm(null), 3000);
+    // }
+  };
 
-    const newCompany: Company = { 
-      ...form, 
-      id: Date.now(),
-      createdAt: new Date().toLocaleDateString()
-    };
-    
-    setCompanies(prev => [...prev, newCompany]);
-    
-    // Reset form to initial state
+  // Reset form handler
+  const resetForm = (): void => {
     setForm({
       namePrint: "",
       nameStreet: "",
@@ -322,10 +356,36 @@ const CompanyPage: React.FC = () => {
       notes: "",
       registrationDocs: [],
     });
-    
-    setOpen(false);
+    setEditingCompany(null);
     setActiveTab("basic");
   };
+
+  const handleSubmit = (): void => {
+    if (!form.namePrint.trim() || !form.email.trim()) {
+      alert("Please fill in Company Name and Email");
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      alert("Please enter a valid email address");
+      return;
+    }
+
+    if (editingCompany) {
+      console.log("Updating company with ID:", editingCompany.id, "and data:", form);
+      // Update existing company
+      updateCompany({ companyId: editingCompany._id, companyData: form });
+    } else {
+      // Add new company
+      addCompany(form);
+    }
+    
+    resetForm();
+    setOpen(false);
+  };
+
   // Document upload handler
   const handleDocumentUpload = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -359,10 +419,10 @@ const CompanyPage: React.FC = () => {
 
   // Statistics calculations
   const stats = useMemo(() => ({
-    totalCompanies: companies.length,
-    gstRegistered: companies.filter(c => c.gstNumber.trim() !== "").length,
-    msmeRegistered: companies.filter(c => c.msmeNumber.trim() !== "").length,
-    activeCompanies: companies.length
+    totalCompanies: companies?.length,
+    gstRegistered: companies?.filter(c => c?.gstNumber?.trim() !== "")?.length,
+    msmeRegistered: companies?.filter(c => c?.msmeNumber?.trim() !== "")?.length,
+    activeCompanies: companies?.length
   }), [companies]);
 
   // Common currencies for the dropdown
@@ -378,7 +438,7 @@ const CompanyPage: React.FC = () => {
   ];
 
   // Form tabs
- const tabs = [
+  const tabs = [
     { id: "basic", label: "Basic Info" },
     { id: "contact", label: "Contact" },
     { id: "registration", label: "Registration" },
@@ -386,6 +446,293 @@ const CompanyPage: React.FC = () => {
     { id: "branding", label: "Branding" },
     { id: "settings", label: "Settings" }
   ];
+
+  // Actions dropdown component
+  const ActionsDropdown = ({ company }: { company: Company }) => {
+    const [showActions, setShowActions] = useState(false);
+    
+    return (
+      <div className="relative">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowActions(!showActions)}
+          className="h-8 w-8 p-0 hover:bg-gray-100"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+        
+        {showActions && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setShowActions(false)}
+            />
+            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  handleEditCompany(company);
+                  setShowActions(false);
+                }}
+                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  handleDeleteCompany(company._id);
+                  setShowActions(false);
+                }}
+                className={`w-full justify-start text-left rounded-none ${
+                  deleteConfirm === company.id
+                    ? 'bg-red-50 text-red-700 hover:bg-red-100'
+                    : 'text-red-600 hover:bg-red-50'
+                }`}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {deleteConfirm === company.id ? 'Confirm?' : 'Delete'}
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // Table View Component
+  const TableView = () => (
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gradient-to-r from-teal-50 to-teal-100">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Company
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Contact
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Location
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Registration
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {companies.map((company) => (
+              <tr key={company.id} className="hover:bg-gray-50 transition-colors duration-200">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    {company.logo && (
+                      <img src={company.logo} alt="Logo" className="h-10 w-10 rounded-full mr-3 object-cover" />
+                    )}
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{company.namePrint}</div>
+                      {company.nameStreet && (
+                        <div className="text-sm text-gray-500">{company.nameStreet}</div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-900 space-y-1">
+                    <div className="flex items-center">
+                      <Mail className="w-3 h-3 text-gray-400 mr-2" />
+                      <span className="truncate max-w-48">{company.email}</span>
+                    </div>
+                    {company.mobile && (
+                      <div className="flex items-center">
+                        <Phone className="w-3 h-3 text-gray-400 mr-2" />
+                        <span>{company.mobile}</span>
+                      </div>
+                    )}
+                    {company.website && (
+                      <div className="flex items-center">
+                        <Globe className="w-3 h-3 text-gray-400 mr-2" />
+                        <span className="truncate max-w-48 text-teal-600">{company.website}</span>
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-900">
+                    {[company.city, company.state, company.pincode].filter(Boolean).join(", ")}
+                  </div>
+                  <div className="text-sm text-gray-500">{company.country}</div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="space-y-1">
+                    {company.gstNumber && (
+                      <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-mono">
+                        GST: {company.gstNumber}
+                      </div>
+                    )}
+                    {company.udyamNumber && (
+                      <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-mono">
+                        UDYAM: {company.udyamNumber}
+                      </div>
+                    )}
+                    {company.panNumber && (
+                      <div className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
+                        PAN: {company.panNumber}
+                      </div>
+                    )}
+                    {!company.gstNumber && !company.udyamNumber && !company.panNumber && (
+                      <span className="text-xs text-gray-400">No registrations</span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                    Active
+                  </Badge>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <ActionsDropdown company={company} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  // Card View Component
+  const CardView = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      {companies.map((company: Company) => (
+        <Card key={company.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group">
+          <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center">
+                {company?.logo && (
+                  <img src={company.logo} alt="Company Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
+                )}
+                <div>
+                  <CardTitle className="text-xl font-bold text-gray-800 mb-1">
+                    {company.namePrint}
+                  </CardTitle>
+                  {company.nameStreet && (
+                    <p className="text-teal-600 font-medium">{company.nameStreet}</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                  Active
+                </Badge>
+                <ActionsDropdown company={company} />
+              </div>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-3">
+              {(company.city || company.state || company.pincode) && (
+                <div className="flex items-center text-sm">
+                  <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-gray-600">
+                    {[company.city, company.state, company.pincode].filter(Boolean).join(", ")}
+                  </span>
+                </div>
+              )}
+              
+              {company.mobile && (
+                <div className="flex items-center text-sm">
+                  <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-gray-600">{company.mobile}</span>
+                </div>
+              )}
+              
+              <div className="flex items-center text-sm">
+                <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                <span className="text-gray-600 truncate">{company.email}</span>
+              </div>
+              
+              {company.website && (
+                <div className="flex items-center text-sm">
+                  <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-teal-600 truncate">{company.website}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Registration Numbers */}
+            {(company.gstNumber || company.udyamNumber || company.panNumber) && (
+              <div className="pt-3 border-t border-gray-100 space-y-2">
+                {company.gstNumber && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-500">GST</span>
+                    <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
+                      {company.gstNumber}
+                    </span>
+                  </div>
+                )}
+                
+                {company.udyamNumber && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-500">UDYAM</span>
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-mono">
+                      {company.udyamNumber}
+                    </span>
+                  </div>
+                )}
+                
+                {company.panNumber && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-500">PAN</span>
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
+                      {company.panNumber}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Bank Accounts */}
+            {company.banks.length > 0 && (
+              <div className="pt-3 border-t border-gray-100">
+                <p className="text-xs font-medium text-gray-500 mb-2">Bank Accounts</p>
+                <div className="space-y-2">
+                  {company.banks.slice(0, 2).map(bank => (
+                    <div key={bank.id} className="text-xs bg-gray-100 p-2 rounded">
+                      <p className="font-medium truncate">{bank.bankName}</p>
+                      <p className="text-gray-600 truncate">A/C: ••••{bank.accountNumber.slice(-4)}</p>
+                    </div>
+                  ))}
+                  {company.banks.length > 2 && (
+                    <p className="text-xs text-gray-500">+{company.banks.length - 2} more</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Currency */}
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex items-center text-sm">
+                <CreditCard className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                <span className="text-gray-600">{company.defaultCurrency}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -396,7 +743,10 @@ const CompanyPage: React.FC = () => {
           <p className="text-gray-600">Manage your company information and registrations</p>
         </div>
         <Button 
-          onClick={() => setOpen(true)} 
+          onClick={() => {
+            resetForm();
+            setOpen(true);
+          }} 
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
         >
           <Building2 className="w-4 h-4 mr-2" />
@@ -455,6 +805,40 @@ const CompanyPage: React.FC = () => {
         </Card>
       </div>
 
+      {/* View Toggle */}
+      {companies.length > 0 && (
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            <Eye className="w-5 h-5 text-gray-600" />
+            <span className="text-gray-700 font-medium">View Mode:</span>
+          </div>
+          <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                viewMode === 'table'
+                  ? 'bg-white text-teal-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Table className="w-4 h-4 mr-2" />
+              Table View
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                viewMode === 'cards'
+                  ? 'bg-white text-teal-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Grid3X3 className="w-4 h-4 mr-2" />
+              Card View
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Company List */}
       {companies.length === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
@@ -463,7 +847,10 @@ const CompanyPage: React.FC = () => {
             <p className="text-gray-500 text-lg font-medium mb-2">No companies registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first company to get started</p>
             <Button 
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                resetForm();
+                setOpen(true);
+              }}
               className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
             >
               Add Your First Company
@@ -471,141 +858,31 @@ const CompanyPage: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {companies.map((company: Company) => (
-            <Card key={company.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center">
-                    {company.logo && (
-                      <img src={company.logo} alt="Company Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
-                    )}
-                    <div>
-                      <CardTitle className="text-xl font-bold text-gray-800 mb-1">
-                        {company.namePrint}
-                      </CardTitle>
-                      {company.nameStreet && (
-                        <p className="text-teal-600 font-medium">{company.nameStreet}</p>
-                      )}
-                    </div>
-                  </div>
-                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                    Active
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="p-6 space-y-4">
-                <div className="space-y-3">
-                  {(company.city || company.state || company.pincode) && (
-                    <div className="flex items-center text-sm">
-                      <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-gray-600">
-                        {[company.city, company.state, company.pincode].filter(Boolean).join(", ")}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {company.mobile && (
-                    <div className="flex items-center text-sm">
-                      <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-gray-600">{company.mobile}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center text-sm">
-                    <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                    <span className="text-gray-600 truncate">{company.email}</span>
-                  </div>
-                  
-                  {company.website && (
-                    <div className="flex items-center text-sm">
-                      <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-teal-600 truncate">{company.website}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Registration Numbers */}
-                {(company.gstNumber || company.udyamNumber || company.panNumber) && (
-                  <div className="pt-3 border-t border-gray-100 space-y-2">
-                    {company.gstNumber && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-500">GST</span>
-                        <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
-                          {company.gstNumber}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {company.udyamNumber && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-500">UDYAM</span>
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-mono">
-                          {company.udyamNumber}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {company.panNumber && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-500">PAN</span>
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
-                          {company.panNumber}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Bank Accounts */}
-                {company.banks.length > 0 && (
-                  <div className="pt-3 border-t border-gray-100">
-                    <p className="text-xs font-medium text-gray-500 mb-2">Bank Accounts</p>
-                    <div className="space-y-2">
-                      {company.banks.slice(0, 2).map(bank => (
-                        <div key={bank.id} className="text-xs bg-gray-100 p-2 rounded">
-                          <p className="font-medium truncate">{bank.bankName}</p>
-                          <p className="text-gray-600 truncate">A/C: ••••{bank.accountNumber.slice(-4)}</p>
-                        </div>
-                      ))}
-                      {company.banks.length > 2 && (
-                        <p className="text-xs text-gray-500">+{company.banks.length - 2} more</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Currency */}
-                <div className="pt-3 border-t border-gray-100">
-                  <div className="flex items-center text-sm">
-                    <CreditCard className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                    <span className="text-gray-600">{company.defaultCurrency}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <>
+          {viewMode === 'table' ? <TableView /> : <CardView />}
+        </>
       )}
 
       {/* Modal Form */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+          resetForm();
+        }
+      }}>
         <DialogContent className="sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
           <DialogHeader className="pb-4 border-b border-gray-200 h-16">
             <DialogTitle className="text-2xl font-bold text-gray-800">
-              Add New Company
+              {editingCompany ? 'Edit Company' : 'Add New Company'}
             </DialogTitle>
-            <p className="text-gray-600 text-sm ">
-              Fill in the company details and registration information
+            <p className="text-gray-600 text-sm">
+              {editingCompany ? 'Update the company details and registration information' : 'Fill in the company details and registration information'}
             </p>
-           
           </DialogHeader>
-          <div className="flex  border-0 outline-0 h-[100%] flex-1 ">
-           {/* <div className="flex flex-col"> */}
+          <div className="flex border-0 outline-0 h-[100%] flex-1">
             
             {/* Form Tabs */}
-            <div className="flex flex-wrap gap-2  flex-col bg-teal-50 w-52 ">
+            <div className="flex flex-wrap gap-2 flex-col bg-teal-50 w-52">
               {tabs.map(tab => (
                 <button
                   key={tab.id}
@@ -619,200 +896,113 @@ const CompanyPage: React.FC = () => {
                   {tab.label}
                 </button>
               ))}
-            {/* </div> */}
             </div>
 
-          <div className="space-y-6  w-full">
+          <div className="space-y-6 w-full">
             {/* Basic Information Tab */}
-          {activeTab === "basic" && (
-      <div className=" bg-white p-4 ">
-        <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-          <Building2 className="w-5 h-5 mr-2" />
-          Company Information
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <CustomInputBox
-            placeholder="Company Name (Street)"
-            name="nameStreet"
-            value={form.nameStreet}
-           onChange={handleChange}
-          
-          />
-          <CustomInputBox
-            placeholder="Company Name (Print) *"
-            name="namePrint"
-            value={form.namePrint}
-            onChange={handleChange}
-          
-          />
-         
-        </div>
-
-        <div className="mt-4 flex flex-col gap-4">
-          <CustomInputBox
-            placeholder="Street Address 1"
-            name="address1"
-            value={form.address1}
-            onChange={handleChange}
-       
-          />
-          <CustomInputBox
-            placeholder="Street Address 2"
-            name="address2"
-            value={form.address2}
-            onChange={handleChange}
-          
-          />
-          <CustomInputBox
-            placeholder="Street Address 3"
-            name="address3"
-            value={form.address3}
-            onChange={handleChange}
-       
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <select
-            value={form.country}
-            onChange={(e) => handleSelectChange("country", e.target.value)}
-            className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-          >
-            {allCountries.map(country => (
-              <option key={country.isoCode} value={country.name}>{country.name}</option>
-            ))}
-          </select>
-          
-          <select
-            value={form.state}
-            onChange={(e) => handleSelectChange("state", e.target.value)}
-            className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-            disabled={availableStates.length === 0}
-          >
-            <option value="">Select State</option>
-            {availableStates.map(state => (
-              <option key={state.isoCode} value={state.name}>{state.name}</option>
-            ))}
-          </select>
-          
-          <select
-            value={form.city}
-            onChange={(e) => handleSelectChange("city", e.target.value)}
-            className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-            disabled={availableCities.length === 0}
-          >
-            <option value="">Select City</option>
-            {availableCities.map(city => (
-              <option key={city.name} value={city.name}>{city.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <CustomInputBox
-            placeholder="Pincode"
-            name="pincode"
-            value={form.pincode}
-            onChange={handleChange}
-          
-            maxLength={10}
-          />
-          <select
-            value={form.defaultCurrency}
-            onChange={(e) => handleSelectChange("defaultCurrency", e.target.value)}
-            className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-          >
-            {currencies.map(currency => (
-              <option key={currency} value={currency}>{currency}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="mt-4 flex justify-end">
-          <Button onClick={() => setActiveTab("contact")} className="bg-teal-600 hover:bg-teal-700">
-            Next: Contact
-          </Button>
-        </div>
-      </div>
-    )}
-
-            {/* Address Information Tab */}
-            {activeTab === "address" && (
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl">
+            {activeTab === "basic" && (
+              <div className="bg-white p-4">
                 <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                  <MapPin className="w-5 h-5 mr-2" />
-                  Address Details
+                  <Building2 className="w-5 h-5 mr-2" />
+                  Company Information
                 </h3>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <CustomInputBox
-                    placeholder="Street Address"
+                    label="Company Name (Street)"
+                    placeholder="Company Name (Street)"
+                    name="nameStreet"
+                    value={form.nameStreet}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    placeholder="Company Name (Print) *"
+                    label="Company Name (Print) *"
+                    name="namePrint"
+                    value={form.namePrint}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="mt-4 flex flex-col gap-4">
+                  <CustomInputBox
+                    placeholder="Street Address 1"
+                    label="Street Address 1"
                     name="address1"
                     value={form.address1}
                     onChange={handleChange}
-                   
                   />
                   <CustomInputBox
-                    placeholder="Street Address"
+                    placeholder="Street Address 2"
+                    label="Street Address 2"
                     name="address2"
                     value={form.address2}
                     onChange={handleChange}
-             
                   />
                   <CustomInputBox
-                    placeholder="Street Address"
+                    placeholder="Street Address 3"
                     name="address3"
                     value={form.address3}
                     onChange={handleChange}
-           
                   />
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <select
-                      value={form.country}
-                      onChange={(e) => handleSelectChange("country", e.target.value)}
-                      className="h-10 px-3 py-2 border border-blue-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      {allCountries.map(country => (
-                        <option key={country.isoCode} value={country.name}>{country.name}</option>
-                      ))}
-                    </select>
-                    
-                    <select
-                      value={form.state}
-                      onChange={(e) => handleSelectChange("state", e.target.value)}
-                      className="h-10 px-3 py-2 border border-blue-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                      disabled={availableStates.length === 0}
-                    >
-                      <option value="">Select State</option>
-                      {availableStates.map(state => (
-                        <option key={state.isoCode} value={state.name}>{state.name}</option>
-                      ))}
-                    </select>
-                    
-                    <select
-                      value={form.city}
-                      onChange={(e) => handleSelectChange("city", e.target.value)}
-                      className="h-10 px-3 py-2 border border-blue-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                      disabled={availableCities.length === 0}
-                    >
-                      <option value="">Select City</option>
-                      {availableCities.map(city => (
-                        <option key={city.name} value={city.name}>{city.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <select
+                    value={form.country}
+                    onChange={(e) => handleSelectChange("country", e.target.value)}
+                    className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                  >
+                    {allCountries.map(country => (
+                      <option key={country.isoCode} value={country.name}>{country.name}</option>
+                    ))}
+                  </select>
+                  
+                  <select
+                    value={form.state}
+                    onChange={(e) => handleSelectChange("state", e.target.value)}
+                    className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                    disabled={availableStates.length === 0}
+                  >
+                    <option value="">Select State</option>
+                    {availableStates.map(state => (
+                      <option key={state.isoCode} value={state.name}>{state.name}</option>
+                    ))}
+                  </select>
+                  
+                  <select
+                    value={form.city}
+                    onChange={(e) => handleSelectChange("city", e.target.value)}
+                    className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                    disabled={availableCities.length === 0}
+                  >
+                    <option value="">Select City</option>
+                    {availableCities.map(city => (
+                      <option key={city.name} value={city.name}>{city.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <CustomInputBox
                     placeholder="Pincode"
+                    label="Pincode"
                     name="pincode"
                     value={form.pincode}
                     onChange={handleChange}
-               
                     maxLength={10}
                   />
+                  <select
+                    value={form.defaultCurrency}
+                    onChange={(e) => handleSelectChange("defaultCurrency", e.target.value)}
+                    className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                  >
+                    {currencies.map(currency => (
+                      <option key={currency} value={currency}>{currency}</option>
+                    ))}
+                  </select>
                 </div>
-                <div className="mt-4 flex justify-between">
-                  <Button variant="outline" onClick={() => setActiveTab("basic")}>
-                    Previous: Basic Info
-                  </Button>
+
+                <div className="mt-4 flex justify-end">
                   <Button onClick={() => setActiveTab("contact")} className="bg-teal-600 hover:bg-teal-700">
                     Next: Contact
                   </Button>
@@ -822,7 +1012,7 @@ const CompanyPage: React.FC = () => {
 
             {/* Contact Information Tab */}
             {activeTab === "contact" && (
-              <div className= "bg-white p-4 ">
+              <div className="bg-white p-4">
                 <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
                   <Phone className="w-5 h-5 mr-2" />
                   Contact Information
@@ -830,44 +1020,44 @@ const CompanyPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <CustomInputBox
                     placeholder="Mobile Number"
+                    label="Mobile Number"
                     name="mobile"
                     value={form.mobile}
                     onChange={handleChange}
-                    
                   />
                   <CustomInputBox
                     placeholder="Telephone"
+                    label="Telephone"
                     name="telephone"
                     value={form.telephone}
                     onChange={handleChange}
-                   
                   />
                   <CustomInputBox
                     placeholder="Fax"
+                    label="Fax"
                     name="fax"
                     value={form.fax}
                     onChange={handleChange}
-            
                   />
                   <CustomInputBox
                     placeholder="Email Address *"
+                    label="Email Address *"
                     name="email"
                     type="email"
                     value={form.email}
                     onChange={handleChange}
-                    
                   />
                 </div>
                 <CustomInputBox
                   placeholder="Website URL"
+                  label="Website URL"
                   name="website"
                   value={form.website}
                   onChange={handleChange}
-                
                 />
                 <div className="mt-4 flex justify-between">
-                  <Button variant="outline" onClick={() => setActiveTab("address")}>
-                    Previous: Address
+                  <Button variant="outline" onClick={() => setActiveTab("basic")}>
+                    Previous: Basic Info
                   </Button>
                   <Button onClick={() => setActiveTab("registration")} className="bg-teal-600 hover:bg-teal-700">
                     Next: Registration
@@ -877,107 +1067,106 @@ const CompanyPage: React.FC = () => {
             )}
 
             {/* Registration Details Tab */}
-           {activeTab === "registration" && (
-      <div className="bg-white p-4 ">
-        <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-          <FileText className="w-5 h-5 mr-2" />
-          Registration Details
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <CustomInputBox
-            placeholder="GST Number"
-            name="gstNumber"
-            value={form.gstNumber}
-            onChange={(e:any)=>handleChange(e)}
-           
-            maxLength={15}
-          />
-          <CustomInputBox
-            placeholder="PAN Number"
-            name="panNumber"
-            value={form.panNumber}
-            onChange={handleChange}
-           
-            maxLength={10}
-          />
-          <CustomInputBox
-            placeholder="TAN Number"
-            name="tanNumber"
-            value={form.tanNumber}
-            onChange={handleChange}
-            
-            maxLength={10}
-          />
-          <CustomInputBox
-            placeholder="MSME Number"
-            name="msmeNumber"
-            value={form.msmeNumber}
-            onChange={handleChange}
-          
-          />
-          <CustomInputBox
-            placeholder="Udyam Number"
-            name="udyamNumber"
-            value={form.udyamNumber}
-            onChange={handleChange}
-         
-          />
-        </div>
-
-        {/* Document Upload Section */}
-        <div className="mt-6">
-          <h4 className="font-medium text-teal-800 mb-3">Registration Documents</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {['GST', 'PAN', 'TAN', 'MSME', 'Udyam'].map(docType => (
-              <div key={docType} className="p-4 bg-white rounded-lg border border-teal-200">
-                <p className="text-sm font-medium text-teal-700 mb-2">{docType} Document</p>
-                <div className="flex items-center justify-between">
-                  <Input
-                    type="file"
-                    id={`${docType.toLowerCase()}-doc`}
-                    className="hidden"
-                    onChange={(e) => handleDocumentUpload(docType, e)}
-                    accept="image/*,.pdf"
+            {activeTab === "registration" && (
+              <div className="bg-white p-4">
+                <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Registration Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <CustomInputBox
+                    placeholder="GST Number"
+                    label="GST Number"
+                    name="gstNumber"
+                    value={form.gstNumber}
+                    onChange={(e:any)=>handleChange(e)}
+                    maxLength={15}
                   />
-                  <label
-                    htmlFor={`${docType.toLowerCase()}-doc`}
-                    className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload
-                  </label>
-                  {form.registrationDocs.find(doc => doc.type === docType) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeDocument(form.registrationDocs.find(doc => doc.type === docType)!.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
+                  <CustomInputBox
+                    placeholder="PAN Number"
+                    label="PAN Number"
+                    name="panNumber"
+                    value={form.panNumber}
+                    onChange={handleChange}
+                    maxLength={10}
+                  />
+                  <CustomInputBox
+                    placeholder="TAN Number"
+                    label="TAN Number"
+                    name="tanNumber"
+                    value={form.tanNumber}
+                    onChange={handleChange}
+                    maxLength={10}
+                  />
+                  <CustomInputBox
+                    placeholder="MSME Number"
+                    label="MSME Number"
+                    name="msmeNumber"
+                    value={form.msmeNumber}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    placeholder="Udyam Number"
+                    label="Udyam Number"
+                    name="udyamNumber"
+                    value={form.udyamNumber}
+                    onChange={handleChange}
+                  />
                 </div>
-                {form.registrationDocs.find(doc => doc.type === docType) && (
-                  <p className="text-xs text-gray-500 mt-2 truncate">
-                    {form.registrationDocs.find(doc => doc.type === docType)?.fileName}
-                  </p>
-                )}
+
+                {/* Document Upload Section */}
+                <div className="mt-6">
+                  <h4 className="font-medium text-teal-800 mb-3">Registration Documents</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {['GST', 'PAN', 'TAN', 'MSME', 'Udyam'].map(docType => (
+                      <div key={docType} className="p-4 bg-white rounded-lg border border-teal-200">
+                        <p className="text-sm font-medium text-teal-700 mb-2">{docType} Document</p>
+                        <div className="flex items-center justify-between">
+                          <Input
+                            type="file"
+                            id={`${docType.toLowerCase()}-doc`}
+                            className="hidden"
+                            onChange={(e) => handleDocumentUpload(docType, e)}
+                            accept="image/*,.pdf"
+                          />
+                          <label
+                            htmlFor={`${docType.toLowerCase()}-doc`}
+                            className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload
+                          </label>
+                          {form.registrationDocs.find(doc => doc.type === docType) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeDocument(form.registrationDocs.find(doc => doc.type === docType)!.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        {form.registrationDocs.find(doc => doc.type === docType) && (
+                          <p className="text-xs text-gray-500 mt-2 truncate">
+                            {form.registrationDocs.find(doc => doc.type === docType)?.fileName}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-between">
+                  <Button variant="outline" onClick={() => setActiveTab("contact")}>
+                    Previous: Contact
+                  </Button>
+                  <Button onClick={() => setActiveTab("bank")} className="bg-teal-600 hover:bg-teal-700">
+                    Next: Bank Details
+                  </Button>
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4 flex justify-between">
-          <Button variant="outline" onClick={() => setActiveTab("contact")}>
-            Previous: Contact
-          </Button>
-          <Button onClick={() => setActiveTab("bank")} className="bg-teal-600 hover:bg-teal-700">
-            Next: Bank Details
-          </Button>
-        </div>
-      </div>
-    )}
-
+            )}
 
             {/* Bank Details Tab */}
             {activeTab === "bank" && (
@@ -991,52 +1180,52 @@ const CompanyPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-white rounded-lg border border-teal-200">
                   <CustomInputBox
                     placeholder="Account Holder Name *"
+                    label="Account Holder Name *"
                     name="accountHolderName"
                     value={bankForm.accountHolderName}
                     onChange={handleBankChange}
-                    
                   />
                   <CustomInputBox
                     placeholder="Account Number *"
+                    label="Account Number *"
                     name="accountNumber"
                     value={bankForm.accountNumber}
                     onChange={handleBankChange}
-                  
                   />
                   <CustomInputBox
                     placeholder="IFSC Code"
+                    label="IFSC Code"
                     name="ifscCode"
                     value={bankForm.ifscCode}
                     onChange={handleBankChange}
-                 
                   />
                   <CustomInputBox
                     placeholder="SWIFT Code"
+                    label="SWIFT Code"
                     name="swiftCode"
                     value={bankForm.swiftCode}
                     onChange={handleBankChange}
-                 
                   />
                   <CustomInputBox
                     placeholder="MICR Number"
+                    label="MICR Number"
                     name="micrNumber"
-                    value={bankForm.mcrNumber}
+                    value={bankForm.micrNumber}
                     onChange={handleBankChange}
-                 
                   />
                   <CustomInputBox
                     placeholder="Bank Name *"
+                    label="Bank Name *"
                     name="bankName"
                     value={bankForm.bankName}
                     onChange={handleBankChange}
-                   
                   />
                   <CustomInputBox
                     placeholder="Branch"
+                    label="Branch"
                     name="branch"
                     value={bankForm.branch}
                     onChange={handleBankChange}
-                   
                   />
                   <div className="flex items-end">
                     <Button onClick={addBank} className="bg-teal-600 hover:bg-teal-700 w-full">
@@ -1137,11 +1326,12 @@ const CompanyPage: React.FC = () => {
                     Previous: Bank Details
                   </Button>
                    <Button onClick={() => setActiveTab("settings")} className="bg-teal-600 hover:bg-teal-700">
-            Next: Settings
-          </Button>
+                    Next: Settings
+                  </Button>
                 </div>
               </div>
             )}
+
             {/* Settings Tab */}
             {activeTab === "settings" && (
               <div className="bg-white p-4">
@@ -1150,57 +1340,12 @@ const CompanyPage: React.FC = () => {
                   Settings
                 </h3>
                 
-                {/* Logo Upload
-                <div className="mb-6">
-                  <p className="text-sm font-medium text-teal-700 mb-2">Company Logo</p>
-                  <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 rounded-full border-2 border-dashed border-teal-300 flex items-center justify-center overflow-hidden bg-white">
-                      {form.logo ? (
-                        <img src={form.logo} alt="Company Logo" className="w-full h-full object-cover" />
-                      ) : (
-                        <Image className="w-8 h-8 text-teal-300" />
-                      )}
-                    </div>
-                    <div>
-                      <Input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleLogoUpload}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <Button 
-                        onClick={triggerLogoUpload}
-                        variant="outline"
-                        className="border-teal-300 text-teal-700 hover:bg-teal-50"
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {form.logo ? "Change Logo" : "Upload Logo"}
-                      </Button>
-                      <p className="text-xs text-gray-500 mt-1">Recommended: 200x200px PNG or JPG</p>
-                    </div>
-                  </div>
-                </div> */}
-
-                {/* Notes */}
-                {/* <div>
-                  <p className="text-sm font-medium text-teal-700 mb-2">Company Notes</p>
-                  <textarea
-                    placeholder="Add any additional notes about the company..."
-                    name="notes"
-                    value={form.notes}
-                    onChange={handleChange}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none resize-none"
-                  />
-                </div> */}
-
                 <div className="mt-4 flex justify-between">
                   <Button variant="outline" onClick={() => setActiveTab("branding")}>
                     Previous: Branding
                   </Button>
                   <Button onClick={handleSubmit} className="bg-teal-600 hover:bg-teal-700">
-                    Save Company
+                    {editingCompany ? 'Update Company' : 'Save Company'}
                   </Button>
                 </div>
               </div>
@@ -1213,7 +1358,7 @@ const CompanyPage: React.FC = () => {
                   onClick={handleSubmit}
                   className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-8 py-2 shadow-lg"
                 >
-                  Save Company
+                  {editingCompany ? 'Update Company' : 'Save Company'}
                 </Button>
               </div>
             )}
