@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, LoginResponse, LoginCredentials } from '../types/auth';
+import {} from "../src/lib/"
 
 interface AuthState {
   user: User | null;
@@ -43,6 +44,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false,
             });
+            localStorage.setItem('token', data.data.token);
           } else {
             throw new Error(data.message || 'Login failed');
           }

@@ -144,6 +144,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const filteredMenuItems = menuItems.filter(item => {
     console.log("Filtering item:", item.roles, "User role:", user?.role);
     let userRole = user?.role.toLowerCase() || '';
+    return true;
    return user && item.roles.includes(userRole);
   }
 
