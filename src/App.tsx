@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './components/pages/Login';
 import { AdminDashboard } from './components/pages/AdminDashboard';
-import { UserManagement } from './components/pages/UserManagement';
+import UserManagement  from './components/pages/UserManagement';
 import { InventoryManagement } from './components/pages/InventoryManagement';
 import { OrderManagement } from './components/pages/OrderManagement';
 import { PriceListManagement } from './components/pages/PriceListManagement';
@@ -23,6 +23,7 @@ import StockCategory from './components/pages/StockCategory';
 import StockGroup from './components/pages/StockGroup';
 import UOM from './components/pages/UOM';
 import { useAuthStore } from '../store/authStore';
+import PriceList from "./components/pages/PriceListPage"
 import axios from 'axios';
 
 
@@ -252,6 +253,13 @@ export default function App() {
               <ProtectedRoute allowedRoles={['admin']}>
                 <AppLayout>
                   <StockGroup />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+             <Route path="/price-list" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AppLayout>
+                  <PriceList />
                 </AppLayout>
               </ProtectedRoute>
             } />

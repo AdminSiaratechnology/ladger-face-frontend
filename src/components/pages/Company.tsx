@@ -5,7 +5,7 @@ import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit, Settings2, Eye, Table, Grid3X3, Edit, Trash2, MoreHorizontal } from "lucide-react";
-// import { ICountry, IState, ICity } from 'country-state-city';
+
 import { Country, State, City } from 'country-state-city';
 import CustomInputBox from "../customComponents/CustomInputBox";
 
@@ -26,6 +26,7 @@ interface Bank {
 // Company interface
 interface Company {
   id: number;
+  _id?: string;
   namePrint: string;
   nameStreet: string;
   address1: string;
@@ -53,7 +54,7 @@ interface Company {
   registrationDocs: RegistrationDocument[];
 }
 
-// Form interface
+// Form interface - updated to handle FormData
 interface CompanyForm {
   namePrint: string;
   nameStreet: string;
@@ -76,17 +77,19 @@ interface CompanyForm {
   udyamNumber: string;
   defaultCurrency: string;
   banks: Bank[];
-  logo: string | null;
+  logo: File | null;
+  logoPreview?: string;
   notes: string;
-   registrationDocs: RegistrationDocument[];
+  registrationDocs: RegistrationDocument[];
 }
 
-// Add new interface for registration documents
+// Registration document interface - updated to handle File objects
 interface RegistrationDocument {
   id: number;
   type: string;
-  file: string;
+  file: File;
   fileName: string;
+  preview?: string;
 }
 
 const CompanyPage: React.FC = () => {
@@ -97,7 +100,6 @@ const CompanyPage: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
   const { companies, loading, error, fetchCompanies, addCompany, updateCompany, deleteCompany } = useCompanyStore();
-  const [Companies, setCompanies] = useState<Company[]>([...companies]);
 
   console.log("Companies from store:", companies);
   
@@ -142,6 +144,7 @@ const CompanyPage: React.FC = () => {
     defaultCurrency: "INR - Indian Rupee",
     banks: [],
     logo: null,
+    logoPreview: undefined,
     notes: "",
     registrationDocs: [],
   });
@@ -259,20 +262,18 @@ const CompanyPage: React.FC = () => {
     }));
   };
 
-  // Logo upload handler
+  // Logo upload handler - updated for FormData
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event: any) => {
-        if (event.target?.result) {
-          setForm(prev => ({
-            ...prev,
-            logo: event.target.result as string
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
+      // Create preview URL for display
+      const previewUrl = URL.createObjectURL(file);
+      
+      setForm(prev => ({
+        ...prev,
+        logo: file,
+        logoPreview: previewUrl
+      }));
     }
   };
 
@@ -282,10 +283,11 @@ const CompanyPage: React.FC = () => {
     }
   };
 
-  // Edit company handler
+  // Edit company handler - updated for FormData
   const handleEditCompany = (company: Company): void => {
     console.log("Editing company:", company);
     setEditingCompany(company);
+    
     setForm({
       namePrint: company.namePrint,
       nameStreet: company.nameStreet,
@@ -307,29 +309,37 @@ const CompanyPage: React.FC = () => {
       msmeNumber: company.msmeNumber,
       udyamNumber: company.udyamNumber,
       defaultCurrency: company.defaultCurrency,
-      banks: company.banks,
-      logo: company.logo,
+      banks: company.banks || [], // Ensure banks is always an array
+      logo: null, // Reset to null for editing
+      logoPreview: company.logo, // Use existing image as preview
       notes: company.notes,
-      registrationDocs: company.registrationDocs,
+      registrationDocs: [], // Reset for editing
     });
     setOpen(true);
   };
 
   // Delete company handler
   const handleDeleteCompany = (companyId: string): void => {
-    console.log("Attempting to delete company with ID:", companyId, deleteCompany);
-    // if (deleteConfirm === companyId) {
-      deleteCompany(companyId);
-      // setDeleteConfirm(null);
-    // } else {
-    //   setDeleteConfirm(companyId);
-    //   // Auto-cancel confirmation after 3 seconds
-    //   setTimeout(() => setDeleteConfirm(null), 3000);
-    // }
+    console.log("Attempting to delete company with ID:", companyId);
+    deleteCompany(companyId);
+  };
+
+  // Clean up object URLs to prevent memory leaks
+  const cleanupObjectUrls = (): void => {
+    if (form.logoPreview && form.logoPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(form.logoPreview);
+    }
+    form.registrationDocs.forEach(doc => {
+      if (doc.preview && doc.preview.startsWith('blob:')) {
+        URL.revokeObjectURL(doc.preview);
+      }
+    });
   };
 
   // Reset form handler
   const resetForm = (): void => {
+    cleanupObjectUrls();
+    
     setForm({
       namePrint: "",
       nameStreet: "",
@@ -353,6 +363,7 @@ const CompanyPage: React.FC = () => {
       defaultCurrency: "INR - Indian Rupee",
       banks: [],
       logo: null,
+      logoPreview: undefined,
       notes: "",
       registrationDocs: [],
     });
@@ -360,6 +371,7 @@ const CompanyPage: React.FC = () => {
     setActiveTab("basic");
   };
 
+  // Handle submit - updated to create FormData
   const handleSubmit = (): void => {
     if (!form.namePrint.trim() || !form.email.trim()) {
       alert("Please fill in Company Name and Email");
@@ -373,44 +385,89 @@ const CompanyPage: React.FC = () => {
       return;
     }
 
-    if (editingCompany) {
-      console.log("Updating company with ID:", editingCompany.id, "and data:", form);
-      // Update existing company
-      updateCompany({ companyId: editingCompany._id, companyData: form });
-    } else {
-      // Add new company
-      addCompany(form);
+    // Create FormData object
+    const formData = new FormData();
+    
+    // Append all text fields
+    Object.keys(form).forEach(key => {
+      const value = form[key as keyof CompanyForm];
+      
+      if (key === 'logo' || key === 'logoPreview' || key === 'registrationDocs' || key === 'banks') {
+        return; // Handle these separately
+      }
+      
+      if (value !== null && value !== undefined && value !== '') {
+        formData.append(key, String(value));
+      }
+    });
+    
+    // Append banks as JSON string (since it's an array)
+    formData.append('banks', JSON.stringify(form.banks));
+    
+    // Append logo file if exists
+    if (form.logo) {
+      formData.append('logo', form.logo);
     }
     
-    resetForm();
-    setOpen(false);
+    // Append registration documents
+   form.registrationDocs.forEach((doc) => {
+      formData.append('registrationDocs', doc.file);
+    });
+    formData.append('registrationDocsTypes', JSON.stringify(form.registrationDocs.map(doc => doc.type)));
+    
+    // Add document count
+    formData.append('registrationDocsCount', String(form.registrationDocs.length));
+
+    // Debug: Log FormData contents
+    console.log("FormData contents:");
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(`${key}:`, { name: value.name, size: value.size, type: value.type });
+      } else {
+        console.log(`${key}:`, value);
+      }
+    }
+
+    if (editingCompany) {
+      console.log("Updating company with ID:", editingCompany._id || editingCompany.id);
+      updateCompany({ companyId: editingCompany._id || String(editingCompany.id), companyData: formData });
+    } else {
+      addCompany(formData);
+    }
+    
+    // cleanupObjectUrls();
+    // resetForm();
+    // setOpen(false);
   };
 
-  // Document upload handler
+  // Document upload handler - updated for FormData
   const handleDocumentUpload = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          const newDoc: RegistrationDocument = {
-            id: Date.now(),
-            type,
-            file: event.target.result as string,
-            fileName: file.name
-          };
-          setForm(prev => ({
-            ...prev,
-            registrationDocs: [...prev.registrationDocs, newDoc]
-          }));
-        }
+      const previewUrl = URL.createObjectURL(file);
+      
+      const newDoc: RegistrationDocument = {
+        id: Date.now(),
+        type,
+        file: file,
+        fileName: file.name,
+        preview: previewUrl
       };
-      reader.readAsDataURL(file);
+      
+      setForm(prev => ({
+        ...prev,
+        registrationDocs: [...prev.registrationDocs, newDoc]
+      }));
     }
   };
 
   // Remove document handler
   const removeDocument = (id: number) => {
+    const docToRemove = form.registrationDocs.find(doc => doc.id === id);
+    if (docToRemove && docToRemove.preview && docToRemove.preview.startsWith('blob:')) {
+      URL.revokeObjectURL(docToRemove.preview);
+    }
+    
     setForm(prev => ({
       ...prev,
       registrationDocs: prev.registrationDocs.filter(doc => doc.id !== id)
@@ -419,10 +476,10 @@ const CompanyPage: React.FC = () => {
 
   // Statistics calculations
   const stats = useMemo(() => ({
-    totalCompanies: companies?.length,
-    gstRegistered: companies?.filter(c => c?.gstNumber?.trim() !== "")?.length,
-    msmeRegistered: companies?.filter(c => c?.msmeNumber?.trim() !== "")?.length,
-    activeCompanies: companies?.length
+    totalCompanies: companies?.length || 0,
+    gstRegistered: companies?.filter(c => c?.gstNumber?.trim() !== "")?.length || 0,
+    msmeRegistered: companies?.filter(c => c?.msmeNumber?.trim() !== "")?.length || 0,
+    activeCompanies: companies?.length || 0
   }), [companies]);
 
   // Common currencies for the dropdown
@@ -485,17 +542,13 @@ const CompanyPage: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  handleDeleteCompany(company._id);
+                  handleDeleteCompany(company._id || String(company.id));
                   setShowActions(false);
                 }}
-                className={`w-full justify-start text-left rounded-none ${
-                  deleteConfirm === company.id
-                    ? 'bg-red-50 text-red-700 hover:bg-red-100'
-                    : 'text-red-600 hover:bg-red-50'
-                }`}
+                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                {deleteConfirm === company.id ? 'Confirm?' : 'Delete'}
+                Delete
               </Button>
             </div>
           </>
@@ -532,12 +585,16 @@ const CompanyPage: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {companies.map((company) => (
+            {companies?.map((company) => (
               <tr key={company.id} className="hover:bg-gray-50 transition-colors duration-200">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     {company.logo && (
-                      <img src={company.logo} alt="Logo" className="h-10 w-10 rounded-full mr-3 object-cover" />
+                      <img 
+                        src={company.logo} 
+                        alt="Logo" 
+                        className="h-10 w-10 rounded-full mr-3 object-cover" 
+                      />
                     )}
                     <div>
                       <div className="text-sm font-medium text-gray-900">{company.namePrint}</div>
@@ -614,13 +671,17 @@ const CompanyPage: React.FC = () => {
   // Card View Component
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {companies.map((company: Company) => (
+      {companies?.map((company: Company) => (
         <Card key={company.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group">
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center">
-                {company?.logo && (
-                  <img src={company.logo} alt="Company Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
+                {company.logo && (
+                  <img 
+                    src={company.logo} 
+                    alt="Logo" 
+                    className="h-10 w-10 rounded-full mr-3 object-cover" 
+                  />
                 )}
                 <div>
                   <CardTitle className="text-xl font-bold text-gray-800 mb-1">
@@ -704,7 +765,7 @@ const CompanyPage: React.FC = () => {
             )}
 
             {/* Bank Accounts */}
-            {company.banks.length > 0 && (
+            {company.banks && company.banks.length > 0 && (
               <div className="pt-3 border-t border-gray-100">
                 <p className="text-xs font-medium text-gray-500 mb-2">Bank Accounts</p>
                 <div className="space-y-2">
@@ -806,7 +867,7 @@ const CompanyPage: React.FC = () => {
       </div>
 
       {/* View Toggle */}
-      {companies.length > 0 && (
+      {companies && companies.length > 0 && (
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-gray-600" />
@@ -840,7 +901,7 @@ const CompanyPage: React.FC = () => {
       )}
 
       {/* Company List */}
-      {companies.length === 0 ? (
+      {!companies || companies.length === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Building2 className="w-16 h-16 text-gray-400 mb-4" />
@@ -1281,8 +1342,8 @@ const CompanyPage: React.FC = () => {
                   <p className="text-sm font-medium text-teal-700 mb-2">Company Logo</p>
                   <div className="flex items-center gap-4">
                     <div className="w-20 h-20 rounded-full border-2 border-dashed border-teal-300 flex items-center justify-center overflow-hidden bg-white">
-                      {form.logo ? (
-                        <img src={form.logo} alt="Company Logo" className="w-full h-full object-cover" />
+                      {form.logoPreview ? (
+                        <img src={form.logoPreview} alt="Company Logo" className="w-full h-full object-cover" />
                       ) : (
                         <Image className="w-8 h-8 text-teal-300" />
                       )}
