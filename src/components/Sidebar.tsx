@@ -121,7 +121,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { path: '/stock-group', icon: Layers, label: 'Stock Group', roles: ['admin', 'agent'] },
         { path: '/uom', icon: Ruler, label: 'UOM', roles: ['admin', 'agent'] },
         { path: '/product', icon: Package, label: 'Product', roles: ['admin', 'agent'] },
-        { path: '/pricing', icon: DollarSign, label: 'Price Lists', roles: ['admin'] },
+        { path: '/price-list', icon: DollarSign, label: 'Price Lists', roles: ['admin'] },
       ]
     },
     { path: '/orders', icon: ShoppingCart, label: 'Orders', roles: ['admin', 'agent', 'salesman'], type: 'link' },

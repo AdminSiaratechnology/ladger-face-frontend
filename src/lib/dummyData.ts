@@ -486,7 +486,7 @@ export const dummyVendors = [
         branch: 'Seattle International'
       }
     ],
-    logo: 'https://via.placeholder.com/200x200/0EA5E9/FFFFFF?text=Oceanic+Logistics',
+    logo: 'https://ledgerface.s3.eu-north-1.amazonaws.com/company/1757925262964-Screenshot%202025-09-03%20at%2011.13.15%C3%A2%C2%80%C2%AFAM.png',
     notes: 'Specializes in refrigerated cargo and time-sensitive shipments.',
     createdAt: '2023-01-30',
     registrationDocs: [
@@ -729,3 +729,36 @@ export const dummyCompanies = [
     registrationDocs: []
   }
 ];
+// {
+//     "namePrint": "fggsggs",
+//     "nameStreet": "d1 dayalpura bhajanpura",
+//     "address1": "",
+//     "address2": "",
+//     "address3": "",
+//     "city": "",
+//     "pincode": "",
+//     "state": "",
+//     "country": "India",
+//     "telephone": "",
+//     "mobile": "",
+//     "fax": "",
+//     "email": "godgroot787898@gmail.com",
+//     "website": "",
+//     "gstNumber": "ytyygfgh",
+//     "panNumber": "",
+//     "tanNumber": "",
+//     "msmeNumber": "",
+//     "udyamNumber": "",
+//     "defaultCurrency": "INR - Indian Rupee",
+//     "banks": [],
+//     "logo": null,
+//     "notes": "",
+//     "registrationDocs": [
+//         {
+//             "id": 1757912020443,
+//             "type": "GST",
+//             "file": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAADSAAAAg0CAYAAAATRjkZAAAKsWlDQ1BJQ0MgUHJvZmlsZQAASImVlwdUU=",
+//           "fileName": "Screenshot 2025-09-03 at 11.13.15 AM.png"
+//         }
+//     ]
+// }

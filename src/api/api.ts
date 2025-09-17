@@ -6,7 +6,7 @@ console.log("Base URL:", baseUrl);
 const apiClient = axios.create({
   baseURL: baseUrl,
   headers: {
-    "Content-Type": "application/json",
+    // "Content-Type": "application/json",
   },
 });
 
@@ -24,6 +24,25 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+
+
+//Create user Api 
+
+const createUser = async (userData: any) => {
+  console.log("Creating user with data:", userData);
+  const res = await apiClient.post("/auth/register", userData);
+  return res.data;
+};
+
+//Fetch users for agent 
+
+const fetchUsers=async()=>{
+  console.log("fewtching usersss ");
+  const res=await apiClient.get("/user-management/client/allUsers")
+  console.log(res,"fetched users response")
+  return res.data
+}
+
 // API functions
 const createCompany = async (companyData: any) => {
   console.log("Creating company with data:", companyData);
@@ -31,7 +50,11 @@ const createCompany = async (companyData: any) => {
   const res = await apiClient.post("/company/create", companyData);
   return res.data;
 };
+const updateUser=async(id,user)=>{
+  const res=await apiClient.patch(`/auth/updateUser/${id}`,user)
+  return res.data
 
+}
 const getCompanies = async () => {
   try {
     console.log("Fetching companies...");
@@ -57,13 +80,19 @@ const getProducts = async () => {
   return res.data;
 };
 
+
+
+
 // Export API
 const api = {
   createCompany,
   getCompanies,
   getProducts,
   updateCompany,
-  deleteCompany
+  deleteCompany,
+  createUser,
+  fetchUsers,
+  updateUser
 };
 
 export default api;
