@@ -55,6 +55,10 @@ const updateUser=async(id,user)=>{
   return res.data
 
 }
+const deleteUserStatus=async(id:string)=>{
+const res=await apiClient.delete(`/auth/deleteUser/${id}`)
+return res.data
+}
 const getCompanies = async () => {
   try {
     console.log("Fetching companies...");
@@ -81,6 +85,26 @@ const getProducts = async () => {
 };
 
 
+//godowns 
+const getGodowns=async()=>{
+  const res=await apiClient.get("/godowns")
+  return res?.data
+}
+const addGodowns=async(godown:any)=>{
+  const res=await apiClient.post("/godowns",godown)
+  return res?.data
+}
+const updateGodown=async({id, godown}:{id:string,godown:any})=>{
+  const res=await apiClient.put(`/godowns/${id}`,godown)
+  return res?.data
+}
+const deleteGodown=async(id:string)=>{
+  const res=await apiClient.delete(`/godowns/${id}`)
+  return res?.data
+}
+
+
+
 
 
 // Export API
@@ -92,7 +116,12 @@ const api = {
   deleteCompany,
   createUser,
   fetchUsers,
-  updateUser
+  updateUser,
+  deleteUserStatus,
+  getGodowns,
+  addGodowns,
+  updateGodown,
+  deleteGodown
 };
 
 export default api;
