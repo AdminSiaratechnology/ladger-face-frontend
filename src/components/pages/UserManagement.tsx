@@ -45,6 +45,7 @@ import {
 } from '../ui/table';
 import { useCompanyStore } from "../../../store/companyStore";
 import { useUserManagementStore } from "../../../store/userManagementStore";
+import {timeAgo} from "../../lib/timeAgo"
 
 
 
@@ -388,6 +389,7 @@ export const UserManagement: React.FC = () => {
   };
 
   const handleDeleteUser = (userId: string) => {
+    console.log(userId,"deleteuserid")
     if (window.confirm('Are you sure you want to delete this user?')) {
       deleteUser(userId);
     }
@@ -553,6 +555,9 @@ export const UserManagement: React.FC = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 border-gray-300 focus:border-blue-500"
+                autoComplete="off"
+  autoCorrect="off"
+  spellCheck={false}
               />
             </div>
             <select
@@ -690,7 +695,7 @@ export const UserManagement: React.FC = () => {
                       <TableCell className="text-sm text-gray-600">
                         <div className="flex items-center">
                           <Calendar className="w-3 h-3 mr-1" />
-                          {user.lastLogin}
+                          {user.lastLogin!="Never" ? timeAgo(user.lastLogin):user.lastLogin}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -733,7 +738,7 @@ export const UserManagement: React.FC = () => {
 
       <DropdownMenuItem
         className="text-red-600 focus:bg-red-50"
-        onClick={() => handleDeleteUser(user.id)}
+        onClick={() => handleDeleteUser(user?.["_id"])}
       >
         <Trash2 className="w-4 h-4 mr-2" />
         Delete User

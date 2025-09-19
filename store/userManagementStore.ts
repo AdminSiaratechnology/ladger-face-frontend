@@ -41,7 +41,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
 
           // Update persisted state with new user
           set((state) => ({
-            users: [...state.users, response],
+            users: [...state.users, response?.data],
             loading: false,
           }));
 
@@ -52,15 +52,25 @@ export const useUserManagementStore = create<useUserManagementStore>()(
         }
       },
       editUser:async(id,user)=>{
-        console.log(id,user,"jndnjs")
+        // console.log(id,user,"jndnjs")
         
         set({ loading: true });
         try {
         const response=await api.updateUser(id,user);
+        console.log(response,"responseof updateuser")
         const updatedUser=response.data
-        set({users:get().users.map((user)=>{
-            user._id===id?updatedUser:user
-        })})
+        console.log(updatedUser,"dataof updateuser")
+        let allusers=get().users;
+        console.log()
+        let hii=get().users.map((user)=>{
+           return user?.["_id"]===id?updatedUser:user
+         
+        })
+        console.log(hii,"hiii")
+
+        // set({users:get().users.map((user)=>{
+        //     user?.["_id"]===id?updatedUser:user
+        // })})
         
 
             
@@ -70,6 +80,15 @@ export const useUserManagementStore = create<useUserManagementStore>()(
 
       },
       deleteUser:async(id)=>{
+        set({loading:true})
+        try {
+          const response=await api.deleteUserStatus(id)
+          console.log(response,"deleteresomnse")
+          
+        } catch (error) {
+          set({loading:false,error:error.message})
+        }
+
 
       }
 
