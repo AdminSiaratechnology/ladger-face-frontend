@@ -1,33 +1,18 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Calculator, Building2, FileText, Star, Zap, Table, Grid3X3, Eye } from "lucide-react";
-
-// Custom Input Box Component
-const CustomInputBox = ({ placeholder, name, value, onChange, type = "text", label, ...props }) => (
-  <div className="flex flex-col gap-1">
-    {label && (
-      <label className="text-sm font-medium text-gray-700">
-        {label}
-      </label>
-    )}
-    <input
-      type={type}
-      placeholder={placeholder}
-      name={name}
-      value={value}
-      onChange={onChange}
-      className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
-      {...props}
-    />
-  </div>
-);
+import { Calculator, Building2, FileText, Star, Zap, Table, Grid3X3, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import CustomInputBox from "../customComponents/CustomInputBox";
+import {useUOMStore} from "../../../store/uomStore";
+import {useCompanyStore} from "../../../store/companyStore"
+import { UQC_LIST } from "../../lib/UQC_List";
 
 // Unit interface
 interface Unit {
   id: number;
+  _id?: string;
   name: string;
   type: 'simple' | 'compound';
   // Simple unit fields
@@ -38,6 +23,8 @@ interface Unit {
   conversion?: number;
   secondUnit?: string;
   createdAt: string;
+   companyId: string,
+   UQC:string
 }
 
 // Form interface
@@ -49,68 +36,18 @@ interface UnitForm {
   firstUnit: string;
   conversion: number;
   secondUnit: string;
+   companyId: string,
+   UQC:string
 }
 
 const UnitManagement: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("simple");
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table'); // Default to table
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   
-  // Initialize with dummy data
-  const [units, setUnits] = useState<Unit[]>([
-    // Simple units
-    {
-      id: 1,
-      name: "Meter",
-      type: 'simple',
-      symbol: "m",
-      decimalPlaces: 2,
-      createdAt: "10/15/2023"
-    },
-    {
-      id: 2,
-      name: "Kilogram",
-      type: 'simple',
-      symbol: "kg",
-      decimalPlaces: 3,
-      createdAt: "10/16/2023"
-    },
-    {
-      id: 3,
-      name: "Second",
-      type: 'simple',
-      symbol: "s",
-      decimalPlaces: 1,
-      createdAt: "10/17/2023"
-    },
-    {
-      id: 4,
-      name: "Celsius",
-      type: 'simple',
-      symbol: "°C",
-      decimalPlaces: 1,
-      createdAt: "10/18/2023"
-    },
-    // Compound units
-    {
-      id: 5,
-      name: "Kilometers per hour",
-      type: 'compound',
-      firstUnit: "Kilometer",
-      conversion: 1,
-      secondUnit: "Hour",
-      createdAt: "10/19/2023"
-    },
-    {
-      id: 6,
-      name: "Newton",
-      type: 'compound',
-      firstUnit: "Kilogram",
-      conversion: 1,
-      secondUnit: "Meter per second squared",
-      createdAt: "10/20/2023"
-    }
-  ]);
+  const {fetchUnits, units, addUnit, updateUnit, deleteUnit} = useUOMStore()
+   const { companies } = useCompanyStore();
   
   const [form, setForm] = useState<UnitForm>({
     name: '',
@@ -120,6 +57,8 @@ const UnitManagement: React.FC = () => {
     firstUnit: '',
     conversion: 1,
     secondUnit: '',
+    companyId:"",
+    UQC:""
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
@@ -147,7 +86,33 @@ const UnitManagement: React.FC = () => {
       firstUnit: '',
       conversion: 1,
       secondUnit: '',
+       companyId: '',
+       UQC:""
     });
+    setEditingUnit(null);
+    setActiveTab("simple");
+  };
+
+  const handleEditUnit = (unit: Unit): void => {
+    setEditingUnit(unit);
+    setForm({
+      name: unit.name,
+      type: unit.type,
+      symbol: unit.symbol || '',
+      decimalPlaces: unit.decimalPlaces || 2,
+      firstUnit: unit.firstUnit || '',
+      conversion: unit.conversion || 1,
+      secondUnit: unit.secondUnit || '',
+       companyId: unit.companyId,
+       UQC:unit.UQC
+    });
+    setActiveTab(unit.type);
+    setOpen(true);
+  };
+
+  const handleDeleteUnit = (id: string): void => {
+    console.log("delete id", id);
+    deleteUnit(id);
   };
 
   const handleSubmit = (): void => {
@@ -173,17 +138,33 @@ const UnitManagement: React.FC = () => {
       }
     }
 
-    const newUnit: Unit = { 
-      ...form, 
-      id: Date.now(),
-      type: activeTab as 'simple' | 'compound',
-      createdAt: new Date().toLocaleDateString()
-    };
+    if (editingUnit) {
+      const updateData = {
+        name: form.name,
+        type: activeTab as 'simple' | 'compound',
+        ...(activeTab === 'simple' ? {
+          symbol: form.symbol,
+          decimalPlaces: form.decimalPlaces,
+          UQC:form.UQC
+        } : {
+          firstUnit: form.firstUnit,
+          conversion: form.conversion,
+          secondUnit: form.secondUnit,
+        })
+      };
+      console.log("updating unit", editingUnit);
+      updateUnit({unitId: editingUnit?._id, data: updateData});
+    } else {
+      const newUnit = {
+        ...form,
+        type: activeTab as 'simple' | 'compound',
+      };
+      console.log("adding unit");
+      addUnit(newUnit);
+    }
     
-    setUnits(prev => [...prev, newUnit]);
-    resetForm();
-    setOpen(false);
-    setActiveTab("simple");
+    // resetForm();
+    // setOpen(false);
   };
 
   // Get simple units for compound unit dropdowns
@@ -210,6 +191,63 @@ const UnitManagement: React.FC = () => {
     { id: "compound", label: "Compound Unit" }
   ];
 
+  useEffect(() => {
+    fetchUnits()
+  }, []);
+
+  // Actions dropdown component
+  const ActionsDropdown = ({ unit }: { unit: Unit }) => {
+    const [showActions, setShowActions] = useState(false);
+    
+    return (
+      <div className="relative">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowActions(!showActions)}
+          className="h-8 w-8 p-0 hover:bg-gray-100"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+        
+        {showActions && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setShowActions(false)}
+            />
+            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  handleEditUnit(unit);
+                  setShowActions(false);
+                }}
+                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  handleDeleteUnit(unit._id || unit.id.toString());
+                  setShowActions(false);
+                }}
+                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
   // Table View Component
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -228,6 +266,9 @@ const UnitManagement: React.FC = () => {
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created Date
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
               </th>
             </tr>
           </thead>
@@ -270,6 +311,9 @@ const UnitManagement: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {unit.createdAt}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <ActionsDropdown unit={unit} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -278,11 +322,11 @@ const UnitManagement: React.FC = () => {
     </div>
   );
 
-  // Card View Component (existing card view)
+  // Card View Component
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
       {units.map((unit: Unit) => (
-        <Card key={unit.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
+        <Card key={unit._id || unit.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 pb-4">
             <div className="flex items-start justify-between">
               <div>
@@ -298,6 +342,7 @@ const UnitManagement: React.FC = () => {
                   )}
                 </div>
               </div>
+              <ActionsDropdown unit={unit} />
             </div>
           </CardHeader>
           
@@ -357,12 +402,15 @@ const UnitManagement: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-xs font-bold text-gray-800 mb-2">Unit of Management</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Unit of Management</h1>
           <p className="text-gray-600">Manage your unit measurements and conversions</p>
         </div>
        
         <Button 
-          onClick={() => setOpen(true)} 
+          onClick={() => {
+            resetForm();
+            setOpen(true);
+          }} 
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
         >
           <Calculator className="w-4 h-4 mr-2" />
@@ -410,36 +458,38 @@ const UnitManagement: React.FC = () => {
       </div>
 
       {/* View Toggle */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2">
-          <Eye className="w-5 h-5 text-gray-600" />
-          <span className="text-gray-700 font-medium">View Mode:</span>
+      {units && units.length > 0 && (
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            <Eye className="w-5 h-5 text-gray-600" />
+            <span className="text-gray-700 font-medium">View Mode:</span>
+          </div>
+          <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                viewMode === 'table'
+                  ? 'bg-white text-teal-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Table className="w-4 h-4 mr-2" />
+              Table View
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                viewMode === 'cards'
+                  ? 'bg-white text-teal-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Grid3X3 className="w-4 h-4 mr-2" />
+              Card View
+            </button>
+          </div>
         </div>
-        <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
-          <button
-            onClick={() => setViewMode('table')}
-            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-              viewMode === 'table'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Table className="w-4 h-4 mr-2" />
-            Table View
-          </button>
-          <button
-            onClick={() => setViewMode('cards')}
-            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-              viewMode === 'cards'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Grid3X3 className="w-4 h-4 mr-2" />
-            Card View
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Units List */}
       {units.length === 0 ? (
@@ -449,7 +499,10 @@ const UnitManagement: React.FC = () => {
             <p className="text-gray-500 text-lg font-medium mb-2">No units registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first unit to get started</p>
             <Button 
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                resetForm();
+                setOpen(true);
+              }}
               className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
             >
               Add Your First Unit
@@ -463,14 +516,19 @@ const UnitManagement: React.FC = () => {
       )}
 
       {/* Modal Form */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+          resetForm();
+        }
+      }}>
         <DialogContent className="sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
           <DialogHeader className="pb-4 border-b border-gray-200 h-16">
             <DialogTitle className="text-2xl font-bold text-gray-800">
-              Add New Unit
+              {editingUnit ? 'Edit Unit' : 'Add New Unit'}
             </DialogTitle>
             <p className="text-gray-600 text-sm">
-              Create a new unit measurement with specific properties
+              {editingUnit ? 'Update the unit details' : 'Create a new unit measurement with specific properties'}
             </p>
           </DialogHeader>
           
@@ -518,6 +576,36 @@ const UnitManagement: React.FC = () => {
                   </div>
 
                   <div className="mt-4">
+                     <div className="mb-4">
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">UQC</label>
+                  <select
+                    value={form.UQC}
+                    onChange={(e) => handleSelectChange("UQC", e.target.value)}
+                    className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                  >
+                    <option value="">Select UQC</option>
+                    {UQC_LIST.map((uc) => (
+                      <option key={uc.code} value={uc.code}>
+                        {uc.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                     <div className="mb-4">
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Company</label>
+                  <select
+                    value={form.companyId}
+                    onChange={(e) => handleSelectChange("companyId", e.target.value)}
+                    className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                  >
+                    <option value="">Select Company</option>
+                    {companies.map((company) => (
+                      <option key={company._id} value={company._id}>
+                        {company.namePrint}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                     <CustomInputBox
                       placeholder="Number of Decimal Places"
                       name="decimalPlaces"
@@ -604,7 +692,7 @@ const UnitManagement: React.FC = () => {
                   onClick={handleSubmit}
                   className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-8 py-2 shadow-lg"
                 >
-                  Save Unit
+                  {editingUnit ? 'Update Unit' : 'Save Unit'}
                 </Button>
               </div>
             </div>
