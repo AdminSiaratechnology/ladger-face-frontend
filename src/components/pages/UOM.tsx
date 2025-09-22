@@ -8,6 +8,7 @@ import CustomInputBox from "../customComponents/CustomInputBox";
 import {useUOMStore} from "../../../store/uomStore";
 import {useCompanyStore} from "../../../store/companyStore"
 import { UQC_LIST } from "../../lib/UQC_List";
+import { formatSimpleDate } from "../../lib/formatDates";
 
 // Unit interface
 interface Unit {
@@ -309,7 +310,7 @@ const UnitManagement: React.FC = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {unit.createdAt}
+                  {formatSimpleDate( unit.createdAt)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <ActionsDropdown unit={unit} />
@@ -388,7 +389,7 @@ const UnitManagement: React.FC = () => {
               
               <div className="flex items-center text-sm">
                 <FileText className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Created: {unit.createdAt}</span>
+                <span className="text-gray-600">Created: {formatSimpleDate( unit.createdAt)}</span>
               </div>
             </div>
           </CardContent>

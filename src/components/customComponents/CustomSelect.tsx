@@ -19,6 +19,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
   placeholder = "Select an option",
   required = false,
 }) => {
+  console.log(options,"optionsssss")
   return (
     <div className="flex flex-col gap-1">
       <label
@@ -37,8 +38,8 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option.id?option.id:option}
+          <option key={option} value={option._id|| option}>
+            {option._id?(option.name|| option.namePrint):option}
           </option>
         ))}
       </select>

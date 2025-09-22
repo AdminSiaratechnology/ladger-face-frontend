@@ -157,15 +157,65 @@ const createUOM = async (data: any) => {
   const res = await apiClient.post("/units", data);
   return res?.data;
 };
-const updateUOM = async ({ id, unit }: { id: string; unit: any }) => {
-  console.log(id,unit,"iddd")
-  const res = await apiClient.put(`"/units/${id}`, unit);
+const updateUOM = async ({ unitId,data }: { unitId: string; data: any }) => {
+  
+  const res = await apiClient.put(`/units/${unitId}`, data);
   return res?.data;
 };
 const deleteUOM = async (id: string) => {
   const res = await apiClient.delete(`/units/${id}`);
   return res?.data;
 };
+
+const fetchProducts = async () => {
+  const res = await apiClient.get("/products");
+  console.log(res,"ressfetchproduct")
+  return res.data;
+};
+
+const createProduct = async (product) => {
+  console.log(product,"createProductcreateProduct")
+  const res = await apiClient.post("/products", product);
+  return res.data;
+};
+
+const updateProduct = async (id, product) => {
+  const res = await apiClient.put(`/products/${id}`, product);
+  return res.data;
+};
+
+const deleteProduct = async (id: number) => {
+  const res = await apiClient.delete(`/products/${id}`);
+  return res.data;
+};
+
+// Fetch all customers
+const fetchCustomers = async () => {
+  const res = await apiClient.get("/agent/customers");
+  // console.log(res, "fetchCustomers response");
+  return res.data;
+};
+
+//Create a new customer
+const createCustomer = async (customer: any) => {
+  console.log(customer, "createCustomer payload");
+  const res = await apiClient.post("/agent/customers", customer);
+  return res.data;
+};
+
+// Update customer by ID
+const updateCustomer = async (id: number | string, customer: any) => {
+  console.log(id, customer, "updateCustomer payload");
+  const res = await apiClient.put(`/agent/customers/${id}`, customer);
+  return res.data;
+};
+
+// Delete customer by ID
+const deleteCustomer = async (id: number | string) => {
+  const res = await apiClient.delete(`/agent/customers/${id}`);
+  return res.data;
+};
+
 
 
 
@@ -199,7 +249,16 @@ getStockCategory,
   fetchUOM,
   createUOM,
   updateUOM,
-  deleteUOM
+  deleteUOM,
+  fetchProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  fetchCustomers,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+
 
 }
 

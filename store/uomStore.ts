@@ -26,7 +26,7 @@ interface UnitStore {
   errorMessage: string | null;
   fetchUnits: () => Promise<void>;
   addUnit: (unit: Unit) => Promise<void>;
-  updateUnit: (params: { id: string; unit: Unit }) => Promise<void>;
+  updateUnit: (params: { unitId: string; data: Unit }) => Promise<void>;
   deleteUnit: (id: string) => Promise<void>;
 }
 
@@ -79,11 +79,13 @@ export const useUOMStore = create<UnitStore>()(
       },
 
       // Update UOM
-      updateUnit: async (prams) => {
-        console.log(prams,"parama")
+      updateUnit: async ({unitId,data}) => {
+      
+        
         set({ loading: true, error: false });
+        console.log("dahsdsa",unitId,data)
         try {
-          const result = await api.updateUOM(id, unit);
+          const result = await api.updateUOM({unitId,data});
           set({
             units: get().units.map((u) =>
               u._id === id ? result?.data : u
