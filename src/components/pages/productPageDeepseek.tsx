@@ -1,37 +1,32 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { 
-  Package, 
-  Tag, 
-  Archive, 
-  Settings2, 
-  Star, 
-  Edit, 
-  Trash2, 
-  MoreHorizontal, 
-  Eye, 
-  Table, 
-  Grid3X3, 
-  Layers,
-  Building2,
-  FileText,
+import {
+  Package,
+  Tag,
+  Archive,
+  Settings2,
+  Star,
   Plus,
+  X,
+  Layers,
+  Receipt,
   Camera,
-  Upload,
-  X
+  Eye,
+  Trash2,
 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import CustomSelect from "../customComponents/CustomSelect";
-import { useCompanyStore } from "../../../store/companyStore";
-import { useGodownStore } from "../../../store/godownStore";
-import { useStockCategory } from "../../../store/stockCategoryStore";
-import { useStockGroup } from "../../../store/stockGroupStore";
-import { useUOMStore } from "../../../store/uomStore";
-import { useProductStore } from "../../../store/productStore";
 
+import {useCompanyStore} from "../../../store/companyStore"
+import {useGodownStore} from "../../../store/godownStore"
+import {useStockCategory} from "../../../store/stockCategoryStore"
+import {useStockGroup} from "../../../store/stockGroupStore"
+import {useUOMStore} from "../../../store/uomStore"
+import {useProductStore} from "../../../store/productStore"
 
 // Interfaces
 interface Unit {
@@ -45,6 +40,8 @@ interface Unit {
   secondUnit?: string;
   createdAt: string;
 }
+
+
 
 interface TaxConfiguration {
   applicable: boolean;
@@ -64,18 +61,8 @@ interface ProductImage {
   previewUrl: string;
 }
 
-interface OpeningQuantity {
-  id: number;
-  godown: string;
-  batch: string;
-  quantity: number;
-  rate: number;
-  amount: number;
-}
-
 interface Product {
   id: number;
-  _id?: string;
   code: string;
   name: string;
   partNo: string;
@@ -89,15 +76,14 @@ interface Product {
   minimumQuantity?: number;
   defaultSupplier?: string;
   minimumRate?: number;
-  companyId?: string;
+  companyId?:any,
   maximumRate?: number;
   defaultGodown?: string;
   productType?: string;
   taxConfiguration?: TaxConfiguration;
   images?: ProductImage[];
   remarks?: string;
-  isDeleted: boolean;
-  status: string;
+  isDeleted:boolean
 }
 
 interface ProductForm {
@@ -113,14 +99,24 @@ interface ProductForm {
   defaultSupplier?: string;
   minimumRate?: number;
   maximumRate?: number;
-  companyId?: string;
+  companyId?:string;
   defaultGodown?: string;
   productType?: string;
   taxConfiguration: TaxConfiguration;
   images: ProductImage[];
   remarks: string;
-  status: string;
 }
+
+interface OpeningQuantity {
+  id: number;
+  godown: string;
+  batch: string;
+  quantity: number;
+  rate: number;
+  amount: number;
+}
+
+
 
 interface Supplier {
   id: number;
@@ -128,15 +124,11 @@ interface Supplier {
   code: string;
 }
 
-const formatSimpleDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString();
-};
 
 const ProductPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");
+  const [products, setProducts] = useState<Product[]>([]);
   const [openingQuantities, setOpeningQuantities] = useState<OpeningQuantity[]>(
     [{ id: 1, godown: "", batch: "", quantity: 0, rate: 0, amount: 0 }]
   );
@@ -144,17 +136,18 @@ const ProductPage: React.FC = () => {
   const [usedQuantity, setUsedQuantity] = useState<number>(0);
   const [remainingQuantity, setRemainingQuantity] = useState<number>(0);
   const [viewingImage, setViewingImage] = useState<ProductImage | null>(null);
-  
-  const { companies } = useCompanyStore();
-  const { stockCategories } = useStockCategory();
-  const { stockGroups } = useStockGroup();
-  const { godowns } = useGodownStore();
-  const { units } = useUOMStore();
-  const { fetchProducts, addProduct, updateProduct, deleteProduct, products } = useProductStore();
-  console.log(products,"prodiuctsss")
+  const {companies}=useCompanyStore()
+  const {stockCategories}=useStockCategory()
+  const {stockGroups}=useStockGroup()
+  const {godowns}=useGodownStore()
+  const {units}=useUOMStore()
+  const {fetchProducts,addProduct,updateProduct,deleteProduct}=useProductStore()
+  console.log(companies,"comapnyyyyys")
+
 
   // Simulated country from backend - can be replaced with actual backend call
   const [country] = useState<string>("india");
+
 
   // Suppliers data
   const [suppliers] = useState<Supplier[]>([
@@ -164,7 +157,7 @@ const ProductPage: React.FC = () => {
     { id: 4, name: "Prime Components Corp", code: "SUP004" },
   ]);
 
-  const [formData, setFormData] = useState<ProductForm>({
+  const [form, setForm] = useState<ProductForm>({
     code: "",
     name: "",
     partNo: "",
@@ -177,9 +170,9 @@ const ProductPage: React.FC = () => {
     defaultSupplier: "",
     minimumRate: 0,
     maximumRate: 0,
-    companyId: "",
     defaultGodown: "",
     productType: "",
+    companyId:"",
     taxConfiguration: {
       applicable: false,
       hsnCode: "",
@@ -192,12 +185,11 @@ const ProductPage: React.FC = () => {
     },
     images: [],
     remarks: "",
-    status: "Active"
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
+    setForm((prev) => ({
       ...prev,
       [name]:
         type === "checkbox"
@@ -209,7 +201,7 @@ const ProductPage: React.FC = () => {
   };
 
   const handleSelectChange = (name: keyof ProductForm, value: string): void => {
-    setFormData((prev) => ({
+    setForm((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -219,7 +211,7 @@ const ProductPage: React.FC = () => {
     const { name, value, type, checked } = e.target;
     const newValue = type === "checkbox" ? checked : type === "number" ? Number(value) : value;
 
-    setFormData((prev) => {
+    setForm((prev) => {
       const updatedTaxConfig = {
         ...prev.taxConfiguration,
         [name]: newValue,
@@ -240,7 +232,7 @@ const ProductPage: React.FC = () => {
   };
 
   const handleTaxSelectChange = (name: keyof TaxConfiguration, value: string): void => {
-    setFormData((prev) => ({
+    setForm((prev) => ({
       ...prev,
       taxConfiguration: {
         ...prev.taxConfiguration,
@@ -251,7 +243,7 @@ const ProductPage: React.FC = () => {
 
   // Validation for CGST + SGST not exceeding tax percentage
   const isTaxValid = (): boolean => {
-    const { cgst, sgst, taxPercentage } = formData.taxConfiguration;
+    const { cgst, sgst, taxPercentage } = form.taxConfiguration;
     return cgst + sgst <= taxPercentage;
   };
 
@@ -324,157 +316,67 @@ const ProductPage: React.FC = () => {
         previewUrl: URL.createObjectURL(file),
       };
 
-      setFormData((prev) => ({
+      setForm((prev) => ({
         ...prev,
         images: [...prev.images.filter(img => img.angle !== angle), newImage],
       }));
     }
   };
 
-  // Product image upload handler - similar to company document upload
-const handleProductImageUpload = (imageType: string, e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (file) {
-    const previewUrl = URL.createObjectURL(file);
-    
-    const newImage: ProductImage = {
-      id: Date.now(),
-      angle: imageType,
-      file: file,
-      previewUrl: previewUrl
-    };
-    
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images.filter(img => img.angle !== imageType), newImage]
-    }));
-  }
-};
-
-// Remove product image handler - similar to company document removal
-const removeProductImage = (id: number) => {
-  const imageToRemove = formData.images.find(img => img.id === id);
-  if (imageToRemove && imageToRemove.previewUrl && imageToRemove.previewUrl.startsWith('blob:')) {
-    URL.revokeObjectURL(imageToRemove.previewUrl);
-  }
-  
-  setFormData(prev => ({
-    ...prev,
-    images: prev.images.filter(img => img.id !== id)
-  }));
-};
-
   const removeImage = (id: number) => {
-    setFormData((prev) => ({
+    setForm((prev) => ({
       ...prev,
       images: prev.images.filter((img) => img.id !== id),
     }));
   };
 
   const handleRemarksChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setFormData((prev) => ({
+    setForm((prev) => ({
       ...prev,
       remarks: e.target.value,
     }));
   };
 
-  // const resetForm = () => {
-  //   setFormData({
-  //     code: "",
-  //     name: "",
-  //     partNo: "",
-  //     stockGroup: "",
-  //     stockCategory: "",
-  //     batch: false,
-  //     unit: "",
-  //     alternateUnit: "",
-  //     minimumQuantity: 0,
-  //     defaultSupplier: "",
-  //     minimumRate: 0,
-  //     maximumRate: 0,
-  //     companyId: "",
-  //     defaultGodown: "",
-  //     productType: "",
-  //     taxConfiguration: {
-  //       applicable: false,
-  //       hsnCode: "",
-  //       taxPercentage: 0,
-  //       cgst: 0,
-  //       sgst: 0,
-  //       cess: 0,
-  //       additionalCess: 0,
-  //       applicableDate: "",
-  //     },
-  //     images: [],
-  //     remarks: "",
-  //     status: "Active"
-  //   });
-  //   setEditingProduct(null);
-  //   setOpeningQuantities([
-  //     { id: 1, godown: "", batch: "", quantity: 0, rate: 0, amount: 0 },
-  //   ]);
-  //   setTotalOpeningQuantity(0);
-  //   setActiveTab("basic");
-  // };
-const resetForm = () => {
-  cleanupImageUrls(); // Clean up image URLs
-  
-  setFormData({
-    code: "",
-    name: "",
-    partNo: "",
-    stockGroup: "",
-    stockCategory: "",
-    batch: false,
-    unit: "",
-    alternateUnit: "",
-    minimumQuantity: 0,
-    defaultSupplier: "",
-    minimumRate: 0,
-    maximumRate: 0,
-    companyId: "",
-    defaultGodown: "",
-    productType: "",
-    taxConfiguration: {
-      applicable: false,
-      hsnCode: "",
-      taxPercentage: 0,
-      cgst: 0,
-      sgst: 0,
-      cess: 0,
-      additionalCess: 0,
-      applicableDate: "",
-    },
-    images: [],
-    remarks: "",
-    status: "Active"
-  });
-  setEditingProduct(null);
-  setOpeningQuantities([
-    { id: 1, godown: "", batch: "", quantity: 0, rate: 0, amount: 0 },
-  ]);
-  setTotalOpeningQuantity(0);
-  setActiveTab("basic");
-};
-  const handleEditProduct = (product: Product): void => {
-    setEditingProduct(product);
-    setFormData({
-      code: product.code,
-      name: product.name,
-      partNo: product.partNo,
-      stockGroup: product.stockGroup,
-      stockCategory: product.stockCategory,
-      batch: product.batch,
-      unit: product.unit,
-      alternateUnit: product.alternateUnit,
-      minimumQuantity: product.minimumQuantity || 0,
-      defaultSupplier: product.defaultSupplier || "",
-      minimumRate: product.minimumRate || 0,
-      maximumRate: product.maximumRate || 0,
-      companyId: product.companyId || "",
-      defaultGodown: product.defaultGodown || "",
-      productType: product.productType || "",
-      taxConfiguration: product.taxConfiguration || {
+  const handleSubmit = (): void => {
+    if (!form.code.trim() || !form.name.trim()) {
+      alert("Please fill in Product Code and Name");
+      return;
+    }
+
+    if (form.taxConfiguration.applicable && !isTaxValid()) {
+      alert("CGST + SGST cannot exceed the tax percentage");
+      return;
+    }
+
+    const newProduct: Product = {
+      ...form,
+      id: Date.now(),
+      createdAt: new Date().toLocaleDateString(),
+      openingQuantities: openingQuantities.filter(
+        (q) => q.godown && (q.quantity > 0 || q.rate > 0)
+      ),
+    };
+
+    setProducts((prev) => [...prev, newProduct]);
+
+    // Reset form
+    setForm({
+      code: "",
+      name: "",
+      partNo: "",
+      stockGroup: "",
+      stockCategory: "",
+      batch: false,
+      unit: "",
+      alternateUnit: "",
+      minimumQuantity: 0,
+      defaultSupplier: "",
+      minimumRate: 0,
+      maximumRate: 0,
+      defaultGodown: "",
+      productType: "",
+      companyId:"",
+      taxConfiguration: {
         applicable: false,
         hsnCode: "",
         taxPercentage: 0,
@@ -484,123 +386,29 @@ const resetForm = () => {
         additionalCess: 0,
         applicableDate: "",
       },
-      images: product.images || [],
-      remarks: product.remarks || "",
-      status: product.status || "Active"
+      images: [],
+      remarks: "",
     });
-    
-    if (product.openingQuantities && product.openingQuantities.length > 0) {
-      setOpeningQuantities(product.openingQuantities);
-      const totalQty = product.openingQuantities.reduce((sum, item) => sum + item.quantity, 0);
-      setTotalOpeningQuantity(totalQty);
-    }
-    
-    setOpen(true);
+
+    // Reset opening quantities
+    setOpeningQuantities([
+      { id: 1, godown: "", batch: "", quantity: 0, rate: 0, amount: 0 },
+    ]);
+    setTotalOpeningQuantity(0);
+
+    setOpen(false);
+    setActiveTab("basic");
   };
-
-  const handleDeleteProduct = (id: string): void => {
-    console.log("delete id", id);
-    deleteProduct(id);
-  };
-
-  // const handleSubmit = (): void => {
-  //   if (!formData.code.trim() || !formData.name.trim()) {
-  //     alert("Please fill in Product Code and Name");
-  //     return;
-  //   }
-
-  //   if (formData.taxConfiguration.applicable && !isTaxValid()) {
-  //     alert("CGST + SGST cannot exceed the tax percentage");
-  //     return;
-  //   }
-
-  //   const productData = {
-  //     ...formData,
-  //     openingQuantities: openingQuantities.filter(
-  //       (q) => q.godown && (q.quantity > 0 || q.rate > 0)
-  //     ),
-  //   };
-
-  //   if (editingProduct) {
-  //     updateProduct({ id: editingProduct._id, product: productData });
-  //   } else {
-  //     console.log(productData,"prodictcaa")
-  //     addProduct(productData);
-  //   }
-
-  //   // resetForm();
-  //   // setOpen(false);
-  // };
 
   // Statistics
-  const handleSubmit = (): void => {
-  if (!formData.code.trim() || !formData.name.trim()) {
-    alert("Please fill in Product Code and Name");
-    return;
-  }
-
-  if (formData.taxConfiguration.applicable && !isTaxValid()) {
-    alert("CGST + SGST cannot exceed the tax percentage");
-    return;
-  }
-
-  // Create FormData for file uploads (similar to company form)
-  const productFormData = new FormData();
-  
-  // Append all text fields
-  Object.keys(formData).forEach(key => {
-    const value = formData[key as keyof ProductForm];
-    
-    if (key === 'images' || key === 'taxConfiguration' || key === 'openingQuantities') {
-      return; // Handle these separately
-    }
-    
-    if (value !== null && value !== undefined && value !== '') {
-      productFormData.append(key, String(value));
-    }
-  });
-  
-  // Append tax configuration as JSON
-  productFormData.append('taxConfiguration', JSON.stringify(formData.taxConfiguration));
-  
-  // Append opening quantities
-  const validOpeningQuantities = openingQuantities.filter(
-    (q) => q.godown && (q.quantity > 0 || q.rate > 0)
-  );
-  productFormData.append('openingQuantities', JSON.stringify(validOpeningQuantities));
-  
-  // Append product images
-  formData.images.forEach((image) => {
-    productFormData.append('productImages', image.file);
-  });
-  productFormData.append('productImageTypes', JSON.stringify(formData.images.map(img => img.angle)));
-  productFormData.append('productImagesCount', String(formData.images.length));
-
-  if (editingProduct) {
-    updateProduct({ id: editingProduct._id, product: productFormData });
-  } else {
-    addProduct(productFormData);
-  }
-  setOpen(false)
-  resetForm()
-};
-
-// Clean up function for image URLs (similar to company form)
-const cleanupImageUrls = (): void => {
-  formData.images.forEach(img => {
-    if (img.previewUrl && img.previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(img.previewUrl);
-    }
-  });
-};
-
-  
   const stats = useMemo(
     () => ({
       totalProducts: products.length,
-      activeProducts: products.filter(p => p.status === 'Active').length,
+      activeProducts: products.length,
+      categorizedProducts: products.filter((p) => p.stockCategory !== "")
+        .length,
+      groupedProducts: products.filter((p) => p.stockGroup !== "").length,
       batchProducts: products.filter((p) => p.batch).length,
-      taxableProducts: products.filter(p => p.taxConfiguration?.applicable).length,
     }),
     [products]
   );
@@ -613,6 +421,13 @@ const cleanupImageUrls = (): void => {
     { id: "settings", label: "Settings" },
   ];
 
+  console.log(stockCategories,"stockctegoryyyy")
+  // Get unique parent options from stock categories and groups
+  const categoryParents = [
+    ...new Set(stockCategories.map((cat) => cat.parent)),
+  ];
+  const groupParents = [...new Set(stockGroups.map((group) => group.parent))];
+
   // Calculate used and remaining quantities whenever openingQuantities or totalOpeningQuantity changes
   useEffect(() => {
     const used = openingQuantities.reduce(
@@ -622,254 +437,6 @@ const cleanupImageUrls = (): void => {
     setUsedQuantity(used);
     setRemainingQuantity(totalOpeningQuantity - used);
   }, [openingQuantities, totalOpeningQuantity]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  // Get company name by ID
-  const getCompanyName = (companyId: string) => {
-    const company = companies.find(c => c._id === companyId);
-    return company ? company.namePrint : 'Unknown Company';
-  };
-
-  // Get stock group name
-  const getStockGroupName = (stockGroupId: string) => {
-    const stockGroup = stockGroups.find(g => g._id === stockGroupId);
-    return stockGroup ? stockGroup.name : stockGroupId;
-  };
-
-  // Get category name
-  const getCategoryName = (categoryId: string) => {
-    const category = stockCategories.find(c => c._id === categoryId);
-    return category ? category.name : categoryId;
-  };
-
-  // Actions dropdown component
-  const ActionsDropdown = ({ product }: { product: Product }) => {
-    const [showActions, setShowActions] = useState(false);
-    
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-        
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditProduct(product);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteProduct(product._id || product.id.toString());
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
-
-  // Table View Component
-  const TableView = () => {
-   
-
-   return  <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-teal-50 to-teal-100">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Product
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Details
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Company
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Stock Group
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Category
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {products.map((product) => {
-              console.log(product)
-              
-           return(   <tr key={product?.["_id"]} className="hover:bg-gray-50 transition-colors duration-200">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                    <div className="text-sm text-gray-500">{product.code}</div>
-                    {product.partNo && (
-                      <div className="text-sm text-gray-500">Part: {product.partNo}</div>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">
-                    <div>Unit: {product?.unit?.name}</div>
-                    {product?.minimumQuantity && product?.minimumQuantity > 0 && (
-                      <div>Min Qty: {product?.minimumQuantity}</div>
-                    )}
-                    <div>Batch: {product?.batch ? "Yes" : "No"}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {getCompanyName(product?.companyId || "")}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {product?.stockGroup?.name}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {product?.stockCategory?.name}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={`${
-                    product?.status === 'Active' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-gray-100 text-gray-700'
-                  } hover:bg-green-100`}>
-                    {product?.status}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown product={product} />
-                </td>
-              </tr>)
-  })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  };
-
-  // Card View Component
-  const CardView = () => {
-    
-  
-  return   <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {products.map((product: Product) => (
-        <Card key={product?._id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-xl font-bold text-gray-800 mb-1">
-                  {product?.name}
-                </CardTitle>
-                <p className="text-teal-600 font-medium">
-                  {product?.code}
-                </p>
-                {product.partNo && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Part No: {product?.partNo}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge className={`${product?.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
-                  {product.status}
-                </Badge>
-                <ActionsDropdown product={product} />
-              </div>
-            </div>
-          </CardHeader>
-          
-          <CardContent className="p-6 space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center text-sm">
-                <Building2 className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Company: {getCompanyName(product?.companyId || "")}</span>
-              </div>
-
-              <div className="flex items-center text-sm">
-                <Layers className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Group: {product?.stockGroup?.name}</span>
-              </div>
-
-              <div className="flex items-center text-sm">
-                <Package className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Category: {product.stockCategory?.name}</span>
-              </div>
-
-              <div className="flex items-center text-sm">
-                <Archive className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Unit: {product.unit?.name}</span>
-              </div>
-
-              {product.minimumQuantity && product.minimumQuantity > 0 && (
-                <div className="flex items-center text-sm">
-                  <Settings2 className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">Min Qty: {product.minimumQuantity}</span>
-                </div>
-              )}
-
-              <div className="flex items-center text-sm">
-                <Tag className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Batch: {product.batch ? "Yes" : "No"}</span>
-              </div>
-
-              {product.taxConfiguration?.applicable && (
-                <div className="flex items-center text-sm">
-                  <FileText className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">Tax: {product.taxConfiguration.taxPercentage}%</span>
-                </div>
-              )}
-              
-              <div className="flex items-center text-sm">
-                <Star className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Created: {formatSimpleDate(product.createdAt)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -884,10 +451,7 @@ const cleanupImageUrls = (): void => {
           </p>
         </div>
         <Button
-          onClick={() => {
-            resetForm();
-            setOpen(true);
-          }}
+          onClick={() => setOpen(true)}
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
         >
           <Package className="w-4 h-4 mr-2" />
@@ -896,7 +460,7 @@ const cleanupImageUrls = (): void => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -915,10 +479,12 @@ const cleanupImageUrls = (): void => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">Active Products</p>
-                <p className="text-3xl font-bold">{stats.activeProducts}</p>
+                <p className="text-blue-100 text-sm font-medium">Categorized</p>
+                <p className="text-3xl font-bold">
+                  {stats.categorizedProducts}
+                </p>
               </div>
-              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+              <Tag className="w-8 h-8 text-blue-200" />
             </div>
           </CardContent>
         </Card>
@@ -927,10 +493,10 @@ const cleanupImageUrls = (): void => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Batch Managed</p>
-                <p className="text-3xl font-bold">{stats.batchProducts}</p>
+                <p className="text-green-100 text-sm font-medium">Grouped</p>
+                <p className="text-3xl font-bold">{stats.groupedProducts}</p>
               </div>
-              <Tag className="w-8 h-8 text-green-200" />
+              <Layers className="w-8 h-8 text-green-200" />
             </div>
           </CardContent>
         </Card>
@@ -939,48 +505,28 @@ const cleanupImageUrls = (): void => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Taxable Products</p>
-                <p className="text-3xl font-bold">{stats.taxableProducts}</p>
+                <p className="text-purple-100 text-sm font-medium">
+                  Batch Managed
+                </p>
+                <p className="text-3xl font-bold">{stats.batchProducts}</p>
               </div>
-              <FileText className="w-8 h-8 text-purple-200" />
+              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-100 text-sm font-medium">Active</p>
+                <p className="text-3xl font-bold">{stats.activeProducts}</p>
+              </div>
+              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* View Toggle */}
-      {products && products.length > 0 && (
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-gray-600" />
-            <span className="text-gray-700 font-medium">View Mode:</span>
-          </div>
-          <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'table'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Table className="w-4 h-4 mr-2" />
-              Table View
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'cards'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Grid3X3 className="w-4 h-4 mr-2" />
-              Card View
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Product List */}
       {products.length === 0 ? (
@@ -994,10 +540,7 @@ const cleanupImageUrls = (): void => {
               Create your first product to get started
             </p>
             <Button
-              onClick={() => {
-                resetForm();
-                setOpen(true);
-              }}
+              onClick={() => setOpen(true)}
               className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
             >
               Add Your First Product
@@ -1005,25 +548,190 @@ const cleanupImageUrls = (): void => {
           </CardContent>
         </Card>
       ) : (
-        <>
-          {viewMode === 'table' ? <TableView /> : <CardView />}
-        </>
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {products.map((product: Product) => (
+            <Card
+              key={product.id}
+              className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden"
+            >
+              <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center mr-3">
+                      <Package className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold text-gray-800 mb-1">
+                        {product.name}
+                      </CardTitle>
+                      <p className="text-teal-600 font-medium">
+                        {product.code}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                    Active
+                  </Badge>
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-6 space-y-4">
+                <div className="space-y-3">
+                  {product.partNo && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-500">
+                        Part No
+                      </span>
+                      <span className="text-sm text-gray-700">
+                        {product.partNo}
+                      </span>
+                    </div>
+                  )}
+
+                  {product.stockGroup && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-500">
+                        Stock Group
+                      </span>
+                      <span className="text-sm text-gray-700">
+                        {product.stockGroup}
+                      </span>
+                    </div>
+                  )}
+
+                  {product.stockCategory && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-500">
+                        Category
+                      </span>
+                      <span className="text-sm text-gray-700">
+                        {product.stockCategory}
+                      </span>
+                    </div>
+                  )}
+
+                  {product.unit && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-500">
+                        Unit
+                      </span>
+                      <span className="text-sm text-gray-700">
+                        {product.unit}
+                      </span>
+                    </div>
+                  )}
+
+                  {product.minimumQuantity !== undefined &&
+                    product.minimumQuantity > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-500">
+                          Min Qty
+                        </span>
+                        <span className="text-sm text-gray-700">
+                          {product.minimumQuantity}
+                        </span>
+                      </div>
+                    )}
+
+                  {product.defaultSupplier && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-500">
+                        Default Supplier
+                      </span>
+                      <span className="text-sm text-gray-700">
+                        {product.defaultSupplier}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-500">
+                      Batch Managed
+                    </span>
+                    <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
+                      {product.batch ? "Yes" : "No"}
+                    </span>
+                  </div>
+
+                  {/* Tax Information */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-500">
+                      Tax Applicable
+                    </span>
+                    <span className={`text-sm px-2 py-1 rounded text-xs ${
+                      product.taxConfiguration?.applicable 
+                        ? "bg-green-100 text-green-700" 
+                        : "bg-red-100 text-red-700"
+                    }`}>
+                      {product.taxConfiguration?.applicable ? "Yes" : "No"}
+                    </span>
+                  </div>
+
+                  {product.taxConfiguration?.applicable && product.taxConfiguration.hsnCode && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-500">
+                        HSN Code
+                      </span>
+                      <span className="text-sm text-gray-700">
+                        {product.taxConfiguration.hsnCode}
+                      </span>
+                    </div>
+                  )}
+
+                  {product.taxConfiguration?.applicable && product.taxConfiguration.taxPercentage > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-500">
+                        Tax %
+                      </span>
+                      <span className="text-sm text-gray-700">
+                        {product.taxConfiguration.taxPercentage}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {product.openingQuantities &&
+                  product.openingQuantities.length > 0 && (
+                    <div className="pt-3 border-t border-gray-100">
+                      <p className="text-xs font-medium text-gray-500 mb-2">
+                        Opening Stock:
+                      </p>
+                      <div className="space-y-1">
+                        {product.openingQuantities.map((qty, idx) => (
+                          <div
+                            key={idx}
+                            className="flex justify-between text-xs"
+                          >
+                            <span>{qty.godown}:</span>
+                            <span>
+                              {qty.quantity} @ {qty.rate} = {qty.amount}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                <div className="pt-3 border-t border-gray-100">
+                  <p className="text-xs text-gray-500">
+                    Created: {product.createdAt}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Modal Form */}
-      <Dialog open={open} onOpenChange={(isOpen) => {
-        setOpen(isOpen);
-        if (!isOpen) {
-          resetForm();
-        }
-      }}>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
           <DialogHeader className="pb-4 border-b border-gray-200 h-16">
             <DialogTitle className="text-2xl font-bold text-gray-800">
-              {editingProduct ? 'Edit Product' : 'Add New Product'}
+              Add New Product
             </DialogTitle>
             <p className="text-gray-600 text-sm">
-              {editingProduct ? 'Update the product details' : 'Fill in the product details and configuration'}
+              Fill in the product details and configuration
             </p>
           </DialogHeader>
 
@@ -1055,19 +763,23 @@ const cleanupImageUrls = (): void => {
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <CustomInputBox
-                      placeholder="Product Code *"
-                      label="Product Code *"
-                      name="code"
-                      value={formData.code}
-                      onChange={handleChange}
-                    />
+                   
                     <CustomInputBox
                       placeholder="Product Name *"
                       label="Product Name *"
                       name="name"
-                      value={formData.name}
+                      value={form.name}
                       onChange={handleChange}
+                    />
+                     <CustomSelect
+                      label="Stock Company"
+                      placeholder="Select Company"
+                      options={companies}
+                      value={form.companyId}
+                      onChange={(e) =>
+                        handleSelectChange("companyId", e.target.value)
+                      }
+                      required={true}
                     />
                   </div>
 
@@ -1076,140 +788,99 @@ const cleanupImageUrls = (): void => {
                       placeholder="Part Number"
                       label="Part Number"
                       name="partNo"
-                      value={formData.partNo}
+                      value={form.partNo}
                       onChange={handleChange}
                     />
-                    <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
                         Batch Managed
                       </label>
-                      <div className="flex items-center space-x-2 h-10 px-3 py-2 border border-teal-200 rounded-md focus-within:border-teal-500">
-                        <input
-                          type="checkbox"
-                          id="batch"
-                          name="batch"
-                          checked={formData.batch}
-                          onChange={handleChange}
-                          className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
-                        />
-                        <label htmlFor="batch" className="text-sm font-medium">
-                          Batch Managed
-                        </label>
-                      </div>
+                    <div className="flex items-center space-x-2 h-10 px-3 py-2 border border-teal-200 rounded-md focus-within:border-teal-500">
+                      
+                      <input
+                        type="checkbox"
+                        id="batch"
+                        name="batch"
+                        checked={form.batch}
+                        onChange={handleChange}
+                        className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
+                      />
+                      <label htmlFor="batch" className="text-sm font-medium">
+                        Batch Managed
+                      </label>
+                    </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">
-                        Company *
-                      </label>
-                      <select
-                        value={formData.companyId}
-                        onChange={(e) => handleSelectChange("companyId", e.target.value)}
-                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
-                   focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
-                      >
-                        <option value="">Select Company</option>
-                        {companies.map((company) => (
-                          <option key={company._id} value={company._id}>
-                            {company.namePrint}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">
-                        Stock Group *
-                      </label>
-                      <select
-                        value={formData.stockGroup}
-                        onChange={(e) => handleSelectChange("stockGroup", e.target.value)}
-                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
-                   focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
-                      >
-                        <option value="">Select Stock Group</option>
-                        {stockGroups.map((group) => (
-                          <option key={group._id} value={group._id}>
-                            {group.name} ({group.code})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <CustomSelect
+                      label="Stock Group"
+                      placeholder="Select Stock Group"
+                      options={stockGroups}
+                      value={form.stockGroup}
+                      onChange={(e) =>
+                        handleSelectChange("stockGroup", e.target.value)
+                      }
+                      required={true}
+                    />
+                    <CustomSelect
+                      label="Stock Category"
+                      placeholder="Select Stock Category"
+                      options={stockCategories}
+                      value={form.stockCategory}
+                      onChange={(e) =>
+                        handleSelectChange("stockCategory", e.target.value)
+                      }
+                      required={true}
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">
-                        Stock Category *
-                      </label>
-                      <select
-                        value={formData.stockCategory}
-                        onChange={(e) => handleSelectChange("stockCategory", e.target.value)}
-                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
-                   focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
-                      >
-                        <option value="">Select Stock Category</option>
-                        {stockCategories.map((category) => (
-                          <option key={category._id} value={category._id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">
-                        Status
-                      </label>
-                      <select
-                        value={formData.status}
-                        onChange={(e) => handleSelectChange("status", e.target.value)}
-                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
-                   focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
-                      >
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                      </select>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="flex flex-col gap-1">
+                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
                         Unit *
                       </label>
                       <select
-                        value={formData.unit}
-                        onChange={(e) => handleSelectChange("unit", e.target.value)}
+                         value={form.unit}
+                      onChange={(e) =>
+                        handleSelectChange("unit", e.target.value)
+                      }
                         className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
                    focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
                       >
                         <option value="">Select Unit</option>
-                        {units.map((unit) => (
-                          <option key={unit._id} value={unit._id}>
-                            {unit.name} {unit.symbol && `(${unit.symbol})`}
-                          </option>
-                        ))}
+                      {units.map((unit) => (
+                        <option key={unit.id} value={unit.name}>
+                          {unit.name} {unit.symbol && `(${unit.symbol})`}
+                        </option>
+                      ))}
                       </select>
                     </div>
-                    <div className="flex flex-col gap-1">
+                       <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
-                        Alternate Unit
+                        Alternate Unit *
                       </label>
                       <select
-                        value={formData.alternateUnit}
-                        onChange={(e) => handleSelectChange("alternateUnit", e.target.value)}
+                         value={form.alternateUnit}
+                      onChange={(e) =>
+                        handleSelectChange("alternateUnit", e.target.value)
+                      }
                         className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
                    focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
                       >
                         <option value="">Select Alternate Unit</option>
-                        {units.map((unit) => (
-                          <option key={unit._id} value={unit._id}>
-                            {unit.name} {unit.symbol && `(${unit.symbol})`}
-                          </option>
-                        ))}
+                     {units.map((unit) => (
+                        <option key={unit.id} value={unit.name}>
+                          {unit.name} {unit.symbol && `(${unit.symbol})`}
+                        </option>
+                      ))}
                       </select>
                     </div>
+                    
+                  
+
+               
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -1218,22 +889,24 @@ const cleanupImageUrls = (): void => {
                       placeholder="Minimum Quantity"
                       label="Minimum Quantity"
                       name="minimumQuantity"
-                      value={formData.minimumQuantity}
+                      value={form.minimumQuantity}
                       onChange={handleChange}
                       className="border-teal-200 focus:border-teal-500 pl-10"
                       min="0"
                     />
-                    <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
-                        Default Supplier
+                        Default Supplier *
                       </label>
                       <select
-                        value={formData.defaultSupplier}
-                        onChange={(e) => handleSelectChange("defaultSupplier", e.target.value)}
+                       value={form.defaultSupplier}
+                        onChange={(e) =>
+                          handleSelectChange("defaultSupplier", e.target.value)
+                        }
                         className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
                    focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
                       >
-                        <option value="">Select Default Supplier</option>
+                         <option value="">Select Default Supplier</option>
                         {suppliers.map((supplier) => (
                           <option key={supplier.id} value={supplier.name}>
                             {supplier.name} ({supplier.code})
@@ -1241,6 +914,8 @@ const cleanupImageUrls = (): void => {
                         ))}
                       </select>
                     </div>
+
+                  
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -1249,7 +924,7 @@ const cleanupImageUrls = (): void => {
                       placeholder="Minimum Rate"
                       label="Minimum Rate"
                       name="minimumRate"
-                      value={formData.minimumRate}
+                      value={form.minimumRate}
                       onChange={handleChange}
                       className="border-teal-200 focus:border-teal-500 pl-10"
                       min="0"
@@ -1261,7 +936,7 @@ const cleanupImageUrls = (): void => {
                       placeholder="Maximum Rate"
                       label="Maximum Rate"
                       name="maximumRate"
-                      value={formData.maximumRate}
+                      value={form.maximumRate}
                       onChange={handleChange}
                       className="border-teal-200 focus:border-teal-500 pl-10"
                       min="0"
@@ -1272,17 +947,19 @@ const cleanupImageUrls = (): void => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
-                        Default Godown
+                        Default Godown *
                       </label>
                       <select
-                        value={formData.defaultGodown}
-                        onChange={(e) => handleSelectChange("defaultGodown", e.target.value)}
+                        value={form.defaultGodown}
+                        onChange={(e) =>
+                          handleSelectChange("defaultGodown", e.target.value)
+                        }
                         className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
                    focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
                       >
                         <option value="">Select Default Godown</option>
                         {godowns.map((godown) => (
-                          <option key={godown.id} value={godown?._id}>
+                          <option key={godown.id} value={godown.name}>
                             {godown.name} ({godown.code})
                           </option>
                         ))}
@@ -1290,17 +967,20 @@ const cleanupImageUrls = (): void => {
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
-                        Product Type
+                        Default product type *
                       </label>
                       <select
-                        value={formData.productType}
-                        onChange={(e) => handleSelectChange("productType", e.target.value)}
+                        value={form.productType}
+                        onChange={(e) =>
+                          handleSelectChange("productType", e.target.value)
+                        }
                         className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
                    focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
                       >
                         <option value="">Select Product Type</option>
-                        <option value="select">Select</option>
-                        <option value="godown">Godown</option>
+
+                        <option value={"select"}>"select"</option>
+                        <option value={"godown"}>"Godown"</option>
                       </select>
                     </div>
                   </div>
@@ -1320,7 +1000,7 @@ const cleanupImageUrls = (): void => {
               {activeTab === "tax" && (
                 <div className="bg-white p-4">
                   <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <FileText className="w-5 h-5 mr-2" />
+                    <Receipt className="w-5 h-5 mr-2" />
                     Tax Configuration
                   </h3>
 
@@ -1336,7 +1016,7 @@ const cleanupImageUrls = (): void => {
                             type="radio"
                             id="tax-applicable"
                             name="applicable"
-                            checked={formData.taxConfiguration.applicable === true}
+                            checked={form.taxConfiguration.applicable === true}
                             onChange={() => handleTaxChange({ 
                               target: { name: 'applicable', value: true, type: 'checkbox', checked: true } 
                             } as React.ChangeEvent<HTMLInputElement>)}
@@ -1351,7 +1031,7 @@ const cleanupImageUrls = (): void => {
                             type="radio"
                             id="tax-not-applicable"
                             name="applicable"
-                            checked={formData.taxConfiguration.applicable === false}
+                            checked={form.taxConfiguration.applicable === false}
                             onChange={() => handleTaxChange({ 
                               target: { name: 'applicable', value: false, type: 'checkbox', checked: false } 
                             } as React.ChangeEvent<HTMLInputElement>)}
@@ -1366,7 +1046,7 @@ const cleanupImageUrls = (): void => {
                   </div>
 
                   {/* Tax Details - Only show if tax is applicable */}
-                  {formData.taxConfiguration.applicable && (
+                  {form.taxConfiguration.applicable && (
                     <div className="space-y-4">
                       {/* HSN Code and Tax Percentage */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1374,7 +1054,7 @@ const cleanupImageUrls = (): void => {
                           placeholder="HSN Code"
                           label="HSN Code"
                           name="hsnCode"
-                          value={formData.taxConfiguration.hsnCode}
+                          value={form.taxConfiguration.hsnCode}
                           onChange={handleTaxChange}
                         />
                         <CustomInputBox
@@ -1382,7 +1062,7 @@ const cleanupImageUrls = (): void => {
                           placeholder="Tax Percentage"
                           label="Tax Percentage (%)"
                           name="taxPercentage"
-                          value={formData.taxConfiguration.taxPercentage}
+                          value={form.taxConfiguration.taxPercentage}
                           onChange={handleTaxChange}
                           min="0"
                           max="100"
@@ -1404,7 +1084,7 @@ const cleanupImageUrls = (): void => {
                               placeholder="CGST (%)"
                               label="CGST (%)"
                               name="cgst"
-                              value={formData.taxConfiguration.cgst}
+                              value={form.taxConfiguration.cgst}
                               onChange={handleTaxChange}
                               min="0"
                               max="50"
@@ -1415,7 +1095,7 @@ const cleanupImageUrls = (): void => {
                               placeholder="SGST (%)"
                               label="SGST (%)"
                               name="sgst"
-                              value={formData.taxConfiguration.sgst}
+                              value={form.taxConfiguration.sgst}
                               onChange={handleTaxChange}
                               min="0"
                               max="50"
@@ -1429,7 +1109,7 @@ const cleanupImageUrls = (): void => {
                               placeholder="Cess (%)"
                               label="Cess (%)"
                               name="cess"
-                              value={formData.taxConfiguration.cess}
+                              value={form.taxConfiguration.cess}
                               onChange={handleTaxChange}
                               min="0"
                               step="0.01"
@@ -1439,7 +1119,7 @@ const cleanupImageUrls = (): void => {
                               placeholder="Additional Cess (%)"
                               label="Additional Cess (%)"
                               name="additionalCess"
-                              value={formData.taxConfiguration.additionalCess}
+                              value={form.taxConfiguration.additionalCess}
                               onChange={handleTaxChange}
                               min="0"
                               step="0.01"
@@ -1447,11 +1127,11 @@ const cleanupImageUrls = (): void => {
                           </div>
 
                           {/* Tax validation message */}
-                          {(formData.taxConfiguration.cgst + formData.taxConfiguration.sgst > formData.taxConfiguration.taxPercentage) && (
+                          {(form.taxConfiguration.cgst + form.taxConfiguration.sgst > form.taxConfiguration.taxPercentage) && (
                             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
                               <p className="text-red-700 text-sm font-medium">
-                                Warning: CGST + SGST ({formData.taxConfiguration.cgst + formData.taxConfiguration.sgst}%) 
-                                exceeds Tax Percentage ({formData.taxConfiguration.taxPercentage}%)
+                                Warning: CGST + SGST ({form.taxConfiguration.cgst + form.taxConfiguration.sgst}%) 
+                                exceeds Tax Percentage ({form.taxConfiguration.taxPercentage}%)
                               </p>
                             </div>
                           )}
@@ -1462,27 +1142,27 @@ const cleanupImageUrls = (): void => {
                             <div className="text-sm text-teal-600 space-y-1">
                               <div className="flex justify-between">
                                 <span>CGST:</span>
-                                <span>{formData.taxConfiguration.cgst}%</span>
+                                <span>{form.taxConfiguration.cgst}%</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>SGST:</span>
-                                <span>{formData.taxConfiguration.sgst}%</span>
+                                <span>{form.taxConfiguration.sgst}%</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Cess:</span>
-                                <span>{formData.taxConfiguration.cess}%</span>
+                                <span>{form.taxConfiguration.cess}%</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Additional Cess:</span>
-                                <span>{formData.taxConfiguration.additionalCess}%</span>
+                                <span>{form.taxConfiguration.additionalCess}%</span>
                               </div>
                               <div className="flex justify-between font-semibold border-t border-teal-300 pt-1">
                                 <span>Total:</span>
                                 <span>
-                                  {formData.taxConfiguration.cgst + 
-                                   formData.taxConfiguration.sgst + 
-                                   formData.taxConfiguration.cess + 
-                                   formData.taxConfiguration.additionalCess}%
+                                  {form.taxConfiguration.cgst + 
+                                   form.taxConfiguration.sgst + 
+                                   form.taxConfiguration.cess + 
+                                   form.taxConfiguration.additionalCess}%
                                 </span>
                               </div>
                             </div>
@@ -1497,7 +1177,7 @@ const cleanupImageUrls = (): void => {
                           placeholder="Applicable Date"
                           label="Tax Applicable Date"
                           name="applicableDate"
-                          value={formData.taxConfiguration.applicableDate}
+                          value={form.taxConfiguration.applicableDate}
                           onChange={handleTaxChange}
                         />
                       </div>
@@ -1505,7 +1185,7 @@ const cleanupImageUrls = (): void => {
                   )}
 
                   {/* Non-applicable message */}
-                  {!formData.taxConfiguration.applicable && (
+                  {!form.taxConfiguration.applicable && (
                     <div className="flex items-center justify-center py-16">
                       <div className="text-center">
                         <Archive className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -1529,7 +1209,7 @@ const cleanupImageUrls = (): void => {
                     <Button
                       onClick={() => setActiveTab("opening")}
                       className="bg-teal-600 hover:bg-teal-700"
-                      disabled={formData.taxConfiguration.applicable && !isTaxValid()}
+                      disabled={form.taxConfiguration.applicable && !isTaxValid()}
                     >
                       Next: Opening
                     </Button>
@@ -1571,7 +1251,7 @@ const cleanupImageUrls = (): void => {
                         </span>
                       </div>
                     </div>
-                    <input
+                    <Input
                       type="number"
                       id="totalOpeningQuantity"
                       value={totalOpeningQuantity}
@@ -1582,7 +1262,7 @@ const cleanupImageUrls = (): void => {
                       }
                       min="0"
                       step="0.01"
-                      className="w-full h-10 px-3 py-2 border border-teal-300 rounded-md focus:border-teal-500 focus:outline-none"
+                      className="border-teal-300 focus:border-teal-500"
                       placeholder="Enter total opening quantity"
                     />
                     {remainingQuantity < 0 && (
@@ -1630,7 +1310,7 @@ const cleanupImageUrls = (): void => {
                                     e.target.value
                                   )
                                 }
-                                className="w-full p-2 border border-gray-300 rounded"
+                                className="w-full p-1 border border-gray-300 rounded"
                               >
                                 <option value="">Select Godown</option>
                                 {godowns.map((godown) => (
@@ -1651,9 +1331,9 @@ const cleanupImageUrls = (): void => {
                                     e.target.value
                                   )
                                 }
-                                className="w-full p-2 border border-gray-300 rounded"
+                                className="w-full p-1 border border-gray-300 rounded"
                                 placeholder="Enter batch number"
-                                disabled={!formData.batch}
+                                disabled={!form.batch}
                               />
                             </td>
                             <td className="p-2 border border-teal-200">
@@ -1667,7 +1347,7 @@ const cleanupImageUrls = (): void => {
                                     Number(e.target.value)
                                   )
                                 }
-                                className="w-full p-2 border border-gray-300 rounded"
+                                className="w-full p-1 border border-gray-300 rounded"
                                 min="0"
                                 step="0.01"
                                 max={item.quantity + remainingQuantity}
@@ -1684,7 +1364,7 @@ const cleanupImageUrls = (): void => {
                                     Number(e.target.value)
                                   )
                                 }
-                                className="w-full p-2 border border-gray-300 rounded"
+                                className="w-full p-1 border border-gray-300 rounded"
                                 min="0"
                                 step="0.01"
                               />
@@ -1694,7 +1374,7 @@ const cleanupImageUrls = (): void => {
                                 type="number"
                                 value={item.amount.toFixed(2)}
                                 readOnly
-                                className="w-full p-2 border border-gray-300 rounded bg-gray-100"
+                                className="w-full p-1 border border-gray-300 rounded bg-gray-100"
                               />
                             </td>
                             <td className="p-2 border border-teal-200">
@@ -1707,7 +1387,7 @@ const cleanupImageUrls = (): void => {
                                 className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
                                 disabled={openingQuantities.length <= 1}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <X className="h-4 w-4" />
                               </Button>
                             </td>
                           </tr>
@@ -1746,121 +1426,136 @@ const cleanupImageUrls = (): void => {
                 </div>
               )}
 
-            {/* Settings Tab */}
-{activeTab === "settings" && (
-  <div className="bg-white p-4">
-    <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-      <Settings2 className="w-5 h-5 mr-2" />
-      Product Settings
-    </h3>
+              {/* Settings Tab */}
+              {activeTab === "settings" && (
+                <div className="bg-white p-4">
+                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
+                    <Settings2 className="w-5 h-5 mr-2" />
+                    Product Settings
+                  </h3>
 
-    {/* Product Images Section */}
-    <div className="mb-6">
-      <h4 className="font-medium text-teal-800 mb-3">Product Images</h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {['Front', 'Back', 'Left', 'Right', 'Top', 'Bottom'].map(imageType => (
-          <div key={imageType} className="p-4 bg-white rounded-lg border border-teal-200">
-            <p className="text-sm font-medium text-teal-700 mb-2">{imageType} View</p>
-            <div className="flex items-center justify-between">
-              <input
-                type="file"
-                id={`${imageType.toLowerCase()}-image`}
-                className="hidden"
-                onChange={(e) => handleProductImageUpload(imageType, e)}
-                accept="image/*"
-              />
-              <label
-                htmlFor={`${imageType.toLowerCase()}-image`}
-                className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Upload
-              </label>
-              {formData.images.find(img => img.angle === imageType) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeProductImage(formData.images.find(img => img.angle === imageType)!.id)}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-            {formData.images.find(img => img.angle === imageType) && (
-              <div className="mt-2">
-                <p className="text-xs text-gray-500 truncate">
-                  {formData.images.find(img => img.angle === imageType)?.file?.name}
-                </p>
-                {formData.images.find(img => img.angle === imageType)?.previewUrl && (
-                  <div className="mt-2">
-                    <img
-                      src={formData.images.find(img => img.angle === imageType)?.previewUrl}
-                      alt={`${imageType} view`}
-                      className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75"
-                      onClick={() => setViewingImage(formData.images.find(img => img.angle === imageType)!)}
-                    />
+                  <div className="space-y-6">
+                    {/* Product Images Section */}
+                    <div className="bg-teal-50 p-4 rounded-lg border border-teal-200">
+                      <h4 className="text-md font-semibold text-teal-700 mb-3 flex items-center">
+                        <Camera className="w-4 h-4 mr-2" />
+                        Product Images
+                      </h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {['Front', 'Back', 'Left', 'Right'].map((angle) => {
+                          const existingImage = form.images.find(img => img.angle === angle);
+                          return (
+                            <div key={angle} className="flex flex-col items-center">
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                {angle} View
+                              </label>
+                              <div className="relative w-32 h-32 border-2 border-dashed border-teal-300 rounded-lg flex items-center justify-center overflow-hidden bg-white">
+                                {existingImage ? (
+                                  <>
+                                    <img 
+                                      src={existingImage.previewUrl} 
+                                      alt={`${angle} view`}
+                                      className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center opacity-0 hover:opacity-100">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-white hover:text-teal-200 mr-1"
+                                        onClick={() => setViewingImage(existingImage)}
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-white hover:text-red-300 ml-1"
+                                        onClick={() => removeImage(existingImage.id)}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Camera className="w-8 h-8 text-teal-400" />
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                      onChange={(e) => handleImageUpload(e, angle)}
+                                    />
+                                  </>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {existingImage ? existingImage.file.name : `Upload ${angle} image`}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Remarks Section */}
+                    <div className="bg-teal-50 p-4 rounded-lg border border-teal-200">
+                      <h4 className="text-md font-semibold text-teal-700 mb-3 flex items-center">
+                        <Archive className="w-4 h-4 mr-2" />
+                        Remarks
+                      </h4>
+                      <textarea
+                        value={form.remarks}
+                        onChange={handleRemarksChange}
+                        placeholder="Add any additional remarks or notes about this product..."
+                        className="w-full h-32 p-3 border border-teal-200 rounded-md focus:border-teal-500 focus:ring-teal-100 focus:outline-none resize-none"
+                      />
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
 
-    {/* Remarks Section */}
-    <div>
-      <p className="text-sm font-medium text-teal-700 mb-2">Product Remarks</p>
-      <textarea
-        placeholder="Add any additional remarks about the product..."
-        name="remarks"
-        value={formData.remarks}
-        onChange={handleRemarksChange}
-        rows={4}
-        className="w-full px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none resize-none"
-      />
-    </div>
-
-    <div className="mt-6 flex justify-between">
-      <Button
-        variant="outline"
-        onClick={() => setActiveTab("opening")}
-      >
-        Previous: Opening
-      </Button>
-      <Button
-        onClick={handleSubmit}
-        className="bg-teal-600 hover:bg-teal-700"
-      >
-        {editingProduct ? 'Update Product' : 'Save Product'}
-      </Button>
-    </div>
-  </div>
-)}
+                  <div className="mt-6 flex justify-between">
+                    <Button
+                      variant="outline"
+                      onClick={() => setActiveTab("opening")}
+                    >
+                      Previous: Opening
+                    </Button>
+                    <Button
+                      onClick={handleSubmit}
+                      className="bg-teal-600 hover:bg-teal-700"
+                    >
+                      Save Product
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>
       </Dialog>
-      
-{
-// Image viewing modal (add this after your main Dialog)
-viewingImage && (
-  <Dialog open={!!viewingImage} onOpenChange={() => setViewingImage(null)}>
-    <DialogContent className="max-w-3xl">
-      <DialogHeader>
-        <DialogTitle>{viewingImage.angle} View</DialogTitle>
-      </DialogHeader>
-      <div className="flex justify-center">
-        <img
-          src={viewingImage.previewUrl}
-          alt={`${viewingImage.angle} view`}
-          className="max-w-full max-h-96 object-contain rounded-lg"
-        />
-      </div>
-    </DialogContent>
-  </Dialog>
-)}
+
+      {/* Image View Modal */}
+      {viewingImage && (
+        <Dialog open={!!viewingImage} onOpenChange={() => setViewingImage(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Camera className="w-5 h-5 mr-2" />
+                {viewingImage.angle} View
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex justify-center">
+              <img 
+                src={viewingImage.previewUrl} 
+                alt={`${viewingImage.angle} view`}
+                className="max-h-96 object-contain"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

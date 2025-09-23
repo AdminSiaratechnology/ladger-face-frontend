@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState,  createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './components/pages/Login';
 import { AdminDashboard } from './components/pages/AdminDashboard';
@@ -24,17 +24,10 @@ import StockGroup from './components/pages/StockGroup';
 import UOM from './components/pages/UOM';
 import { useAuthStore } from '../store/authStore';
 import PriceList from "./components/pages/PriceListPage"
-import axios from 'axios';
 
 
 
-// Mock user data
-const mockUsers = {
-  admin: { id: 1, email: 'admin@company.com', role: 'admin', name: 'John Admin' },
-  agent: { id: 2, email: 'agent@company.com', role: 'agent', name: 'Jane Agent' },
-  customer: { id: 3, email: 'customer@company.com', role: 'customer', name: 'Bob Customer' },
-  salesman: { id: 4, email: 'salesman@company.com', role: 'salesman', name: 'Alice Salesman' }
-};
+
 
 export interface User {
   id: number;
@@ -63,39 +56,7 @@ export const useAuth = () => {
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
     const { login, isLoading:loading ,user,logout} = useAuthStore()
-  // const [user, setUser] = useState<User | null>(null);
-  // const [loading, setLoading] = useState(true);
 
-  // useEffect(() => {
-  //   // Check for existing session
-  //   const savedUser = localStorage.getItem('user');
-  //   if (savedUser) {
-  //     setUser(JSON.parse(savedUser));
-  //   }
-  //   setLoading(false);
-  // }, []);
-
-  // const login = async (email: string, password: string): Promise<boolean> => {
-  //   setLoading(true);
-    
-  //   // Mock authentication
-  //   const foundUser = Object.values(mockUsers).find(u => u.email === email);
-    
-  //   if (foundUser && password === 'password123') {
-  //     setUser(foundUser);
-  //     localStorage.setItem('user', JSON.stringify(foundUser));
-  //     setLoading(false);
-  //     return true;
-  //   }
-    
-  //   setLoading(false);
-  //   return false;
-  // };
-
-  // const logout = () => {
-  //   setUser(null);
-  //   localStorage.removeItem('user');
-  // };
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>
@@ -116,9 +77,7 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
   }
   console.log("User Role:", user, "Allowed Roles:", allowedRoles);
 
-  // if (allowedRoles && !allowedRoles.includes(user.role)) {
-  //   return <div className="flex items-center justify-center min-h-screen">Access Denied</div>;
-  // }
+  
 
   return <>{children}</>;
 }

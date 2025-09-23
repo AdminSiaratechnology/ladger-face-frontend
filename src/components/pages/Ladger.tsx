@@ -1,15 +1,40 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit, Settings2, Users } from "lucide-react";
+import { Input } from "../ui/input";
+import {
+  Users,
+  Building2,
+  FileText,
+  Settings2,
+  Star,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+  Eye,
+  Table,
+  Grid3X3,
+  Phone,
+  Mail,
+  MapPin,
+  CreditCard,
+  Globe,
+  Plus,
+  Upload,
+  X,
+  Image as ImageIcon
+} from "lucide-react";
 import { Country, State, City } from 'country-state-city';
 import CustomInputBox from "../customComponents/CustomInputBox";
-import {dummyVendors} from "../../lib/dummyData"
+import { dummyVendors } from "../../lib/dummyData"; // Assuming // For store implementation
+import { useCompanyStore } from "../../../store/companyStore";
 
-// Bank interface
+
+import {useLedgerStore} from "../../../store/ladgerStore"
+
+// Interfaces
 interface Bank {
   id: number;
   accountHolderName: string;
@@ -21,21 +46,21 @@ interface Bank {
   branch: string;
 }
 
-// Registration Document interface
 interface RegistrationDocument {
   id: number;
   type: string;
-  file: string;
+  file: File;
+  previewUrl: string;
   fileName: string;
 }
 
-// Ledger interface
 interface Ledger {
   id: number;
   ledgerType: string;
   ledgerCode: string;
   ledgerName: string;
   shortName: string;
+  companyId: string;
   ledgerGroup: string;
   industryType: string;
   territory: string;
@@ -55,11 +80,22 @@ interface Ledger {
   country: string;
   website: string;
   currency: string;
+  taxId: string;
+  vatNumber: string;
+  gstNumber: string;
+  panNumber: string;
+  tanNumber: string;
+  taxCategory: string;
+  taxTemplate: string;
+  withholdingTaxCategory: string;
+  isTaxExempt: boolean;
+  reverseCharge: boolean;
   isFrozenAccount: boolean;
   disabled: boolean;
   bankName: string;
   branchName: string;
   accountNumber: string;
+   isDeleted?: boolean;
   accountHolderName: string;
   ifscCode: string;
   swiftCode: string;
@@ -70,15 +106,23 @@ interface Ledger {
   leadSource: string;
   internalNotes: string;
   logo: string | null;
+  logoFile?: File;
+  logoPreviewUrl?: string;
   notes: string;
   createdAt: string;
   registrationDocs: RegistrationDocument[];
 }
 
+
+
+
+
 const LedgerRegistration: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [editingLedger, setEditingLedger] = useState<Ledger | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");
-  const [ledgers, setLedgers] = useState<Ledger[]>(dummyVendors);
+  const [viewingImage, setViewingImage] = useState<RegistrationDocument | { previewUrl: string; type: 'logo' } | null>(null);
   const [bankForm, setBankForm] = useState<Bank>({
     id: Date.now(),
     accountHolderName: "",
@@ -90,11 +134,13 @@ const LedgerRegistration: React.FC = () => {
     branch: ""
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [documents, setDocuments] = useState<RegistrationDocument[]>([]);
-  
+
+  const { ledgers, fetchLedgers, addLedger, updateLedger, deleteLedger } = useLedgerStore();
+
   const [formData, setFormData] = useState<Ledger>({
     id: 0,
     ledgerType: 'individual',
+     companyId: "",
     ledgerCode: '',
     ledgerName: '',
     shortName: '',
@@ -117,6 +163,16 @@ const LedgerRegistration: React.FC = () => {
     country: 'India',
     website: '',
     currency: 'INR',
+    taxId: '',
+    vatNumber: '',
+    gstNumber: '',
+    panNumber: '',
+    tanNumber: '',
+    taxCategory: '',
+    taxTemplate: '',
+    withholdingTaxCategory: '',
+    isTaxExempt: false,
+    reverseCharge: false,
     isFrozenAccount: false,
     disabled: false,
     bankName: '',
@@ -132,54 +188,50 @@ const LedgerRegistration: React.FC = () => {
     internalNotes: '',
     banks: [],
     logo: null,
+    logoFile: undefined,
+    logoPreviewUrl: undefined,
     notes: '',
     createdAt: '',
-    registrationDocs: [],
+    registrationDocs: []
   });
+   const { companies } = useCompanyStore();
 
-  // Get all countries
+  // Country, State, City Data
   const allCountries = useMemo(() => Country.getAllCountries(), []);
-
-  // Get states for selected country
   const availableStates = useMemo(() => {
-    const selectedCountry = allCountries.find(c => c.name === formData.country);
+    const selectedCountry = allCountries.find((c) => c.name === formData.country);
     if (!selectedCountry) return [];
     return State.getStatesOfCountry(selectedCountry.isoCode);
   }, [formData.country, allCountries]);
-
-  // Get cities for selected state
   const availableCities = useMemo(() => {
-    const selectedCountry = allCountries.find(c => c.name === formData.country);
-    const selectedState = availableStates.find(s => s.name === formData.state);
+    const selectedCountry = allCountries.find((c) => c.name === formData.country);
+    const selectedState = availableStates.find((s) => s.name === formData.state);
     if (!selectedCountry || !selectedState) return [];
     return City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
   }, [formData.country, formData.state, availableStates, allCountries]);
 
-  // Currency mapping based on country
   const getCurrencyForCountry = (countryName: string): string => {
-    const country = allCountries.find(c => c.name === countryName);
+    const country = allCountries.find((c) => c.name === countryName);
     if (!country) return "INR";
-    
     const currencyMap: Record<string, string> = {
-      'IN': 'INR',
-      'US': 'USD',
-      'GB': 'GBP',
-      'CA': 'CAD',
-      'AU': 'AUD',
-      'DE': 'EUR',
-      'FR': 'EUR',
-      'JP': 'JPY',
-      'CN': 'CNY'
+      IN: 'INR',
+      US: 'USD',
+      GB: 'GBP',
+      CA: 'CAD',
+      AU: 'AUD',
+      DE: 'EUR',
+      FR: 'EUR',
+      JP: 'JPY',
+      CN: 'CNY'
     };
-    
     return currencyMap[country.isoCode] || country.currency || 'USD';
   };
 
+  // Handlers
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
@@ -187,7 +239,7 @@ const LedgerRegistration: React.FC = () => {
 
   const handleSelectChange = (name: keyof Ledger, value: string): void => {
     if (name === "country") {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
         state: "",
@@ -195,23 +247,22 @@ const LedgerRegistration: React.FC = () => {
         currency: getCurrencyForCountry(value)
       }));
     } else if (name === "state") {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
         city: ""
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value
       }));
     }
   };
 
-  // Bank form handlers
   const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setBankForm(prev => ({
+    setBankForm((prev) => ({
       ...prev,
       [name]: value
     }));
@@ -222,13 +273,10 @@ const LedgerRegistration: React.FC = () => {
       alert("Please fill in at least Account Holder Name, Account Number, and Bank Name");
       return;
     }
-
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       banks: [...prev.banks, { ...bankForm, id: Date.now() }]
     }));
-
-    // Reset bank form
     setBankForm({
       id: Date.now(),
       accountHolderName: "",
@@ -242,70 +290,81 @@ const LedgerRegistration: React.FC = () => {
   };
 
   const removeBank = (id: number): void => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      banks: prev.banks.filter(bank => bank.id !== id)
+      banks: prev.banks.filter((bank) => bank.id !== id)
     }));
   };
 
-  // Logo upload handler
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event: any) => {
-        if (event.target?.result) {
-          setFormData(prev => ({
-            ...prev,
-            logo: event.target.result as string
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
+      const previewUrl = URL.createObjectURL(file);
+      setFormData((prev) => ({
+        ...prev,
+        logoFile: file,
+        logoPreviewUrl: previewUrl
+      }));
     }
   };
 
-  const triggerLogoUpload = (): void => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+  const removeLogo = (): void => {
+    if (formData.logoPreviewUrl) {
+      URL.revokeObjectURL(formData.logoPreviewUrl);
     }
-  };
-
-  // Document upload handler
-  const handleDocumentUpload = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          const newDoc: RegistrationDocument = {
-            id: Date.now(),
-            type,
-            file: event.target.result as string,
-            fileName: file.name
-          };
-          setFormData(prev => ({
-            ...prev,
-            registrationDocs: [...prev.registrationDocs, newDoc]
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Remove document handler
-  const removeDocument = (id: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      registrationDocs: prev.registrationDocs.filter(doc => doc.id !== id)
+      logoFile: undefined,
+      logoPreviewUrl: undefined
     }));
   };
 
+  const handleDocumentUpload = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      const newDoc: RegistrationDocument = {
+        id: Date.now(),
+        type,
+        file,
+        previewUrl,
+        fileName: file.name
+      };
+      setFormData((prev) => ({
+        ...prev,
+        registrationDocs: [...prev.registrationDocs.filter((doc) => doc.type !== type), newDoc]
+      }));
+    }
+  };
+
+  const removeDocument = (id: number) => {
+    const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
+    if (docToRemove && docToRemove.previewUrl) {
+      URL.revokeObjectURL(docToRemove.previewUrl);
+    }
+    setFormData((prev) => ({
+      ...prev,
+      registrationDocs: prev.registrationDocs.filter((doc) => doc.id !== id)
+    }));
+  };
+
+  const cleanupImageUrls = (): void => {
+    if (formData.logoPreviewUrl) {
+      URL.revokeObjectURL(formData.logoPreviewUrl);
+    }
+    formData.registrationDocs.forEach((doc) => {
+      if (doc.previewUrl) {
+        URL.revokeObjectURL(doc.previewUrl);
+      }
+    });
+  };
+
   const resetForm = () => {
+    cleanupImageUrls();
     setFormData({
       id: 0,
       ledgerType: 'individual',
+      companyId:"",
       ledgerCode: '',
       ledgerName: '',
       shortName: '',
@@ -328,6 +387,16 @@ const LedgerRegistration: React.FC = () => {
       country: 'India',
       website: '',
       currency: 'INR',
+      taxId: '',
+      vatNumber: '',
+      gstNumber: '',
+      panNumber: '',
+      tanNumber: '',
+      taxCategory: '',
+      taxTemplate: '',
+      withholdingTaxCategory: '',
+      isTaxExempt: false,
+      reverseCharge: false,
       isFrozenAccount: false,
       disabled: false,
       bankName: '',
@@ -343,10 +412,32 @@ const LedgerRegistration: React.FC = () => {
       internalNotes: '',
       banks: [],
       logo: null,
+      logoFile: undefined,
+      logoPreviewUrl: undefined,
       notes: '',
       createdAt: '',
-      registrationDocs: [],
+      registrationDocs: []
     });
+    setEditingLedger(null);
+    setActiveTab("basic");
+  };
+
+  const handleEditLedger = (ledger: Ledger): void => {
+    setEditingLedger(ledger);
+    setFormData({
+      ...ledger,
+      logoPreviewUrl: ledger.logo || undefined,
+      registrationDocs: ledger.registrationDocs.map((doc) => ({
+        ...doc,
+        previewUrl: doc.file
+      }))
+    });
+    setOpen(true);
+  };
+
+  const handleDeleteLedger = (id: number): void => {
+    console.log(id,"deleteiddd")
+    deleteLedger(id);
   };
 
   const handleSubmit = (): void => {
@@ -354,39 +445,274 @@ const LedgerRegistration: React.FC = () => {
       alert("Please fill in Ledger Name and Email Address");
       return;
     }
-
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.emailAddress)) {
       alert("Please enter a valid email address");
       return;
     }
 
-    const newLedger: Ledger = { 
-      ...formData, 
-      id: Date.now(),
-      createdAt: new Date().toLocaleDateString()
-    };
-    
-    setLedgers(prev => [...prev, newLedger]);
-    resetForm();
+    const ledgerFormData = new FormData();
+    Object.keys(formData).forEach((key) => {
+      const value = formData[key as keyof Ledger];
+      if (key === 'registrationDocs' || key === 'banks' || key === 'logoFile' || key === 'logoPreviewUrl') return;
+      if (value !== null && value !== undefined && value !== '') {
+        ledgerFormData.append(key, String(value));
+      }
+    });
+    ledgerFormData.append('banks', JSON.stringify(formData.banks));
+    if (formData.logoFile) {
+      ledgerFormData.append('logo', formData.logoFile);
+    }
+    formData.registrationDocs.forEach((doc) => {
+      ledgerFormData.append('registrationDocs', doc.file);
+    });
+    ledgerFormData.append('registrationDocTypes', JSON.stringify(formData.registrationDocs.map((doc) => doc.type)));
+    ledgerFormData.append("companyID",formData.companyId)
+
+    if (editingLedger) {
+      console.log(editingLedger._id, ledgerFormData,"ssfddsaf")
+      updateLedger({id:editingLedger._id, ledger:ledgerFormData});
+    } else {
+      addLedger(ledgerFormData);
+    }
     setOpen(false);
-    setActiveTab("basic");
+    resetForm();
   };
 
-  // Statistics calculations
+  // Statistics
   const stats = useMemo(() => ({
     totalLedgers: ledgers.length,
-    activeLedgers: ledgers.filter(c => c.ledgerStatus === 'active').length
+    activeLedgers: ledgers.filter((c) => c.ledgerStatus === 'active').length,
+    gstRegistered: ledgers.filter((c) => c.gstNumber?.trim() !== "").length,
+    individualAccounts: ledgers.filter((c) => c.ledgerType === 'individual').length
   }), [ledgers]);
 
-  // Form tabs
   const tabs = [
     { id: "basic", label: "Basic Info" },
     { id: "contact", label: "Contact Details" },
+    { id: "tax", label: "Tax Information" },
     { id: "bank", label: "Banking Details" },
     { id: "settings", label: "Settings" }
   ];
+
+  useEffect(() => {
+    fetchLedgers();
+  }, [fetchLedgers]);
+
+  // Actions Dropdown
+  const ActionsDropdown = ({ ledger }: { ledger: Ledger }) => {
+    const [showActions, setShowActions] = useState(false);
+
+    return (
+      <div className="relative">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowActions(!showActions)}
+          className="h-8 w-8 p-0 hover:bg-gray-100"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+        {showActions && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setShowActions(false)} />
+            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  handleEditLedger(ledger);
+                  setShowActions(false);
+                }}
+                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  handleDeleteLedger(ledger._id);
+                  setShowActions(false);
+                }}
+                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // Table View
+  const TableView = () => (
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gradient-to-r from-teal-50 to-teal-100">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ledger</th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {ledgers.map((ledger) => (
+              <tr key={ledger.id} className="hover:bg-gray-50 transition-colors duration-200">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{ledger.ledgerName}</div>
+                    <div className="text-sm text-gray-500">{ledger.ledgerCode}</div>
+                    {ledger.shortName && (
+                      <div className="text-sm text-gray-500">Short: {ledger.shortName}</div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-900">
+                    <div>Email: {ledger.emailAddress}</div>
+                    <div>Phone: {ledger.mobileNumber}</div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {[ledger.city, ledger.state, ledger.country].filter(Boolean).join(", ")}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Badge
+                    className={`${
+                      ledger.ledgerStatus === 'active'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-700'
+                    } hover:bg-green-100`}
+                  >
+                    {ledger.ledgerStatus}
+                  </Badge>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <ActionsDropdown ledger={ledger} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  // Card View
+  const CardView = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      {ledgers.map((ledger: Ledger) => (
+        <Card
+          key={ledger.id}
+          className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden"
+        >
+          <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center">
+                {ledger.logo && (
+                  <img src={ledger.logo} alt="Ledger Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
+                )}
+                <div>
+                  <CardTitle className="text-xl font-bold text-gray-800 mb-1">{ledger.ledgerName}</CardTitle>
+                  {ledger.shortName && <p className="text-teal-600 font-medium">{ledger.shortName}</p>}
+                  <p className="text-sm text-gray-500">{ledger.ledgerCode}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge
+                  className={`${
+                    ledger.ledgerStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                  } hover:bg-green-100`}
+                >
+                  {ledger.ledgerStatus}
+                </Badge>
+                <ActionsDropdown ledger={ledger} />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-3">
+              {ledger.contactPerson && (
+                <div className="flex items-center text-sm">
+                  <Users className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-gray-600">{ledger.contactPerson}</span>
+                </div>
+              )}
+              {(ledger.city || ledger.state || ledger.zipCode) && (
+                <div className="flex items-center text-sm">
+                  <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-gray-600">
+                    {[ledger.city, ledger.state, ledger.zipCode].filter(Boolean).join(", ")}
+                  </span>
+                </div>
+              )}
+              {ledger.mobileNumber && (
+                <div className="flex items-center text-sm">
+                  <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-gray-600">{ledger.mobileNumber}</span>
+                </div>
+              )}
+              <div className="flex items-center text-sm">
+                <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                <span className="text-gray-600 truncate">{ledger.emailAddress}</span>
+              </div>
+              {ledger.website && (
+                <div className="flex items-center text-sm">
+                  <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-teal-600 truncate">{ledger.website}</span>
+                </div>
+              )}
+            </div>
+            {ledger.banks.length > 0 && (
+              <div className="pt-3 border-t border-gray-100">
+                <p className="text-xs font-medium text-gray-500 mb-2">Bank Accounts</p>
+                <div className="space-y-2">
+                  {ledger.banks.slice(0, 2).map((bank) => (
+                    <div key={bank.id} className="text-xs bg-gray-100 p-2 rounded">
+                      <p className="font-medium truncate">{bank.bankName}</p>
+                      <p className="text-gray-600 truncate">A/C: ••••{bank.accountNumber.slice(-4)}</p>
+                    </div>
+                  ))}
+                  {ledger.banks.length > 2 && (
+                    <p className="text-xs text-gray-500">+{ledger.banks.length - 2} more</p>
+                  )}
+                </div>
+              </div>
+            )}
+            {(ledger.gstNumber || ledger.panNumber) && (
+              <div className="pt-3 border-t border-gray-100 space-y-2">
+                {ledger.gstNumber && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-500">GST</span>
+                    <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
+                      {ledger.gstNumber}
+                    </span>
+                  </div>
+                )}
+                {ledger.panNumber && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-500">PAN</span>
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
+                      {ledger.panNumber}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -396,8 +722,11 @@ const LedgerRegistration: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Ledger Management</h1>
           <p className="text-gray-600">Manage your ledger information and registrations</p>
         </div>
-        <Button 
-          onClick={() => setOpen(true)} 
+        <Button
+          onClick={() => {
+            resetForm();
+            setOpen(true);
+          }}
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
         >
           <Users className="w-4 h-4 mr-2" />
@@ -418,7 +747,6 @@ const LedgerRegistration: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -426,35 +754,63 @@ const LedgerRegistration: React.FC = () => {
                 <p className="text-blue-100 text-sm font-medium">Active Ledgers</p>
                 <p className="text-3xl font-bold">{stats.activeLedgers}</p>
               </div>
-              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+              <Star className="w-8 h-8 text-blue-200" />
             </div>
           </CardContent>
         </Card>
-        
         <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Individual Accounts</p>
-                <p className="text-3xl font-bold">{ledgers.filter(l => l.ledgerType === 'individual').length}</p>
+                <p className="text-green-100 text-sm font-medium">GST Registered</p>
+                <p className="text-3xl font-bold">{stats.gstRegistered}</p>
               </div>
-              <Users className="w-8 h-8 text-green-200" />
+              <FileText className="w-8 h-8 text-green-200" />
             </div>
           </CardContent>
         </Card>
-        
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Business Accounts</p>
-                <p className="text-3xl font-bold">{ledgers.filter(l => l.ledgerType === 'company').length}</p>
+                <p className="text-purple-100 text-sm font-medium">Individual Accounts</p>
+                <p className="text-3xl font-bold">{stats.individualAccounts}</p>
               </div>
               <Building2 className="w-8 h-8 text-purple-200" />
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* View Toggle */}
+      {ledgers.length > 0 && (
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            <Eye className="w-5 h-5 text-gray-600" />
+            <span className="text-gray-700 font-medium">View Mode:</span>
+          </div>
+          <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                viewMode === 'table' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Table className="w-4 h-4 mr-2" />
+              Table View
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                viewMode === 'cards' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Grid3X3 className="w-4 h-4 mr-2" />
+              Card View
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Ledger List */}
       {ledgers.length === 0 ? (
@@ -463,7 +819,7 @@ const LedgerRegistration: React.FC = () => {
             <Users className="w-16 h-16 text-gray-400 mb-4" />
             <p className="text-gray-500 text-lg font-medium mb-2">No ledgers registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first ledger to get started</p>
-            <Button 
+            <Button
               onClick={() => setOpen(true)}
               className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
             >
@@ -472,130 +828,44 @@ const LedgerRegistration: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {ledgers.map((ledger: Ledger) => (
-            <Card key={ledger.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center">
-                    {ledger.logo && (
-                      <img src={ledger.logo} alt="Ledger Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
-                    )}
-                    <div>
-                      <CardTitle className="text-xl font-bold text-gray-800 mb-1">
-                        {ledger.ledgerName}
-                      </CardTitle>
-                      {ledger.shortName && (
-                        <p className="text-teal-600 font-medium">{ledger.shortName}</p>
-                      )}
-                      <p className="text-sm text-gray-500">{ledger.ledgerCode}</p>
-                    </div>
-                  </div>
-                  <Badge className={`${ledger.ledgerStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
-                    {ledger.ledgerStatus}
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="p-6 space-y-4">
-                <div className="space-y-3">
-                  {ledger.contactPerson && (
-                    <div className="flex items-center text-sm">
-                      <Users className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-gray-600">{ledger.contactPerson}</span>
-                    </div>
-                  )}
-                  
-                  {(ledger.city || ledger.state || ledger.zipCode) && (
-                    <div className="flex items-center text-sm">
-                      <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-gray-600">
-                        {[ledger.city, ledger.state, ledger.zipCode].filter(Boolean).join(", ")}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {ledger.mobileNumber && (
-                    <div className="flex items-center text-sm">
-                      <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-gray-600">{ledger.mobileNumber}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center text-sm">
-                    <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                    <span className="text-gray-600 truncate">{ledger.emailAddress}</span>
-                  </div>
-                  
-                  {ledger.website && (
-                    <div className="flex items-center text-sm">
-                      <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-teal-600 truncate">{ledger.website}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Bank Accounts */}
-                {ledger.banks.length > 0 && (
-                  <div className="pt-3 border-t border-gray-100">
-                    <p className="text-xs font-medium text-gray-500 mb-2">Bank Accounts</p>
-                    <div className="space-y-2">
-                      {ledger.banks.slice(0, 2).map(bank => (
-                        <div key={bank.id} className="text-xs bg-gray-100 p-2 rounded">
-                          <p className="font-medium truncate">{bank.bankName}</p>
-                          <p className="text-gray-600 truncate">A/C: ••••{bank.accountNumber.slice(-4)}</p>
-                        </div>
-                      ))}
-                      {ledger.banks.length > 2 && (
-                        <p className="text-xs text-gray-500">+{ledger.banks.length - 2} more</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Currency */}
-                <div className="pt-3 border-t border-gray-100">
-                  <div className="flex items-center text-sm">
-                    <CreditCard className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                    <span className="text-gray-600">{ledger.currency}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <>
+          {viewMode === 'table' ? <TableView /> : <CardView />}
+        </>
       )}
 
       {/* Modal Form */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            resetForm();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
           <DialogHeader className="pb-4 border-b border-gray-200 h-16">
             <DialogTitle className="text-2xl font-bold text-gray-800">
-              Add New Ledger
+              {editingLedger ? 'Edit Ledger' : 'Add New Ledger'}
             </DialogTitle>
             <p className="text-gray-600 text-sm">
-              Fill in the ledger details and registration information
+              {editingLedger ? 'Update the ledger details' : 'Fill in the ledger details and registration information'}
             </p>
           </DialogHeader>
-          
           <div className="flex border-0 outline-0 h-[100%] flex-1">
-            {/* Form Tabs */}
             <div className="flex flex-wrap gap-2 flex-col bg-teal-50 w-52">
-              {tabs.map(tab => (
+              {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-4 py-2 text-md text-start font-semibold ring-0 rounded-none transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-teal-600 text-white"
-                      : "bg-teal-50 text-gray-500 hover:bg-gray-200"
+                    activeTab === tab.id ? 'bg-teal-600 text-white' : 'bg-teal-50 text-gray-500 hover:bg-gray-200'
                   }`}
                 >
                   {tab.label}
                 </button>
               ))}
             </div>
-
             <div className="space-y-6 w-full">
               {/* Basic Information Tab */}
               {activeTab === "basic" && (
@@ -615,14 +885,25 @@ const LedgerRegistration: React.FC = () => {
                       <option value="partnership">Partnership</option>
                       <option value="trust">Trust</option>
                     </select>
-                    <CustomInputBox
-                      placeholder="Ledger Code *"
-                      name="ledgerCode"
-                      value={formData.ledgerCode}
-                      onChange={handleChange}
-                    />
+                   <div className="flex flex-col gap-1">
+                      <label className="text-sm font-medium text-gray-700">
+                        Company *
+                      </label>
+                      <select
+                        value={formData.companyId}
+                        onChange={(e) => handleSelectChange("companyId", e.target.value)}
+                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
+                   focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
+                      >
+                        <option value="">Select Company</option>
+                        {companies.map((company) => (
+                          <option key={company._id} value={company._id}>
+                            {company.namePrint}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-
                   <div className="mt-4 flex flex-col gap-4">
                     <CustomInputBox
                       placeholder="Ledger Name *"
@@ -637,7 +918,6 @@ const LedgerRegistration: React.FC = () => {
                       onChange={handleChange}
                     />
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                     <select
                       value={formData.ledgerGroup}
@@ -650,7 +930,6 @@ const LedgerRegistration: React.FC = () => {
                       <option value="bank">Bank</option>
                       <option value="cash">Cash</option>
                     </select>
-                    
                     <select
                       value={formData.industryType}
                       onChange={(e) => handleSelectChange("industryType", e.target.value)}
@@ -662,7 +941,6 @@ const LedgerRegistration: React.FC = () => {
                       <option value="healthcare">Healthcare</option>
                       <option value="technology">Technology</option>
                     </select>
-                    
                     <select
                       value={formData.territory}
                       onChange={(e) => handleSelectChange("territory", e.target.value)}
@@ -675,7 +953,6 @@ const LedgerRegistration: React.FC = () => {
                       <option value="west">West</option>
                     </select>
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                     <select
                       value={formData.ledgerStatus}
@@ -686,7 +963,6 @@ const LedgerRegistration: React.FC = () => {
                       <option value="inactive">Inactive</option>
                       <option value="suspended">Suspended</option>
                     </select>
-                    
                     <select
                       value={formData.companySize}
                       onChange={(e) => handleSelectChange("companySize", e.target.value)}
@@ -698,7 +974,6 @@ const LedgerRegistration: React.FC = () => {
                       <option value="large">Large (251-1000)</option>
                       <option value="enterprise">Enterprise (1000+)</option>
                     </select>
-
                     <select
                       value={formData.currency}
                       onChange={(e) => handleSelectChange("currency", e.target.value)}
@@ -712,7 +987,6 @@ const LedgerRegistration: React.FC = () => {
                       <option value="AUD">AUD - Australian Dollar</option>
                     </select>
                   </div>
-
                   <div className="mt-4 flex justify-end">
                     <Button onClick={() => setActiveTab("contact")} className="bg-teal-600 hover:bg-teal-700">
                       Next: Contact
@@ -761,6 +1035,7 @@ const LedgerRegistration: React.FC = () => {
                       value={formData.emailAddress}
                       onChange={handleChange}
                       type="email"
+                      label="Email *"
                     />
                     <CustomInputBox
                       placeholder="Fax Number"
@@ -786,11 +1061,12 @@ const LedgerRegistration: React.FC = () => {
                         onChange={(e) => handleSelectChange("country", e.target.value)}
                         className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                       >
-                        {allCountries.map(country => (
-                          <option key={country.isoCode} value={country.name}>{country.name}</option>
+                        {allCountries.map((country) => (
+                          <option key={country.isoCode} value={country.name}>
+                            {country.name}
+                          </option>
                         ))}
                       </select>
-                      
                       <select
                         value={formData.state}
                         onChange={(e) => handleSelectChange("state", e.target.value)}
@@ -798,11 +1074,12 @@ const LedgerRegistration: React.FC = () => {
                         disabled={availableStates.length === 0}
                       >
                         <option value="">Select State</option>
-                        {availableStates.map(state => (
-                          <option key={state.isoCode} value={state.name}>{state.name}</option>
+                        {availableStates.map((state) => (
+                          <option key={state.isoCode} value={state.name}>
+                            {state.name}
+                          </option>
                         ))}
                       </select>
-                      
                       <select
                         value={formData.city}
                         onChange={(e) => handleSelectChange("city", e.target.value)}
@@ -810,8 +1087,10 @@ const LedgerRegistration: React.FC = () => {
                         disabled={availableCities.length === 0}
                       >
                         <option value="">Select City</option>
-                        {availableCities.map(city => (
-                          <option key={city.name} value={city.name}>{city.name}</option>
+                        {availableCities.map((city) => (
+                          <option key={city.name} value={city.name}>
+                            {city.name}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -833,8 +1112,97 @@ const LedgerRegistration: React.FC = () => {
                     <Button variant="outline" onClick={() => setActiveTab("basic")}>
                       Previous: Basic Info
                     </Button>
+                    <Button onClick={() => setActiveTab("tax")} className="bg-teal-600 hover:bg-teal-700">
+                      Next: Tax Information
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Tax Information Tab */}
+              {activeTab === "tax" && (
+                <div className="bg-white p-4">
+                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
+                    <FileText className="w-5 h-5 mr-2" />
+                    Tax Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <CustomInputBox
+                      placeholder="Tax ID/Registration Number"
+                      name="taxId"
+                      value={formData.taxId}
+                      onChange={handleChange}
+                      maxLength={15}
+                    />
+                    <CustomInputBox
+                      placeholder="VAT Number"
+                      name="vatNumber"
+                      value={formData.vatNumber}
+                      onChange={handleChange}
+                      maxLength={15}
+                    />
+                    <CustomInputBox
+                      placeholder="GST Number"
+                      name="gstNumber"
+                      value={formData.gstNumber}
+                      onChange={handleChange}
+                      maxLength={15}
+                    />
+                    <CustomInputBox
+                      placeholder="PAN Number"
+                      name="panNumber"
+                      value={formData.panNumber}
+                      onChange={handleChange}
+                      maxLength={10}
+                    />
+                    <CustomInputBox
+                      placeholder="TAN Number"
+                      name="tanNumber"
+                      value={formData.tanNumber}
+                      onChange={handleChange}
+                      maxLength={10}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <select
+                      value={formData.taxCategory}
+                      onChange={(e) => handleSelectChange("taxCategory", e.target.value)}
+                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                    >
+                      <option value="">Select Tax Category</option>
+                      <option value="taxable">Taxable</option>
+                      <option value="exempt">Tax Exempt</option>
+                      <option value="zero_rated">Zero Rated</option>
+                      <option value="out_of_scope">Out of Scope</option>
+                    </select>
+                    <select
+                      value={formData.taxTemplate}
+                      onChange={(e) => handleSelectChange("taxTemplate", e.target.value)}
+                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                    >
+                      <option value="">Select Tax Template</option>
+                      <option value="standard_tax">Standard Tax</option>
+                      <option value="zero_tax">Zero Tax</option>
+                      <option value="igst_18">IGST 18%</option>
+                      <option value="cgst_sgst_18">CGST+SGST 18%</option>
+                    </select>
+                    <select
+                      value={formData.withholdingTaxCategory}
+                      onChange={(e) => handleSelectChange("withholdingTaxCategory", e.target.value)}
+                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                    >
+                      <option value="">Select WHT Category</option>
+                      <option value="tds_contractor">TDS - Contractor</option>
+                      <option value="tds_professional">TDS - Professional</option>
+                      <option value="tds_commission">TDS - Commission</option>
+                    </select>
+                  </div>
+                  <div className="mt-4 flex justify-between">
+                    <Button variant="outline" onClick={() => setActiveTab("contact")}>
+                      Previous: Contact
+                    </Button>
                     <Button onClick={() => setActiveTab("bank")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Banking Details
+                      Next: Bank Details
                     </Button>
                   </div>
                 </div>
@@ -847,8 +1215,6 @@ const LedgerRegistration: React.FC = () => {
                     <CreditCard className="w-5 h-5 mr-2" />
                     Bank Details
                   </h3>
-                  
-                  {/* Bank Form */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-white rounded-lg border border-teal-200">
                     <CustomInputBox
                       placeholder="Account Holder Name *"
@@ -898,20 +1264,23 @@ const LedgerRegistration: React.FC = () => {
                       </Button>
                     </div>
                   </div>
-
-                  {/* Bank List */}
                   {formData.banks.length > 0 && (
                     <div className="space-y-3">
                       <h4 className="font-medium text-teal-700">Added Banks:</h4>
-                      {formData.banks.map(bank => (
-                        <div key={bank.id} className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center">
+                      {formData.banks.map((bank) => (
+                        <div
+                          key={bank.id}
+                          className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center"
+                        >
                           <div>
                             <p className="font-medium">{bank.bankName}</p>
-                            <p className="text-sm text-gray-600">{bank.accountHolderName} ••••{bank.accountNumber.slice(-4)}</p>
+                            <p className="text-sm text-gray-600">
+                              {bank.accountHolderName} ••••{bank.accountNumber.slice(-4)}
+                            </p>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => removeBank(bank.id)}
                             className="text-red-500 hover:text-red-700 hover:bg-red-50"
                           >
@@ -921,10 +1290,9 @@ const LedgerRegistration: React.FC = () => {
                       ))}
                     </div>
                   )}
-
                   <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("contact")}>
-                      Previous: Contact
+                    <Button variant="outline" onClick={() => setActiveTab("tax")}>
+                      Previous: Tax Information
                     </Button>
                     <Button onClick={() => setActiveTab("settings")} className="bg-teal-600 hover:bg-teal-700">
                       Next: Settings
@@ -940,40 +1308,104 @@ const LedgerRegistration: React.FC = () => {
                     <Settings2 className="w-5 h-5 mr-2" />
                     Additional Settings
                   </h3>
-                  
-                  {/* Logo Upload */}
                   <div className="mb-6">
-                    <p className="text-sm font-medium text-teal-700 mb-2">Ledger Logo</p>
-                    <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 rounded-full border-2 border-dashed border-teal-300 flex items-center justify-center overflow-hidden bg-white">
-                        {formData.logo ? (
-                          <img src={formData.logo} alt="Ledger Logo" className="w-full h-full object-cover" />
-                        ) : (
-                          <Image className="w-8 h-8 text-teal-300" />
-                        )}
-                      </div>
-                      <div>
-                        <Input
+                    <h4 className="font-medium text-teal-800 mb-3">Ledger Logo</h4>
+                    <div className="p-4 bg-white rounded-lg border border-teal-200">
+                      <div className="flex items-center justify-between">
+                        <input
                           type="file"
-                          ref={fileInputRef}
+                          id="logo"
+                          className="hidden"
                           onChange={handleLogoUpload}
                           accept="image/*"
-                          className="hidden"
+                          ref={fileInputRef}
                         />
-                        <Button 
-                          onClick={triggerLogoUpload}
-                          variant="outline"
-                          className="border-teal-300 text-teal-700 hover:bg-teal-50"
+                        <label
+                          htmlFor="logo"
+                          className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
                         >
                           <Upload className="w-4 h-4 mr-2" />
-                          {formData.logo ? "Change Logo" : "Upload Logo"}
-                        </Button>
-                        <p className="text-xs text-gray-500 mt-1">Recommended: 200x200px PNG or JPG</p>
+                          Upload Logo
+                        </label>
+                        {formData.logoPreviewUrl && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={removeLogo}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
+                      {formData.logoPreviewUrl && (
+                        <div className="mt-2">
+                          <img
+                            src={formData.logoPreviewUrl}
+                            alt="Ledger Logo"
+                            className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75"
+                            onClick={() => setViewingImage({ previewUrl: formData.logoPreviewUrl, type: 'logo' })}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* Advanced Settings */}
+                  <div className="mb-6">
+                    <h4 className="font-medium text-teal-800 mb-3">Registration Documents</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {['TAX', 'VAT', 'GST', 'PAN', 'TAN'].map((docType) => (
+                        <div key={docType} className="p-4 bg-white rounded-lg border border-teal-200">
+                          <p className="text-sm font-medium text-teal-700 mb-2">{docType} Document</p>
+                          <div className="flex items-center justify-between">
+                            <input
+                              type="file"
+                              id={`${docType.toLowerCase()}-doc`}
+                              className="hidden"
+                              onChange={(e) => handleDocumentUpload(docType, e)}
+                              accept="image/*,.pdf"
+                            />
+                            <label
+                              htmlFor={`${docType.toLowerCase()}-doc`}
+                              className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
+                            >
+                              <Upload className="w-4 h-4 mr-2" />
+                              Upload
+                            </label>
+                            {formData.registrationDocs.find((doc) => doc.type === docType) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  removeDocument(formData.registrationDocs.find((doc) => doc.type === docType)!.id)
+                                }
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                          {formData.registrationDocs.find((doc) => doc.type === docType) && (
+                            <div className="mt-2">
+                              <p className="text-xs text-gray-500 truncate">
+                                {formData.registrationDocs.find((doc) => doc.type === docType)?.fileName}
+                              </p>
+                              {formData.registrationDocs.find((doc) => doc.type === docType)?.previewUrl &&
+                                docType !== 'PDF' && (
+                                  <img
+                                    src={formData.registrationDocs.find((doc) => doc.type === docType)?.previewUrl}
+                                    alt={`${docType} document`}
+                                    className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75 mt-2"
+                                    onClick={() =>
+                                      setViewingImage(formData.registrationDocs.find((doc) => doc.type === docType)!)
+                                    }
+                                  />
+                                )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <select
                       value={formData.ledgerPriority}
@@ -985,7 +1417,6 @@ const LedgerRegistration: React.FC = () => {
                       <option value="high">High Priority</option>
                       <option value="vip">VIP</option>
                     </select>
-                    
                     <select
                       value={formData.leadSource}
                       onChange={(e) => handleSelectChange("leadSource", e.target.value)}
@@ -999,9 +1430,27 @@ const LedgerRegistration: React.FC = () => {
                       <option value="cold_call">Cold Call</option>
                     </select>
                   </div>
-
-                  {/* Checkboxes */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="isTaxExempt"
+                        checked={formData.isTaxExempt}
+                        onChange={handleChange}
+                        className="mr-2"
+                      />
+                      Tax Exempt
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="reverseCharge"
+                        checked={formData.reverseCharge}
+                        onChange={handleChange}
+                        className="mr-2"
+                      />
+                      Reverse Charge
+                    </label>
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -1023,8 +1472,6 @@ const LedgerRegistration: React.FC = () => {
                       Disabled
                     </label>
                   </div>
-
-                  {/* Notes */}
                   <div className="mb-4">
                     <p className="text-sm font-medium text-teal-700 mb-2">Internal Notes</p>
                     <textarea
@@ -1036,33 +1483,40 @@ const LedgerRegistration: React.FC = () => {
                       className="w-full px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none resize-none"
                     />
                   </div>
-
                   <div className="mt-4 flex justify-between">
                     <Button variant="outline" onClick={() => setActiveTab("bank")}>
                       Previous: Bank Details
                     </Button>
                     <Button onClick={handleSubmit} className="bg-teal-600 hover:bg-teal-700">
-                      Save Ledger
+                      {editingLedger ? 'Update Ledger' : 'Save Ledger'}
                     </Button>
                   </div>
-                </div>
-              )}
-
-              {/* Save button for all tabs except the last one */}
-              {activeTab !== "settings" && (
-                <div className="flex justify-end pt-4">
-                  <Button 
-                    onClick={handleSubmit}
-                    className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-8 py-2 shadow-lg"
-                  >
-                    Save Ledger
-                  </Button>
                 </div>
               )}
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image Viewing Modal */}
+      {viewingImage && (
+        <Dialog open={!!viewingImage} onOpenChange={() => setViewingImage(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>
+                {viewingImage.type} {viewingImage.type === 'logo' ? 'Logo' : 'Document'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex justify-center">
+              <img
+                src={viewingImage.previewUrl}
+                alt={`${viewingImage.type}`}
+                className="max-w-full max-h-96 object-contain rounded-lg"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
