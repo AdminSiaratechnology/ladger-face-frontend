@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api"; 
+
 interface Bank {
   id: number;
   accountHolderName: string;
@@ -20,20 +21,20 @@ interface RegistrationDocument {
   fileName: string;
 }
 
-interface Customer {
+interface Agent {
   id: number;
   _id?: string;
-  customerType?: string;
-  customerCode?: string;
+  agentType: string;
+  agentCode: string;
   code: string;
-  customerName: string;
+  agentName: string;
   shortName: string;
-  customerGroup: string;
-  industryType: string;
+  agentCategory: string;
+  specialty: string;
   territory: string;
-  salesPerson: string;
-  customerStatus: string;
-  companySize: string;
+  supervisor: string;
+  agentStatus: string;
+  experienceLevel: string;
   contactPerson: string;
   designation: string;
   phoneNumber: string;
@@ -48,15 +49,9 @@ interface Customer {
   country: string;
   website: string;
   currency: string;
-  priceList: string;
+  commissionStructure: string;
   paymentTerms: string;
-  creditLimit: string;
-  creditDays: string;
-  discount: string;
-  agent: string;
-  isFrozenAccount: boolean;
-  disabled: boolean;
-  allowZeroValuation: boolean;
+  commissionRate: string;
   taxId: string;
   vatNumber: string;
   gstNumber: string;
@@ -65,10 +60,8 @@ interface Customer {
   taxCategory: string;
   taxTemplate: string;
   withholdingTaxCategory: string;
-  msmeRegistration: string;
   isTaxExempt: boolean;
   reverseCharge: boolean;
-  exportCustomer: boolean;
   bankName: string;
   branchName: string;
   accountNumber: string;
@@ -77,40 +70,37 @@ interface Customer {
   swiftCode: string;
   preferredPaymentMethod: string;
   acceptedPaymentMethods: string[];
-  creditCardDetails: string;
   paymentInstructions: string;
   banks: Bank[];
   approvalWorkflow: string;
-  creditLimitApprover: string;
   documentRequired: string;
   externalSystemId: string;
   crmIntegration: string;
   dataSource: string;
-  customerPriority: string;
+  agentPriority: string;
   leadSource: string;
   internalNotes: string;
-  allowPartialShipments: boolean;
-  allowBackOrders: boolean;
-  autoInvoice: boolean;
-  logo: string | null; // Will handle as previewUrl or file
+  logo: string | null;
   notes: string;
   createdAt: string;
   registrationDocs: RegistrationDocument[];
+  performanceRating: number;
+  activeContracts: number;
   isDeleted: boolean;
 }
 
-interface CustomerForm {
-  customerType?: string;
-  customerCode?: string;
+interface AgentForm {
+  agentType: string;
+  agentCode: string;
   code: string;
-  customerName: string;
+  agentName: string;
   shortName: string;
-  customerGroup: string;
-  industryType: string;
+  agentCategory: string;
+  specialty: string;
   territory: string;
-  salesPerson: string;
-  customerStatus: string;
-  companySize: string;
+  supervisor: string;
+  agentStatus: string;
+  experienceLevel: string;
   contactPerson: string;
   designation: string;
   phoneNumber: string;
@@ -125,15 +115,9 @@ interface CustomerForm {
   country: string;
   website: string;
   currency: string;
-  priceList: string;
+  commissionStructure: string;
   paymentTerms: string;
-  creditLimit: string;
-  creditDays: string;
-  discount: string;
-  agent: string;
-  isFrozenAccount: boolean;
-  disabled: boolean;
-  allowZeroValuation: boolean;
+  commissionRate: string;
   taxId: string;
   vatNumber: string;
   gstNumber: string;
@@ -142,10 +126,8 @@ interface CustomerForm {
   taxCategory: string;
   taxTemplate: string;
   withholdingTaxCategory: string;
-  msmeRegistration: string;
   isTaxExempt: boolean;
   reverseCharge: boolean;
-  exportCustomer: boolean;
   bankName: string;
   branchName: string;
   accountNumber: string;
@@ -154,55 +136,49 @@ interface CustomerForm {
   swiftCode: string;
   preferredPaymentMethod: string;
   acceptedPaymentMethods: string[];
-  creditCardDetails: string;
   paymentInstructions: string;
   approvalWorkflow: string;
-  creditLimitApprover: string;
   documentRequired: string;
   externalSystemId: string;
   crmIntegration: string;
   dataSource: string;
-  customerPriority: string;
+  agentPriority: string;
   leadSource: string;
   internalNotes: string;
-  allowPartialShipments: boolean;
-  allowBackOrders: boolean;
-  autoInvoice: boolean;
   banks: Bank[];
-  logoFile?: File; // For logo upload
+  logoFile?: File;
   logoPreviewUrl?: string;
   notes: string;
   registrationDocs: RegistrationDocument[];
+  performanceRating: number;
+  activeContracts: number;
 }
 
-
-interface CustomerStore {
-  customers: Customer[];
+interface AgentStore {
+  agents: Agent[];
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchCustomers: () => Promise<void>;
-  addCustomer: (customer: Customer) => Promise<void>;
-  updateCustomer: (params: { id: number; customer: Customer }) => Promise<void>;
-  deleteCustomer: (id: number) => Promise<void>;
+  fetchAgents: () => Promise<void>;
+  addAgent: (agent: AgentForm) => Promise<void>;
+  updateAgent: (params: { id: string; agent: AgentForm }) => Promise<void>;
+  deleteAgent: (id: string) => Promise<void>;
 }
 
-
-export const useCustomerStore = create<CustomerStore>()(
+export const useAgentStore = create<AgentStore>()(
   persist(
     (set, get) => ({
-      customers: [],
+      agents: [],
       loading: false,
       error: false,
       errorMessage: null,
 
-     
-      fetchCustomers: async () => {
+      fetchAgents: async () => {
         set({ loading: true, error: false });
         try {
-          const result = await api.fetchCustomers();
+          const result = await api.fetchAgents();
           set({
-            customers: result?.data || [],
+            agents: result?.data || [],
             loading: false,
           });
           console.log(result?.data,"result?.data?")
@@ -211,18 +187,17 @@ export const useCustomerStore = create<CustomerStore>()(
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to fetch customers",
+              error?.response?.data?.message || "Failed to fetch agents",
           });
         }
       },
 
-    
-      addCustomer: async (customer) => {
+      addAgent: async (agent) => {
         set({ loading: true });
         try {
-          const result = await api.createCustomer(customer);
+          const result = await api.createAgent(agent);
           set({
-            customers: [...get().customers, result?.data],
+            agents: [...get().agents, result?.data],
             loading: false,
           });
         } catch (error: any) {
@@ -230,22 +205,21 @@ export const useCustomerStore = create<CustomerStore>()(
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to add customer",
+              error?.response?.data?.message || "Failed to add agent",
           });
         }
       },
 
- 
-      updateCustomer: async ({ id, customer }) => {
+      updateAgent: async ({ id, agent }) => {
         set({ loading: true });
         try {
-          const result = await api.updateCustomer(id, customer);
+          const result = await api.updateAgent(id, agent);
          
           set({
-            customers: get().customers.map((c) =>{
+            agents: get().agents.map((a) =>{
 
-           console.log(id,result,c,"idresult")
-            return   c?.["_id"] == id ? result?.data : c
+           console.log(id,result,a,"idresult")
+            return   a?._id == id ? result?.data : a
             }),
             loading: false,
           });
@@ -254,18 +228,17 @@ export const useCustomerStore = create<CustomerStore>()(
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to update customer",
+              error?.response?.data?.message || "Failed to update agent",
           });
         }
       },
 
-  
-      deleteCustomer: async (id) => {
+      deleteAgent: async (id) => {
         set({ loading: true });
         try {
-          await api.deleteCustomer(id);
+          await api.deleteAgent(id);
           set({
-            customers: get().customers.filter((c) => c.id !== id),
+            agents: get().agents.filter((a) => a._id !== id),
             loading: false,
           });
         } catch (error: any) {
@@ -273,16 +246,16 @@ export const useCustomerStore = create<CustomerStore>()(
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to delete customer",
+              error?.response?.data?.message || "Failed to delete agent",
           });
         }
       },
     }),
     {
-      name: "customer-storage",
+      name: "agent-storage",
       getStorage: () => localStorage,
       partialize: (state) => ({
-        customers: state.customers,
+        agents: state.agents,
       }),
     }
   )

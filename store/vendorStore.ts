@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api"; 
+
 interface Bank {
   id: number;
   accountHolderName: string;
@@ -20,19 +21,19 @@ interface RegistrationDocument {
   fileName: string;
 }
 
-interface Customer {
+interface Vendor {
   id: number;
   _id?: string;
-  customerType?: string;
-  customerCode?: string;
+  vendorType: string;
+  vendorCode: string;
   code: string;
-  customerName: string;
+  vendorName: string;
   shortName: string;
-  customerGroup: string;
+  vendorGroup: string;
   industryType: string;
   territory: string;
-  salesPerson: string;
-  customerStatus: string;
+  procurementPerson: string;
+  vendorStatus: string;
   companySize: string;
   contactPerson: string;
   designation: string;
@@ -68,7 +69,7 @@ interface Customer {
   msmeRegistration: string;
   isTaxExempt: boolean;
   reverseCharge: boolean;
-  exportCustomer: boolean;
+  exportVendor: boolean;
   bankName: string;
   branchName: string;
   accountNumber: string;
@@ -86,30 +87,30 @@ interface Customer {
   externalSystemId: string;
   crmIntegration: string;
   dataSource: string;
-  customerPriority: string;
+  vendorPriority: string;
   leadSource: string;
   internalNotes: string;
   allowPartialShipments: boolean;
   allowBackOrders: boolean;
   autoInvoice: boolean;
-  logo: string | null; // Will handle as previewUrl or file
+  logo: string | null;
   notes: string;
   createdAt: string;
   registrationDocs: RegistrationDocument[];
   isDeleted: boolean;
 }
 
-interface CustomerForm {
-  customerType?: string;
-  customerCode?: string;
+interface VendorForm {
+  vendorType: string;
+  vendorCode: string;
   code: string;
-  customerName: string;
+  vendorName: string;
   shortName: string;
-  customerGroup: string;
+  vendorGroup: string;
   industryType: string;
   territory: string;
-  salesPerson: string;
-  customerStatus: string;
+  procurementPerson: string;
+  vendorStatus: string;
   companySize: string;
   contactPerson: string;
   designation: string;
@@ -145,7 +146,7 @@ interface CustomerForm {
   msmeRegistration: string;
   isTaxExempt: boolean;
   reverseCharge: boolean;
-  exportCustomer: boolean;
+  exportVendor: boolean;
   bankName: string;
   branchName: string;
   accountNumber: string;
@@ -162,47 +163,44 @@ interface CustomerForm {
   externalSystemId: string;
   crmIntegration: string;
   dataSource: string;
-  customerPriority: string;
+  vendorPriority: string;
   leadSource: string;
   internalNotes: string;
   allowPartialShipments: boolean;
   allowBackOrders: boolean;
   autoInvoice: boolean;
   banks: Bank[];
-  logoFile?: File; // For logo upload
+  logoFile?: File;
   logoPreviewUrl?: string;
   notes: string;
   registrationDocs: RegistrationDocument[];
 }
 
-
-interface CustomerStore {
-  customers: Customer[];
+interface VendorStore {
+  vendors: Vendor[];
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchCustomers: () => Promise<void>;
-  addCustomer: (customer: Customer) => Promise<void>;
-  updateCustomer: (params: { id: number; customer: Customer }) => Promise<void>;
-  deleteCustomer: (id: number) => Promise<void>;
+  fetchVendors: () => Promise<void>;
+  addVendor: (vendor: VendorForm) => Promise<void>;
+  updateVendor: (params: { id: string; vendor: VendorForm }) => Promise<void>;
+  deleteVendor: (id: string) => Promise<void>;
 }
 
-
-export const useCustomerStore = create<CustomerStore>()(
+export const useVendorStore = create<VendorStore>()(
   persist(
     (set, get) => ({
-      customers: [],
+      vendors: [],
       loading: false,
       error: false,
       errorMessage: null,
 
-     
-      fetchCustomers: async () => {
+      fetchVendors: async () => {
         set({ loading: true, error: false });
         try {
-          const result = await api.fetchCustomers();
+          const result = await api.fetchVendors();
           set({
-            customers: result?.data || [],
+            vendors: result?.data || [],
             loading: false,
           });
           console.log(result?.data,"result?.data?")
@@ -211,18 +209,17 @@ export const useCustomerStore = create<CustomerStore>()(
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to fetch customers",
+              error?.response?.data?.message || "Failed to fetch vendors",
           });
         }
       },
 
-    
-      addCustomer: async (customer) => {
+      addVendor: async (vendor) => {
         set({ loading: true });
         try {
-          const result = await api.createCustomer(customer);
+          const result = await api.createVendor(vendor);
           set({
-            customers: [...get().customers, result?.data],
+            vendors: [...get().vendors, result?.data],
             loading: false,
           });
         } catch (error: any) {
@@ -230,22 +227,21 @@ export const useCustomerStore = create<CustomerStore>()(
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to add customer",
+              error?.response?.data?.message || "Failed to add vendor",
           });
         }
       },
 
- 
-      updateCustomer: async ({ id, customer }) => {
+      updateVendor: async ({ id, vendor }) => {
         set({ loading: true });
         try {
-          const result = await api.updateCustomer(id, customer);
+          const result = await api.updateVendor(id, vendor);
          
           set({
-            customers: get().customers.map((c) =>{
+            vendors: get().vendors.map((v) =>{
 
-           console.log(id,result,c,"idresult")
-            return   c?.["_id"] == id ? result?.data : c
+           console.log(id,result,v,"idresult")
+            return   v?._id == id ? result?.data : v
             }),
             loading: false,
           });
@@ -254,18 +250,17 @@ export const useCustomerStore = create<CustomerStore>()(
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to update customer",
+              error?.response?.data?.message || "Failed to update vendor",
           });
         }
       },
 
-  
-      deleteCustomer: async (id) => {
+      deleteVendor: async (id) => {
         set({ loading: true });
         try {
-          await api.deleteCustomer(id);
+          await api.deleteVendor(id);
           set({
-            customers: get().customers.filter((c) => c.id !== id),
+            vendors: get().vendors.filter((v) => v._id !== id),
             loading: false,
           });
         } catch (error: any) {
@@ -273,16 +268,16 @@ export const useCustomerStore = create<CustomerStore>()(
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to delete customer",
+              error?.response?.data?.message || "Failed to delete vendor",
           });
         }
       },
     }),
     {
-      name: "customer-storage",
+      name: "vendor-storage",
       getStorage: () => localStorage,
       partialize: (state) => ({
-        customers: state.customers,
+        vendors: state.vendors,
       }),
     }
   )

@@ -114,6 +114,7 @@ export const useCompanyStore = create<CompanyStore>()(
           console.log("Updated company response:", res);
 
           const updatedCompany: Company = res.data;
+          console.log(updatedCompany,companyId,companyData,"adasd")
 
           set({
             companies: get().companies.map((comp) =>

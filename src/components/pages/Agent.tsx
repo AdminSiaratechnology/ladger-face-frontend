@@ -1,14 +1,42 @@
-import { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit, Settings2, Users, UserCheck, Target } from "lucide-react";
-import { Country, State, City } from 'country-state-city';
+import { 
+  Users, 
+  Building2, 
+  FileText, 
+  Settings2, 
+  Star, 
+  Edit, 
+  Trash2, 
+  MoreHorizontal, 
+  Eye, 
+  Table, 
+  Grid3X3, 
+  Layers,
+  Package,
+  Tag,
+  Archive,
+  Phone,
+  Mail,
+  MapPin,
+  CreditCard,
+  Globe,
+  Plus,
+  Upload,
+  X,
+  Image as ImageIcon,
+  UserCheck,
+  Target
+} from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
+import { Country, State, City } from 'country-state-city';
+import { useAgentStore } from "../../../store/agentStore"; // Assuming a store similar to customerStore
+import { useCompanyStore } from "../../../store/companyStore";
 
-// Bank interface
+// Interfaces (adapted from provided Agent interface)
 interface Bank {
   id: number;
   accountHolderName: string;
@@ -20,19 +48,21 @@ interface Bank {
   branch: string;
 }
 
-// Registration Document interface
 interface RegistrationDocument {
   id: number;
   type: string;
-  file: string;
+  file: File;
+  previewUrl: string;
   fileName: string;
 }
 
-// Agent interface
 interface Agent {
   id: number;
+  _id?: string;
   agentType: string;
   agentCode: string;
+  code: string;
+  companyId: string;
   agentName: string;
   shortName: string;
   agentCategory: string;
@@ -92,12 +122,80 @@ interface Agent {
   registrationDocs: RegistrationDocument[];
   performanceRating: number;
   activeContracts: number;
+  isDeleted: boolean;
 }
 
-const AgentRegistration: React.FC = () => {
+interface AgentForm {
+  agentType: string;
+  agentCode: string;
+  code: string;
+  companyId: string;
+  agentName: string;
+  shortName: string;
+  agentCategory: string;
+  specialty: string;
+  territory: string;
+  supervisor: string;
+  agentStatus: string;
+  experienceLevel: string;
+  contactPerson: string;
+  designation: string;
+  phoneNumber: string;
+  mobileNumber: string;
+  emailAddress: string;
+  faxNumber: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  website: string;
+  currency: string;
+  commissionStructure: string;
+  paymentTerms: string;
+  commissionRate: string;
+  taxId: string;
+  vatNumber: string;
+  gstNumber: string;
+  panNumber: string;
+  tanNumber: string;
+  taxCategory: string;
+  taxTemplate: string;
+  withholdingTaxCategory: string;
+  isTaxExempt: boolean;
+  reverseCharge: boolean;
+  bankName: string;
+  branchName: string;
+  accountNumber: string;
+  accountHolderName: string;
+  ifscCode: string;
+  swiftCode: string;
+  preferredPaymentMethod: string;
+  acceptedPaymentMethods: string[];
+  paymentInstructions: string;
+  approvalWorkflow: string;
+  documentRequired: string;
+  externalSystemId: string;
+  crmIntegration: string;
+  dataSource: string;
+  agentPriority: string;
+  leadSource: string;
+  internalNotes: string;
+  banks: Bank[];
+  logoFile?: File; // For logo upload
+  logoPreviewUrl?: string;
+  notes: string;
+  registrationDocs: RegistrationDocument[];
+  performanceRating: number;
+  activeContracts: number;
+}
+
+const AgentRegistrationPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");
-  const [agents, setAgents] = useState<Agent[]>([]);
   const [bankForm, setBankForm] = useState<Bank>({
     id: Date.now(),
     accountHolderName: "",
@@ -108,13 +206,19 @@ const AgentRegistration: React.FC = () => {
     bankName: "",
     branch: ""
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [documents, setDocuments] = useState<RegistrationDocument[]>([]);
+  const [viewingImage, setViewingImage] = useState<RegistrationDocument | {previewUrl: string, type: 'logo'} | null>(null);
   
-  const [formData, setFormData] = useState<Agent>({
-    id: 0,
+  const { fetchAgents, addAgent, updateAgent, deleteAgent, agents } = useAgentStore(); // Assuming store exists
+  const { companies } = useCompanyStore();
+  const getCompanyName = (companyId: string) => {
+    const company = companies.find(c => c._id === companyId);
+    return company ? company.namePrint : 'Unknown Company';
+  };
+    const [formData, setFormData] = useState<AgentForm>({
     agentType: 'individual',
     agentCode: '',
+    code: "",
+    companyId:"",
     agentName: '',
     shortName: '',
     agentCategory: '',
@@ -168,25 +272,20 @@ const AgentRegistration: React.FC = () => {
     leadSource: '',
     internalNotes: '',
     banks: [],
-    logo: null,
     notes: '',
-    createdAt: '',
     registrationDocs: [],
     performanceRating: 0,
     activeContracts: 0
   });
 
-  // Get all countries
   const allCountries = useMemo(() => Country.getAllCountries(), []);
 
-  // Get states for selected country
   const availableStates = useMemo(() => {
     const selectedCountry = allCountries.find(c => c.name === formData.country);
     if (!selectedCountry) return [];
     return State.getStatesOfCountry(selectedCountry.isoCode);
   }, [formData.country, allCountries]);
 
-  // Get cities for selected state
   const availableCities = useMemo(() => {
     const selectedCountry = allCountries.find(c => c.name === formData.country);
     const selectedState = availableStates.find(s => s.name === formData.state);
@@ -194,7 +293,6 @@ const AgentRegistration: React.FC = () => {
     return City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
   }, [formData.country, formData.state, availableStates, allCountries]);
 
-  // Currency mapping based on country
   const getCurrencyForCountry = (countryName: string): string => {
     const country = allCountries.find(c => c.name === countryName);
     if (!country) return "INR";
@@ -214,6 +312,8 @@ const AgentRegistration: React.FC = () => {
     return currencyMap[country.isoCode] || country.currency || 'USD';
   };
 
+
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
@@ -224,7 +324,7 @@ const AgentRegistration: React.FC = () => {
     }));
   };
 
-  const handleSelectChange = (name: keyof Agent, value: string): void => {
+  const handleSelectChange = (name: keyof AgentForm, value: string): void => {
     if (name === "country") {
       setFormData(prev => ({
         ...prev,
@@ -247,7 +347,6 @@ const AgentRegistration: React.FC = () => {
     }
   };
 
-  // Bank form handlers
   const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     setBankForm(prev => ({
@@ -267,7 +366,6 @@ const AgentRegistration: React.FC = () => {
       banks: [...prev.banks, { ...bankForm, id: Date.now() }]
     }));
 
-    // Reset bank form
     setBankForm({
       id: Date.now(),
       accountHolderName: "",
@@ -287,65 +385,83 @@ const AgentRegistration: React.FC = () => {
     }));
   };
 
-  // Logo upload handler
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event: any) => {
-        if (event.target?.result) {
-          setFormData(prev => ({
-            ...prev,
-            logo: event.target.result as string
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
+      const previewUrl = URL.createObjectURL(file);
+      setFormData(prev => ({
+        ...prev,
+        logoFile: file,
+        logoPreviewUrl: previewUrl
+      }));
     }
   };
 
-  const triggerLogoUpload = (): void => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+  const removeLogo = (): void => {
+    if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(formData.logoPreviewUrl);
     }
+    setFormData(prev => ({
+      ...prev,
+      logoFile: undefined,
+      logoPreviewUrl: undefined
+    }));
   };
 
-  // Document upload handler
   const handleDocumentUpload = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          const newDoc: RegistrationDocument = {
-            id: Date.now(),
-            type,
-            file: event.target.result as string,
-            fileName: file.name
-          };
-          setFormData(prev => ({
-            ...prev,
-            registrationDocs: [...prev.registrationDocs, newDoc]
-          }));
-        }
+      const previewUrl = URL.createObjectURL(file);
+      
+      const newDoc: RegistrationDocument = {
+        id: Date.now(),
+        type,
+        file,
+        previewUrl,
+        fileName: file.name
       };
-      reader.readAsDataURL(file);
+      
+      setFormData(prev => ({
+        ...prev,
+        registrationDocs: [...prev.registrationDocs.filter(doc => doc.type !== type), newDoc]
+      }));
     }
   };
 
-  // Remove document handler
   const removeDocument = (id: number) => {
+    const docToRemove = formData.registrationDocs.find(doc => doc.id === id);
+    if (docToRemove && docToRemove.previewUrl && docToRemove.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(docToRemove.previewUrl);
+    }
+    
     setFormData(prev => ({
       ...prev,
       registrationDocs: prev.registrationDocs.filter(doc => doc.id !== id)
     }));
   };
 
+  const cleanupImageUrls = (): void => {
+    // Clean up logo
+    if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(formData.logoPreviewUrl);
+    }
+    
+    // Clean up documents
+    formData.registrationDocs.forEach(doc => {
+      if (doc.previewUrl && doc.previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(doc.previewUrl);
+      }
+    });
+  };
+
   const resetForm = () => {
+    cleanupImageUrls();
+    
     setFormData({
-      id: 0,
       agentType: 'individual',
       agentCode: '',
+      code: "",
+      companyId: "",
       agentName: '',
       shortName: '',
       agentCategory: '',
@@ -399,13 +515,30 @@ const AgentRegistration: React.FC = () => {
       leadSource: '',
       internalNotes: '',
       banks: [],
-      logo: null,
       notes: '',
-      createdAt: '',
       registrationDocs: [],
       performanceRating: 0,
       activeContracts: 0
     });
+    setEditingAgent(null);
+    setActiveTab("basic");
+  };
+
+  const handleEditAgent = (agent: Agent): void => {
+    setEditingAgent(agent);
+    setFormData({
+      ...agent,
+      logoPreviewUrl: agent.logo || undefined,
+      registrationDocs: agent.registrationDocs.map(doc => ({
+        ...doc,
+        previewUrl: doc.file // Assuming file is URL or base64, adjust if needed
+      }))
+    });
+    setOpen(true);
+  };
+
+  const handleDeleteAgent = (id: string): void => {
+    deleteAgent(id);
   };
 
   const handleSubmit = (): void => {
@@ -414,36 +547,56 @@ const AgentRegistration: React.FC = () => {
       return;
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.emailAddress)) {
       alert("Please enter a valid email address");
       return;
     }
 
-    const newAgent: Agent = { 
-      ...formData, 
-      id: Date.now(),
-      createdAt: new Date().toLocaleDateString(),
-      performanceRating: Math.floor(Math.random() * 5) + 1, // Random rating for demo
-      activeContracts: Math.floor(Math.random() * 20) + 1 // Random contract count for demo
-    };
+    const agentFormData = new FormData();
     
-    setAgents(prev => [...prev, newAgent]);
-    resetForm();
-    setOpen(false);
-    setActiveTab("basic");
+    Object.keys(formData).forEach(key => {
+      const value = formData[key as keyof AgentForm];
+      
+      if (key === 'registrationDocs' || key === 'banks' || key === 'logoFile' || key === 'logoPreviewUrl' || key === 'acceptedPaymentMethods') {
+        return;
+      }
+      
+      if (value !== null && value !== undefined && value !== '') {
+        agentFormData.append(key, String(value));
+      }
+    });
+    agentFormData.append("companyID",formData.companyId)
+    
+    agentFormData.append('banks', JSON.stringify(formData.banks));
+    agentFormData.append('acceptedPaymentMethods', JSON.stringify(formData.acceptedPaymentMethods || []));
+    
+    if (formData.logoFile) {
+      agentFormData.append('logo', formData.logoFile);
+    }
+    
+    formData.registrationDocs.forEach((doc) => {
+      agentFormData.append('registrationDocs', doc.file);
+    });
+    agentFormData.append('registrationDocTypes', JSON.stringify(formData.registrationDocs.map(doc => doc.type)));
+    agentFormData.append('registrationDocsCount', String(formData.registrationDocs.length));
+
+    if (editingAgent) {
+      updateAgent({ id: editingAgent._id, agent: agentFormData });
+    } else {
+      addAgent(agentFormData);
+    }
+    // setOpen(false);
+    // resetForm();
   };
 
-  // Statistics calculations
   const stats = useMemo(() => ({
     totalAgents: agents.length,
-    gstRegistered: agents.filter(c => c.gstNumber.trim() !== "").length,
+    gstRegistered: agents.filter(c => c.gstNumber?.trim() !== "").length,
     activeAgents: agents.filter(c => c.agentStatus === 'active').length,
     topPerformers: agents.filter(c => c.performanceRating >= 4).length
   }), [agents]);
 
-  // Form tabs
   const tabs = [
     { id: "basic", label: "Basic Info" },
     { id: "contact", label: "Contact Details" },
@@ -452,6 +605,265 @@ const AgentRegistration: React.FC = () => {
     { id: "bank", label: "Banking Details" },
     { id: "settings", label: "Settings" }
   ];
+
+  useEffect(() => {
+    fetchAgents();
+  }, []);
+
+  const formatSimpleDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  // Actions dropdown component
+  const ActionsDropdown = ({ agent }: { agent: Agent }) => {
+    const [showActions, setShowActions] = useState(false);
+    
+    return (
+      <div className="relative">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowActions(!showActions)}
+          className="h-8 w-8 p-0 hover:bg-gray-100"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+        
+        {showActions && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setShowActions(false)}
+            />
+            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  handleEditAgent(agent);
+                  setShowActions(false);
+                }}
+                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  handleDeleteAgent(agent._id || agent.id.toString());
+                  setShowActions(false);
+                }}
+                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // Table View Component
+  const TableView = () => (
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gradient-to-r from-teal-50 to-teal-100">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Agent
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Contact
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Address
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {agents.map((agent) => (
+              <tr key={agent._id} className="hover:bg-gray-50 transition-colors duration-200">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{agent.agentName}</div>
+                    <div className="text-sm text-gray-500">{agent.code}</div>
+                    {agent.shortName && (
+                      <div className="text-sm text-gray-500">Short: {agent.shortName}</div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-900">
+                    <div>Email: {agent.emailAddress}</div>
+                    <div>Phone: {agent.mobileNumber}</div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {[agent.city, agent.state, agent.country].filter(Boolean).join(", ")}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Badge className={`${
+                    agent.agentStatus === 'active' 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-gray-100 text-gray-700'
+                  } hover:bg-green-100`}>
+                    {agent.agentStatus}
+                  </Badge>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <ActionsDropdown agent={agent} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  // Card View Component
+  const CardView = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      {agents.map((agent: Agent) => (
+        <Card key={agent._id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center">
+                {agent.logo && (
+                  <img src={agent.logo} alt="Agent Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
+                )}
+                <div>
+                  <CardTitle className="text-xl font-bold text-gray-800 mb-1">
+                    {agent.agentName}
+                  </CardTitle>
+                  {agent.shortName && (
+                    <p className="text-teal-600 font-medium">{agent.shortName}</p>
+                  )}
+                  <p className="text-sm text-gray-500">{agent.code}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge className={`${agent.agentStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
+                  {agent.agentStatus}
+                </Badge>
+                <ActionsDropdown agent={agent} />
+              </div>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-3">
+              {agent.contactPerson && (
+                <div className="flex items-center text-sm">
+                  <Users className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-gray-600">{agent.contactPerson}</span>
+                </div>
+              )}
+              
+              {(agent.city || agent.state || agent.zipCode) && (
+                <div className="flex items-center text-sm">
+                  <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-gray-600">
+                    {[agent.city, agent.state, agent.zipCode].filter(Boolean).join(", ")}
+                  </span>
+                </div>
+              )}
+              
+              {agent.mobileNumber && (
+                <div className="flex items-center text-sm">
+                  <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-gray-600">{agent.mobileNumber}</span>
+                </div>
+              )}
+              
+              <div className="flex items-center text-sm">
+                <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                <span className="text-gray-600 truncate">{agent.emailAddress}</span>
+              </div>
+              
+              {agent.website && (
+                <div className="flex items-center text-sm">
+                  <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-teal-600 truncate">{agent.website}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Performance Metrics */}
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-gray-500">Performance</span>
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-3 h-3 ${
+                        i < agent.performanceRating
+                          ? "text-yellow-500 fill-yellow-500"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs font-medium text-gray-500">Active Contracts</span>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                  {agent.activeContracts}
+                </span>
+              </div>
+            </div>
+
+            {(agent.gstNumber || agent.panNumber) && (
+              <div className="pt-3 border-t border-gray-100 space-y-2">
+                {agent.gstNumber && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-500">GST</span>
+                    <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
+                      {agent.gstNumber}
+                    </span>
+                  </div>
+                )}
+                
+                {agent.panNumber && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-500">PAN</span>
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
+                      {agent.panNumber}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {agent.commissionRate && (
+              <div className="pt-3 border-t border-gray-100">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-gray-500">Commission Rate</span>
+                  <span className="text-xs font-semibold text-teal-700">
+                    {agent.commissionRate}%
+                  </span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -462,7 +874,10 @@ const AgentRegistration: React.FC = () => {
           <p className="text-gray-600">Manage your agent information and registrations</p>
         </div>
         <Button 
-          onClick={() => setOpen(true)} 
+          onClick={() => {
+            resetForm();
+            setOpen(true);
+          }} 
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
         >
           <UserCheck className="w-4 h-4 mr-2" />
@@ -521,6 +936,40 @@ const AgentRegistration: React.FC = () => {
         </Card>
       </div>
 
+      {/* View Toggle */}
+      {agents && agents.length > 0 && (
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            <Eye className="w-5 h-5 text-gray-600" />
+            <span className="text-gray-700 font-medium">View Mode:</span>
+          </div>
+          <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                viewMode === 'table'
+                  ? 'bg-white text-teal-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Table className="w-4 h-4 mr-2" />
+              Table View
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                viewMode === 'cards'
+                  ? 'bg-white text-teal-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Grid3X3 className="w-4 h-4 mr-2" />
+              Card View
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Agent List */}
       {agents.length === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
@@ -537,143 +986,25 @@ const AgentRegistration: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {agents.map((agent: Agent) => (
-            <Card key={agent.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center">
-                    {agent.logo && (
-                      <img src={agent.logo} alt="Agent Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
-                    )}
-                    <div>
-                      <CardTitle className="text-xl font-bold text-gray-800 mb-1">
-                        {agent.agentName}
-                      </CardTitle>
-                      {agent.shortName && (
-                        <p className="text-teal-600 font-medium">{agent.shortName}</p>
-                      )}
-                      <p className="text-sm text-gray-500">{agent.agentCode}</p>
-                    </div>
-                  </div>
-                  <Badge className={`${agent.agentStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
-                    {agent.agentStatus}
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="p-6 space-y-4">
-                <div className="space-y-3">
-                  {agent.contactPerson && (
-                    <div className="flex items-center text-sm">
-                      <Users className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-gray-600">{agent.contactPerson}</span>
-                    </div>
-                  )}
-                  
-                  {(agent.city || agent.state || agent.zipCode) && (
-                    <div className="flex items-center text-sm">
-                      <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-gray-600">
-                        {[agent.city, agent.state, agent.zipCode].filter(Boolean).join(", ")}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {agent.mobileNumber && (
-                    <div className="flex items-center text-sm">
-                      <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-gray-600">{agent.mobileNumber}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center text-sm">
-                    <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                    <span className="text-gray-600 truncate">{agent.emailAddress}</span>
-                  </div>
-                  
-                  {agent.website && (
-                    <div className="flex items-center text-sm">
-                      <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="text-teal-600 truncate">{agent.website}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Performance Metrics */}
-                <div className="pt-3 border-t border-gray-100">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">Performance</span>
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-3 h-3 ${
-                            i < agent.performanceRating
-                              ? "text-yellow-500 fill-yellow-500"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs font-medium text-gray-500">Active Contracts</span>
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                      {agent.activeContracts}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Registration Numbers */}
-                {(agent.gstNumber || agent.panNumber) && (
-                  <div className="pt-3 border-t border-gray-100 space-y-2">
-                    {agent.gstNumber && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-500">GST</span>
-                        <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
-                          {agent.gstNumber}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {agent.panNumber && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-500">PAN</span>
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
-                          {agent.panNumber}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Commission Rate */}
-                {agent.commissionRate && (
-                  <div className="pt-3 border-t border-gray-100">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-medium text-gray-500">Commission Rate</span>
-                      <span className="text-xs font-semibold text-teal-700">
-                        {agent.commissionRate}%
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <>
+          {viewMode === 'table' ? <TableView /> : <CardView />}
+        </>
       )}
 
       {/* Modal Form */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+          resetForm();
+        }
+      }}>
         <DialogContent className="sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
           <DialogHeader className="pb-4 border-b border-gray-200 h-16">
             <DialogTitle className="text-2xl font-bold text-gray-800">
-              Add New Agent
+              {editingAgent ? 'Edit Agent' : 'Add New Agent'}
             </DialogTitle>
             <p className="text-gray-600 text-sm">
-              Fill in the agent details and registration information
+              {editingAgent ? 'Update the agent details' : 'Fill in the agent details and registration information'}
             </p>
           </DialogHeader>
           
@@ -714,12 +1045,24 @@ const AgentRegistration: React.FC = () => {
                       <option value="partnership">Partnership</option>
                       <option value="broker">Broker</option>
                     </select>
-                    <CustomInputBox
-                      placeholder="Agent Code *"
-                      name="agentCode"
-                      value={formData.agentCode}
-                      onChange={handleChange}
-                    />
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-medium text-gray-700">
+                        Company *
+                      </label>
+                      <select
+                        value={formData.companyId}
+                        onChange={(e) => handleSelectChange("companyId", e.target.value)}
+                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
+                   focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
+                      >
+                        <option value="">Select Company</option>
+                        {companies.map((company) => (
+                          <option key={company._id} value={company._id}>
+                            {company.namePrint}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div className="mt-4 flex flex-col gap-4">
@@ -1085,49 +1428,6 @@ const AgentRegistration: React.FC = () => {
                     </select>
                   </div>
 
-                  {/* Document Upload Section */}
-                  <div className="mt-6">
-                    <h4 className="font-medium text-teal-800 mb-3">Registration Documents</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {['TAX', 'VAT', 'GST', 'PAN', 'TAN'].map(docType => (
-                        <div key={docType} className="p-4 bg-white rounded-lg border border-teal-200">
-                          <p className="text-sm font-medium text-teal-700 mb-2">{docType} Document</p>
-                          <div className="flex items-center justify-between">
-                            <Input
-                              type="file"
-                              id={`${docType.toLowerCase()}-doc`}
-                              className="hidden"
-                              onChange={(e) => handleDocumentUpload(docType, e)}
-                              accept="image/*,.pdf"
-                            />
-                            <label
-                              htmlFor={`${docType.toLowerCase()}-doc`}
-                              className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
-                            >
-                              <Upload className="w-4 h-4 mr-2" />
-                              Upload
-                            </label>
-                            {formData.registrationDocs.find(doc => doc.type === docType) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeDocument(formData.registrationDocs.find(doc => doc.type === docType)!.id)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                          {formData.registrationDocs.find(doc => doc.type === docType) && (
-                            <p className="text-xs text-gray-500 mt-2 truncate">
-                              {formData.registrationDocs.find(doc => doc.type === docType)?.fileName}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                   <div className="mt-4 flex justify-between">
                     <Button variant="outline" onClick={() => setActiveTab("commission")}>
                       Previous: Commission Details
@@ -1242,33 +1542,97 @@ const AgentRegistration: React.FC = () => {
                   
                   {/* Logo Upload */}
                   <div className="mb-6">
-                    <p className="text-sm font-medium text-teal-700 mb-2">Agent Logo</p>
-                    <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 rounded-full border-2 border-dashed border-teal-300 flex items-center justify-center overflow-hidden bg-white">
-                        {formData.logo ? (
-                          <img src={formData.logo} alt="Agent Logo" className="w-full h-full object-cover" />
-                        ) : (
-                          <Image className="w-8 h-8 text-teal-300" />
-                        )}
-                      </div>
-                      <div>
-                        <Input
+                    <h4 className="font-medium text-teal-800 mb-3">Agent Logo</h4>
+                    <div className="p-4 bg-white rounded-lg border border-teal-200">
+                      <div className="flex items-center justify-between">
+                        <input
                           type="file"
-                          ref={fileInputRef}
+                          id="logo"
+                          className="hidden"
                           onChange={handleLogoUpload}
                           accept="image/*"
-                          className="hidden"
                         />
-                        <Button 
-                          onClick={triggerLogoUpload}
-                          variant="outline"
-                          className="border-teal-300 text-teal-700 hover:bg-teal-50"
+                        <label
+                          htmlFor="logo"
+                          className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
                         >
                           <Upload className="w-4 h-4 mr-2" />
-                          {formData.logo ? "Change Logo" : "Upload Logo"}
-                        </Button>
-                        <p className="text-xs text-gray-500 mt-1">Recommended: 200x200px PNG or JPG</p>
+                          Upload Logo
+                        </label>
+                        {formData.logoPreviewUrl && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={removeLogo}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
+                      {formData.logoPreviewUrl && (
+                        <div className="mt-2">
+                          <img
+                            src={formData.logoPreviewUrl}
+                            alt="Agent Logo"
+                            className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75"
+                            onClick={() => setViewingImage({previewUrl: formData.logoPreviewUrl, type: 'logo'})}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Registration Documents */}
+                  <div className="mb-6">
+                    <h4 className="font-medium text-teal-800 mb-3">Registration Documents</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {['TAX', 'VAT', 'GST', 'PAN', 'TAN'].map(docType => (
+                        <div key={docType} className="p-4 bg-white rounded-lg border border-teal-200">
+                          <p className="text-sm font-medium text-teal-700 mb-2">{docType} Document</p>
+                          <div className="flex items-center justify-between">
+                            <input
+                              type="file"
+                              id={`${docType.toLowerCase()}-doc`}
+                              className="hidden"
+                              onChange={(e) => handleDocumentUpload(docType, e)}
+                              accept="image/*,.pdf"
+                            />
+                            <label
+                              htmlFor={`${docType.toLowerCase()}-doc`}
+                              className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
+                            >
+                              <Upload className="w-4 h-4 mr-2" />
+                              Upload
+                            </label>
+                            {formData.registrationDocs.find(doc => doc.type === docType) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeDocument(formData.registrationDocs.find(doc => doc.type === docType)!.id)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                          {formData.registrationDocs.find(doc => doc.type === docType) && (
+                            <div className="mt-2">
+                              <p className="text-xs text-gray-500 truncate">
+                                {formData.registrationDocs.find(doc => doc.type === docType)?.fileName}
+                              </p>
+                              {formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl && docType !== 'PDF' && ( // Assume PDF not previewable as image
+                                <img
+                                  src={formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl}
+                                  alt={`${docType} document`}
+                                  className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75 mt-2"
+                                  onClick={() => setViewingImage(formData.registrationDocs.find(doc => doc.type === docType)!)}
+                                />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
 
@@ -1340,29 +1704,35 @@ const AgentRegistration: React.FC = () => {
                       Previous: Bank Details
                     </Button>
                     <Button onClick={handleSubmit} className="bg-teal-600 hover:bg-teal-700">
-                      Save Agent
+                      {editingAgent ? 'Update Agent' : 'Save Agent'}
                     </Button>
                   </div>
-                </div>
-              )}
-
-              {/* Save button for all tabs except the last one */}
-              {activeTab !== "settings" && (
-                <div className="flex justify-end pt-4">
-                  <Button 
-                    onClick={handleSubmit}
-                    className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-8 py-2 shadow-lg"
-                  >
-                    Save Agent
-                  </Button>
                 </div>
               )}
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image viewing modal */}
+      {viewingImage && (
+        <Dialog open={!!viewingImage} onOpenChange={() => setViewingImage(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>{viewingImage.type} {viewingImage.type === 'logo' ? 'Logo' : 'Document'}</DialogTitle>
+            </DialogHeader>
+            <div className="flex justify-center">
+              <img
+                src={viewingImage.previewUrl}
+                alt={`${viewingImage.type}`}
+                className="max-w-full max-h-96 object-contain rounded-lg"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
 
-export default AgentRegistration;
+export default AgentRegistrationPage;

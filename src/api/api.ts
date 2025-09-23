@@ -71,8 +71,16 @@ const getCompanies = async () => {
   }
 };
 const updateCompany = async (companyId: string, companyData: any) => {
+ 
+  try {
+    
+  
   const res=await apiClient.put(`/company/update/${companyId}`,companyData)
   return res.data
+  } catch (err: any) {
+    console.error("Error fetching companies:", err.response?.data || err.message);
+    throw err;
+  }
 }
 const deleteCompany = async (companyId: string) => {
   const res = await apiClient.delete(`/company/delete/${companyId}`);
@@ -205,14 +213,118 @@ const createCustomer = async (customer: any) => {
 
 // Update customer by ID
 const updateCustomer = async (id: number | string, customer: any) => {
+  try{
   console.log(id, customer, "updateCustomer payload");
   const res = await apiClient.put(`/agent/customers/${id}`, customer);
+  console.log(res.data,"ressss")
   return res.data;
+  } catch (err: any) {
+    console.error("Error fetching companies:", err.response?.data || err.message);
+    throw err;
+  }
 };
 
 // Delete customer by ID
 const deleteCustomer = async (id: number | string) => {
   const res = await apiClient.delete(`/agent/customers/${id}`);
+  return res.data;
+};
+
+// Fetch all vendors
+const fetchVendors = async () => {
+  const res = await apiClient.get("/agent/vendors");
+  // console.log(res, "fetchVendors response");
+  return res.data;
+};
+
+//Create a new vendor
+const createVendor = async (vendor: any) => {
+  console.log(vendor, "createVendor payload");
+  const res = await apiClient.post("/agent/vendors", vendor);
+  return res.data;
+};
+
+// Update vendor by ID
+const updateVendor = async (id: number | string, vendor: any) => {
+  try{
+  console.log(id, vendor, "updateVendor payload");
+  const res = await apiClient.put(`/agent/vendors/${id}`, vendor);
+  console.log(res.data,"ressss")
+  return res.data;
+  } catch (err: any) {
+    console.error("Error fetching companies:", err.response?.data || err.message);
+    throw err;
+  }
+};
+
+// Delete vendor by ID
+const deleteVendor = async (id: number | string) => {
+  const res = await apiClient.delete(`/agent/vendors/${id}`);
+  return res.data;
+};
+
+// Fetch all agents
+const fetchAgents = async () => {
+  const res = await apiClient.get("/agent/agents");
+  // console.log(res, "fetchAgents response");
+  return res.data;
+};
+
+//Create a new agent
+const createAgent = async (agent: any) => {
+  console.log(agent, "createAgent payload");
+  const res = await apiClient.post("/agent/agents", agent);
+  return res.data;
+};
+
+// Update agent by ID
+const updateAgent = async (id: number | string, agent: any) => {
+  try{
+  console.log(id, agent, "updateAgent payload");
+  const res = await apiClient.put(`/agent/agents/${id}`, agent);
+  console.log(res.data,"ressss")
+  return res.data;
+  } catch (err: any) {
+    console.error("Error fetching companies:", err.response?.data || err.message);
+    throw err;
+  }
+};
+
+// Delete agent by ID
+const deleteAgent = async (id: number | string) => {
+  const res = await apiClient.delete(`/agent/agents/${id}`);
+  return res.data;
+};
+
+// Fetch all ledgers
+const fetchLedgers = async () => {
+  const res = await apiClient.get("/agent/ledgers");
+  return res.data;
+};
+
+// Create a new ledger
+const createLedger = async (ledger: any) => {
+  console.log(ledger, "createLedger payload");
+  const res = await apiClient.post("/agent/ledgers", ledger);
+  return res.data;
+};
+
+// Update ledger by ID
+const updateLedger = async (id: number | string, ledger: any) => {
+  try {
+    console.log(id, ledger, "updateLedger payload");
+    const res = await apiClient.put(`/agent/ledgers/${id}`, ledger);
+    console.log(res.data, "ressss");
+    return res.data;
+  } catch (err: any) {
+    console.error("Error updating ledger:", err.response?.data || err.message);
+    throw err;
+  }
+};
+
+// Delete ledger by ID
+const deleteLedger = async (id: number | string) => {
+  const res = await apiClient.delete(`/agent/ledgers/${id}`);
   return res.data;
 };
 
@@ -258,6 +370,14 @@ getStockCategory,
   createCustomer,
   updateCustomer,
   deleteCustomer,
+  fetchVendors,createVendor,
+  updateVendor,
+  deleteVendor,
+  fetchAgents,
+  createAgent,
+  updateAgent,
+  deleteAgent,
+  fetchLedgers, createLedger, updateLedger, deleteLedger 
 
 
 }

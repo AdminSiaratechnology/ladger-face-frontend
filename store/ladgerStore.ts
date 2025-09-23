@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import api from "../src/api/api"; 
+import api from "../src/api/api";
+
 interface Bank {
   id: number;
   accountHolderName: string;
@@ -20,19 +21,17 @@ interface RegistrationDocument {
   fileName: string;
 }
 
-interface Customer {
+interface Ledger {
   id: number;
   _id?: string;
-  customerType?: string;
-  customerCode?: string;
-  code: string;
-  customerName: string;
+  ledgerType: string;
+  ledgerCode: string;
+  ledgerName: string;
   shortName: string;
-  customerGroup: string;
+  ledgerGroup: string;
   industryType: string;
   territory: string;
-  salesPerson: string;
-  customerStatus: string;
+  ledgerStatus: string;
   companySize: string;
   contactPerson: string;
   designation: string;
@@ -48,15 +47,6 @@ interface Customer {
   country: string;
   website: string;
   currency: string;
-  priceList: string;
-  paymentTerms: string;
-  creditLimit: string;
-  creditDays: string;
-  discount: string;
-  agent: string;
-  isFrozenAccount: boolean;
-  disabled: boolean;
-  allowZeroValuation: boolean;
   taxId: string;
   vatNumber: string;
   gstNumber: string;
@@ -65,51 +55,37 @@ interface Customer {
   taxCategory: string;
   taxTemplate: string;
   withholdingTaxCategory: string;
-  msmeRegistration: string;
   isTaxExempt: boolean;
   reverseCharge: boolean;
-  exportCustomer: boolean;
+  isFrozenAccount: boolean;
+  disabled: boolean;
   bankName: string;
   branchName: string;
   accountNumber: string;
   accountHolderName: string;
   ifscCode: string;
   swiftCode: string;
-  preferredPaymentMethod: string;
-  acceptedPaymentMethods: string[];
-  creditCardDetails: string;
-  paymentInstructions: string;
   banks: Bank[];
-  approvalWorkflow: string;
-  creditLimitApprover: string;
-  documentRequired: string;
   externalSystemId: string;
-  crmIntegration: string;
   dataSource: string;
-  customerPriority: string;
+  ledgerPriority: string;
   leadSource: string;
   internalNotes: string;
-  allowPartialShipments: boolean;
-  allowBackOrders: boolean;
-  autoInvoice: boolean;
-  logo: string | null; // Will handle as previewUrl or file
+  logo: string | null;
   notes: string;
   createdAt: string;
   registrationDocs: RegistrationDocument[];
-  isDeleted: boolean;
 }
 
-interface CustomerForm {
-  customerType?: string;
-  customerCode?: string;
-  code: string;
-  customerName: string;
+interface LedgerForm {
+  ledgerType: string;
+  ledgerCode: string;
+  ledgerName: string;
   shortName: string;
-  customerGroup: string;
+  ledgerGroup: string;
   industryType: string;
   territory: string;
-  salesPerson: string;
-  customerStatus: string;
+  ledgerStatus: string;
   companySize: string;
   contactPerson: string;
   designation: string;
@@ -125,15 +101,6 @@ interface CustomerForm {
   country: string;
   website: string;
   currency: string;
-  priceList: string;
-  paymentTerms: string;
-  creditLimit: string;
-  creditDays: string;
-  discount: string;
-  agent: string;
-  isFrozenAccount: boolean;
-  disabled: boolean;
-  allowZeroValuation: boolean;
   taxId: string;
   vatNumber: string;
   gstNumber: string;
@@ -142,87 +109,71 @@ interface CustomerForm {
   taxCategory: string;
   taxTemplate: string;
   withholdingTaxCategory: string;
-  msmeRegistration: string;
   isTaxExempt: boolean;
   reverseCharge: boolean;
-  exportCustomer: boolean;
+  isFrozenAccount: boolean;
+  disabled: boolean;
   bankName: string;
   branchName: string;
   accountNumber: string;
   accountHolderName: string;
   ifscCode: string;
   swiftCode: string;
-  preferredPaymentMethod: string;
-  acceptedPaymentMethods: string[];
-  creditCardDetails: string;
-  paymentInstructions: string;
-  approvalWorkflow: string;
-  creditLimitApprover: string;
-  documentRequired: string;
+  banks: Bank[];
   externalSystemId: string;
-  crmIntegration: string;
   dataSource: string;
-  customerPriority: string;
+  ledgerPriority: string;
   leadSource: string;
   internalNotes: string;
-  allowPartialShipments: boolean;
-  allowBackOrders: boolean;
-  autoInvoice: boolean;
-  banks: Bank[];
-  logoFile?: File; // For logo upload
+  logoFile?: File;
   logoPreviewUrl?: string;
   notes: string;
   registrationDocs: RegistrationDocument[];
 }
 
-
-interface CustomerStore {
-  customers: Customer[];
+interface LedgerStore {
+  ledgers: Ledger[];
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchCustomers: () => Promise<void>;
-  addCustomer: (customer: Customer) => Promise<void>;
-  updateCustomer: (params: { id: number; customer: Customer }) => Promise<void>;
-  deleteCustomer: (id: number) => Promise<void>;
+  fetchLedgers: () => Promise<void>;
+  addLedger: (ledger: LedgerForm) => Promise<void>;
+  updateLedger: (params: { id: string; ledger: LedgerForm }) => Promise<void>;
+  deleteLedger: (id: string) => Promise<void>;
 }
 
-
-export const useCustomerStore = create<CustomerStore>()(
+export const useLedgerStore = create<LedgerStore>()(
   persist(
     (set, get) => ({
-      customers: [],
+      ledgers: [],
       loading: false,
       error: false,
       errorMessage: null,
 
-     
-      fetchCustomers: async () => {
+      fetchLedgers: async () => {
         set({ loading: true, error: false });
         try {
-          const result = await api.fetchCustomers();
+          const result = await api.fetchLedgers();
           set({
-            customers: result?.data || [],
+            ledgers: result?.data || [],
             loading: false,
           });
-          console.log(result?.data,"result?.data?")
         } catch (error: any) {
           set({
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to fetch customers",
+              error?.response?.data?.message || "Failed to fetch ledgers",
           });
         }
       },
 
-    
-      addCustomer: async (customer) => {
+      addLedger: async (ledger) => {
         set({ loading: true });
         try {
-          const result = await api.createCustomer(customer);
+          const result = await api.createLedger(ledger);
           set({
-            customers: [...get().customers, result?.data],
+            ledgers: [...get().ledgers, result?.data],
             loading: false,
           });
         } catch (error: any) {
@@ -230,23 +181,20 @@ export const useCustomerStore = create<CustomerStore>()(
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to add customer",
+              error?.response?.data?.message || "Failed to add ledger",
           });
         }
       },
 
- 
-      updateCustomer: async ({ id, customer }) => {
+      updateLedger: async ({ id, ledger }) => {
+        console.log(id,ledger,"idledggerrrr")
         set({ loading: true });
         try {
-          const result = await api.updateCustomer(id, customer);
-         
+          const result = await api.updateLedger(id, ledger);
           set({
-            customers: get().customers.map((c) =>{
-
-           console.log(id,result,c,"idresult")
-            return   c?.["_id"] == id ? result?.data : c
-            }),
+            ledgers: get().ledgers.map((l) =>
+              l._id === id ? result?.data : l
+            ),
             loading: false,
           });
         } catch (error: any) {
@@ -254,18 +202,17 @@ export const useCustomerStore = create<CustomerStore>()(
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to update customer",
+              error?.response?.data?.message || "Failed to update ledger",
           });
         }
       },
 
-  
-      deleteCustomer: async (id) => {
+      deleteLedger: async (id) => {
         set({ loading: true });
         try {
-          await api.deleteCustomer(id);
+          await api.deleteLedger(id);
           set({
-            customers: get().customers.filter((c) => c.id !== id),
+            ledgers: get().ledgers.filter((l) => l._id !== id),
             loading: false,
           });
         } catch (error: any) {
@@ -273,16 +220,16 @@ export const useCustomerStore = create<CustomerStore>()(
             loading: false,
             error: true,
             errorMessage:
-              error?.response?.data?.message || "Failed to delete customer",
+              error?.response?.data?.message || "Failed to delete ledger",
           });
         }
       },
     }),
     {
-      name: "customer-storage",
+      name: "ledger-storage",
       getStorage: () => localStorage,
       partialize: (state) => ({
-        customers: state.customers,
+        ledgers: state.ledgers,
       }),
     }
   )
