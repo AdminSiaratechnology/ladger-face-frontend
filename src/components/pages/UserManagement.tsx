@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
+
 import {
   Users,
   UserPlus,
@@ -46,6 +47,8 @@ import {
 import { useCompanyStore } from "../../../store/companyStore";
 import { useUserManagementStore } from "../../../store/userManagementStore";
 import {timeAgo} from "../../lib/timeAgo"
+import CustomInputBox from "../customComponents/CustomInputBox";
+import HeaderGradient from "../customComponents/HeaderGradint";
 
 
 
@@ -463,23 +466,21 @@ export const UserManagement: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            User Management
-          </h1>
-          <p className="text-gray-600">
-            Manage users, roles, and permissions across companies
-          </p>
-        </div>
-        <Button
-          onClick={() => setOpen(true)}
-          className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-        >
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add User
-        </Button>
-      </div>
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+        
+  <HeaderGradient 
+    title="User Management"
+    subtitle="Manage users, roles, and permissions across companies"
+  />
+        
+  <Button
+    onClick={() => setOpen(true)}
+    className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-4 sm:px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+  >
+    <UserPlus className="w-4 h-4 mr-2" />
+    Add User
+  </Button>
+</div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
@@ -797,74 +798,81 @@ export const UserManagement: React.FC = () => {
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Name *</label>
-                      <Input
+                 
+                     
+                      <CustomInputBox
                         name="name"
+                        label="Name"
                         value={form.name}
                         onChange={handleChange}
                         placeholder="Enter full name"
-                        className="border-teal-200 focus:border-teal-500 focus:ring-teal-100"
+                        required={true}
+                        
                       />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Email *</label>
-                      <Input
+                 
+                   
+                      
+                      <CustomInputBox
+                      label="Email"
                         type="email"
                         name="email"
                         value={form.email}
                         onChange={handleChange}
                         placeholder="Enter email address"
-                        className="border-teal-200 focus:border-teal-500 focus:ring-teal-100"
+                        required={true}
+                        
                       />
-                    </div>
+                  
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Password {isEditing ? '(leave empty to keep current)' : '*'}</label>
-                      <Input
+                   
+                     
+                      <CustomInputBox 
+                      label="Password"
+                      
                         type="password"
                         name="password"
                         value={form.password}
                         onChange={handleChange}
                         placeholder={isEditing ? "Enter new password (optional)" : "Enter secure password"}
-                        className="border-teal-200 focus:border-teal-500 focus:ring-teal-100"
+                        required={true}
+                       
                       />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Phone</label>
-                      <Input
+                   
+                   
+                      <CustomInputBox
+                        label="Phone"
                         name="phone"
                         value={form.phone}
                         onChange={handleChange}
                         placeholder="+91 9876543210"
-                        className="border-teal-200 focus:border-teal-500 focus:ring-teal-100"
-                      />
-                    </div>
+                        required={true}/>
+                        
+                   
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Area</label>
-                      <Input
+                   
+                      <CustomInputBox
+                      label="Area"
                         name="area"
                         value={form.area}
                         onChange={handleChange}
                         placeholder="Enter area/city"
-                        className="border-teal-200 focus:border-teal-500 focus:ring-teal-100"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Pincode</label>
-                      <Input
+                        />
+                        
+                  
+                 
+                      <CustomInputBox
+                      label="Pincode"
                         name="pincode"
                         value={form.pincode}
                         onChange={handleChange}
                         placeholder="Enter pincode"
-                        className="border-teal-200 focus:border-teal-500 focus:ring-teal-100"
+                       
                       />
-                    </div>
+                  
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -876,7 +884,7 @@ export const UserManagement: React.FC = () => {
                         onChange={(e) => handleSelectChange('company', e.target.value)}
                         className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500"
                       >
-                        <option value="">Select Company</option>
+                        <option value="">Select Company *</option>
                         {companies.map(company => (
                           <option key={company["_id"]} value={company["_id"]}>{company.namePrint}</option>
                         ))}

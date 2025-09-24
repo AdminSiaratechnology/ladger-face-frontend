@@ -59,10 +59,11 @@ const deleteUserStatus=async(id:string)=>{
 const res=await apiClient.delete(`/auth/deleteUser/${id}`)
 return res.data
 }
-const getCompanies = async () => {
+const getCompanies = async ({agentId,queryParams}:{agentId:string,queryParams:string}) => {
+  console.log(queryParams,"queryParams")
   try {
     console.log("Fetching companies...");
-    const res = await apiClient.get("/company/agent/companies");
+    const res = await apiClient.get(`/company/agent/companies?${queryParams}`);
     console.log("Fetched companies:", res.data);
     return res.data;
   } catch (err: any) {

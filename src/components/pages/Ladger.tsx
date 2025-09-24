@@ -3,7 +3,7 @@ import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Input } from "../ui/input";
+import {toast} from "sonner"
 import {
   Users,
   Building2,
@@ -270,7 +270,14 @@ const LedgerRegistration: React.FC = () => {
 
   const addBank = (): void => {
     if (!bankForm.accountHolderName || !bankForm.accountNumber || !bankForm.bankName) {
-      alert("Please fill in at least Account Holder Name, Account Number, and Bank Name");
+     
+      toast("Event has been created", {
+          description: "Please fill in at least Account Holder Name, Account Number, and Bank Name",
+          action: {
+            label: "Undo",
+            onClick: () => console.log("Undo"),
+          },
+        })
       return;
     }
     setFormData((prev) => ({
@@ -441,10 +448,16 @@ const LedgerRegistration: React.FC = () => {
   };
 
   const handleSubmit = (): void => {
-    if (!formData.ledgerName.trim() || !formData.emailAddress.trim()) {
-      alert("Please fill in Ledger Name and Email Address");
-      return;
-    }
+     if (!formData.ledgerName.trim() || !formData.emailAddress.trim()) {
+    toast.error("Validation Failed", {
+      description: "Please fill in Ledger Name and Email Address",
+      action: {
+        label: "Undo",
+        onClick: () => console.log("Undo"),
+      },
+    });
+    return; 
+  }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.emailAddress)) {
       alert("Please enter a valid email address");

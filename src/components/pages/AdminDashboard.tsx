@@ -109,18 +109,19 @@ export function AdminDashboard() {
           >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                <div className={`p-2 rounded-xl ${stat.color} bg-opacity-10`}>
+                <p className="text-sm font-medium text-white">{stat.title}</p>
+                <div className={`p-2 rounded-full bg-white opacity-30`}>
                   <Icon className={`w-5 h-5 ${stat.color.replace("bg-", "text-")}`} />
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-2xl font-bold text-white">{stat.value}</p>
                 <Badge
                   variant={isPositive ? "default" : "destructive"}
-                  className="flex items-center gap-1 text-xs px-2 py-1"
+
+                  className="flex items-center gap-1 text-xs px-2 py-1 bg-white opacity-10"
                 >
                   <TrendingUp className="w-3 h-3" />
                   {stat.change}
@@ -149,7 +150,7 @@ export function AdminDashboard() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -178,7 +179,7 @@ export function AdminDashboard() {
             </Card>
           );
         })}
-      </div>
+      </div> */}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-gradient-to-r from-teal-500 to-teal-600 p-6 rounded-2xl text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
