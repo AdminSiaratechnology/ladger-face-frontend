@@ -11,7 +11,7 @@ import { Settings } from './components/pages/Settings';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/pages/Header';
 import Company from './components/pages/Company';
-import { Toaster } from './components/ui/sonner';
+import { Toaster } from 'sonner';
 import "./index.css";
 import VendorRegistration from './components/pages/VendorRegistration';
 import CustomerRegistration from './components/pages/CustomerRegistration';
@@ -241,7 +241,7 @@ export default function App() {
           </Routes>
         </div>
       </Router>
-      <Toaster />
+      <Toaster position="top-right" richColors/>
     </AuthProvider>
   );
 }
