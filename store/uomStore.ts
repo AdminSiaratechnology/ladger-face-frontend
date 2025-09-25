@@ -8,6 +8,7 @@ interface Unit {
   _id?: string;
   name: string;
   type: "simple" | "compound";
+  status: 'active' | 'inactive';
   // Simple unit fields
   symbol?: string;
   decimalPlaces?: number;
@@ -17,17 +18,33 @@ interface Unit {
   conversion?: number;
   secondUnit?: string;
   createdAt?: string;
+  companyId: string;
+}
+
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 interface UnitStore {
   units: Unit[];
+  pagination: Pagination;
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchUnits: () => Promise<void>;
+  fetchUnits: (page?: number, limit?: number) => Promise<void>;
   addUnit: (unit: Unit) => Promise<void>;
   updateUnit: (params: { unitId: string; data: Unit }) => Promise<void>;
   deleteUnit: (id: string) => Promise<void>;
+  filterUnits: (
+    searchTerm: string,
+    statusFilter: 'all' | 'active' | 'inactive',
+    sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    page?: number,
+    limit?: number
+  ) => Promise<Unit[]>;
 }
 
 // ==== Store ====
@@ -35,17 +52,30 @@ export const useUOMStore = create<UnitStore>()(
   persist(
     (set, get) => ({
       units: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      },
       loading: false,
       error: false,
       errorMessage: null,
 
       // Fetch all UOM
-      fetchUnits: async () => {
+      fetchUnits: async (page = 1, limit = 10) => {
+        console.log("Fetching units page:", page, "limit:", limit);
         set({ loading: true, error: false });
         try {
-          const result = await api.fetchUOM();
+          const queryParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const result = await api.fetchUOM({ queryParams: queryParams.toString() }); // Adjust api call
           set({
-            units: result?.data || [],
+            units: result?.data.units || [],
+            pagination: result?.data.pagination,
             loading: false,
             error: false,
           });
@@ -64,8 +94,9 @@ export const useUOMStore = create<UnitStore>()(
         set({ loading: true, error: false });
         try {
           const result = await api.createUOM(unit);
+          const newUnit: Unit = result.data;
           set({
-            units: [...get().units, result?.data],
+            units: [...get().units, newUnit],
             loading: false,
           });
         } catch (error: any) {
@@ -79,16 +110,15 @@ export const useUOMStore = create<UnitStore>()(
       },
 
       // Update UOM
-      updateUnit: async ({unitId,data}) => {
-      
-        
+      updateUnit: async ({unitId, data}) => {
         set({ loading: true, error: false });
         console.log("dahsdsa",unitId,data)
         try {
-          const result = await api.updateUOM({unitId,data});
+          const result = await api.updateUOM({unitId, data});
+          const updatedUnit: Unit = result.data;
           set({
             units: get().units.map((u) =>
-              u._id === id ? result?.data : u
+              u._id === unitId ? updatedUnit : u
             ),
             loading: false,
           });
@@ -118,6 +148,46 @@ export const useUOMStore = create<UnitStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to delete unit",
           });
+        }
+      },
+
+      filterUnits: async (
+        searchTerm: string,
+        statusFilter: 'all' | 'active' | 'inactive',
+        sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+        page = 1,
+        limit = 10
+      ) => {
+        try {
+          set({ loading: true, error: false });
+
+          const queryParams = new URLSearchParams({
+            search: searchTerm,
+            status: statusFilter !== 'all' ? statusFilter : '',
+            sortBy: sortBy.includes('name') ? 'name' : 'createdAt',
+            sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const result = await api.fetchUOM({ queryParams: queryParams.toString() }); // Adjust api call
+          console.log("Filter result for units:", result);
+
+          set({
+            units: result?.data.units || [],
+            pagination: result?.data.pagination,
+            loading: false,
+          });
+
+          return result?.data.units || [];
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: true,
+            errorMessage:
+              error?.response?.data?.message || "Failed to filter units",
+          });
+          return [];
         }
       },
     }),

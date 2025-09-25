@@ -1,108 +1,225 @@
-// store/godownStore.ts
+// Updated godownStore with pagination support
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import axios from "axios";
-import api from "../src/api/api"
+import api from "../src/api/api"; // Assuming same api import
 
+// Types
 export interface Godown {
   _id: string;
-  company: string;
-  client: string;
   code: string;
   name: string;
+  parent: string;
   address: string;
   state: string;
   city: string;
   country: string;
   isPrimary: boolean;
-  status: string; // Active | delete
+  status: "active" | "inactive" | "maintenance";
   capacity: string;
   manager: string;
   contactNumber: string;
   createdAt: string;
-  updatedAt: string;
-  __v?: number;
+  company: string;
+}
+
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 interface GodownStore {
   godowns: Godown[];
+  pagination: Pagination;
   loading: boolean;
   error: string | null;
-
-  fetchGodowns: () => Promise<void>;
-  addGodown: (data: Partial<Godown>) => Promise<void>;
-  updateGodown: (id: string, data: Partial<Godown>) => Promise<void>;
-  deleteGodown: (id: string) => Promise<void>;
+  fetchGodowns: (page?: number, limit?: number) => Promise<void>;
+  addGodown: (godownData: Godown) => Promise<void>;
+  updateGodown: (godownId: string, godownData: Godown) => Promise<void>;
+  deleteGodown: (godownId: string) => Promise<void>;
+  filterGodowns: (
+    searchTerm: string,
+    statusFilter: "all" | "active" | "inactive" | "maintenance",
+    sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
+    page?: number,
+    limit?: number
+  ) => Promise<Godown[]>;
 }
 
+// Zustand store with persistence
 export const useGodownStore = create<GodownStore>()(
   persist(
     (set, get) => ({
       godowns: [],
       loading: false,
       error: null,
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+      },
 
-      // ✅ Fetch Godowns
-      fetchGodowns: async () => {
+      fetchGodowns: async (page = 1, limit = 10) => {
+        console.log("Fetching godowns page:", page, "limit:", limit);
+
         try {
           set({ loading: true, error: null });
-          const res =await api.getGodowns();
-          console.log(res,"godowns")
-          set({ godowns: res.data.records || [], loading: false });
-        } catch (err: any) {
-          set({ error: err.message, loading: false });
-          console.log("errrorr in fgodoen")
+
+          const queryParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const res = await api.getGodowns({
+            queryParams: queryParams.toString(),
+          });
+
+          console.log("Fetched godowns response:", res?.data);
+
+          set({
+            godowns: res?.data?.records || [],
+            pagination: res?.data?.pagination || {
+              total: 0,
+              page,
+              limit,
+              totalPages: 0,
+            },
+            loading: false,
+            error: null,
+          });
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: error.response?.data?.message || "Failed to fetch godowns",
+          });
         }
       },
 
-      // ✅ Add Godown
-      addGodown: async (data) => {
+      addGodown: async (godownData) => {
+        console.log("Creating new godown:", godownData);
         try {
           set({ loading: true, error: null });
-          const res = await api.addGodowns(data);
-          console.log(res,"resss add godown")
-          set({ godowns: [...get().godowns, res.data], loading: false });
-        } catch (err: any) {
-          set({ error: err.message, loading: false });
+
+          const res = await api.createGodown(godownData);
+          console.log("Created godown response:", res);
+
+          const newGodown: Godown = res.data.data;
+
+          set({
+            godowns: [...get().godowns, newGodown],
+            loading: false,
+            error: null,
+          });
+        } catch (error: any) {
+          console.log("Error creating godown:", error);
+          set({
+            loading: false,
+            error: error.response?.data?.message || "Failed to create godown",
+          });
         }
       },
 
-      // ✅ Update Godown
-      updateGodown: async (id, godown) => {
-        console.log(id,"iddddd")
+      updateGodown: async (godownId, godownData) => {
+        console.log("Updating godown:", godownId, godownData);
         try {
           set({ loading: true, error: null });
-          const res = await api.updateGodown({id:id,godown: godown});
+
+          const res = await api.updateGodown(godownId, godownData);
+          console.log("Updated godown response:", res);
+
+          const updatedGodown: Godown = res.data.data;
+
           set({
             godowns: get().godowns.map((g) =>
-              g._id === id ? { ...g, ...res.data } : g
+              g._id === godownId ? updatedGodown : g
             ),
             loading: false,
+            error: null,
           });
-        } catch (err: any) {
-          set({ error: err.message, loading: false });
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: error.response?.data?.message || "Failed to update godown",
+          });
         }
       },
 
-      // ✅ Delete Godown (soft delete → status: "delete")
-      deleteGodown: async (id) => {
+      deleteGodown: async (godownId) => {
+        console.log("Deleting godown:", godownId);
         try {
           set({ loading: true, error: null });
-        const res=  await api.deleteGodown(id);
+
+          await api.deleteGodown(godownId);
+          console.log("Deleted godown successfully");
 
           set({
-            godowns: get().godowns.filter((g) =>
-              g._id !== id  ),
+            godowns: get().godowns.filter((g) => g._id !== godownId),
             loading: false,
+            error: null,
           });
-        } catch (err: any) {
-          set({ error: err.message, loading: false });
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: error.response?.data?.message || "Failed to delete godown",
+          });
+        }
+      },
+
+      filterGodowns: async (
+        searchTerm,
+        statusFilter,
+        sortBy,
+        page = 1,
+        limit = 10
+      ) => {
+        try {
+          set({ loading: true, error: null });
+
+          const queryParams = new URLSearchParams({
+            search: searchTerm,
+            status: statusFilter !== "all" ? statusFilter : "",
+            sortBy: sortBy.includes("name") ? "name" : "createdAt",
+            sortOrder: sortBy.includes("Desc") ? "desc" : "asc",
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const res = await api.getGodowns({
+            queryParams: queryParams.toString(),
+          });
+
+          console.log("Database search response for godowns:", res);
+
+          set({
+            godowns: res?.data?.records || [],
+            pagination: res?.data?.pagination || {
+              total: 0,
+              page,
+              limit,
+              totalPages: 0,
+            },
+            loading: false,
+            error: null,
+          });
+
+          return res?.data?.records || [];
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: error.response?.data?.message || "Failed to search godowns",
+          });
+          return [];
         }
       },
     }),
     {
-      name: "godown-store", // 👈 localStorage key
-      getStorage: () => localStorage, // default localStorage hi hai
+      name: "godown-storage",
+      getStorage: () => localStorage,
+      partialize: (state) => ({
+        godowns: state.godowns,
+      }),
     }
   )
 );

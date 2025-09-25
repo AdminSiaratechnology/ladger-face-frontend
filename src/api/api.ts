@@ -95,8 +95,10 @@ const getProducts = async () => {
 
 
 //godowns 
-const getGodowns=async()=>{
-  const res=await apiClient.get("/godowns")
+const getGodowns=async({queryParams}:{queryParams:any})=>{
+  console.log(queryParams,"quearyparmsgodiwn")
+
+  const res=await apiClient.get(`/godowns?${queryParams}`)
   return res?.data
 }
 const addGodowns=async(godown:any)=>{
@@ -114,8 +116,8 @@ const deleteGodown=async(id:string)=>{
 
 //stockgroup apis
 
-const getStockGroup=async()=>{
-  const res=await apiClient.get("/stock-groups");
+const getStockGroup=async({queryParams}:{queryParams:string})=>{
+  const res=await apiClient.get(`/stock-groups?${queryParams}`);
   return res?.data
 }
 const createSockGroup=async(data:any)=>{
@@ -157,8 +159,8 @@ const deleteStockCategory = async (stockCategoryId: string) => {
 
 //getStockCategory routes
 
-const fetchUOM = async () => {
-  const res = await apiClient.get("/units");
+const fetchUOM = async ({queryParams}:{queryParams:any}) => {
+  const res = await apiClient.get(`/units?${queryParams}`);
   return res?.data;
 };
 

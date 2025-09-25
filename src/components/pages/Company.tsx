@@ -1,18 +1,20 @@
+// Updated CompanyPage with pagination
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit, Settings2, Eye, Table, Grid3X3, Edit, Trash2, MoreHorizontal, Search } from "lucide-react";
+import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit, Settings2, Eye, Table, Grid3X3, Edit, Trash2, MoreHorizontal, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Country, State, City } from 'country-state-city';
 import CustomInputBox from "../customComponents/CustomInputBox";
 
 import { useCompanyStore } from "../../../store/companyStore";
 import HeaderGradient from "../customComponents/HeaderGradint";
+import FilterBar from "../customComponents/FilterBar";
 
-// Bank interface
+// Bank interface (unchanged)
 interface Bank {
   id: number;
   accountHolderName: string;
@@ -24,7 +26,7 @@ interface Bank {
   branch: string;
 }
 
-// Company interface
+// Company interface (unchanged)
 interface Company {
   id: number;
   _id?: string;
@@ -56,7 +58,7 @@ interface Company {
   status: 'active' | 'inactive';
 }
 
-// Form interface - updated to handle FormData
+// Form interface (unchanged)
 interface CompanyForm {
   namePrint: string;
   nameStreet: string;
@@ -86,7 +88,7 @@ interface CompanyForm {
   status: 'active' | 'inactive';
 }
 
-// Registration document interface - updated to handle File objects
+// Registration document interface (unchanged)
 interface RegistrationDocument {
   id: number;
   type: string;
@@ -104,8 +106,10 @@ const CompanyPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const limit = 10; // Fixed limit per page
 
-  const { companies, loading, error, fetchCompanies, addCompany, updateCompany, deleteCompany, filterCompanies } = useCompanyStore();
+  const { companies, pagination, loading, error, fetchCompanies, addCompany, updateCompany, deleteCompany, filterCompanies } = useCompanyStore();
 
   console.log("Companies from store:", companies);
 
@@ -122,26 +126,32 @@ const CompanyPage: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Initial fetch
   useEffect(() => {
-    fetchCompanies("68c1503077fd742fa21575df");
-  }, [fetchCompanies]);
+    fetchCompanies("68c1503077fd742fa21575df", currentPage, limit);
+  }, [fetchCompanies, currentPage]);
 
- useEffect(() => {
-  const handler = setTimeout(() => {
-    filterCompanies(searchTerm, statusFilter, sortBy, "68c1503077fd742fa21575df")
-      .then((result) => {
-        setFilteredCompanies(result);
-      })
-      .catch((err) => {
-        console.error("Error filtering companies:", err);
-      });
-  }, 500); // 500ms debounce time
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, sortBy]);
 
-  return () => {
-    clearTimeout(handler);
-  };
-}, [searchTerm, statusFilter, sortBy, filterCompanies]);
+  // Filtering with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterCompanies(searchTerm, statusFilter, sortBy, "68c1503077fd742fa21575df", currentPage, limit)
+        .then((result) => {
+          setFilteredCompanies(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering companies:", err);
+        });
+    }, 500); // 500ms debounce time
 
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterCompanies]);
 
   const [form, setForm] = useState<CompanyForm>({
     namePrint: "",
@@ -287,7 +297,7 @@ const CompanyPage: React.FC = () => {
     setForm(prev => ({
       ...prev,
       banks: prev.banks.filter(bank => bank.id !== id)
-    }));
+    }))
   };
 
   // Logo upload handler - updated for FormData
@@ -503,16 +513,22 @@ const CompanyPage: React.FC = () => {
     setForm(prev => ({
       ...prev,
       registrationDocs: prev.registrationDocs.filter(doc => doc.id !== id)
-    }));
+    }))
   };
+  const handleClearFilters=()=>{
+    setSearchTerm("")
+    setStatusFilter("all")
+setSortBy("nameAsc")    
+setCurrentPage(1)
+  }
 
-  // Statistics calculations
+  // Statistics calculations (updated for pagination)
   const stats = useMemo(() => ({
-    totalCompanies: filteredCompanies?.length || 0,
-    gstRegistered: filteredCompanies?.filter(c => c?.gstNumber?.trim() !== "")?.length || 0,
-    msmeRegistered: filteredCompanies?.filter(c => c?.msmeNumber?.trim() !== "")?.length || 0,
-    activeCompanies: filteredCompanies?.filter(c => c?.status === "active")?.length || 0
-  }), [filteredCompanies]);
+    totalCompanies: pagination.total,
+    gstRegistered: filteredCompanies.filter(c => c.gstNumber?.trim() !== "").length,
+    msmeRegistered: filteredCompanies.filter(c => c.msmeNumber?.trim() !== "").length,
+    activeCompanies: statusFilter === 'active' ? pagination.total : statusFilter === 'inactive' ? 0 : filteredCompanies.filter(c => c.status === "active").length
+  }), [filteredCompanies, pagination, statusFilter]);
 
   // Common currencies for the dropdown
   const currencies: string[] = [
@@ -824,6 +840,40 @@ const CompanyPage: React.FC = () => {
     </div>
   );
 
+  // Pagination controls
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
+      <div className="text-sm text-gray-600">
+        Showing {(currentPage - 1) * pagination.limit + 1} - {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} companies
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+          className="flex items-center gap-1"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Previous
+        </Button>
+        <span className="text-sm text-gray-600">
+          Page {currentPage} of {pagination.totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+          disabled={currentPage === pagination.totalPages}
+          className="flex items-center gap-1"
+        >
+          Next
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="flex justify-between items-center mb-8">
@@ -890,40 +940,21 @@ const CompanyPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* {((filteredCompanies && filteredCompanies.length > 0 )|| (searchTerm || loading)) && ( */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 bg-white rounded-md  p-4  shadow-sm ">
-          <div className="relative w-full md:w-auto  flex-1 ">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search by name, email, or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full md:w-64 border-gray-300 focus:border-teal-500 active:!ring-2 active:!ring-teal-500 !outline-0 !border-none"
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-            className="h-10 px-3 py-2 border border-gray-300 rounded-md focus:border-teal-500 focus:outline-none bg-white w-full md:w-auto"
-          >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc')}
-            className="h-10 px-3 py-2 border border-gray-300 rounded-md focus:border-teal-500 focus:outline-none bg-white w-full md:w-auto"
-          >
-            <option value="nameAsc">A-Z</option>
-            <option value="nameDesc">Z-A</option>
-            <option value="dateAsc">Oldest First</option>
-            <option value="dateDesc">Newest First</option>
-          </select>
-        </div>
-      {/* // )} */}
+    
+        <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onClearFilters={handleClearFilters}
+        
+        
+        />
+     
 
-      {filteredCompanies && filteredCompanies.length  ?(
+      {pagination.total ? (
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-gray-600" />
@@ -954,9 +985,9 @@ const CompanyPage: React.FC = () => {
             </button>
           </div>
         </div>
-      ):null}
+      ) : null}
 
-      {(!filteredCompanies || filteredCompanies.length === 0)? (
+      {pagination.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Building2 className="w-16 h-16 text-gray-400 mb-4" />
@@ -976,6 +1007,7 @@ const CompanyPage: React.FC = () => {
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
+          <PaginationControls />
         </>
       )}
 

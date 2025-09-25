@@ -1,47 +1,81 @@
+// Updated StockGroupRegistration with pagination and filters
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Layers, Plus, Building2, FileText, Star, Edit, Trash2, MoreHorizontal, Eye, Table, Grid3X3 } from "lucide-react";
+import { Layers,  Building2, FileText, Star, Edit, Trash2, MoreHorizontal, Eye, Table, Grid3X3, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import {useStockGroup} from "../../../store/stockGroupStore"
 import {useCompanyStore} from "../../../store/companyStore"
 import { formatSimpleDate } from "../../lib/formatDates";
-import { FormMessage } from "../ui/form";
-// Mock hook for demonstration - replace with actual hook
+import { Input } from "../ui/input";
+import FilterBar from "../customComponents/FilterBar";
 
 
-// StockGroup interface
+// StockGroup interface (adjusted to match store)
 interface StockGroup {
-  id: number;
-  code: string;
+  _id: string;
+  clientId?: string;
+  companyId?: string;
   name: string;
   description: string;
-  parent: string;
-  status: string;
-  createdAt: string;
-  companyId:string
+  status: 'active' | 'inactive';
+  stockGroupId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
 }
 
 const StockGroupRegistration: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [editingStockGroup, setEditingStockGroup] = useState<StockGroup | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [filteredStockGroups, setFilteredStockGroups] = useState<StockGroup[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const limit = 10; // Fixed limit per page
   
-  const { fetchStockGroup, addStockGroup, updateStockGroup, deleteStockGroup, stockGroups } = useStockGroup();
+  const { fetchStockGroup, addStockGroup, updateStockGroup, deleteStockGroup, stockGroups, pagination, loading, error,filterStockGroups } = useStockGroup();
   const {companies} =useCompanyStore()
 
-  
+  // Initial fetch
+  useEffect(() => {
+    fetchStockGroup(currentPage, limit);
+  }, [fetchStockGroup, currentPage]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, sortBy]);
+
+  // Filtering with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterStockGroups(searchTerm, statusFilter, sortBy, currentPage, limit)
+        .then((result) => {
+          setFilteredStockGroups(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering stock groups:", err);
+        });
+    }, 500); // 500ms debounce time
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterStockGroups]);
+
   const [formData, setFormData] = useState<StockGroup>({
-    id: 0,
-    code: '',
+    _id: '',
     name: '',
     description: '',
-    parent: 'primary',
     status: 'active',
+    stockGroupId: '',
+    companyId: '',
     createdAt: '',
-    companyId:""
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
@@ -62,14 +96,13 @@ const StockGroupRegistration: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
-      id: 0,
-      code: '',
+      _id: '',
       name: '',
       description: '',
-      parent: stockGroups.length > 0 ? stockGroups[0].code : 'primary',
       status: 'active',
+      stockGroupId: stockGroups.length > 0 ? stockGroups[0]._id : '',
+      companyId: companies.length > 0 ? companies[0]._id : '',
       createdAt: '',
-      companyId:""
     });
     setEditingStockGroup(null);
   };
@@ -77,68 +110,48 @@ const StockGroupRegistration: React.FC = () => {
   const handleEditStockGroup = (stockGroup: StockGroup): void => {
     setEditingStockGroup(stockGroup);
     setFormData({
-      id: stockGroup.id,
-      code: stockGroup.code,
-      name: stockGroup.name,
-      description: stockGroup.description,
-      parent: stockGroup.parent,
-      status: stockGroup.status,
-      createdAt: stockGroup.createdAt,
-      companyId:stockGroup.companyId,
+      ...stockGroup
     });
     setOpen(true);
   };
 
-  const handleDeleteStockGroup = (id: number): void => {
-    console.log("deleteid",id)
-    deleteStockGroup(id);
+  const handleDeleteStockGroup = (stockGroupId: string): void => {
+    deleteStockGroup(stockGroupId);
   };
 
   const handleSubmit = (): void => {
     if ( !formData.name.trim()) {
-      alert("Please fill in Stock Group Code and Name");
+      alert("Please fill in Stock Group Name");
       return;
     }
 
-    const stockGroupData = { 
-      ...formData
-      
-    };
-    
     if (editingStockGroup) {
       let updateStocks={
-       
-     
       name: formData.name,
       description: formData.description,
-      parent: formData.parent,
       status: formData.status,
-     
+      stockGroupId:formData.stockGroupId,
       companyId:formData.companyId,
     }
     console.log("updatinggg")
-      updateStockGroup( editingStockGroup?.["_id"], updateStocks );
+      updateStockGroup( editingStockGroup?._id, updateStocks );
     } else {
       console.log("updatingggadddd")
       
-      addStockGroup(stockGroupData);
+      addStockGroup(formData);
     }
     
-    // resetForm();
-    // setOpen(false);
+    resetForm();
+    setOpen(false);
   };
 
   // Statistics calculations
   const stats = useMemo(() => ({
-    totalGroups: stockGroups.length,
-    primaryGroups: stockGroups.filter(g => g.parent === 'primary').length,
-    activeGroups: stockGroups.filter(g => g.status === 'active').length,
-    inactiveGroups: stockGroups.filter(g => g.status === 'inactive').length
-  }), [stockGroups]);
-
-  useEffect(() => {
-    fetchStockGroup();
-  }, []);
+    totalGroups: pagination?.total,
+    primaryGroups: filteredStockGroups?.filter(g => g.stockGroupId === '').length, // Assuming empty stockGroupId means primary
+    activeGroups: statusFilter === 'active' ? pagination.total : filteredStockGroups?.filter(g => g.status === 'active').length,
+    inactiveGroups: statusFilter === 'inactive' ? pagination.total : filteredStockGroups?.filter(g => g.status === 'inactive').length
+  }), [filteredStockGroups, pagination, statusFilter]);
 
   // Actions dropdown component
   const ActionsDropdown = ({ stockGroup }: { stockGroup: StockGroup }) => {
@@ -178,7 +191,7 @@ const StockGroupRegistration: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  handleDeleteStockGroup(stockGroup?.["_id"]);
+                  handleDeleteStockGroup(stockGroup?._id);
                   setShowActions(false);
                 }}
                 className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
@@ -221,12 +234,12 @@ const StockGroupRegistration: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {stockGroups.map((stockGroup) => (
-              <tr key={stockGroup.id} className="hover:bg-gray-50 transition-colors duration-200">
+            {filteredStockGroups.map((stockGroup) => (
+              <tr key={stockGroup._id} className="hover:bg-gray-50 transition-colors duration-200">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
                     <div className="text-sm font-medium text-gray-900">{stockGroup.name}</div>
-                    <div className="text-sm text-teal-600 font-mono">{stockGroup.code}</div>
+                    {/* <div className="text-sm text-teal-600 font-mono">{stockGroup.code}</div> */} {/* Removed code as per interface */}
                   </div>
                 </td>
                 <td className="px-6 py-4">
@@ -236,17 +249,17 @@ const StockGroupRegistration: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {stockGroup.parent === 'primary' ? (
+                    {stockGroup.stockGroupId === '' ? ( // Assuming empty means primary
                       <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
                         Primary
                       </Badge>
                     ) : (
-                      <span className="text-gray-600">{stockGroup.parent}</span>
+                      <span className="text-gray-600">{stockGroup.stockGroupId}</span>
                     )}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{formatSimpleDate( stockGroup.createdAt)}</div>
+                  <div className="text-sm text-gray-900">{formatSimpleDate(stockGroup.createdAt || '')}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Badge className={`${
@@ -271,16 +284,16 @@ const StockGroupRegistration: React.FC = () => {
   // Card View Component
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {stockGroups.map((group: StockGroup) => (
-        <Card key={group.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
+      {filteredStockGroups.map((group: StockGroup) => (
+        <Card key={group._id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 pb-4">
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle className="text-xl font-bold text-gray-800 mb-1">
                   {group.name}
                 </CardTitle>
-                <p className="text-teal-600 font-medium font-mono">{group.code}</p>
-                {group.parent === 'primary' && (
+                {/* <p className="text-teal-600 font-medium font-mono">{group.code}</p> */} {/* Removed code */}
+                {group.stockGroupId === '' && (
                   <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 mt-2">
                     Primary
                   </Badge>
@@ -304,16 +317,16 @@ const StockGroupRegistration: React.FC = () => {
                 </div>
               )}
 
-              {group.parent !== 'primary' && (
+              {group.stockGroupId !== '' && (
                 <div className="flex items-center text-sm">
                   <Layers className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">Parent: {group.parent}</span>
+                  <span className="text-gray-600">Parent: {group.stockGroupId}</span>
                 </div>
               )}
               
               <div className="flex items-center text-sm">
                 <Building2 className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Created: { formatSimpleDate(group.createdAt)}</span>
+                <span className="text-gray-600">Created: {formatSimpleDate(group.createdAt || '')}</span>
               </div>
             </div>
           </CardContent>
@@ -322,9 +335,57 @@ const StockGroupRegistration: React.FC = () => {
     </div>
   );
 
+  // Pagination controls
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
+      <div className="text-sm text-gray-600">
+        Showing {(currentPage - 1) * pagination?.limit + 1} - {Math.min(currentPage * pagination?.limit, pagination?.total)} of {pagination?.total} stock groups
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+          className="flex items-center gap-1"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Previous
+        </Button>
+        <span className="text-sm text-gray-600">
+          Page {currentPage} of {pagination?.totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.min(pagination?.totalPages, prev + 1))}
+          disabled={currentPage === pagination?.totalPages}
+          className="flex items-center gap-1"
+        >
+          Next
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
+ <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onClearFilters={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setSortBy('nameAsc');
+          setCurrentPage(1);
+        }}
+      />
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Stock Group Management</h1>
@@ -343,7 +404,6 @@ const StockGroupRegistration: React.FC = () => {
         </Button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
           <CardContent className="p-6">
@@ -394,8 +454,22 @@ const StockGroupRegistration: React.FC = () => {
         </Card>
       </div>
 
-      {/* View Toggle */}
-      {stockGroups && stockGroups.length > 0 && (
+      <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onClearFilters={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setSortBy('nameAsc');
+          setCurrentPage(1);
+        }}
+      />
+
+      {pagination?.total ? (
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-gray-600" />
@@ -426,10 +500,9 @@ const StockGroupRegistration: React.FC = () => {
             </button>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Stock Group List */}
-      {stockGroups.length === 0 ? (
+      {pagination?.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Layers className="w-16 h-16 text-gray-400 mb-4" />
@@ -449,10 +522,10 @@ const StockGroupRegistration: React.FC = () => {
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
+          <PaginationControls />
         </>
       )}
 
-      {/* Modal Form */}
       <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
         if (!isOpen) {
@@ -477,12 +550,7 @@ const StockGroupRegistration: React.FC = () => {
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {/* <CustomInputBox
-                  placeholder="Group Code *"
-                  name="code"
-                  value={formData.code}
-                  onChange={handleChange}
-                /> */}
+                
                 <CustomInputBox
                   placeholder="Group Name *"
                   name="name"
@@ -525,15 +593,14 @@ const StockGroupRegistration: React.FC = () => {
               <div className="mb-4">
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Parent Group</label>
                 <select
-                  value={formData.parent}
-                  onChange={(e) => handleSelectChange("parent", e.target.value)}
+                  value={formData.stockGroupId || ''}
+                  onChange={(e) => handleSelectChange("stockGroupId", e.target.value)}
                   className="w-full h-10 px-3 py-2 border border-blue-200 rounded-md focus:border-blue-500 focus:outline-none bg-white"
                 >
-                  <option value="primary">Primary (No Parent)</option>
-                  {stockGroups
-                    .filter(group => group?.["_id"] !== editingStockGroup?.["_id"]) // Prevent self-referencing
+                  <option value="">Primary (No Parent)</option>
+                  {stockGroups?.filter(group => group?._id !== editingStockGroup?._id) // Prevent self-referencing
                     .map(group => (
-                    <option key={group?.["_id"]} value={group?.["_id"]}>{group?.name} ({group?.code})</option>
+                    <option key={group?._id} value={group?._id}>{group?.name}</option>
                   ))}
                 </select>
               </div>
