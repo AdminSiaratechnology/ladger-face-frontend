@@ -2,7 +2,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, LoginResponse, LoginCredentials } from '../src/types/auth';
-import {} from "../src/lib/"
+import baseUrl from '../src/lib/constant';
+
 
 interface AuthState {
   user: User | null;
@@ -27,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           // Replace this with your actual API call
-          const response = await fetch('http://localhost:5000/api/auth/login', {
+          const response = await fetch(`${baseUrl}auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -48,6 +49,7 @@ export const useAuthStore = create<AuthState>()(
           } else {
             throw new Error(data.message || 'Login failed');
           }
+          return data?.data?.user
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : 'An error occurred',

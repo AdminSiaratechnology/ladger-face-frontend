@@ -11,6 +11,7 @@ import {useStockGroup} from "../../../store/stockGroupStore"
 import { formatSimpleDate } from "../../lib/formatDates";
 import { Input } from "../ui/input";
 import FilterBar from "../customComponents/FilterBar";
+import HeaderGradient from "../customComponents/HeaderGradint";
 
 
 // StockCategory interface
@@ -415,10 +416,10 @@ const StockCategoryRegistration: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Stock Category Management</h1>
-          <p className="text-gray-600">Manage your stock category information and classifications</p>
-        </div>
+       
+        <HeaderGradient title="Stock Category Management"
+        subtitle="Manage your stock category information and classifications"
+        />
        
         <Button 
           onClick={() => {

@@ -4,7 +4,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { useAuth } from '../../App';
+
 import { 
   Shield, 
   Mail, 
@@ -55,6 +55,7 @@ export function Login() {
       return;
     }
     const success = await login({email, password});
+    console.log(success,"succcccc",user)
      if (success) {
       toast.success('Login successful!');
     } else {

@@ -21,7 +21,10 @@ import {
   Plus,
   Camera,
   Upload,
-  X
+  X,
+  Search,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import CustomSelect from "../customComponents/CustomSelect";
@@ -31,6 +34,9 @@ import { useStockCategory } from "../../../store/stockCategoryStore";
 import { useStockGroup } from "../../../store/stockGroupStore";
 import { useUOMStore } from "../../../store/uomStore";
 import { useProductStore } from "../../../store/productStore";
+import { Input } from "../ui/input";
+import FilterBar from "../customComponents/FilterBar";
+import HeaderGradient from "../customComponents/HeaderGradint";
 
 
 // Interfaces
@@ -144,13 +150,19 @@ const ProductPage: React.FC = () => {
   const [usedQuantity, setUsedQuantity] = useState<number>(0);
   const [remainingQuantity, setRemainingQuantity] = useState<number>(0);
   const [viewingImage, setViewingImage] = useState<ProductImage | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
+  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const limit = 10; // Fixed limit per page
   
   const { companies } = useCompanyStore();
+  const { godowns } = useGodownStore();
   const { stockCategories } = useStockCategory();
   const { stockGroups } = useStockGroup();
-  const { godowns } = useGodownStore();
   const { units } = useUOMStore();
-  const { fetchProducts, addProduct, updateProduct, deleteProduct, products } = useProductStore();
+  const { fetchProducts, addProduct, updateProduct, deleteProduct, products, filterProducts, pagination, loading, error } = useProductStore();
   console.log(products,"prodiuctsss")
 
   // Simulated country from backend - can be replaced with actual backend call
@@ -194,6 +206,33 @@ const ProductPage: React.FC = () => {
     remarks: "",
     status: "Active"
   });
+
+  // Initial fetch
+  useEffect(() => {
+    fetchProducts(currentPage, limit);
+  }, [fetchProducts, currentPage]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, sortBy]);
+
+  // Filtering with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterProducts(searchTerm, statusFilter, sortBy, currentPage, limit)
+        .then((result) => {
+          setFilteredProducts(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering products:", err);
+        });
+    }, 500); // 500ms debounce time
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterProducts]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value, type, checked } = e.target;
@@ -314,25 +353,8 @@ const ProductPage: React.FC = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, angle: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const newImage: ProductImage = {
-        id: Date.now(),
-        angle,
-        file,
-        previewUrl: URL.createObjectURL(file),
-      };
-
-      setFormData((prev) => ({
-        ...prev,
-        images: [...prev.images.filter(img => img.angle !== angle), newImage],
-      }));
-    }
-  };
-
-  // Product image upload handler - similar to company document upload
-const handleProductImageUpload = (imageType: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  // Product image upload handler - Only show if tax is applicable
+  const handleProductImageUpload = (imageType: string, e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
   if (file) {
     const previewUrl = URL.createObjectURL(file);
@@ -351,7 +373,7 @@ const handleProductImageUpload = (imageType: string, e: React.ChangeEvent<HTMLIn
   }
 };
 
-// Remove product image handler - similar to company document removal
+// Remove product image handler - Only show if tax is applicable
 const removeProductImage = (id: number) => {
   const imageToRemove = formData.images.find(img => img.id === id);
   if (imageToRemove && imageToRemove.previewUrl && imageToRemove.previewUrl.startsWith('blob:')) {
@@ -378,44 +400,14 @@ const removeProductImage = (id: number) => {
     }));
   };
 
-  // const resetForm = () => {
-  //   setFormData({
-  //     code: "",
-  //     name: "",
-  //     partNo: "",
-  //     stockGroup: "",
-  //     stockCategory: "",
-  //     batch: false,
-  //     unit: "",
-  //     alternateUnit: "",
-  //     minimumQuantity: 0,
-  //     defaultSupplier: "",
-  //     minimumRate: 0,
-  //     maximumRate: 0,
-  //     companyId: "",
-  //     defaultGodown: "",
-  //     productType: "",
-  //     taxConfiguration: {
-  //       applicable: false,
-  //       hsnCode: "",
-  //       taxPercentage: 0,
-  //       cgst: 0,
-  //       sgst: 0,
-  //       cess: 0,
-  //       additionalCess: 0,
-  //       applicableDate: "",
-  //     },
-  //     images: [],
-  //     remarks: "",
-  //     status: "Active"
-  //   });
-  //   setEditingProduct(null);
-  //   setOpeningQuantities([
-  //     { id: 1, godown: "", batch: "", quantity: 0, rate: 0, amount: 0 },
-  //   ]);
-  //   setTotalOpeningQuantity(0);
-  //   setActiveTab("basic");
-  // };
+  const cleanupImageUrls = (): void => {
+  formData.images.forEach(img => {
+    if (img.previewUrl && img.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(img.previewUrl);
+    }
+  });
+};
+
 const resetForm = () => {
   cleanupImageUrls(); // Clean up image URLs
   
@@ -456,6 +448,7 @@ const resetForm = () => {
   setTotalOpeningQuantity(0);
   setActiveTab("basic");
 };
+
   const handleEditProduct = (product: Product): void => {
     setEditingProduct(product);
     setFormData({
@@ -503,106 +496,68 @@ const resetForm = () => {
     deleteProduct(id);
   };
 
-  // const handleSubmit = (): void => {
-  //   if (!formData.code.trim() || !formData.name.trim()) {
-  //     alert("Please fill in Product Code and Name");
-  //     return;
-  //   }
+  const handleSubmit = (): void => {
+    if (!formData.code.trim() || !formData.name.trim()) {
+      alert("Please fill in Product Code and Name");
+      return;
+    }
 
-  //   if (formData.taxConfiguration.applicable && !isTaxValid()) {
-  //     alert("CGST + SGST cannot exceed the tax percentage");
-  //     return;
-  //   }
+    if (formData.taxConfiguration.applicable && !isTaxValid()) {
+      alert("CGST + SGST cannot exceed the tax percentage");
+      return;
+    }
 
-  //   const productData = {
-  //     ...formData,
-  //     openingQuantities: openingQuantities.filter(
-  //       (q) => q.godown && (q.quantity > 0 || q.rate > 0)
-  //     ),
-  //   };
+    // Create FormData for file uploads (similar to company form)
+    const productFormData = new FormData();
+    
+    // Append all text fields
+    Object.keys(formData).forEach(key => {
+      const value = formData[key as keyof ProductForm];
+      
+      if (key === 'images' || key === 'taxConfiguration') {
+        return; // Handle these separately
+      }
+      
+      if (value !== null && value !== undefined && value !== '') {
+        productFormData.append(key, String(value));
+      }
+    });
+    
+    // Append tax configuration as JSON
+    productFormData.append('taxConfiguration', JSON.stringify(formData.taxConfiguration));
+    
+    // Append opening quantities
+    const validOpeningQuantities = openingQuantities.filter(
+      (q) => q.godown && (q.quantity > 0 || q.rate > 0)
+    );
+    productFormData.append('openingQuantities', JSON.stringify(validOpeningQuantities));
+    
+    // Append product images
+    formData.images.forEach((image) => {
+      productFormData.append('productImages', image.file);
+    });
+    productFormData.append('productImageTypes', JSON.stringify(formData.images.map(img => img.angle)));
+    productFormData.append('productImagesCount', String(formData.images.length));
 
-  //   if (editingProduct) {
-  //     updateProduct({ id: editingProduct._id, product: productData });
-  //   } else {
-  //     console.log(productData,"prodictcaa")
-  //     addProduct(productData);
-  //   }
-
-  //   // resetForm();
-  //   // setOpen(false);
-  // };
+    if (editingProduct) {
+      updateProduct({ id: editingProduct._id || '', product: productFormData });
+    } else {
+      addProduct(productFormData);
+    }
+    
+    setOpen(false);
+    resetForm();
+  };
 
   // Statistics
-  const handleSubmit = (): void => {
-  if (!formData.code.trim() || !formData.name.trim()) {
-    alert("Please fill in Product Code and Name");
-    return;
-  }
-
-  if (formData.taxConfiguration.applicable && !isTaxValid()) {
-    alert("CGST + SGST cannot exceed the tax percentage");
-    return;
-  }
-
-  // Create FormData for file uploads (similar to company form)
-  const productFormData = new FormData();
-  
-  // Append all text fields
-  Object.keys(formData).forEach(key => {
-    const value = formData[key as keyof ProductForm];
-    
-    if (key === 'images' || key === 'taxConfiguration' || key === 'openingQuantities') {
-      return; // Handle these separately
-    }
-    
-    if (value !== null && value !== undefined && value !== '') {
-      productFormData.append(key, String(value));
-    }
-  });
-  
-  // Append tax configuration as JSON
-  productFormData.append('taxConfiguration', JSON.stringify(formData.taxConfiguration));
-  
-  // Append opening quantities
-  const validOpeningQuantities = openingQuantities.filter(
-    (q) => q.godown && (q.quantity > 0 || q.rate > 0)
-  );
-  productFormData.append('openingQuantities', JSON.stringify(validOpeningQuantities));
-  
-  // Append product images
-  formData.images.forEach((image) => {
-    productFormData.append('productImages', image.file);
-  });
-  productFormData.append('productImageTypes', JSON.stringify(formData.images.map(img => img.angle)));
-  productFormData.append('productImagesCount', String(formData.images.length));
-
-  if (editingProduct) {
-    updateProduct({ id: editingProduct._id, product: productFormData });
-  } else {
-    addProduct(productFormData);
-  }
-  setOpen(false)
-  resetForm()
-};
-
-// Clean up function for image URLs (similar to company form)
-const cleanupImageUrls = (): void => {
-  formData.images.forEach(img => {
-    if (img.previewUrl && img.previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(img.previewUrl);
-    }
-  });
-};
-
-  
   const stats = useMemo(
     () => ({
-      totalProducts: products.length,
-      activeProducts: products.filter(p => p.status === 'Active').length,
-      batchProducts: products.filter((p) => p.batch).length,
-      taxableProducts: products.filter(p => p.taxConfiguration?.applicable).length,
+      totalProducts: pagination?.total,
+      activeProducts: statusFilter === 'Active' ? pagination?.total : filteredProducts?.filter(p => p.status === 'Active').length,
+      batchProducts: filteredProducts?.filter((p) => p.batch).length,
+      taxableProducts: filteredProducts?.filter(p => p.taxConfiguration?.applicable).length,
     }),
-    [products]
+    [filteredProducts, pagination, statusFilter]
   );
 
   // Form tabs
@@ -622,10 +577,6 @@ const cleanupImageUrls = (): void => {
     setUsedQuantity(used);
     setRemainingQuantity(totalOpeningQuantity - used);
   }, [openingQuantities, totalOpeningQuantity]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
 
   // Get company name by ID
   const getCompanyName = (companyId: string) => {
@@ -731,7 +682,7 @@ const cleanupImageUrls = (): void => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {products.map((product) => {
+            {filteredProducts.map((product) => {
               console.log(product)
               
            return(   <tr key={product?.["_id"]} className="hover:bg-gray-50 transition-colors duration-200">
@@ -793,7 +744,7 @@ const cleanupImageUrls = (): void => {
     
   
   return   <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {products.map((product: Product) => (
+      {filteredProducts.map((product: Product) => (
         <Card key={product?._id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
             <div className="flex items-start justify-between">
@@ -871,18 +822,52 @@ const cleanupImageUrls = (): void => {
     </div>
   };
 
+  // Pagination controls
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
+      <div className="text-sm text-gray-600">
+        Showing {(currentPage - 1) * pagination?.limit + 1} - {Math.min(currentPage * pagination?.limit, pagination?.total)} of {pagination?.total} products
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+          className="flex items-center gap-1"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Previous
+        </Button>
+        <span className="text-sm text-gray-600">
+          Page {currentPage} of {pagination?.totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.min(pagination?.totalPages, prev + 1))}
+          disabled={currentPage === pagination?.totalPages}
+          className="flex items-center gap-1"
+        >
+          Next
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
+
+  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Product Management
-          </h1>
-          <p className="text-gray-600">
-            Manage your product inventory and details
-          </p>
-        </div>
+       
+        <HeaderGradient
+        title="Product Management"
+        subtitle="Manage your product inventory and details"
+        />
         <Button
           onClick={() => {
             resetForm();
@@ -948,8 +933,22 @@ const cleanupImageUrls = (): void => {
         </Card>
       </div>
 
-      {/* View Toggle */}
-      {products && products.length > 0 && (
+      <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onClearFilters={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setSortBy('nameAsc');
+          setCurrentPage(1);
+        }}
+      />
+
+      {pagination?.total ? (
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-gray-600" />
@@ -980,10 +979,9 @@ const cleanupImageUrls = (): void => {
             </button>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Product List */}
-      {products.length === 0 ? (
+      {pagination?.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Package className="w-16 h-16 text-gray-400 mb-4" />
@@ -1007,10 +1005,10 @@ const cleanupImageUrls = (): void => {
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
+          <PaginationControls />
         </>
       )}
 
-      {/* Modal Form */}
       <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
         if (!isOpen) {
@@ -1282,7 +1280,7 @@ const cleanupImageUrls = (): void => {
                       >
                         <option value="">Select Default Godown</option>
                         {godowns.map((godown) => (
-                          <option key={godown.id} value={godown?._id}>
+                          <option key={godown._id} value={godown._id}>
                             {godown.name} ({godown.code})
                           </option>
                         ))}
@@ -1634,7 +1632,7 @@ const cleanupImageUrls = (): void => {
                               >
                                 <option value="">Select Godown</option>
                                 {godowns.map((godown) => (
-                                  <option key={godown.id} value={godown.name}>
+                                  <option key={godown._id} value={godown._id}>
                                     {godown.name} ({godown.code})
                                   </option>
                                 ))}

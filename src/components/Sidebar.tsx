@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../App';
+
 import { 
   LayoutDashboard, 
   Users, 
@@ -24,6 +24,7 @@ import {
 import { Button } from './ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { dummyCompanies } from '../lib/dummyData';
+import { useAuthStore } from '../../store/authStore';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -36,6 +37,8 @@ interface MenuItem {
   icon: React.ElementType;
   label: string;
   roles: string[];
+  module?: string;
+  subModule?: string;
   type: 'link' | 'accordion';
   subItems?: SubMenuItem[];
 }
@@ -45,10 +48,51 @@ interface SubMenuItem {
   icon: React.ElementType;
   label: string;
   roles: string[];
+  module?: string;
+  subModule?: string;
+}
+
+// Utility function to check permissions - same as in App.js
+function checkPermission(user: any, module: string, subModule: string) {
+  // If user has all permissions, allow access
+  if (user.allPermissions) {
+    return true;
+  }
+
+  // Check if user has access array and it's not empty
+  if (!user.access || user.access.length === 0) {
+    return false;
+  }
+
+  // Check permissions in the access array
+  for (const accessItem of user.access) {
+    const modules = accessItem.modules;
+    
+    if (modules && modules[module] && modules[module][subModule]) {
+      return modules[module][subModule].read === true;
+    }
+  }
+
+  return false;
+}
+
+// Function to check if user has access to a menu item
+function hasMenuAccess(user: any, item: MenuItem | SubMenuItem) {
+  // If specific module and subModule are provided, check permissions
+  if (item.module && item.subModule) {
+    return checkPermission(user, item.module, item.subModule);
+  }
+
+  // Fallback to role-based access if no module/subModule specified
+  if (item.roles && user?.role) {
+    return item.roles.includes(user.role.toLowerCase());
+  }
+
+  return false;
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuthStore();
   console.log("Sidebar User:", user);
   const location = useLocation();
   const [hasCompany, setHasCompany] = useState(false);
@@ -91,7 +135,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     };
   }, []);
 
-  // Full menu items (shown when company exists)
+  // Full menu items (shown when company exists) - updated with permission mappings
   const fullMenuItems: MenuItem[] = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'agent', 'salesman'], type: 'link' },
     { path: '/company', icon: LayoutDashboard, label: 'Company', roles: ['admin', 'agent', 'salesman'], type: 'link' },
@@ -102,8 +146,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: ['admin', 'agent', 'salesman'],
       type: 'accordion',
       subItems: [
-        { path: '/customer-registration', icon: UserPlus, label: 'Customer Registration', roles: ['admin', 'agent'] },
-        { path: '/vendor-registration', icon: Truck, label: 'Vendor Registration', roles: ['admin', 'agent'] },
+        { 
+          path: '/customer-registration', 
+          icon: UserPlus, 
+          label: 'Customer Registration', 
+          roles: ['admin', 'agent'],
+          module: 'BusinessManagement',
+          subModule: 'CustomerRegistration'
+        },
+        { 
+          path: '/vendor-registration', 
+          icon: Truck, 
+          label: 'Vendor Registration', 
+          roles: ['admin', 'agent'],
+          module: 'BusinessManagement',
+          subModule: 'Vendor'
+        },
         { path: '/agent', icon: HatGlasses, label: 'Agent', roles: ['admin', 'agent'] },
         { path: '/ladger-registration', icon: HatGlasses, label: 'Ladger', roles: ['admin', 'agent'] },
       ]
@@ -116,15 +174,37 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: ['admin', 'agent', 'salesman'],
       type: 'accordion',
       subItems: [
-        { path: '/godown', icon: Warehouse, label: 'Godown', roles: ['admin', 'agent'] },
-        { path: '/stock-category', icon: FolderOpen, label: 'Stock Category', roles: ['admin', 'agent'] },
+        { 
+          path: '/godown', 
+          icon: Warehouse, 
+          label: 'Godown', 
+          roles: ['admin', 'agent'],
+          module: 'InventoryManagement',
+          subModule: 'Godown'
+        },
         { path: '/stock-group', icon: Layers, label: 'Stock Group', roles: ['admin', 'agent'] },
+        { path: '/stock-category', icon: FolderOpen, label: 'Stock Category', roles: ['admin', 'agent'] },
         { path: '/uom', icon: Ruler, label: 'UOM', roles: ['admin', 'agent'] },
         { path: '/product', icon: Package, label: 'Product', roles: ['admin', 'agent'] },
-        { path: '/price-list', icon: DollarSign, label: 'Price Lists', roles: ['admin'] },
+        { 
+          path: '/price-list', 
+          icon: DollarSign, 
+          label: 'Price Lists', 
+          roles: ['admin'],
+          module: 'Pricing',
+          subModule: 'PriceList'
+        },
       ]
     },
-    { path: '/orders', icon: ShoppingCart, label: 'Orders', roles: ['admin', 'agent', 'salesman'], type: 'link' },
+    { 
+      path: '/orders', 
+      icon: ShoppingCart, 
+      label: 'Orders', 
+      roles: ['admin', 'agent', 'salesman'], 
+      type: 'link',
+      module: 'InventoryManagement',
+      subModule: 'Order'
+    },
     { path: '/tracking', icon: MapPin, label: 'Location Tracking', roles: ['admin'], type: 'link' },
     { path: '/settings', icon: Settings, label: 'Settings', roles: ['admin'], type: 'link' },
   ];
@@ -139,22 +219,26 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   // Choose which menu items to use based on company existence
   const menuItems = hasCompany ? fullMenuItems : limitedMenuItems;
-  console.log("Menu Items:",user ,menuItems);
+  console.log("Menu Items:", user, menuItems);
 
   const filteredMenuItems = menuItems.filter(item => {
-    console.log("Filtering item:", item.roles, "User role:", user?.role);
-    let userRole = user?.role.toLowerCase() || '';
-    return true;
-   return user && item.roles.includes(userRole);
-  }
+    console.log("Filtering item:", item.label, "User:", user?.name);
+    
+    if (!user) return false;
 
-  ).map(item => {
+    // Check access for the main menu item
+    return hasMenuAccess(user, item);
+  }).map(item => {
     if (item.type === 'accordion' && item.subItems) {
+      // Filter sub-items based on permissions
+      const filteredSubItems = item.subItems.filter(subItem => {
+        if (!user) return false;
+        return hasMenuAccess(user, subItem);
+      });
+
       return {
         ...item,
-        subItems: item.subItems.filter(subItem => 
-          user && subItem.roles.includes(user.role.toLowerCase())
-        )
+        subItems: filteredSubItems
       };
     }
     return item;
@@ -326,17 +410,23 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 py-4 overflow-y-auto">
-          {filteredMenuItems.map((item) => {
-            return (
-              <div key={item.path || item.id}>
-                {item.type === 'link' ? (
-                  <SimpleLinkComponent to={item.path!} icon={item.icon} label={item.label} />
-                ) : (
-                  <SimpleAccordionComponent accordionItem={item} />
-                )}
-              </div>
-            );
-          })}
+          {filteredMenuItems.length > 0 ? (
+            filteredMenuItems.map((item) => {
+              return (
+                <div key={item.path || item.id}>
+                  {item.type === 'link' ? (
+                    <SimpleLinkComponent to={item.path!} icon={item.icon} label={item.label} />
+                  ) : (
+                    <SimpleAccordionComponent accordionItem={item} />
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <div className="px-6 py-4 text-gray-400 text-sm">
+              No menu items available based on your permissions.
+            </div>
+          )}
         </nav>
 
         {/* Logout button */}

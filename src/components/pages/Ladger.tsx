@@ -3,7 +3,7 @@ import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import {toast} from "sonner"
+import { toast } from "sonner";
 import {
   Users,
   Building2,
@@ -24,15 +24,16 @@ import {
   Plus,
   Upload,
   X,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Country, State, City } from 'country-state-city';
 import CustomInputBox from "../customComponents/CustomInputBox";
-import { dummyVendors } from "../../lib/dummyData"; // Assuming // For store implementation
+import HeaderGradient from "../customComponents/HeaderGradint";
+import FilterBar from "../customComponents/FilterBar";
 import { useCompanyStore } from "../../../store/companyStore";
-
-
-import {useLedgerStore} from "../../../store/ladgerStore"
+import { useLedgerStore } from "../../../store/ladgerStore";
 
 // Interfaces
 interface Bank {
@@ -56,6 +57,7 @@ interface RegistrationDocument {
 
 interface Ledger {
   id: number;
+  _id?: string;
   ledgerType: string;
   ledgerCode: string;
   ledgerName: string;
@@ -95,7 +97,6 @@ interface Ledger {
   bankName: string;
   branchName: string;
   accountNumber: string;
-   isDeleted?: boolean;
   accountHolderName: string;
   ifscCode: string;
   swiftCode: string;
@@ -113,16 +114,23 @@ interface Ledger {
   registrationDocs: RegistrationDocument[];
 }
 
-
-
-
-
 const LedgerRegistration: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [editingLedger, setEditingLedger] = useState<Ledger | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");
   const [viewingImage, setViewingImage] = useState<RegistrationDocument | { previewUrl: string; type: 'logo' } | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all');
+  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [filteredLedgers, setFilteredLedgers] = useState<Ledger[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const limit = 10; // Fixed limit per page
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { ledgers, fetchLedgers, addLedger, updateLedger, deleteLedger, filterLedgers, pagination, loading, error } = useLedgerStore();
+  const { companies } = useCompanyStore();
+
   const [bankForm, setBankForm] = useState<Bank>({
     id: Date.now(),
     accountHolderName: "",
@@ -133,14 +141,11 @@ const LedgerRegistration: React.FC = () => {
     bankName: "",
     branch: ""
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const { ledgers, fetchLedgers, addLedger, updateLedger, deleteLedger } = useLedgerStore();
 
   const [formData, setFormData] = useState<Ledger>({
     id: 0,
     ledgerType: 'individual',
-     companyId: "",
+    companyId: "",
     ledgerCode: '',
     ledgerName: '',
     shortName: '',
@@ -194,7 +199,6 @@ const LedgerRegistration: React.FC = () => {
     createdAt: '',
     registrationDocs: []
   });
-   const { companies } = useCompanyStore();
 
   // Country, State, City Data
   const allCountries = useMemo(() => Country.getAllCountries(), []);
@@ -270,14 +274,13 @@ const LedgerRegistration: React.FC = () => {
 
   const addBank = (): void => {
     if (!bankForm.accountHolderName || !bankForm.accountNumber || !bankForm.bankName) {
-     
-      toast("Event has been created", {
-          description: "Please fill in at least Account Holder Name, Account Number, and Bank Name",
-          action: {
-            label: "Undo",
-            onClick: () => console.log("Undo"),
-          },
-        })
+      toast.error("Validation Failed", {
+        description: "Please fill in at least Account Holder Name, Account Number, and Bank Name",
+        action: {
+          label: "Undo",
+          onClick: () => console.log("Undo"),
+        },
+      });
       return;
     }
     setFormData((prev) => ({
@@ -316,7 +319,7 @@ const LedgerRegistration: React.FC = () => {
   };
 
   const removeLogo = (): void => {
-    if (formData.logoPreviewUrl) {
+    if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(formData.logoPreviewUrl);
     }
     setFormData((prev) => ({
@@ -346,7 +349,7 @@ const LedgerRegistration: React.FC = () => {
 
   const removeDocument = (id: number) => {
     const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
-    if (docToRemove && docToRemove.previewUrl) {
+    if (docToRemove && docToRemove.previewUrl && docToRemove.previewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(docToRemove.previewUrl);
     }
     setFormData((prev) => ({
@@ -356,11 +359,11 @@ const LedgerRegistration: React.FC = () => {
   };
 
   const cleanupImageUrls = (): void => {
-    if (formData.logoPreviewUrl) {
+    if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(formData.logoPreviewUrl);
     }
     formData.registrationDocs.forEach((doc) => {
-      if (doc.previewUrl) {
+      if (doc.previewUrl && doc.previewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(doc.previewUrl);
       }
     });
@@ -371,7 +374,7 @@ const LedgerRegistration: React.FC = () => {
     setFormData({
       id: 0,
       ledgerType: 'individual',
-      companyId:"",
+      companyId: "",
       ledgerCode: '',
       ledgerName: '',
       shortName: '',
@@ -442,25 +445,30 @@ const LedgerRegistration: React.FC = () => {
     setOpen(true);
   };
 
-  const handleDeleteLedger = (id: number): void => {
-    console.log(id,"deleteiddd")
+  const handleDeleteLedger = (id: string): void => {
     deleteLedger(id);
   };
 
   const handleSubmit = (): void => {
-     if (!formData.ledgerName.trim() || !formData.emailAddress.trim()) {
-    toast.error("Validation Failed", {
-      description: "Please fill in Ledger Name and Email Address",
-      action: {
-        label: "Undo",
-        onClick: () => console.log("Undo"),
-      },
-    });
-    return; 
-  }
+    if (!formData.ledgerName.trim() || !formData.emailAddress.trim()) {
+      toast.error("Validation Failed", {
+        description: "Please fill in Ledger Name and Email Address",
+        action: {
+          label: "Undo",
+          onClick: () => console.log("Undo"),
+        },
+      });
+      return;
+    }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.emailAddress)) {
-      alert("Please enter a valid email address");
+      toast.error("Invalid Email", {
+        description: "Please enter a valid email address",
+        action: {
+          label: "Undo",
+          onClick: () => console.log("Undo"),
+        },
+      });
       return;
     }
 
@@ -480,11 +488,10 @@ const LedgerRegistration: React.FC = () => {
       ledgerFormData.append('registrationDocs', doc.file);
     });
     ledgerFormData.append('registrationDocTypes', JSON.stringify(formData.registrationDocs.map((doc) => doc.type)));
-    ledgerFormData.append("companyID",formData.companyId)
+    ledgerFormData.append("companyID", formData.companyId);
 
     if (editingLedger) {
-      console.log(editingLedger._id, ledgerFormData,"ssfddsaf")
-      updateLedger({id:editingLedger._id, ledger:ledgerFormData});
+      updateLedger({ id: editingLedger._id || '', ledger: ledgerFormData });
     } else {
       addLedger(ledgerFormData);
     }
@@ -494,11 +501,11 @@ const LedgerRegistration: React.FC = () => {
 
   // Statistics
   const stats = useMemo(() => ({
-    totalLedgers: ledgers.length,
-    activeLedgers: ledgers.filter((c) => c.ledgerStatus === 'active').length,
-    gstRegistered: ledgers.filter((c) => c.gstNumber?.trim() !== "").length,
-    individualAccounts: ledgers.filter((c) => c.ledgerType === 'individual').length
-  }), [ledgers]);
+    totalLedgers: pagination?.total || 0,
+    activeLedgers: statusFilter === 'active' ? pagination?.total : filteredLedgers.filter((c) => c.ledgerStatus === 'active').length,
+    gstRegistered: filteredLedgers?.filter((c) => c.gstNumber?.trim() !== "").length,
+    individualAccounts: filteredLedgers?.filter((c) => c.ledgerType === 'individual').length
+  }), [filteredLedgers, pagination, statusFilter]);
 
   const tabs = [
     { id: "basic", label: "Basic Info" },
@@ -508,9 +515,32 @@ const LedgerRegistration: React.FC = () => {
     { id: "settings", label: "Settings" }
   ];
 
+  // Initial fetch
   useEffect(() => {
-    fetchLedgers();
-  }, [fetchLedgers]);
+    fetchLedgers(currentPage, limit);
+  }, [fetchLedgers, currentPage]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, sortBy]);
+
+  // Filtering with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterLedgers(searchTerm, statusFilter, sortBy, currentPage, limit)
+        .then((result) => {
+          setFilteredLedgers(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering ledgers:", err);
+        });
+    }, 500); // 500ms debounce time
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterLedgers]);
 
   // Actions Dropdown
   const ActionsDropdown = ({ ledger }: { ledger: Ledger }) => {
@@ -546,7 +576,7 @@ const LedgerRegistration: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  handleDeleteLedger(ledger._id);
+                  handleDeleteLedger(ledger._id || ledger.id.toString());
                   setShowActions(false);
                 }}
                 className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
@@ -576,8 +606,8 @@ const LedgerRegistration: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {ledgers.map((ledger) => (
-              <tr key={ledger.id} className="hover:bg-gray-50 transition-colors duration-200">
+            {filteredLedgers.map((ledger) => (
+              <tr key={ledger._id} className="hover:bg-gray-50 transition-colors duration-200">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
                     <div className="text-sm font-medium text-gray-900">{ledger.ledgerName}</div>
@@ -623,9 +653,9 @@ const LedgerRegistration: React.FC = () => {
   // Card View
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {ledgers.map((ledger: Ledger) => (
+      {filteredLedgers.map((ledger: Ledger) => (
         <Card
-          key={ledger.id}
+          key={ledger._id}
           className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden"
         >
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
@@ -727,14 +757,45 @@ const LedgerRegistration: React.FC = () => {
     </div>
   );
 
+  // Pagination Controls
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
+      <div className="text-sm text-gray-600">
+        Showing {(currentPage - 1) * pagination?.limit + 1} - {Math.min(currentPage * pagination?.limit, pagination?.total)} of {pagination?.total} ledgers
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+          className="flex items-center gap-1"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Previous
+        </Button>
+        <span className="text-sm text-gray-600">
+          Page {currentPage} of {pagination?.totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.min(pagination?.totalPages || 1, prev + 1))}
+          disabled={currentPage === pagination?.totalPages}
+          className="flex items-center gap-1"
+        >
+          Next
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Ledger Management</h1>
-          <p className="text-gray-600">Manage your ledger information and registrations</p>
-        </div>
+        <HeaderGradient title="Ledger Management" subtitle="Manage your ledger information and registrations"/>
         <Button
           onClick={() => {
             resetForm();
@@ -795,8 +856,24 @@ const LedgerRegistration: React.FC = () => {
         </Card>
       </div>
 
+      {/* Filter Bar */}
+      <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onClearFilters={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setSortBy('nameAsc');
+          setCurrentPage(1);
+        }}
+      />
+
       {/* View Toggle */}
-      {ledgers.length > 0 && (
+      {pagination?.total ? (
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-gray-600" />
@@ -823,10 +900,10 @@ const LedgerRegistration: React.FC = () => {
             </button>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Ledger List */}
-      {ledgers.length === 0 ? (
+      {pagination?.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Users className="w-16 h-16 text-gray-400 mb-4" />
@@ -843,6 +920,7 @@ const LedgerRegistration: React.FC = () => {
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
+          <PaginationControls />
         </>
       )}
 
@@ -898,7 +976,7 @@ const LedgerRegistration: React.FC = () => {
                       <option value="partnership">Partnership</option>
                       <option value="trust">Trust</option>
                     </select>
-                   <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
                         Company *
                       </label>
