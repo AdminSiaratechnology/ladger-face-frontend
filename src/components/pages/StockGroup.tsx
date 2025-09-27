@@ -12,6 +12,8 @@ import { formatSimpleDate } from "../../lib/formatDates";
 import { Input } from "../ui/input";
 import FilterBar from "../customComponents/FilterBar";
 import HeaderGradient from "../customComponents/HeaderGradint";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
+import { CheckAccess } from "../customComponents/CheckAccess";
 
 
 // StockGroup interface (adjusted to match store)
@@ -155,57 +157,57 @@ const StockGroupRegistration: React.FC = () => {
   }), [filteredStockGroups, pagination, statusFilter]);
 
   // Actions dropdown component
-  const ActionsDropdown = ({ stockGroup }: { stockGroup: StockGroup }) => {
-    const [showActions, setShowActions] = useState(false);
+  // const ActionsDropdown = ({ stockGroup }: { stockGroup: StockGroup }) => {
+  //   const [showActions, setShowActions] = useState(false);
     
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+  //   return (
+  //     <div className="relative">
+  //       <Button
+  //         variant="ghost"
+  //         size="sm"
+  //         onClick={() => setShowActions(!showActions)}
+  //         className="h-8 w-8 p-0 hover:bg-gray-100"
+  //       >
+  //         <MoreHorizontal className="h-4 w-4" />
+  //       </Button>
         
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditStockGroup(stockGroup);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteStockGroup(stockGroup?._id);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  //       {showActions && (
+  //         <>
+  //           <div
+  //             className="fixed inset-0 z-10"
+  //             onClick={() => setShowActions(false)}
+  //           />
+  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleEditStockGroup(stockGroup);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+  //             >
+  //               <Edit className="h-4 w-4 mr-2" />
+  //               Edit
+  //             </Button>
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleDeleteStockGroup(stockGroup?._id);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+  //             >
+  //               <Trash2 className="h-4 w-4 mr-2" />
+  //               Delete
+  //             </Button>
+  //           </div>
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
   // Table View Component
   const TableView = () => (
@@ -272,7 +274,12 @@ const StockGroupRegistration: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown stockGroup={stockGroup} />
+                  {/* <ActionsDropdown stockGroup={stockGroup} /> */}
+                                <ActionsDropdown
+  onEdit={() =>  handleEditStockGroup(stockGroup)}
+  onDelete={() =>handleDeleteStockGroup(stockGroup._id || '')}
+  module="InventoryManagement" subModule="StockGroup"
+/>
                 </td>
               </tr>
             ))}
@@ -304,7 +311,12 @@ const StockGroupRegistration: React.FC = () => {
                 <Badge className={`${group.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
                   {group.status}
                 </Badge>
-                <ActionsDropdown stockGroup={group} />
+                {/* <ActionsDropdown stockGroup={group} /> */}
+                                               <ActionsDropdown
+  onEdit={() =>  handleEditStockGroup(group)}
+  onDelete={() =>handleDeleteStockGroup(group._id || '')}
+  module="InventoryManagement" subModule="StockGroup"
+/>
               </div>
             </div>
           </CardHeader>
@@ -391,6 +403,9 @@ const StockGroupRegistration: React.FC = () => {
         
         <HeaderGradient title="Stock Group Management"
         subtitle="Manage your stock group information and categories"/>
+        <CheckAccess module="InventoryManagement" subModule="StockGroup" type="create">
+
+      
        
         <Button 
           onClick={() => {
@@ -402,6 +417,7 @@ const StockGroupRegistration: React.FC = () => {
           <Layers className="w-4 h-4 mr-2" />
           Add Group
         </Button>
+          </CheckAccess>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -508,6 +524,7 @@ const StockGroupRegistration: React.FC = () => {
             <Layers className="w-16 h-16 text-gray-400 mb-4" />
             <p className="text-gray-500 text-lg font-medium mb-2">No stock groups registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first stock group to get started</p>
+            <CheckAccess module="InventoryManagement" subModule="StockGroup" type="create">
             <Button 
               onClick={() => {
                 resetForm();
@@ -517,6 +534,7 @@ const StockGroupRegistration: React.FC = () => {
             >
               Add Your First Group
             </Button>
+            </CheckAccess>
           </CardContent>
         </Card>
       ) : (

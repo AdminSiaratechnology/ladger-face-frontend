@@ -12,6 +12,8 @@ import { formatSimpleDate } from "../../lib/formatDates";
 import { Input } from "../ui/input";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
+import { CheckAccess } from "../customComponents/CheckAccess";
 
 // Unit interface
 interface Unit {
@@ -232,57 +234,57 @@ const UnitManagement: React.FC = () => {
   ];
 
   // Actions dropdown component
-  const ActionsDropdown = ({ unit }: { unit: Unit }) => {
-    const [showActions, setShowActions] = useState(false);
+  // const ActionsDropdown = ({ unit }: { unit: Unit }) => {
+  //   const [showActions, setShowActions] = useState(false);
     
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+  //   return (
+  //     <div className="relative">
+  //       <Button
+  //         variant="ghost"
+  //         size="sm"
+  //         onClick={() => setShowActions(!showActions)}
+  //         className="h-8 w-8 p-0 hover:bg-gray-100"
+  //       >
+  //         <MoreHorizontal className="h-4 w-4" />
+  //       </Button>
         
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditUnit(unit);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteUnit(unit._id || unit.id.toString());
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  //       {showActions && (
+  //         <>
+  //           <div
+  //             className="fixed inset-0 z-10"
+  //             onClick={() => setShowActions(false)}
+  //           />
+  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleEditUnit(unit);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+  //             >
+  //               <Edit className="h-4 w-4 mr-2" />
+  //               Edit
+  //             </Button>
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleDeleteUnit(unit._id || unit.id.toString());
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+  //             >
+  //               <Trash2 className="h-4 w-4 mr-2" />
+  //               Delete
+  //             </Button>
+  //           </div>
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
   // Table View Component
   const TableView = () => (
@@ -356,7 +358,13 @@ const UnitManagement: React.FC = () => {
                   {formatSimpleDate( unit.createdAt)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown unit={unit} />
+                  {/* <ActionsDropdown unit={unit} /> */}
+                          <ActionsDropdown
+  onEdit={() =>  handleEditUnit(unit)}
+  onDelete={() =>handleDeleteUnit(unit._id || '')}
+  module="InventoryManagement" subModule="Unit"
+/>
+
                 </td>
               </tr>
             ))}
@@ -389,7 +397,12 @@ const UnitManagement: React.FC = () => {
                   )}
                 </div>
               </div>
-              <ActionsDropdown unit={unit} />
+              {/* <ActionsDropdown unit={unit} /> */}
+                         <ActionsDropdown
+  onEdit={() =>  handleEditUnit(unit)}
+  onDelete={() =>handleDeleteUnit(unit._id || '')}
+  module="InventoryManagement" subModule="Unit" 
+/>
             </div>
           </CardHeader>
           
@@ -487,6 +500,8 @@ const UnitManagement: React.FC = () => {
        
         <HeaderGradient title="Unit of Measurement"
         subtitle="Manage your unit measurements and conversions"/>
+        <CheckAccess module="InventoryManagement" subModule="unit" type="create">
+
        
         <Button 
           onClick={() => {
@@ -494,10 +509,11 @@ const UnitManagement: React.FC = () => {
             setOpen(true);
           }} 
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-        >
+          >
           <Calculator className="w-4 h-4 mr-2" />
           Add Unit
         </Button>
+          </CheckAccess>
       </div>
 
       {/* Stats Cards */}
@@ -605,6 +621,8 @@ const UnitManagement: React.FC = () => {
             <Calculator className="w-16 h-16 text-gray-400 mb-4" />
             <p className="text-gray-500 text-lg font-medium mb-2">No units registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first unit to get started</p>
+                    <CheckAccess module="InventoryManagement" subModule="unit" type="create">
+
             <Button 
               onClick={() => {
                 resetForm();
@@ -614,6 +632,7 @@ const UnitManagement: React.FC = () => {
             >
               Add Your First Unit
             </Button>
+            </CheckAccess>
           </CardContent>
         </Card>
       ) : (

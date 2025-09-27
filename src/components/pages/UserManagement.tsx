@@ -51,6 +51,8 @@ import { useUserManagementStore } from "../../../store/userManagementStore";
 import {timeAgo} from "../../lib/timeAgo"
 import CustomInputBox from "../customComponents/CustomInputBox";
 import HeaderGradient from "../customComponents/HeaderGradint";
+import { CheckAccess } from "../customComponents/CheckAccess";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
 
 
 
@@ -209,13 +211,22 @@ export const UserManagement: React.FC = () => {
   const availableModules = {
     BusinessManagement: {
       CustomerRegistration: { create: false, read: false, update: false, delete: false, extra: [] },
-      Vendor: { create: false, read: false, update: false, delete: false, extra: [] }
+      Vendor: { create: false, read: false, update: false, delete: false, extra: [] },
+      Agent: { create: false, read: false, update: false, delete: false, extra: [] },
+      Ledger: { create: false, read: false, update: false, delete: false, extra: [] }
+
+    },
+    UserManagement: {
+      User: { create: false, read: false, update: false, delete: false, extra: [] },
+      
+
     },
     InventoryManagement: {
       Godown: { create: false, read: false, update: false, delete: false, extra: [] },
       StockGroup: { create: false, read: false, update: false, delete: false, extra: [] },
       StockCategory: { create: false, read: false, update: false, delete: false, extra: [] },
       Product: { create: false, read: false, update: false, delete: false, extra: [] },
+      Unit: { create: false, read: false, update: false, delete: false, extra: [] },
       Order: { create: false, read: false, update: false, delete: false, extra: [] },
       Payment: { create: false, read: false, update: false, delete: false, extra: [] }
     },
@@ -534,14 +545,17 @@ export const UserManagement: React.FC = () => {
     title="User Management"
     subtitle="Manage users, roles, and permissions across companies"
   />
+   <CheckAccess  module="UserManagement" subModule="User" type="create">
+
         
   <Button
     onClick={() => setOpen(true)}
     className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-4 sm:px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-  >
+    >
     <UserPlus className="w-4 h-4 mr-2" />
     Add User
   </Button>
+    </CheckAccess>
 </div>
 
       {/* Stats Cards */}
@@ -657,12 +671,15 @@ export const UserManagement: React.FC = () => {
             <p className="text-gray-400 text-sm mb-6">
               Create your first user to get started
             </p>
+             <CheckAccess  module="BusinessManagement" subModule="Vendor" type="create">
+
             <Button
               onClick={() => setOpen(true)}
               className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
-            >
+              >
               Add Your First User
             </Button>
+              </CheckAccess>
           </CardContent>
         </Card>
       ) : (
@@ -763,7 +780,7 @@ export const UserManagement: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="relative">
-  <DropdownMenu>
+  {/* <DropdownMenu>
     <DropdownMenuTrigger >
       <Button
         variant="ghost"
@@ -783,6 +800,7 @@ export const UserManagement: React.FC = () => {
         Actions
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
+
 
       <DropdownMenuItem onClick={() => handleEditUser(user)}>
         <Edit className="w-4 h-4 mr-2 text-blue-500" />
@@ -807,7 +825,12 @@ export const UserManagement: React.FC = () => {
         Delete User
       </DropdownMenuItem>
     </DropdownMenuContent>
-  </DropdownMenu>
+  </DropdownMenu> */}
+                               <ActionsDropdown
+  onEdit={() =>  handleEditUser(user)}
+  onDelete={() =>handleDeleteUser(user._id|| '')}
+ module="UserManagement" subModule="User" 
+/>
 
 </div>
                       </TableCell>

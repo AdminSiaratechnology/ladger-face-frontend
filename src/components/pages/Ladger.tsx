@@ -34,6 +34,8 @@ import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
 import { useCompanyStore } from "../../../store/companyStore";
 import { useLedgerStore } from "../../../store/ladgerStore";
+import { CheckAccess } from "../customComponents/CheckAccess";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
 
 // Interfaces
 interface Bank {
@@ -543,53 +545,53 @@ const LedgerRegistration: React.FC = () => {
   }, [searchTerm, statusFilter, sortBy, currentPage, filterLedgers]);
 
   // Actions Dropdown
-  const ActionsDropdown = ({ ledger }: { ledger: Ledger }) => {
-    const [showActions, setShowActions] = useState(false);
+  // const ActionsDropdown = ({ ledger }: { ledger: Ledger }) => {
+  //   const [showActions, setShowActions] = useState(false);
 
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-        {showActions && (
-          <>
-            <div className="fixed inset-0 z-10" onClick={() => setShowActions(false)} />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditLedger(ledger);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteLedger(ledger._id || ledger.id.toString());
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  //   return (
+  //     <div className="relative">
+  //       <Button
+  //         variant="ghost"
+  //         size="sm"
+  //         onClick={() => setShowActions(!showActions)}
+  //         className="h-8 w-8 p-0 hover:bg-gray-100"
+  //       >
+  //         <MoreHorizontal className="h-4 w-4" />
+  //       </Button>
+  //       {showActions && (
+  //         <>
+  //           <div className="fixed inset-0 z-10" onClick={() => setShowActions(false)} />
+  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleEditLedger(ledger);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+  //             >
+  //               <Edit className="h-4 w-4 mr-2" />
+  //               Edit
+  //             </Button>
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleDeleteLedger(ledger._id || ledger.id.toString());
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+  //             >
+  //               <Trash2 className="h-4 w-4 mr-2" />
+  //               Delete
+  //             </Button>
+  //           </div>
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
   // Table View
   const TableView = () => (
@@ -640,7 +642,12 @@ const LedgerRegistration: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown ledger={ledger} />
+                  {/* <ActionsDropdown ledger={ledger} /> */}
+                                                      <ActionsDropdown
+  onEdit={() =>  handleEditLedger(ledger)}
+  onDelete={() =>handleDeleteLedger(ledger._id || '')}
+ module="BusinessManagement" subModule="Ledger" 
+/>
                 </td>
               </tr>
             ))}
@@ -678,7 +685,12 @@ const LedgerRegistration: React.FC = () => {
                 >
                   {ledger.ledgerStatus}
                 </Badge>
-                <ActionsDropdown ledger={ledger} />
+                {/* <ActionsDropdown ledger={ledger} /> */}
+                                                                    <ActionsDropdown
+  onEdit={() =>  handleEditLedger(ledger)}
+  onDelete={() =>handleDeleteLedger(ledger._id || '')}
+ module="BusinessManagement" subModule="Ledger" 
+/>
               </div>
             </div>
           </CardHeader>
@@ -909,12 +921,15 @@ const LedgerRegistration: React.FC = () => {
             <Users className="w-16 h-16 text-gray-400 mb-4" />
             <p className="text-gray-500 text-lg font-medium mb-2">No ledgers registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first ledger to get started</p>
+             <CheckAccess  module="BusinessManagement" subModule="Ledger" type="create">
+
             <Button
               onClick={() => setOpen(true)}
               className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
-            >
+              >
               Add Your First Ledger
             </Button>
+              </CheckAccess>
           </CardContent>
         </Card>
       ) : (
@@ -1350,9 +1365,12 @@ const LedgerRegistration: React.FC = () => {
                       onChange={handleBankChange}
                     />
                     <div className="flex items-end">
+                          <CheckAccess  module="BusinessManagement" subModule="Ledger" type="create">
+
                       <Button onClick={addBank} className="bg-teal-600 hover:bg-teal-700 w-full">
                         <Plus className="w-4 h-4 mr-1" /> Add Bank
                       </Button>
+                          </CheckAccess>
                     </div>
                   </div>
                   {formData.banks.length > 0 && (

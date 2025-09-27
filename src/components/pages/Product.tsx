@@ -37,6 +37,8 @@ import { useProductStore } from "../../../store/productStore";
 import { Input } from "../ui/input";
 import FilterBar from "../customComponents/FilterBar";
 import HeaderGradient from "../customComponents/HeaderGradint";
+import { CheckAccess } from "../customComponents/CheckAccess";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
 
 
 // Interfaces
@@ -597,57 +599,57 @@ const resetForm = () => {
   };
 
   // Actions dropdown component
-  const ActionsDropdown = ({ product }: { product: Product }) => {
-    const [showActions, setShowActions] = useState(false);
+  // const ActionsDropdown = ({ product }: { product: Product }) => {
+  //   const [showActions, setShowActions] = useState(false);
     
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+  //   return (
+  //     <div className="relative">
+  //       <Button
+  //         variant="ghost"
+  //         size="sm"
+  //         onClick={() => setShowActions(!showActions)}
+  //         className="h-8 w-8 p-0 hover:bg-gray-100"
+  //       >
+  //         <MoreHorizontal className="h-4 w-4" />
+  //       </Button>
         
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditProduct(product);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteProduct(product._id || product.id.toString());
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  //       {showActions && (
+  //         <>
+  //           <div
+  //             className="fixed inset-0 z-10"
+  //             onClick={() => setShowActions(false)}
+  //           />
+  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleEditProduct(product);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+  //             >
+  //               <Edit className="h-4 w-4 mr-2" />
+  //               Edit
+  //             </Button>
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleDeleteProduct(product._id || product.id.toString());
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+  //             >
+  //               <Trash2 className="h-4 w-4 mr-2" />
+  //               Delete
+  //             </Button>
+  //           </div>
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
   // Table View Component
   const TableView = () => {
@@ -729,7 +731,12 @@ const resetForm = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown product={product} />
+                  {/* <ActionsDropdown product={product} /> */}
+                                                   <ActionsDropdown
+                    onEdit={() =>  handleEditProduct(product)}
+                    onDelete={() =>handleDeleteProduct(product._id || '')}
+                    module="InventoryManagement" subModule="product"
+                  />
                 </td>
               </tr>)
   })}
@@ -765,7 +772,12 @@ const resetForm = () => {
                 <Badge className={`${product?.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
                   {product.status}
                 </Badge>
-                <ActionsDropdown product={product} />
+                {/* <ActionsDropdown product={product} /> */}
+                                                <ActionsDropdown
+                    onEdit={() =>  handleEditProduct(product)}
+                    onDelete={() =>handleDeleteProduct(product._id || '')}
+                    module="InventoryManagement" subModule="product"
+                  />
               </div>
             </div>
           </CardHeader>
@@ -868,6 +880,8 @@ const resetForm = () => {
         title="Product Management"
         subtitle="Manage your product inventory and details"
         />
+                <CheckAccess module="InventoryManagement" subModule="product" type="create">
+        
         <Button
           onClick={() => {
             resetForm();
@@ -878,6 +892,7 @@ const resetForm = () => {
           <Package className="w-4 h-4 mr-2" />
           Add Product
         </Button>
+        </CheckAccess>
       </div>
 
       {/* Stats Cards */}
@@ -991,6 +1006,8 @@ const resetForm = () => {
             <p className="text-gray-400 text-sm mb-6">
               Create your first product to get started
             </p>
+                    <CheckAccess module="InventoryManagement" subModule="product" type="create">
+            
             <Button
               onClick={() => {
                 resetForm();
@@ -1000,6 +1017,7 @@ const resetForm = () => {
             >
               Add Your First Product
             </Button>
+            </CheckAccess>
           </CardContent>
         </Card>
       ) : (

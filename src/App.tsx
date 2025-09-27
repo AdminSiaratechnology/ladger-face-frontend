@@ -24,30 +24,31 @@ import StockGroup from './components/pages/StockGroup';
 import UOM from './components/pages/UOM';
 import PriceList from "./components/pages/PriceListPage";
 import { useAuthStore } from '../store/authStore';
+import { checkPermission } from './lib/utils';
 
 // Utility function to check permissions
-function checkPermission(user, module, subModule) {
-  // If user has all permissions, allow access
-  if (user.allPermissions) {
-    return true;
-  }
+// function checkPermission(user, module, subModule) {
+//   // If user has all permissions, allow access
+//   if (user.allPermissions) {
+//     return true;
+//   }
 
-  // Check if user has access array and it's not empty
-  if (!user.access || user.access.length === 0) {
-    return false;
-  }
+//   // Check if user has access array and it's not empty
+//   if (!user.access || user.access.length === 0) {
+//     return false;
+//   }
 
-  // Check permissions in the access array
-  for (const accessItem of user.access) {
-    const modules = accessItem.modules;
+//   // Check permissions in the access array
+//   for (const accessItem of user.access) {
+//     const modules = accessItem.modules;
     
-    if (modules && modules[module] && modules[module][subModule]) {
-      return modules[module][subModule].read === true;
-    }
-  }
+//     if (modules && modules[module] && modules[module][subModule]) {
+//       return modules[module][subModule].read === true;
+//     }
+//   }
 
-  return false;
-}
+//   return false;
+// }
 
 // Unauthorized Access Component
 function UnauthorizedAccess() {
@@ -81,7 +82,7 @@ function ProtectedRoute({ children, module, subModule, allowedRoles }: {
 
   // If specific module and subModule are provided, check permissions
   if (module && subModule) {
-    const hasPermission = checkPermission(user, module, subModule);
+    const hasPermission = checkPermission({user, module, subModule,type:"read"});
     if (!hasPermission) {
       return <UnauthorizedAccess />;
     }

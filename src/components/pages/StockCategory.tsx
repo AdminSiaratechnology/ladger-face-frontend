@@ -12,6 +12,8 @@ import { formatSimpleDate } from "../../lib/formatDates";
 import { Input } from "../ui/input";
 import FilterBar from "../customComponents/FilterBar";
 import HeaderGradient from "../customComponents/HeaderGradint";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
+import { CheckAccess } from "../customComponents/CheckAccess";
 
 
 // StockCategory interface
@@ -117,10 +119,12 @@ const StockCategoryRegistration: React.FC = () => {
       ...stockCategory,
       id: stockCategory.id || 0 // Ensure id is set
     });
+    console.log(stockCategory,"fsdfsdf")
     setOpen(true);
   };
 
   const handleDeleteStockCategory = (stockCategoryId: string): void => {
+    console.log(stockCategoryId,"stockCategoryId")
     deleteStockCategory(stockCategoryId);
   };
 
@@ -176,57 +180,57 @@ const StockCategoryRegistration: React.FC = () => {
   };
 
   // Actions dropdown component
-  const ActionsDropdown = ({ stockCategory }: { stockCategory: StockCategory }) => {
-    const [showActions, setShowActions] = useState(false);
+  // const ActionsDropdown = ({ stockCategory }: { stockCategory: StockCategory }) => {
+  //   const [showActions, setShowActions] = useState(false);
     
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+  //   return (
+  //     <div className="relative">
+  //       <Button
+  //         variant="ghost"
+  //         size="sm"
+  //         onClick={() => setShowActions(!showActions)}
+  //         className="h-8 w-8 p-0 hover:bg-gray-100"
+  //       >
+  //         <MoreHorizontal className="h-4 w-4" />
+  //       </Button>
         
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditStockCategory(stockCategory);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteStockCategory(stockCategory._id || stockCategory.id.toString());
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  //       {showActions && (
+  //         <>
+  //           <div
+  //             className="fixed inset-0 z-10"
+  //             onClick={() => setShowActions(false)}
+  //           />
+  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleEditStockCategory(stockCategory);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+  //             >
+  //               <Edit className="h-4 w-4 mr-2" />
+  //               Edit
+  //             </Button>
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleDeleteStockCategory(stockCategory._id || stockCategory.id.toString());
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+  //             >
+  //               <Trash2 className="h-4 w-4 mr-2" />
+  //               Delete
+  //             </Button>
+  //           </div>
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
   // Table View Component
   const TableView = () => (
@@ -303,7 +307,12 @@ const StockCategoryRegistration: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown stockCategory={stockCategory} />
+                  {/* <ActionsDropdown stockCategory={stockCategory} /> */}
+                                                                 <ActionsDropdown
+  onEdit={() =>  handleEditStockCategory(stockCategory)}
+  onDelete={() =>handleDeleteStockCategory(stockCategory._id || '')}
+  module="InventoryManagement" subModule="StockCategory"
+/>
                 </td>
               </tr>
             ))}
@@ -334,7 +343,12 @@ const StockCategoryRegistration: React.FC = () => {
                 <Badge className={`${category.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
                   {category.status}
                 </Badge>
-                <ActionsDropdown stockCategory={category} />
+                {/* <ActionsDropdown stockCategory={category} /> */}
+                <ActionsDropdown
+  onEdit={() =>  handleEditStockCategory(category)}
+  onDelete={() =>handleDeleteStockCategory(category._id || '')}
+  module="InventoryManagement" subModule="StockCategory"
+/>
               </div>
             </div>
           </CardHeader>
@@ -420,6 +434,8 @@ const StockCategoryRegistration: React.FC = () => {
         <HeaderGradient title="Stock Category Management"
         subtitle="Manage your stock category information and classifications"
         />
+        <CheckAccess module="InventoryManagement" subModule="StockCategory" type="create">
+
        
         <Button 
           onClick={() => {
@@ -427,10 +443,11 @@ const StockCategoryRegistration: React.FC = () => {
             setOpen(true);
           }} 
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-        >
+          >
           <Package className="w-4 h-4 mr-2" />
           Add Category
         </Button>
+          </CheckAccess>
       </div>
 
       {/* Stats Cards */}
@@ -538,6 +555,7 @@ const StockCategoryRegistration: React.FC = () => {
             <Package className="w-16 h-16 text-gray-400 mb-4" />
             <p className="text-gray-500 text-lg font-medium mb-2">No stock categories registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first stock category to get started</p>
+             <CheckAccess module="InventoryManagement" subModule="StockCategory" type="create">
             <Button 
               onClick={() => {
                 resetForm();
@@ -547,6 +565,7 @@ const StockCategoryRegistration: React.FC = () => {
             >
               Add Your First Category
             </Button>
+            </CheckAccess>
           </CardContent>
         </Card>
       ) : (

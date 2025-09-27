@@ -32,6 +32,7 @@ import {useGodownStore} from "../../../store/godownStore"
 import {useCompanyStore} from "../../../store/companyStore"
 import FilterBar from "../customComponents/FilterBar";
 import HeaderGradient from "../customComponents/HeaderGradint";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
 
 // Godown interface (updated with status enum)
 interface Godown {
@@ -232,57 +233,63 @@ const GodownRegistration: React.FC = () => {
   ];
 
   // Actions dropdown component
-  const ActionsDropdown = ({ godown }: { godown: Godown }) => {
-    const [showActions, setShowActions] = useState(false);
+  // const ActionsDropdown = ({ godown }: { godown: Godown }) => {
+  //   const [showActions, setShowActions] = useState(false);
     
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+  //   return (
+  //     <div className="relative">
+  //       <Button
+  //         variant="ghost"
+  //         size="sm"
+  //         onClick={() => setShowActions(!showActions)}
+  //         className="h-8 w-8 p-0 hover:bg-gray-100"
+  //       >
+  //         <MoreHorizontal className="h-4 w-4" />
+  //       </Button>
         
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditGodown(godown);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteGodown(godown._id || '');
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  //       {showActions && (
+  //         <>
+  //           <div
+  //             className="fixed inset-0 z-10"
+  //             onClick={() => setShowActions(false)}
+  //           />
+  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleEditGodown(godown);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+  //             >
+  //               <Edit className="h-4 w-4 mr-2" />
+  //               Edit
+  //             </Button>
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleDeleteGodown(godown._id || '');
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+  //             >
+  //               <Trash2 className="h-4 w-4 mr-2" />
+  //               Delete
+  //             </Button>
+  //           </div>
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // };
+
+//   <ActionsDropdown
+//   onEdit={() =>  handleEditGodown(godowns)}
+//   onDelete={() =>handleDeleteGodown(godown._id || '');}
+// />
+
 
   // Table View Component (updated)
   const TableView = () => (
@@ -380,7 +387,12 @@ const GodownRegistration: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown godown={godown} />
+                  <ActionsDropdown
+  onEdit={() =>  handleEditGodown(godown)}
+  onDelete={() =>handleDeleteGodown(godown._id || '')}
+  module="InventoryManagement" subModule="Godown"
+  
+/>
                 </td>
               </tr>
             ))}
@@ -419,7 +431,12 @@ const GodownRegistration: React.FC = () => {
                   </Badge>
                 </div>
               </div>
-              <ActionsDropdown godown={godown} />
+              {/* <ActionsDropdown godown={godown} /> */}
+              <ActionsDropdown
+  onEdit={() =>  handleEditGodown(godown)}
+  onDelete={() =>handleDeleteGodown(godown._id || '')}
+  module="InventoryManagement" subModule="Godown"
+/>
             </div>
           </CardHeader>
           

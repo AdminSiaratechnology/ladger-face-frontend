@@ -38,6 +38,8 @@ import { Country, State, City } from 'country-state-city';
 import { useCustomerStore } from "../../../store/customerStore"; // Assuming a store similar to productStore
 import { useCompanyStore } from "../../../store/companyStore";
 import HeaderGradient from "../customComponents/HeaderGradint";
+import { CheckAccess } from "../customComponents/CheckAccess";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
 
 // Interfaces (adapted from provided Customer interface)
 interface Bank {
@@ -691,57 +693,57 @@ const CustomerRegistrationPage: React.FC = () => {
   };
 
   // Actions dropdown component
-  const ActionsDropdown = ({ customer }: { customer: Customer }) => {
-    const [showActions, setShowActions] = useState(false);
+  // const ActionsDropdown = ({ customer }: { customer: Customer }) => {
+  //   const [showActions, setShowActions] = useState(false);
     
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+  //   return (
+  //     <div className="relative">
+  //       <Button
+  //         variant="ghost"
+  //         size="sm"
+  //         onClick={() => setShowActions(!showActions)}
+  //         className="h-8 w-8 p-0 hover:bg-gray-100"
+  //       >
+  //         <MoreHorizontal className="h-4 w-4" />
+  //       </Button>
         
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditCustomer(customer);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteCustomer(customer._id || customer.id.toString());
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  //       {showActions && (
+  //         <>
+  //           <div
+  //             className="fixed inset-0 z-10"
+  //             onClick={() => setShowActions(false)}
+  //           />
+  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleEditCustomer(customer);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+  //             >
+  //               <Edit className="h-4 w-4 mr-2" />
+  //               Edit
+  //             </Button>
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleDeleteCustomer(customer._id || customer.id.toString());
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+  //             >
+  //               <Trash2 className="h-4 w-4 mr-2" />
+  //               Delete
+  //             </Button>
+  //           </div>
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
   // Table View Component
   const TableView = () => (
@@ -800,7 +802,12 @@ const CustomerRegistrationPage: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown customer={customer} />
+                  {/* <ActionsDropdown customer={customer} /> */}
+                              <ActionsDropdown
+  onEdit={() =>  handleEditCustomer(customer)}
+  onDelete={() =>handleDeleteCustomer(customer._id || '')}
+  module="BusinessManagement" subModule="CustomerRegistration"
+/>
                 </td>
               </tr>
             ))}
@@ -835,7 +842,12 @@ const CustomerRegistrationPage: React.FC = () => {
                 <Badge className={`${customer.customerStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
                   {customer.customerStatus}
                 </Badge>
-                <ActionsDropdown customer={customer} />
+                {/* <ActionsDropdown customer={customer} /> */}
+                             <ActionsDropdown
+  onEdit={() =>  handleEditCustomer(customer)}
+  onDelete={() =>handleDeleteCustomer(customer._id || '')}
+  module="BusinessManagement" subModule="CustomerRegistration"
+/>
               </div>
             </div>
           </CardHeader>
@@ -1034,6 +1046,9 @@ const CustomerRegistrationPage: React.FC = () => {
         
         <HeaderGradient title="Customer Management"
         subtitle="Manage your customer information and registrations"/>
+        <CheckAccess  module="BusinessManagement" subModule="CustomerRegistration" type="create">
+
+       
         <Button 
           onClick={() => {
             resetForm();
@@ -1044,6 +1059,7 @@ const CustomerRegistrationPage: React.FC = () => {
           <Users className="w-4 h-4 mr-2" />
           Add Customer
         </Button>
+         </CheckAccess>
       </div>
 
       {/* Stats Cards */}
@@ -1151,12 +1167,14 @@ const CustomerRegistrationPage: React.FC = () => {
             <Users className="w-16 h-16 text-gray-400 mb-4" />
             <p className="text-gray-500 text-lg font-medium mb-2">No customers registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first customer to get started</p>
+            <CheckAccess  module="BusinessManagement" subModule="CustomerRegistration" type="create">
             <Button 
               onClick={() => setOpen(true)}
               className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
             >
               Add Your First Customer
             </Button>
+            </CheckAccess>
           </CardContent>
         </Card>
       ) : (
