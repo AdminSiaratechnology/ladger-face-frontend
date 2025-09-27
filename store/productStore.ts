@@ -1,3 +1,4 @@
+// Updated useProductStore with pagination and filter support
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api";
@@ -29,6 +30,13 @@ interface OpeningQuantity {
   amount: number;
 }
 
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 interface Product {
   id: number;
   _id: string;
@@ -57,30 +65,50 @@ interface Product {
 
 interface ProductStore {
   products: Product[];
+  pagination: Pagination;
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchProducts: () => Promise<void>;
-  addProduct: (product: Product) => Promise<void>;
-  updateProduct: (params: { id: number; product: Product }) => Promise<void>;
-  deleteProduct: (id: number) => Promise<void>;
+  fetchProducts: (page?: number, limit?: number) => Promise<void>;
+  addProduct: (product: FormData) => Promise<void>;
+  updateProduct: (params: { id: string; product: FormData }) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  filterProducts: (
+    searchTerm: string,
+    statusFilter: 'all' | 'Active' | 'Inactive',
+    sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    page?: number,
+    limit?: number
+  ) => Promise<Product[]>;
 }
 
 export const useProductStore = create<ProductStore>()(
   persist(
     (set, get) => ({
       products: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      },
       loading: false,
       error: false,
       errorMessage: null,
 
-      // ✅ Fetch all products
-      fetchProducts: async () => {
+      // ✅ Fetch products with pagination
+      fetchProducts: async (page = 1, limit = 10) => {
         set({ loading: true, error: false });
         try {
-          const result = await api.fetchProducts();
+          const queryParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const result = await api.fetchProducts({ queryParams: queryParams.toString() }); // Adjust api call
           set({
             products: result?.data?.items || [],
+            pagination: result?.data?.pagination,
             loading: false,
           });
         } catch (error: any) {
@@ -121,7 +149,7 @@ export const useProductStore = create<ProductStore>()(
           const result = await api.updateProduct(id, product);
           set({
             products: get().products.map((p) =>
-              p?.["_id"] == id ? result?.data : p
+              p?._id === id ? result?.data : p
             ),
             loading: false,
           });
@@ -141,12 +169,7 @@ export const useProductStore = create<ProductStore>()(
         try {
           await api.deleteProduct(id);
           set({
-            products: get().products.filter((p) =>{
-              console.log(p,id,"ojkjojoojoj")
-
-              return p?.["_id"] !== id
-            } )
-            ,
+            products: get().products.filter((p) => p?._id !== id),
             loading: false,
           });
         } catch (error: any) {
@@ -156,6 +179,46 @@ export const useProductStore = create<ProductStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to delete product",
           });
+        }
+      },
+
+      filterProducts: async (
+        searchTerm: string,
+        statusFilter: 'all' | 'Active' | 'Inactive',
+        sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+        page = 1,
+        limit = 10
+      ) => {
+        try {
+          set({ loading: true, error: false });
+
+          const queryParams = new URLSearchParams({
+            search: searchTerm,
+            status: statusFilter !== 'all' ? statusFilter : '',
+            sortBy: sortBy.includes('name') ? 'name' : 'createdAt',
+            sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const result = await api.fetchProducts({ queryParams: queryParams.toString() }); // Adjust api call
+          console.log("Filter result for products:", result);
+
+          set({
+            products: result?.data?.items || [],
+            pagination: result?.data?.pagination,
+            loading: false,
+          });
+
+          return result?.data?.items || [];
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: true,
+            errorMessage:
+              error?.response?.data?.message || "Failed to filter products",
+          });
+          return [];
         }
       },
     }),

@@ -1,3 +1,4 @@
+// Updated useCustomerStore with pagination and filter support
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api"; 
@@ -18,6 +19,13 @@ interface RegistrationDocument {
   file: File;
   previewUrl: string;
   fileName: string;
+}
+
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 interface Customer {
@@ -178,13 +186,21 @@ interface CustomerForm {
 
 interface CustomerStore {
   customers: Customer[];
+  pagination: Pagination;
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchCustomers: () => Promise<void>;
-  addCustomer: (customer: Customer) => Promise<void>;
-  updateCustomer: (params: { id: number; customer: Customer }) => Promise<void>;
-  deleteCustomer: (id: number) => Promise<void>;
+  fetchCustomers: (page?: number, limit?: number) => Promise<void>;
+  addCustomer: (customer: FormData) => Promise<void>;
+  updateCustomer: (params: { id: string; customer: FormData }) => Promise<void>;
+  deleteCustomer: (id: string) => Promise<void>;
+  filterCustomers: (
+    searchTerm: string,
+    statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'prospect',
+    sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    page?: number,
+    limit?: number
+  ) => Promise<Customer[]>;
 }
 
 
@@ -192,20 +208,32 @@ export const useCustomerStore = create<CustomerStore>()(
   persist(
     (set, get) => ({
       customers: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      },
       loading: false,
       error: false,
       errorMessage: null,
 
      
-      fetchCustomers: async () => {
+      fetchCustomers: async (page = 1, limit = 10) => {
         set({ loading: true, error: false });
         try {
-          const result = await api.fetchCustomers();
+          const queryParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const result = await api.fetchCustomers({ queryParams: queryParams.toString() }); // Adjust api call
           set({
-            customers: result?.data || [],
+            customers: result?.data?.customers || [],
+            pagination: result?.data?.pagination,
             loading: false,
           });
-          console.log(result?.data,"result?.data?")
+          console.log(result?.data?.customers,"result?.data?")
         } catch (error: any) {
           set({
             loading: false,
@@ -221,8 +249,9 @@ export const useCustomerStore = create<CustomerStore>()(
         set({ loading: true });
         try {
           const result = await api.createCustomer(customer);
+          const newCustomer: Customer = result.data;
           set({
-            customers: [...get().customers, result?.data],
+            customers: [...get().customers, newCustomer],
             loading: false,
           });
         } catch (error: any) {
@@ -265,7 +294,7 @@ export const useCustomerStore = create<CustomerStore>()(
         try {
           await api.deleteCustomer(id);
           set({
-            customers: get().customers.filter((c) => c.id !== id),
+            customers: get().customers.filter((c) => c._id !== id),
             loading: false,
           });
         } catch (error: any) {
@@ -275,6 +304,46 @@ export const useCustomerStore = create<CustomerStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to delete customer",
           });
+        }
+      },
+
+      filterCustomers: async (
+        searchTerm: string,
+        statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'prospect',
+        sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+        page = 1,
+        limit = 10
+      ) => {
+        try {
+          set({ loading: true, error: false });
+
+          const queryParams = new URLSearchParams({
+            search: searchTerm,
+            status: statusFilter !== 'all' ? statusFilter : '',
+            sortBy: sortBy.includes('name') ? 'customerName' : 'createdAt',
+            sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const result = await api.fetchCustomers({ queryParams: queryParams.toString() }); // Adjust api call
+          console.log("Filter result for customers:", result);
+
+          set({
+            customers: result?.data?.customers || [],
+            pagination: result?.data?.pagination,
+            loading: false,
+          });
+
+          return result?.data?.customers || [];
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: true,
+            errorMessage:
+              error?.response?.data?.message || "Failed to filter customers",
+          });
+          return [];
         }
       },
     }),

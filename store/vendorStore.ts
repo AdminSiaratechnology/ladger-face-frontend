@@ -1,3 +1,4 @@
+// Updated useVendorStore with pagination and filter support
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api"; 
@@ -19,6 +20,13 @@ interface RegistrationDocument {
   file: File;
   previewUrl: string;
   fileName: string;
+}
+
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 interface Vendor {
@@ -93,7 +101,7 @@ interface Vendor {
   allowPartialShipments: boolean;
   allowBackOrders: boolean;
   autoInvoice: boolean;
-  logo: string | null;
+  logo: string | null; // Will handle as previewUrl or file
   notes: string;
   createdAt: string;
   registrationDocs: RegistrationDocument[];
@@ -178,29 +186,50 @@ interface VendorForm {
 
 interface VendorStore {
   vendors: Vendor[];
+  pagination: Pagination;
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchVendors: () => Promise<void>;
-  addVendor: (vendor: VendorForm) => Promise<void>;
-  updateVendor: (params: { id: string; vendor: VendorForm }) => Promise<void>;
+  fetchVendors: (page?: number, limit?: number) => Promise<void>;
+  addVendor: (vendor: FormData) => Promise<void>;
+  updateVendor: (params: { id: string; vendor: FormData }) => Promise<void>;
   deleteVendor: (id: string) => Promise<void>;
+  filterVendors: (
+    searchTerm: string,
+    statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'prospect',
+    sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    page?: number,
+    limit?: number
+  ) => Promise<Vendor[]>;
 }
+
 
 export const useVendorStore = create<VendorStore>()(
   persist(
     (set, get) => ({
       vendors: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      },
       loading: false,
       error: false,
       errorMessage: null,
 
-      fetchVendors: async () => {
+      fetchVendors: async (page = 1, limit = 10) => {
         set({ loading: true, error: false });
         try {
-          const result = await api.fetchVendors();
+          const queryParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const result = await api.fetchVendors({ queryParams: queryParams.toString() }); // Adjust api call
           set({
-            vendors: result?.data || [],
+            vendors: result?.data?.vendors || [],
+            pagination: result?.data?.pagination,
             loading: false,
           });
           console.log(result?.data,"result?.data?")
@@ -218,8 +247,9 @@ export const useVendorStore = create<VendorStore>()(
         set({ loading: true });
         try {
           const result = await api.createVendor(vendor);
+          const newVendor: Vendor = result.data;
           set({
-            vendors: [...get().vendors, result?.data],
+            vendors: [...get().vendors, newVendor],
             loading: false,
           });
         } catch (error: any) {
@@ -270,6 +300,46 @@ export const useVendorStore = create<VendorStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to delete vendor",
           });
+        }
+      },
+
+      filterVendors: async (
+        searchTerm: string,
+        statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'prospect',
+        sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+        page = 1,
+        limit = 10
+      ) => {
+        try {
+          set({ loading: true, error: false });
+
+          const queryParams = new URLSearchParams({
+            search: searchTerm,
+            status: statusFilter !== 'all' ? statusFilter : '',
+            sortBy: sortBy.includes('name') ? 'vendorName' : 'createdAt',
+            sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const result = await api.fetchVendors({ queryParams: queryParams.toString() }); // Adjust api call
+          console.log("Filter result for vendors:", result);
+
+          set({
+            vendors: result?.data?.vendors || [],
+            pagination: result?.data?.pagination,
+            loading: false,
+          });
+
+          return result?.data?.vendors || [];
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: true,
+            errorMessage:
+              error?.response?.data?.message || "Failed to filter vendors",
+          });
+          return [];
         }
       },
     }),

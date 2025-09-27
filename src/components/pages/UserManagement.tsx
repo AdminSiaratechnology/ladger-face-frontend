@@ -25,7 +25,9 @@ import {
   Search,
   Filter,
   Edit,
-  MoreHorizontal
+  MoreHorizontal,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Switch } from "../ui/switch";
 import {
@@ -49,6 +51,8 @@ import { useUserManagementStore } from "../../../store/userManagementStore";
 import {timeAgo} from "../../lib/timeAgo"
 import CustomInputBox from "../customComponents/CustomInputBox";
 import HeaderGradient from "../customComponents/HeaderGradint";
+import { CheckAccess } from "../customComponents/CheckAccess";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
 
 
 
@@ -161,13 +165,39 @@ export const UserManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const limit = 10; // Fixed limit per page
   
   const {companies} = useCompanyStore();
-  const {addUser, fetchUsers, users, loading, error, editUser, deleteUser} = useUserManagementStore();
+  const {addUser, fetchUsers, users, loading, error, editUser, deleteUser, filterUsers, pagination} = useUserManagementStore();
 
+  // Initial fetch
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    fetchUsers(currentPage, limit);
+  }, [fetchUsers, currentPage]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter, statusFilter]);
+
+  // Filtering with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterUsers(searchTerm, roleFilter, statusFilter, 'nameAsc', currentPage, limit) // Assuming default sort
+        .then((result) => {
+          setFilteredUsers(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering users:", err);
+        });
+    }, 500); // 500ms debounce time
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, roleFilter, statusFilter, currentPage, filterUsers]);
 
   // Roles and Sub-roles updated to match userSchema
   const roles = ['Salesman', 'Customer', 'Admin'];
@@ -181,13 +211,22 @@ export const UserManagement: React.FC = () => {
   const availableModules = {
     BusinessManagement: {
       CustomerRegistration: { create: false, read: false, update: false, delete: false, extra: [] },
-      Vendor: { create: false, read: false, update: false, delete: false, extra: [] }
+      Vendor: { create: false, read: false, update: false, delete: false, extra: [] },
+      Agent: { create: false, read: false, update: false, delete: false, extra: [] },
+      Ledger: { create: false, read: false, update: false, delete: false, extra: [] }
+
+    },
+    UserManagement: {
+      User: { create: false, read: false, update: false, delete: false, extra: [] },
+      
+
     },
     InventoryManagement: {
       Godown: { create: false, read: false, update: false, delete: false, extra: [] },
       StockGroup: { create: false, read: false, update: false, delete: false, extra: [] },
       StockCategory: { create: false, read: false, update: false, delete: false, extra: [] },
       Product: { create: false, read: false, update: false, delete: false, extra: [] },
+      Unit: { create: false, read: false, update: false, delete: false, extra: [] },
       Order: { create: false, read: false, update: false, delete: false, extra: [] },
       Payment: { create: false, read: false, update: false, delete: false, extra: [] }
     },
@@ -410,25 +449,25 @@ export const UserManagement: React.FC = () => {
   };
 
   // Filter users
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+  // const filteredUsers = users.filter(user => {
+  //   const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //                        user.email.toLowerCase().includes(searchTerm.toLowerCase());
+  //   const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+  //   const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  //   return matchesSearch && matchesRole && matchesStatus;
+  // });
 
   // Statistics
   const stats = useMemo(
     () => ({
-      totalUsers: users.length,
-      activeUsers: users.filter(u => u.status === 'active').length,
-      adminUsers: users.filter(u => u.role === 'Admin').length,
-      salesUsers: users.filter(u => u.role === 'Salesman').length,
-      agentUsers: users.filter(u => u.role === 'Agent').length,
+      totalUsers: pagination.total,
+      activeUsers: statusFilter === 'active' ? pagination.total : filteredUsers.filter(u => u.status === 'active').length,
+      adminUsers: roleFilter === 'Admin' ? pagination.total : filteredUsers.filter(u => u.role === 'Admin').length,
+      salesUsers: roleFilter === 'Salesman' ? pagination.total : filteredUsers.filter(u => u.role === 'Salesman').length,
+      agentUsers: roleFilter === 'Customer' ? pagination.total : filteredUsers.filter(u => u.role === 'Customer').length, // Assuming Customer is Agent
     }),
-    [users]
+    [filteredUsers, pagination, statusFilter, roleFilter]
   );
 
   // Form tabs
@@ -463,6 +502,40 @@ export const UserManagement: React.FC = () => {
     setActiveTab("basic");
   };
 
+  // Pagination controls
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
+      <div className="text-sm text-gray-600">
+        Showing {(currentPage - 1) * pagination.limit + 1} - {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} users
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+          className="flex items-center gap-1"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Previous
+        </Button>
+        <span className="text-sm text-gray-600">
+          Page {currentPage} of {pagination.totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+          disabled={currentPage === pagination.totalPages}
+          className="flex items-center gap-1"
+        >
+          Next
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       {/* Header */}
@@ -472,14 +545,17 @@ export const UserManagement: React.FC = () => {
     title="User Management"
     subtitle="Manage users, roles, and permissions across companies"
   />
+   <CheckAccess  module="UserManagement" subModule="User" type="create">
+
         
   <Button
     onClick={() => setOpen(true)}
     className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-4 sm:px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-  >
+    >
     <UserPlus className="w-4 h-4 mr-2" />
     Add User
   </Button>
+    </CheckAccess>
 </div>
 
       {/* Stats Cards */}
@@ -585,7 +661,7 @@ export const UserManagement: React.FC = () => {
       </Card>
 
       {/* User List */}
-      {users.length === 0 ? (
+      {pagination.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Users className="w-16 h-16 text-gray-400 mb-4" />
@@ -595,12 +671,15 @@ export const UserManagement: React.FC = () => {
             <p className="text-gray-400 text-sm mb-6">
               Create your first user to get started
             </p>
+             <CheckAccess  module="BusinessManagement" subModule="Vendor" type="create">
+
             <Button
               onClick={() => setOpen(true)}
               className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
-            >
+              >
               Add Your First User
             </Button>
+              </CheckAccess>
           </CardContent>
         </Card>
       ) : (
@@ -701,7 +780,7 @@ export const UserManagement: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="relative">
-  <DropdownMenu>
+  {/* <DropdownMenu>
     <DropdownMenuTrigger >
       <Button
         variant="ghost"
@@ -721,6 +800,7 @@ export const UserManagement: React.FC = () => {
         Actions
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
+
 
       <DropdownMenuItem onClick={() => handleEditUser(user)}>
         <Edit className="w-4 h-4 mr-2 text-blue-500" />
@@ -745,7 +825,12 @@ export const UserManagement: React.FC = () => {
         Delete User
       </DropdownMenuItem>
     </DropdownMenuContent>
-  </DropdownMenu>
+  </DropdownMenu> */}
+                               <ActionsDropdown
+  onEdit={() =>  handleEditUser(user)}
+  onDelete={() =>handleDeleteUser(user._id|| '')}
+ module="UserManagement" subModule="User" 
+/>
 
 </div>
                       </TableCell>
@@ -757,6 +842,8 @@ export const UserManagement: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      <PaginationControls />
 
       {/* Modal Form */}
       <Dialog open={open} onOpenChange={handleCloseModal}>

@@ -1,3 +1,4 @@
+// Updated useAgentStore with pagination and filter support
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api"; 
@@ -21,12 +22,20 @@ interface RegistrationDocument {
   fileName: string;
 }
 
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 interface Agent {
   id: number;
   _id?: string;
   agentType: string;
   agentCode: string;
   code: string;
+  companyId: string;
   agentName: string;
   shortName: string;
   agentCategory: string;
@@ -156,29 +165,49 @@ interface AgentForm {
 
 interface AgentStore {
   agents: Agent[];
+  pagination: Pagination;
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchAgents: () => Promise<void>;
-  addAgent: (agent: AgentForm) => Promise<void>;
-  updateAgent: (params: { id: string; agent: AgentForm }) => Promise<void>;
+  fetchAgents: (page?: number, limit?: number) => Promise<void>;
+  addAgent: (agent: FormData) => Promise<void>;
+  updateAgent: (params: { id: string; agent: FormData }) => Promise<void>;
   deleteAgent: (id: string) => Promise<void>;
+  filterAgents: (
+    searchTerm: string,
+    statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'probation',
+    sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    page?: number,
+    limit?: number
+  ) => Promise<Agent[]>;
 }
 
 export const useAgentStore = create<AgentStore>()(
   persist(
     (set, get) => ({
       agents: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      },
       loading: false,
       error: false,
       errorMessage: null,
 
-      fetchAgents: async () => {
+      fetchAgents: async (page = 1, limit = 10) => {
         set({ loading: true, error: false });
         try {
-          const result = await api.fetchAgents();
+          const queryParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const result = await api.fetchAgents({ queryParams: queryParams.toString() }); // Adjust api call
           set({
-            agents: result?.data || [],
+            agents: result?.data?.agents || [],
+            pagination: result?.data?.pagination,
             loading: false,
           });
           console.log(result?.data,"result?.data?")
@@ -196,8 +225,9 @@ export const useAgentStore = create<AgentStore>()(
         set({ loading: true });
         try {
           const result = await api.createAgent(agent);
+          const newAgent: Agent = result.data;
           set({
-            agents: [...get().agents, result?.data],
+            agents: [...get().agents, newAgent],
             loading: false,
           });
         } catch (error: any) {
@@ -248,6 +278,46 @@ export const useAgentStore = create<AgentStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to delete agent",
           });
+        }
+      },
+
+      filterAgents: async (
+        searchTerm: string,
+        statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'probation',
+        sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+        page = 1,
+        limit = 10
+      ) => {
+        try {
+          set({ loading: true, error: false });
+
+          const queryParams = new URLSearchParams({
+            search: searchTerm,
+            status: statusFilter !== 'all' ? statusFilter : '',
+            sortBy: sortBy.includes('name') ? 'agentName' : 'createdAt',
+            sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const result = await api.fetchAgents({ queryParams: queryParams.toString() }); // Adjust api call
+          console.log("Filter result for agents:", result);
+
+          set({
+            agents: result?.data?.agents || [],
+            pagination: result?.data?.pagination,
+            loading: false,
+          });
+
+          return result?.data?.agents || [];
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: true,
+            errorMessage:
+              error?.response?.data?.message || "Failed to filter agents",
+          });
+          return [];
         }
       },
     }),

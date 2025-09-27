@@ -3,69 +3,18 @@ import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Package, Plus, Building2, FileText, Star, Edit, Trash2, MoreHorizontal, Eye, Table, Grid3X3, Layers } from "lucide-react";
+import { Package, Plus, Building2, FileText, Star, Edit, Trash2, MoreHorizontal, Eye, Table, Grid3X3, Layers, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import {useStockCategory} from "../../../store/stockCategoryStore"
 import {useCompanyStore} from "../../../store/companyStore"
 import {useStockGroup} from "../../../store/stockGroupStore"
+import { formatSimpleDate } from "../../lib/formatDates";
+import { Input } from "../ui/input";
+import FilterBar from "../customComponents/FilterBar";
+import HeaderGradient from "../customComponents/HeaderGradint";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
+import { CheckAccess } from "../customComponents/CheckAccess";
 
-
-// Mock hooks for demonstration - replace with actual hooks
-// const useStockCategory = () => ({
-//   fetchStockCategory: () => {},
-//   addStockCategory: (data) => console.log('Adding stock category:', data),
-//   updateStockCategory: (id, data) => console.log('Updating stock category:', id, data),
-//   deleteStockCategory: (id) => console.log('Deleting stock category:', id),
-//   stockCategories: [
-//     {
-//       id: 1,
-//       _id: 'cat1',
-//       name: 'Electronics',
-//       description: 'Electronic items and components',
-//       parent: 'primary',
-//       status: 'active',
-//       createdAt: '2024-01-15',
-//       companyId: 'comp1',
-//       stockGroupId: 'group1'
-//     },
-//     {
-//       id: 2,
-//       _id: 'cat2',
-//       name: 'Furniture',
-//       description: 'Office and home furniture items',
-//       parent: 'primary',
-//       status: 'active',
-//       createdAt: '2024-01-16',
-//       companyId: 'comp1',
-//       stockGroupId: 'group2'
-//     },
-//     {
-//       id: 3,
-//       _id: 'cat3',
-//       name: 'Mobile Accessories',
-//       description: 'Accessories for mobile devices',
-//       parent: 'cat1',
-//       status: 'active',
-//       createdAt: '2024-01-17',
-//       companyId: 'comp1',
-//       stockGroupId: 'group1'
-//     }
-//   ]
-// });
-
-
-
-// const useStockGroup = () => ({
-//   stockGroups: [
-//     { _id: 'group1', name: 'Raw Materials', code: 'RAW001' },
-//     { _id: 'group2', name: 'Finished Goods', code: 'FIN001' },
-//     { _id: 'group3', name: 'Work in Progress', code: 'WIP001' }
-//   ]
-// });
-
-const formatSimpleDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString();
-};
 
 // StockCategory interface
 interface StockCategory {
@@ -84,10 +33,44 @@ const StockCategoryRegistration: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [editingStockCategory, setEditingStockCategory] = useState<StockCategory | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [filteredStockCategories, setFilteredStockCategories] = useState<StockCategory[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const limit = 10; // Fixed limit per page
   
-  const { fetchStockCategory, addStockCategory, updateStockCategory, deleteStockCategory, stockCategories } = useStockCategory();
+  const { fetchStockCategory, addStockCategory, updateStockCategory, deleteStockCategory, stockCategories, pagination, loading, error, filterStockCategories } = useStockCategory();
   const { companies } = useCompanyStore();
   const { stockGroups } = useStockGroup();
+
+  // Initial fetch
+  useEffect(() => {
+    fetchStockCategory(currentPage, limit);
+  }, [fetchStockCategory, currentPage]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, sortBy]);
+
+  // Filtering with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterStockCategories(searchTerm, statusFilter, sortBy, currentPage, limit)
+        .then((result) => {
+          console.log(result,"resutttttt")
+          setFilteredStockCategories(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering stock categories:", err);
+        });
+    }, 500); // 500ms debounce time
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterStockCategories]);
 
   const [formData, setFormData] = useState<StockCategory>({
     id: 0,
@@ -96,8 +79,8 @@ const StockCategoryRegistration: React.FC = () => {
     parent: 'primary',
     status: 'active',
     createdAt: '',
-    companyId: '',
-    stockGroupId: ''
+    companyId: companies.length > 0 ? companies[0]._id : '',
+    stockGroupId: stockGroups.length > 0 ? stockGroups[0]._id : ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
@@ -124,8 +107,8 @@ const StockCategoryRegistration: React.FC = () => {
       parent: 'primary',
       status: 'active',
       createdAt: '',
-      companyId: '',
-      stockGroupId: ''
+      companyId: companies.length > 0 ? companies[0]._id : '',
+      stockGroupId: stockGroups.length > 0 ? stockGroups[0]._id : ''
     });
     setEditingStockCategory(null);
   };
@@ -133,21 +116,16 @@ const StockCategoryRegistration: React.FC = () => {
   const handleEditStockCategory = (stockCategory: StockCategory): void => {
     setEditingStockCategory(stockCategory);
     setFormData({
-      id: stockCategory.id,
-      name: stockCategory.name,
-      description: stockCategory.description,
-      parent: stockCategory.parent,
-      status: stockCategory.status,
-      createdAt: stockCategory.createdAt,
-      companyId: stockCategory.companyId,
-      stockGroupId: stockCategory.stockGroupId
+      ...stockCategory,
+      id: stockCategory.id || 0 // Ensure id is set
     });
+    console.log(stockCategory,"fsdfsdf")
     setOpen(true);
   };
 
-  const handleDeleteStockCategory = (id: string): void => {
-    console.log("delete id", id);
-    deleteStockCategory(id);
+  const handleDeleteStockCategory = (stockCategoryId: string): void => {
+    console.log(stockCategoryId,"stockCategoryId")
+    deleteStockCategory(stockCategoryId);
   };
 
   const handleSubmit = (): void => {
@@ -165,26 +143,23 @@ const StockCategoryRegistration: React.FC = () => {
         companyId: formData.companyId,
         stockGroupId: formData.stockGroupId
       };
-      console.log("updating category",editingStockCategory);
-      updateStockCategory({stockCategoryId:editingStockCategory?._id, data:updateCategory});
-     
+      updateStockCategory({stockCategoryId: editingStockCategory._id || '', data: updateCategory});
     } else {
-      console.log("adding category");
       addStockCategory(formData);
     }
+    
+    resetForm();
+    setOpen(false);
   };
 
   // Statistics calculations
   const stats = useMemo(() => ({
-    totalCategories: stockCategories.length,
-    primaryCategories: stockCategories.filter(c => c.parent === 'primary').length,
-    activeCategories: stockCategories.filter(c => c.status === 'active').length,
-    inactiveCategories: stockCategories.filter(c => c.status === 'inactive').length
-  }), [stockCategories]);
-
-  useEffect(() => {
-    fetchStockCategory();
-  }, []);
+    totalCategories: pagination?.total,
+    primaryCategories: filteredStockCategories?.filter(c => c?.parent === 'primary').length,
+    activeCategories: statusFilter === 'active' ? pagination?.total : filteredStockCategories?.filter(c => c.status === 'active').length,
+    inactiveCategories: statusFilter === 'inactive' ? pagination?.total : filteredStockCategories?.filter(c => c.status === 'inactive').length
+  }), [filteredStockCategories, pagination, statusFilter]);
+  console.log(stockCategories,"stockcatotgory")
 
   // Get company name by ID
   const getCompanyName = (companyId: string) => {
@@ -200,62 +175,62 @@ const StockCategoryRegistration: React.FC = () => {
 
   // Get category name by ID for parent display
   const getCategoryName = (categoryId: string) => {
-    const category = stockCategories.find(c => c._id === categoryId);
+    const category = stockCategories?.find(c => c._id === categoryId);
     return category ? category.name : categoryId;
   };
 
   // Actions dropdown component
-  const ActionsDropdown = ({ stockCategory }: { stockCategory: StockCategory }) => {
-    const [showActions, setShowActions] = useState(false);
+  // const ActionsDropdown = ({ stockCategory }: { stockCategory: StockCategory }) => {
+  //   const [showActions, setShowActions] = useState(false);
     
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+  //   return (
+  //     <div className="relative">
+  //       <Button
+  //         variant="ghost"
+  //         size="sm"
+  //         onClick={() => setShowActions(!showActions)}
+  //         className="h-8 w-8 p-0 hover:bg-gray-100"
+  //       >
+  //         <MoreHorizontal className="h-4 w-4" />
+  //       </Button>
         
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditStockCategory(stockCategory);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteStockCategory(stockCategory._id || stockCategory.id.toString());
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  //       {showActions && (
+  //         <>
+  //           <div
+  //             className="fixed inset-0 z-10"
+  //             onClick={() => setShowActions(false)}
+  //           />
+  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleEditStockCategory(stockCategory);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+  //             >
+  //               <Edit className="h-4 w-4 mr-2" />
+  //               Edit
+  //             </Button>
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleDeleteStockCategory(stockCategory._id || stockCategory.id.toString());
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+  //             >
+  //               <Trash2 className="h-4 w-4 mr-2" />
+  //               Delete
+  //             </Button>
+  //           </div>
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
   // Table View Component
   const TableView = () => (
@@ -288,8 +263,8 @@ const StockCategoryRegistration: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {stockCategories.map((stockCategory) => (
-              <tr key={stockCategory.id} className="hover:bg-gray-50 transition-colors duration-200">
+            {filteredStockCategories?.map((stockCategory) => (
+              <tr key={stockCategory?.id} className="hover:bg-gray-50 transition-colors duration-200">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
                     <div className="text-sm font-medium text-gray-900">{stockCategory.name}</div>
@@ -332,7 +307,12 @@ const StockCategoryRegistration: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown stockCategory={stockCategory} />
+                  {/* <ActionsDropdown stockCategory={stockCategory} /> */}
+                                                                 <ActionsDropdown
+  onEdit={() =>  handleEditStockCategory(stockCategory)}
+  onDelete={() =>handleDeleteStockCategory(stockCategory._id || '')}
+  module="InventoryManagement" subModule="StockCategory"
+/>
                 </td>
               </tr>
             ))}
@@ -345,7 +325,7 @@ const StockCategoryRegistration: React.FC = () => {
   // Card View Component
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {stockCategories.map((category: StockCategory) => (
+      {filteredStockCategories?.map((category: StockCategory) => (
         <Card key={category.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 pb-4">
             <div className="flex items-start justify-between">
@@ -363,7 +343,12 @@ const StockCategoryRegistration: React.FC = () => {
                 <Badge className={`${category.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
                   {category.status}
                 </Badge>
-                <ActionsDropdown stockCategory={category} />
+                {/* <ActionsDropdown stockCategory={category} /> */}
+                <ActionsDropdown
+  onEdit={() =>  handleEditStockCategory(category)}
+  onDelete={() =>handleDeleteStockCategory(category._id || '')}
+  module="InventoryManagement" subModule="StockCategory"
+/>
               </div>
             </div>
           </CardHeader>
@@ -405,14 +390,52 @@ const StockCategoryRegistration: React.FC = () => {
     </div>
   );
 
+  // Pagination controls
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
+      <div className="text-sm text-gray-600">
+        Showing {(currentPage - 1) * pagination.limit + 1} - {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} stock categories
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+          className="flex items-center gap-1"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Previous
+        </Button>
+        <span className="text-sm text-gray-600">
+          Page {currentPage} of {pagination.totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+          disabled={currentPage === pagination.totalPages}
+          className="flex items-center gap-1"
+        >
+          Next
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
+ 
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Stock Category Management</h1>
-          <p className="text-gray-600">Manage your stock category information and classifications</p>
-        </div>
+       
+        <HeaderGradient title="Stock Category Management"
+        subtitle="Manage your stock category information and classifications"
+        />
+        <CheckAccess module="InventoryManagement" subModule="StockCategory" type="create">
+
        
         <Button 
           onClick={() => {
@@ -420,10 +443,11 @@ const StockCategoryRegistration: React.FC = () => {
             setOpen(true);
           }} 
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-        >
+          >
           <Package className="w-4 h-4 mr-2" />
           Add Category
         </Button>
+          </CheckAccess>
       </div>
 
       {/* Stats Cards */}
@@ -477,8 +501,22 @@ const StockCategoryRegistration: React.FC = () => {
         </Card>
       </div>
 
-      {/* View Toggle */}
-      {stockCategories && stockCategories.length > 0 && (
+      <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onClearFilters={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setSortBy('nameAsc');
+          setCurrentPage(1);
+        }}
+      />
+
+      {pagination.total ? (
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-gray-600" />
@@ -509,15 +547,15 @@ const StockCategoryRegistration: React.FC = () => {
             </button>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Stock Category List */}
-      {stockCategories.length === 0 ? (
+      {pagination.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Package className="w-16 h-16 text-gray-400 mb-4" />
             <p className="text-gray-500 text-lg font-medium mb-2">No stock categories registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first stock category to get started</p>
+             <CheckAccess module="InventoryManagement" subModule="StockCategory" type="create">
             <Button 
               onClick={() => {
                 resetForm();
@@ -527,15 +565,16 @@ const StockCategoryRegistration: React.FC = () => {
             >
               Add Your First Category
             </Button>
+            </CheckAccess>
           </CardContent>
         </Card>
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
+          <PaginationControls />
         </>
       )}
 
-      {/* Modal Form */}
       <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
         if (!isOpen) {
@@ -575,11 +614,8 @@ const StockCategoryRegistration: React.FC = () => {
                     onChange={(e) => handleSelectChange("companyId", e.target.value)}
                     className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                   >
-                    <option value="">Select Company</option>
-                    {companies.map((company) => (
-                      <option key={company._id} value={company._id}>
-                        {company.namePrint}
-                      </option>
+                    {companies.map((companie)=>(
+                      <option key={companie?._id} value={companie?._id}>{companie?.namePrint} </option>
                     ))}
                   </select>
                 </div>
@@ -591,11 +627,8 @@ const StockCategoryRegistration: React.FC = () => {
                     onChange={(e) => handleSelectChange("stockGroupId", e.target.value)}
                     className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                   >
-                    <option value="">Select Stock Group</option>
-                    {stockGroups.map((group) => (
-                      <option key={group._id} value={group._id}>
-                        {group.name} ({group.code})
-                      </option>
+                    {stockGroups.map((group)=>(
+                      <option key={group?._id} value={group?._id}>{group?.name}</option>
                     ))}
                   </select>
                 </div>
@@ -621,10 +654,8 @@ const StockCategoryRegistration: React.FC = () => {
                   className="w-full h-10 px-3 py-2 border border-blue-200 rounded-md focus:border-blue-500 focus:outline-none bg-white"
                 >
                   <option value="primary">Primary (No Parent)</option>
-                  {stockCategories
-                    .filter(category => category._id !== editingStockCategory?._id) // Prevent self-referencing
-                    .map(category => (
-                    <option key={category._id} value={category._id}>{category.name}</option>
+                  {stockCategories?.filter(category => category?._id !== editingStockCategory?._id)?.map(category => (
+                    <option key={category?._id} value={category?._id}>{category?.name}</option>
                   ))}
                 </select>
               </div>

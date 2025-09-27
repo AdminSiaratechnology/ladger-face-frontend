@@ -1,16 +1,33 @@
+// Updated useUserManagementStore with pagination and filter support
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api";
 
 // Types
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 interface useUserManagementStore {
   users: any[];
+  pagination: Pagination;
   loading: boolean;
   error: string | null | boolean;
-  fetchUsers: () => Promise<void>;
+  fetchUsers: (page?: number, limit?: number) => Promise<void>;
   addUser: (user: any) => Promise<any>;
   editUser:(id:string,user:any)=>Promise<any>;
-  deleteUser:(id:string)=>Promise<void>
+  deleteUser:(id:string)=>Promise<void>;
+  filterUsers: (
+    searchTerm: string,
+    roleFilter: 'all' | string,
+    statusFilter: 'all' | 'active' | 'inactive',
+    sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    page?: number,
+    limit?: number
+  ) => Promise<any[]>;
 }
 
 // Zustand store with persist
@@ -18,16 +35,27 @@ export const useUserManagementStore = create<useUserManagementStore>()(
   persist(
     (set, get) => ({
       users: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      },
       loading: false,
       error: null,
 
 
-      fetchUsers: async () => {
+      fetchUsers: async (page = 1, limit = 10) => {
         set({ loading: true });
         try {
           console.log("Fetching users...");
-          const response = await api.fetchUsers();
-          set({ users: response.data?.[0]?.users, loading: false });
+          const queryParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const response = await api.fetchUsers({ queryParams: queryParams.toString() }); // Adjust api call if needed
+          set({ users: response.data?.[0]?.users || [], pagination: response.data?.pagination, loading: false });
         } catch (error: any) {
           set({ error: error.message, loading: false });
         }
@@ -46,7 +74,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
           }));
 
           return response;
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error creating user:", error);
           set({ loading: false });
         }
@@ -90,8 +118,37 @@ export const useUserManagementStore = create<useUserManagementStore>()(
         }
 
 
-      }
+      },
 
+      filterUsers: async (
+        searchTerm: string,
+        roleFilter: 'all' | string,
+        statusFilter: 'all' | 'active' | 'inactive',
+        sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+        page = 1,
+        limit = 10
+      ) => {
+        set({ loading: true });
+        try {
+          const queryParams = new URLSearchParams({
+            search: searchTerm,
+            role: roleFilter !== 'all' ? roleFilter : '',
+            status: statusFilter !== 'all' ? statusFilter : '',
+            sortBy: sortBy.includes('name') ? 'name' : 'createdAt',
+            sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const response = await api.fetchUsers({ queryParams: queryParams.toString() }); // Adjust api call
+          set({ users: response.data?.users || [], pagination: response.data?.pagination, loading: false });
+          console.log(response.data.users,".data?.data?.users")
+          return response.data?.users || [];
+        } catch (error: any) {
+          set({ error: error.message, loading: false });
+          return [];
+        }
+      }
       
     }),
     {

@@ -1,13 +1,14 @@
+// Updated GodownRegistration with pagination and filters
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Input } from "../ui/input";
+
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { 
   MapPin, 
   Warehouse, 
-  Plus, 
+
   Users, 
   Building2, 
   FileText, 
@@ -20,20 +21,23 @@ import {
   Table, 
   Grid3X3,
   Settings2,
-  Globe
+  Globe,
+  Search,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Country, State, City } from 'country-state-city';
 import CustomInputBox from "../customComponents/CustomInputBox";
 import {useGodownStore} from "../../../store/godownStore"
 import {useCompanyStore} from "../../../store/companyStore"
+import FilterBar from "../customComponents/FilterBar";
+import HeaderGradient from "../customComponents/HeaderGradint";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
 
-
-
-
-
-// Godown interface
+// Godown interface (updated with status enum)
 interface Godown {
   id: number;
+  _id?: string;
   code: string;
   name: string;
   parent: string;
@@ -42,12 +46,12 @@ interface Godown {
   city: string;
   country: string;
   isPrimary: boolean;
-  status: string;
+  status: 'active' | 'inactive' | 'maintenance';
   capacity: string;
   manager: string;
   contactNumber: string;
   createdAt: string;
-  company:string
+  company: string
 }
 
 const GodownRegistration: React.FC = () => {
@@ -55,15 +59,44 @@ const GodownRegistration: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("basic");
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [editingGodown, setEditingGodown] = useState<Godown | null>(null);
-  
-  const { godowns, loading, error, fetchGodowns, addGodown, updateGodown, deleteGodown } = useGodownStore();
-  const {companies} =useCompanyStore()
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'maintenance'>('all');
+  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [filteredGodowns, setFilteredGodowns] = useState<Godown[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const limit = 10; // Fixed limit per page
+
+  const { godowns, pagination, loading, error, fetchGodowns, addGodown, updateGodown, deleteGodown, filterGodowns } = useGodownStore();
+  const {companies} = useCompanyStore()
   console.log(companies,"companess")
 
-  useEffect(()=>{
-    fetchGodowns()
-  },[])
-  
+  // Initial fetch
+  useEffect(() => {
+    fetchGodowns(currentPage, limit);
+  }, [fetchGodowns, currentPage]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, sortBy]);
+
+  // Filtering with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterGodowns(searchTerm, statusFilter, sortBy, currentPage, limit)
+        .then((result) => {
+          setFilteredGodowns(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering godowns:", err);
+        });
+    }, 500); // 500ms debounce time
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterGodowns]);
+
   const [formData, setFormData] = useState<Godown>({
     id: 0,
     code: '',
@@ -76,7 +109,7 @@ const GodownRegistration: React.FC = () => {
     isPrimary: false,
     status: 'active',
     capacity: '',
-    company:"",
+    company: "",
     manager: '',
     contactNumber: '',
     createdAt: '',
@@ -143,12 +176,12 @@ const GodownRegistration: React.FC = () => {
       city: '',
       country: 'India',
       isPrimary: false,
-      status: 'Active',
+      status: 'active',
       capacity: '',
       manager: '',
       contactNumber: '',
       createdAt: '',
-      company:""
+      company: companies.length > 0 ? companies[0]._id : ''
     });
     setEditingGodown(null);
     setActiveTab("basic");
@@ -157,16 +190,14 @@ const GodownRegistration: React.FC = () => {
   const handleEditGodown = (godown: Godown): void => {
     setEditingGodown(godown);
     setFormData({
-      ...godown
+      ...godown,
+      id: godown.id || 0 // Ensure id is set
     });
     setOpen(true);
   };
 
   const handleDeleteGodown = (godownId: string): void => {
-    // console.log(godownId,"deleteGoddownid")
-    // if (window.confirm('Are you sure you want to delete this godown?')) {
-      deleteGodown(godownId);
-    // }
+    deleteGodown(godownId);
   };
 
   const handleSubmit = (): void => {
@@ -175,33 +206,23 @@ const GodownRegistration: React.FC = () => {
       return;
     }
 
-    // If this is set as primary, remove primary status from others
-    let updatedGodowns = [...godowns];
-    if (formData.isPrimary) {
-      updatedGodowns = godowns.map(g => ({ ...g, isPrimary: false }));
-    }
-
     if (editingGodown) {
-      updateGodown(editingGodown?.["_id"], formData);
+      updateGodown(editingGodown._id || '', formData);
     } else {
-      const newGodown: Godown = { 
-        ...formData, 
-       
-      };
-      addGodown(newGodown);
+      addGodown(formData);
     }
     
-    // resetForm();
-    // setOpen(false);
+    resetForm();
+    setOpen(false);
   };
 
-  // Statistics calculations
+  // Statistics calculations (updated for pagination)
   const stats = useMemo(() => ({
-    totalGodowns: godowns.length,
-    primaryGodowns: godowns.filter(g => g.isPrimary).length,
-    activeGodowns: godowns.filter(g => g.status === 'Active').length,
-    totalCapacity: godowns.reduce((sum, godown) => sum + (parseInt(godown.capacity) || 0), 0)
-  }), [godowns]);
+    totalGodowns: pagination.total,
+    primaryGodowns: filteredGodowns?.filter(g => g.isPrimary).length,
+    activeGodowns: statusFilter === 'active' ? pagination?.total : filteredGodowns?.filter(g => g.status === 'active').length,
+    totalCapacity: filteredGodowns?.reduce((sum, godown) => sum + (parseInt(godown.capacity) || 0), 0)
+  }), [filteredGodowns, pagination, statusFilter]);
 
   // Form tabs
   const tabs = [
@@ -212,59 +233,65 @@ const GodownRegistration: React.FC = () => {
   ];
 
   // Actions dropdown component
-  const ActionsDropdown = ({ godown }: { godown: Godown }) => {
-    const [showActions, setShowActions] = useState(false);
+  // const ActionsDropdown = ({ godown }: { godown: Godown }) => {
+  //   const [showActions, setShowActions] = useState(false);
     
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+  //   return (
+  //     <div className="relative">
+  //       <Button
+  //         variant="ghost"
+  //         size="sm"
+  //         onClick={() => setShowActions(!showActions)}
+  //         className="h-8 w-8 p-0 hover:bg-gray-100"
+  //       >
+  //         <MoreHorizontal className="h-4 w-4" />
+  //       </Button>
         
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditGodown(godown);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteGodown(godown?.["_id"]);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  //       {showActions && (
+  //         <>
+  //           <div
+  //             className="fixed inset-0 z-10"
+  //             onClick={() => setShowActions(false)}
+  //           />
+  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleEditGodown(godown);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+  //             >
+  //               <Edit className="h-4 w-4 mr-2" />
+  //               Edit
+  //             </Button>
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleDeleteGodown(godown._id || '');
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+  //             >
+  //               <Trash2 className="h-4 w-4 mr-2" />
+  //               Delete
+  //             </Button>
+  //           </div>
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
-  // Table View Component
+//   <ActionsDropdown
+//   onEdit={() =>  handleEditGodown(godowns)}
+//   onDelete={() =>handleDeleteGodown(godown._id || '');}
+// />
+
+
+  // Table View Component (updated)
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
@@ -292,7 +319,7 @@ const GodownRegistration: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {godowns.map((godown) => (
+            {filteredGodowns.map((godown) => (
               <tr key={godown.id} className="hover:bg-gray-50 transition-colors duration-200">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
@@ -350,17 +377,22 @@ const GodownRegistration: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Badge className={`${
-                    godown.status === 'Active' 
+                    godown.status === 'active' 
                       ? 'bg-green-100 text-green-700' 
-                      : godown.status === 'Maintenance'
+                      : godown.status === 'maintenance'
                       ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-gray-100 text-gray-700'
+                      : 'bg-red-100 text-red-700'
                   } hover:bg-current`}>
-                    {godown.status}
+                    {godown.status.charAt(0).toUpperCase() + godown.status.slice(1)}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown godown={godown} />
+                  <ActionsDropdown
+  onEdit={() =>  handleEditGodown(godown)}
+  onDelete={() =>handleDeleteGodown(godown._id || '')}
+  module="InventoryManagement" subModule="Godown"
+  
+/>
                 </td>
               </tr>
             ))}
@@ -370,10 +402,10 @@ const GodownRegistration: React.FC = () => {
     </div>
   );
 
-  // Card View Component (Original with enhancements)
+  // Card View Component (updated)
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {godowns.map((godown: Godown) => (
+      {filteredGodowns?.map((godown: Godown) => (
         <Card key={godown.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 pb-4">
             <div className="flex items-start justify-between">
@@ -389,17 +421,22 @@ const GodownRegistration: React.FC = () => {
                     </Badge>
                   )}
                   <Badge className={`${
-                    godown.status === 'Active' 
+                    godown.status === 'active' 
                       ? 'bg-green-100 text-green-700' 
-                      : godown.status === 'Maintenance'
+                      : godown.status === 'maintenance'
                       ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-gray-100 text-gray-700'
+                      : 'bg-red-100 text-red-700'
                   } hover:bg-current`}>
-                    {godown.status}
+                    {godown.status.charAt(0).toUpperCase() + godown.status.slice(1)}
                   </Badge>
                 </div>
               </div>
-              <ActionsDropdown godown={godown} />
+              {/* <ActionsDropdown godown={godown} /> */}
+              <ActionsDropdown
+  onEdit={() =>  handleEditGodown(godown)}
+  onDelete={() =>handleDeleteGodown(godown._id || '')}
+  module="InventoryManagement" subModule="Godown"
+/>
             </div>
           </CardHeader>
           
@@ -462,14 +499,48 @@ const GodownRegistration: React.FC = () => {
     </div>
   );
 
+  // Pagination controls
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
+      <div className="text-sm text-gray-600">
+        Showing {(currentPage - 1) * pagination.limit + 1} - {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} godowns
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+          className="flex items-center gap-1"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Previous
+        </Button>
+        <span className="text-sm text-gray-600">
+          Page {currentPage} of {pagination.totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+          disabled={currentPage === pagination.totalPages}
+          className="flex items-center gap-1"
+        >
+          Next
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Godown Management</h1>
-          <p className="text-gray-600">Manage your godown information and registrations</p>
-        </div>
+       
+        <HeaderGradient title="Godown Management"
+        subtitle="Manage your godown information and registrations"/>
        
         <Button 
           onClick={() => {
@@ -478,12 +549,11 @@ const GodownRegistration: React.FC = () => {
           }} 
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
         >
-          <Building2 className="w-4 h-4 mr-2" />
+          <Warehouse className="w-4 h-4 mr-2" />
           Add Godown
         </Button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
           <CardContent className="p-6">
@@ -534,8 +604,22 @@ const GodownRegistration: React.FC = () => {
         </Card>
       </div>
 
-      {/* View Toggle */}
-      {godowns && godowns.length > 0 && (
+      <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onClearFilters={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setSortBy('nameAsc');
+          setCurrentPage(1);
+        }}
+      />
+
+      {pagination.total ? (
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-gray-600" />
@@ -566,10 +650,9 @@ const GodownRegistration: React.FC = () => {
             </button>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Godown List */}
-      {godowns.length === 0 ? (
+      {pagination.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Warehouse className="w-16 h-16 text-gray-400 mb-4" />
@@ -589,10 +672,10 @@ const GodownRegistration: React.FC = () => {
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
+          <PaginationControls />
         </>
       )}
 
-      {/* Modal Form */}
       <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
         if (!isOpen) {
@@ -661,8 +744,8 @@ const GodownRegistration: React.FC = () => {
                       className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                     >
                       <option value="primary">Primary (No Parent)</option>
-                      {godowns.filter(g => g.id !== editingGodown?.id).map(godown => (
-                        <option key={godown.id} value={godown.code}>{godown.name} ({godown.code})</option>
+                      {godowns?.filter(g => g._id !== editingGodown?._id).map(godown => (
+                        <option key={godown._id} value={godown.code}>{godown.name} ({godown.code})</option>
                       ))}
                     </select>
                   </div>
@@ -672,15 +755,10 @@ const GodownRegistration: React.FC = () => {
                       value={formData.company}
                       onChange={(e) => handleSelectChange("company", e.target.value)}
                       className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >{
-                      companies.map((companie)=>(
-                       
-                      
-                        <option key={companie?.["_id"]} value={companie?.["_id"]}>{companie?.namePrint} </option>
-                    
-                      ))
-                    }
-                    
+                    >
+                      {companies.map((company) => (
+                        <option key={company._id} value={company._id}>{company.namePrint}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -713,9 +791,9 @@ const GodownRegistration: React.FC = () => {
                         onChange={(e) => handleSelectChange("status", e.target.value)}
                         className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                       >
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                        <option value="Maintenance">Maintenance</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="maintenance">Maintenance</option>
                       </select>
                     </div>
                   </div>
@@ -855,7 +933,7 @@ const GodownRegistration: React.FC = () => {
                       <p><strong>Location:</strong> {[formData.city, formData.state, formData.country].filter(Boolean).join(', ') || 'Not specified'}</p>
                       <p><strong>Capacity:</strong> {formData.capacity ? `${formData.capacity} sq.ft` : 'Not specified'}</p>
                       <p><strong>Manager:</strong> {formData.manager || 'Not specified'}</p>
-                      <p><strong>Status:</strong> {formData.status}</p>
+                      <p><strong>Status:</strong> {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}</p>
                       <p><strong>Primary:</strong> {formData.isPrimary ? 'Yes' : 'No'}</p>
                     </div>
                   </div>

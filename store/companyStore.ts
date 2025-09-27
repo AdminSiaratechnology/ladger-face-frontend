@@ -1,9 +1,9 @@
+// Updated companyStore with pagination support
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api";
-import { useEffect, useMemo } from "react";
 
-// Types
+// Types (unchanged, but included for completeness)
 export interface Bank {
   id: number;
   accountHolderName: string;
@@ -14,13 +14,12 @@ export interface Bank {
   bankName: string;
   branch: string;
 }
-interface Pagination{
-  
-  "total": number,
-  "page": number,
-  "limit": number,
-  "totalPages": number
 
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface Company {
@@ -58,10 +57,10 @@ export interface Company {
 
 interface CompanyStore {
   companies: Company[];
-   pagination:Pagination;
+  pagination: Pagination;
   loading: boolean;
   error: string | null;
-  fetchCompanies: (agentId: string) => Promise<void>;
+  fetchCompanies: (agentId: string, page?: number, limit?: number) => Promise<void>;
   addCompany: (companyData: FormData) => Promise<void>;
   updateCompany: (params: { companyId: string; companyData: FormData }) => Promise<void>;
   deleteCompany: (companyId: string) => Promise<void>;
@@ -69,7 +68,9 @@ interface CompanyStore {
     searchTerm: string,
     statusFilter: 'all' | 'active' | 'inactive',
     sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
-    agentId: string
+    agentId: string,
+    page?: number,
+    limit?: number
   ) => Promise<Company[]>;
 }
 
@@ -78,30 +79,33 @@ export const useCompanyStore = create<CompanyStore>()(
   persist(
     (set, get) => ({
       companies: [],
-
       loading: false,
       error: null,
-      pagination:{
-          "total": 0,
-  "page": 0,
-  "limit": 0,
-  "totalPages": 0
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
       },
-      
 
-      fetchCompanies: async (agentId: string) => {
-        console.log("Fetching companies for agentId:", agentId);
+      fetchCompanies: async (agentId: string, page = 1, limit = 10) => {
+        console.log("Fetching companies for agentId:", agentId, "page:", page, "limit:", limit);
         try {
           set({ loading: true, error: null });
 
-          const res = await api.getCompanies({agentId});
+          const queryParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const res = await api.getCompanies({ agentId, queryParams: queryParams.toString() });
           console.log("Fetched companies response:", res);
 
           set({
             companies: res.data.companies,
+            pagination: res?.data?.pagination,
             loading: false,
             error: null,
-             pagination: res?.data?.pagination
           });
         } catch (error: any) {
           set({
@@ -185,82 +189,40 @@ export const useCompanyStore = create<CompanyStore>()(
         searchTerm: string,
         statusFilter: 'all' | 'active' | 'inactive',
         sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
-        agentId: string
+        agentId: string,
+        page = 1,
+        limit = 10
       ) => {
-        let list = [...get().companies];
+        try {
+          set({ loading: true, error: null });
 
-        // Local filtering
-        if (searchTerm) {
-          const lowerTerm = searchTerm.toLowerCase();
-          list = list.filter((c) =>
-            c.namePrint.toLowerCase().includes(lowerTerm) ||
-            c.nameStreet.toLowerCase().includes(lowerTerm) ||
-            c.email.toLowerCase().includes(lowerTerm) ||
-            c.client.toLowerCase().includes(lowerTerm)
-          );
+          const queryParams = new URLSearchParams({
+            search: searchTerm,
+            status: statusFilter !== 'all' ? statusFilter : '',
+            sortBy: sortBy.includes('name') ? 'namePrint' : 'createdAt',
+            sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const res = await api.getCompanies({ agentId, queryParams: queryParams.toString() });
+          console.log("Database search response:", res);
+
+          set({
+            companies: res.data.companies,
+            pagination: res?.data?.pagination,
+            loading: false,
+            error: null,
+          });
+
+          return res.data.companies;
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: error.response?.data?.message || "Failed to search companies",
+          });
+          return [];
         }
-
-        if (statusFilter !== 'all') {
-          list = list.filter((c) => c.status === statusFilter);
-        }
-
-        // If no results found locally and searchTerm is provided, query the database
-        // if (list.length === 0 && searchTerm) {
-        // if ( searchTerm) {
-          try {
-            set({ loading: true, error: null });
-
-            // Construct query parameters for API call
-            const queryParams = new URLSearchParams({
-              search: searchTerm,
-              status: statusFilter !== 'all' ? statusFilter : '',
-              sortBy: sortBy.includes('name') ? 'namePrint' : 'createdAt',
-              sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
-            });
-
-            const res = await api.getCompanies({agentId:agentId, queryParams:queryParams.toString()});
-            console.log("Database search response:", res);
-
-            list = res.data.companies;
-
-            // Update store with new results
-            set({
-              companies: list,
-              loading: false,
-              error: null,
-            });
-          } catch (error: any) {
-            set({
-              loading: false,
-              error: error.response?.data?.message || "Failed to search companies",
-            });
-            return [];
-          }
-        // }
-
-        // Sorting
-        list.sort((a, b) => {
-          let valA: string | Date, valB: string | Date;
-          let order = 1; // asc by default
-
-          if (sortBy === 'nameDesc' || sortBy === 'dateDesc') {
-            order = -1;
-          }
-
-          if (sortBy === 'nameAsc' || sortBy === 'nameDesc') {
-            valA = a.namePrint.toLowerCase();
-            valB = b.namePrint.toLowerCase();
-          } else {
-            valA = new Date(a.createdAt);
-            valB = new Date(b.createdAt);
-          }
-
-          if (valA < valB) return -1 * order;
-          if (valA > valB) return 1 * order;
-          return 0;
-        });
-
-        return list;
       },
     }),
     {
@@ -273,7 +235,7 @@ export const useCompanyStore = create<CompanyStore>()(
   )
 );
 
-// Custom hook to fetch a single company
+// Custom hook to fetch a single company (unchanged)
 export const useGetCompany = (id: string) => {
   const companies = useCompanyStore((state) => state.companies);
   const fetchCompanies = useCompanyStore((state) => state.fetchCompanies);

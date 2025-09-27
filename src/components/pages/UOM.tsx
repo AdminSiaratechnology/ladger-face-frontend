@@ -3,12 +3,17 @@ import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Calculator, Building2, FileText, Star, Zap, Table, Grid3X3, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Calculator, Building2, FileText, Star, Zap, Table, Grid3X3, Eye, Edit, Trash2, MoreHorizontal, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import {useUOMStore} from "../../../store/uomStore";
 import {useCompanyStore} from "../../../store/companyStore"
 import { UQC_LIST } from "../../lib/UQC_List";
 import { formatSimpleDate } from "../../lib/formatDates";
+import { Input } from "../ui/input";
+import HeaderGradient from "../customComponents/HeaderGradint";
+import FilterBar from "../customComponents/FilterBar";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
+import { CheckAccess } from "../customComponents/CheckAccess";
 
 // Unit interface
 interface Unit {
@@ -16,6 +21,7 @@ interface Unit {
   _id?: string;
   name: string;
   type: 'simple' | 'compound';
+  status: 'active' | 'inactive';
   // Simple unit fields
   symbol?: string;
   decimalPlaces?: number;
@@ -32,6 +38,7 @@ interface Unit {
 interface UnitForm {
   name: string;
   type: 'simple' | 'compound';
+  status: 'active' | 'inactive';
   symbol: string;
   decimalPlaces: number;
   firstUnit: string;
@@ -46,13 +53,47 @@ const UnitManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("simple");
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [filteredUnits, setFilteredUnits] = useState<Unit[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const limit = 10; // Fixed limit per page
   
-  const {fetchUnits, units, addUnit, updateUnit, deleteUnit} = useUOMStore()
+  const {fetchUnits, units, addUnit, updateUnit, deleteUnit, filterUnits, pagination, loading, error} = useUOMStore()
    const { companies } = useCompanyStore();
   
+  // Initial fetch
+  useEffect(() => {
+    fetchUnits(currentPage, limit);
+  }, [fetchUnits, currentPage]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, sortBy]);
+
+  // Filtering with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterUnits(searchTerm, statusFilter, sortBy, currentPage, limit)
+        .then((result) => {
+          setFilteredUnits(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering units:", err);
+        });
+    }, 500); // 500ms debounce time
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterUnits]);
+
   const [form, setForm] = useState<UnitForm>({
     name: '',
     type: 'simple',
+    status: 'active',
     symbol: '',
     decimalPlaces: 2,
     firstUnit: '',
@@ -82,13 +123,14 @@ const UnitManagement: React.FC = () => {
     setForm({
       name: '',
       type: 'simple',
+      status: 'active',
       symbol: '',
       decimalPlaces: 2,
       firstUnit: '',
       conversion: 1,
       secondUnit: '',
-       companyId: '',
-       UQC:""
+      companyId: companies.length > 0 ? companies[0]._id : '',
+      UQC: ""
     });
     setEditingUnit(null);
     setActiveTab("simple");
@@ -99,13 +141,14 @@ const UnitManagement: React.FC = () => {
     setForm({
       name: unit.name,
       type: unit.type,
+      status: unit.status,
       symbol: unit.symbol || '',
       decimalPlaces: unit.decimalPlaces || 2,
       firstUnit: unit.firstUnit || '',
       conversion: unit.conversion || 1,
       secondUnit: unit.secondUnit || '',
-       companyId: unit.companyId,
-       UQC:unit.UQC
+      companyId: unit.companyId,
+      UQC: unit.UQC || ''
     });
     setActiveTab(unit.type);
     setOpen(true);
@@ -139,39 +182,36 @@ const UnitManagement: React.FC = () => {
       }
     }
 
+    const submitData = {
+      name: form.name,
+      type: activeTab as 'simple' | 'compound',
+      status: form.status,
+      ...(activeTab === 'simple' ? {
+        symbol: form.symbol,
+        decimalPlaces: form.decimalPlaces,
+        UQC: form.UQC
+      } : {
+        firstUnit: form.firstUnit,
+        conversion: form.conversion,
+        secondUnit: form.secondUnit,
+      }),
+      companyId: form.companyId
+    };
+
     if (editingUnit) {
-      const updateData = {
-        name: form.name,
-        type: activeTab as 'simple' | 'compound',
-        ...(activeTab === 'simple' ? {
-          symbol: form.symbol,
-          decimalPlaces: form.decimalPlaces,
-          UQC:form.UQC
-        } : {
-          firstUnit: form.firstUnit,
-          conversion: form.conversion,
-          secondUnit: form.secondUnit,
-        })
-      };
-      console.log("updating unit", editingUnit);
-      updateUnit({unitId: editingUnit?._id, data: updateData});
+      updateUnit({unitId: editingUnit._id || '', data: submitData});
     } else {
-      const newUnit = {
-        ...form,
-        type: activeTab as 'simple' | 'compound',
-      };
-      console.log("adding unit");
-      addUnit(newUnit);
+      addUnit(submitData);
     }
     
-    // resetForm();
-    // setOpen(false);
+    resetForm();
+    setOpen(false);
   };
 
   // Get simple units for compound unit dropdowns
   const simpleUnits = useMemo(() => 
-    units.filter(u => u.type === 'simple'), 
-    [units]
+    filteredUnits.filter(u => u.type === 'simple'), 
+    [filteredUnits]
   );
 
   // Filter second unit options to exclude the first selected unit
@@ -181,10 +221,11 @@ const UnitManagement: React.FC = () => {
 
   // Statistics calculations
   const stats = useMemo(() => ({
-    totalUnits: units.length,
-    simpleUnits: units.filter(u => u.type === 'simple').length,
-    compoundUnits: units.filter(u => u.type === 'compound').length,
-  }), [units]);
+    totalUnits: pagination.total,
+    simpleUnits: filteredUnits.filter(u => u.type === 'simple').length,
+    compoundUnits: filteredUnits.filter(u => u.type === 'compound').length,
+    activeUnits: statusFilter === 'active' ? pagination.total : filteredUnits.filter(u => u.status === 'active').length
+  }), [filteredUnits, pagination, statusFilter]);
 
   // Form tabs
   const tabs = [
@@ -192,62 +233,58 @@ const UnitManagement: React.FC = () => {
     { id: "compound", label: "Compound Unit" }
   ];
 
-  useEffect(() => {
-    fetchUnits()
-  }, []);
-
   // Actions dropdown component
-  const ActionsDropdown = ({ unit }: { unit: Unit }) => {
-    const [showActions, setShowActions] = useState(false);
+  // const ActionsDropdown = ({ unit }: { unit: Unit }) => {
+  //   const [showActions, setShowActions] = useState(false);
     
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+  //   return (
+  //     <div className="relative">
+  //       <Button
+  //         variant="ghost"
+  //         size="sm"
+  //         onClick={() => setShowActions(!showActions)}
+  //         className="h-8 w-8 p-0 hover:bg-gray-100"
+  //       >
+  //         <MoreHorizontal className="h-4 w-4" />
+  //       </Button>
         
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditUnit(unit);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteUnit(unit._id || unit.id.toString());
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  //       {showActions && (
+  //         <>
+  //           <div
+  //             className="fixed inset-0 z-10"
+  //             onClick={() => setShowActions(false)}
+  //           />
+  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleEditUnit(unit);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+  //             >
+  //               <Edit className="h-4 w-4 mr-2" />
+  //               Edit
+  //             </Button>
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleDeleteUnit(unit._id || unit.id.toString());
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+  //             >
+  //               <Trash2 className="h-4 w-4 mr-2" />
+  //               Delete
+  //             </Button>
+  //           </div>
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
   // Table View Component
   const TableView = () => (
@@ -266,6 +303,9 @@ const UnitManagement: React.FC = () => {
                 Details
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created Date
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -274,7 +314,7 @@ const UnitManagement: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {units.map((unit) => (
+            {filteredUnits.map((unit) => (
               <tr key={unit.id} className="hover:bg-gray-50 transition-colors duration-200">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
@@ -309,11 +349,22 @@ const UnitManagement: React.FC = () => {
                     )}
                   </div>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Badge className={`${unit.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
+                    {unit.status}
+                  </Badge>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatSimpleDate( unit.createdAt)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown unit={unit} />
+                  {/* <ActionsDropdown unit={unit} /> */}
+                          <ActionsDropdown
+  onEdit={() =>  handleEditUnit(unit)}
+  onDelete={() =>handleDeleteUnit(unit._id || '')}
+  module="InventoryManagement" subModule="Unit"
+/>
+
                 </td>
               </tr>
             ))}
@@ -326,7 +377,7 @@ const UnitManagement: React.FC = () => {
   // Card View Component
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {units.map((unit: Unit) => (
+      {filteredUnits.map((unit: Unit) => (
         <Card key={unit._id || unit.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 pb-4">
             <div className="flex items-start justify-between">
@@ -338,12 +389,20 @@ const UnitManagement: React.FC = () => {
                   <Badge className={`${unit.type === 'simple' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'} hover:bg-green-100`}>
                     {unit.type}
                   </Badge>
+                  <Badge className={`${unit.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
+                    {unit.status}
+                  </Badge>
                   {unit.symbol && (
                     <span className="text-teal-600 font-bold text-lg">({unit.symbol})</span>
                   )}
                 </div>
               </div>
-              <ActionsDropdown unit={unit} />
+              {/* <ActionsDropdown unit={unit} /> */}
+                         <ActionsDropdown
+  onEdit={() =>  handleEditUnit(unit)}
+  onDelete={() =>handleDeleteUnit(unit._id || '')}
+  module="InventoryManagement" subModule="Unit" 
+/>
             </div>
           </CardHeader>
           
@@ -398,14 +457,51 @@ const UnitManagement: React.FC = () => {
     </div>
   );
 
+  // Pagination controls
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
+      <div className="text-sm text-gray-600">
+        Showing {(currentPage - 1) * pagination.limit + 1} - {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} units
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+          className="flex items-center gap-1"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Previous
+        </Button>
+        <span className="text-sm text-gray-600">
+          Page {currentPage} of {pagination.totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+          disabled={currentPage === pagination.totalPages}
+          className="flex items-center gap-1"
+        >
+          Next
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
+ 
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Unit of Management</h1>
-          <p className="text-gray-600">Manage your unit measurements and conversions</p>
-        </div>
+       
+        <HeaderGradient title="Unit of Measurement"
+        subtitle="Manage your unit measurements and conversions"/>
+        <CheckAccess module="InventoryManagement" subModule="unit" type="create">
+
        
         <Button 
           onClick={() => {
@@ -413,14 +509,15 @@ const UnitManagement: React.FC = () => {
             setOpen(true);
           }} 
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-        >
+          >
           <Calculator className="w-4 h-4 mr-2" />
           Add Unit
         </Button>
+          </CheckAccess>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -456,10 +553,36 @@ const UnitManagement: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-teal-100 text-sm font-medium">Active Units</p>
+                <p className="text-3xl font-bold">{stats.activeUnits}</p>
+              </div>
+              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* View Toggle */}
-      {units && units.length > 0 && (
+      <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onClearFilters={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setSortBy('nameAsc');
+          setCurrentPage(1);
+        }}
+      />
+
+      {pagination.total ? (
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-gray-600" />
@@ -490,15 +613,16 @@ const UnitManagement: React.FC = () => {
             </button>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Units List */}
-      {units.length === 0 ? (
+      {pagination.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Calculator className="w-16 h-16 text-gray-400 mb-4" />
             <p className="text-gray-500 text-lg font-medium mb-2">No units registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first unit to get started</p>
+                    <CheckAccess module="InventoryManagement" subModule="unit" type="create">
+
             <Button 
               onClick={() => {
                 resetForm();
@@ -508,15 +632,16 @@ const UnitManagement: React.FC = () => {
             >
               Add Your First Unit
             </Button>
+            </CheckAccess>
           </CardContent>
         </Card>
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
+          <PaginationControls />
         </>
       )}
 
-      {/* Modal Form */}
       <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
         if (!isOpen) {
@@ -552,9 +677,25 @@ const UnitManagement: React.FC = () => {
             </div>
 
             <div className="space-y-6 w-full p-4">
+              {/* Common Fields */}
+              <div className="mb-4">
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Company</label>
+                <select
+                  value={form.companyId}
+                  onChange={(e) => handleSelectChange("companyId", e.target.value)}
+                  className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                >
+                  {companies.map((company) => (
+                    <option key={company._id} value={company._id}>
+                      {company.namePrint}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Simple Unit Tab */}
               {activeTab === "simple" && (
-                <div className="bg-white p-4 rounded-lg">
+                <div className="bg-white p-4">
                   <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
                     <Star className="w-5 h-5 mr-2" />
                     Simple Unit Information
@@ -576,37 +717,7 @@ const UnitManagement: React.FC = () => {
                     />
                   </div>
 
-                  <div className="mt-4">
-                     <div className="mb-4">
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">UQC</label>
-                  <select
-                    value={form.UQC}
-                    onChange={(e) => handleSelectChange("UQC", e.target.value)}
-                    className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                  >
-                    <option value="">Select UQC</option>
-                    {UQC_LIST.map((uc) => (
-                      <option key={uc.code} value={uc.code}>
-                        {uc.description}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                     <div className="mb-4">
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Company</label>
-                  <select
-                    value={form.companyId}
-                    onChange={(e) => handleSelectChange("companyId", e.target.value)}
-                    className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                  >
-                    <option value="">Select Company</option>
-                    {companies.map((company) => (
-                      <option key={company._id} value={company._id}>
-                        {company.namePrint}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <CustomInputBox
                       placeholder="Number of Decimal Places"
                       name="decimalPlaces"
@@ -617,13 +728,28 @@ const UnitManagement: React.FC = () => {
                       onChange={handleChange}
                       label="Decimal Places"
                     />
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">UQC</label>
+                      <select
+                        value={form.UQC}
+                        onChange={(e) => handleSelectChange("UQC", e.target.value)}
+                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      >
+                        <option value="">Select UQC</option>
+                        {UQC_LIST.map((uc) => (
+                          <option key={uc.code} value={uc.code}>
+                            {uc.description}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Compound Unit Tab */}
               {activeTab === "compound" && (
-                <div className="bg-white p-4 rounded-lg">
+                <div className="bg-white p-4">
                   <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
                     <Zap className="w-5 h-5 mr-2" />
                     Compound Unit Information
@@ -648,36 +774,32 @@ const UnitManagement: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">
-                        First Unit *
-                      </label>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">First Unit *</label>
                       <select
                         value={form.firstUnit}
                         onChange={(e) => handleSelectChange("firstUnit", e.target.value)}
-                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
+                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                       >
                         <option value="">Select First Unit</option>
                         {simpleUnits.map((unit) => (
-                          <option key={unit.id} value={unit.name}>
+                          <option key={unit._id} value={unit.name}>
                             {unit.name} {unit.symbol && `(${unit.symbol})`}
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">
-                        Second Unit *
-                      </label>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">Second Unit *</label>
                       <select
                         value={form.secondUnit}
                         onChange={(e) => handleSelectChange("secondUnit", e.target.value)}
-                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
+                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
                       >
                         <option value="">Select Second Unit</option>
                         {filteredSecondUnitOptions.map((unit) => (
-                          <option key={unit.id} value={unit.name}>
+                          <option key={unit._id} value={unit.name}>
                             {unit.name} {unit.symbol && `(${unit.symbol})`}
                           </option>
                         ))}
@@ -686,6 +808,19 @@ const UnitManagement: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Status */}
+              <div className="mb-4">
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
+                <select
+                  value={form.status}
+                  onChange={(e) => handleSelectChange("status", e.target.value)}
+                  className="w-full h-10 px-3 py-2 border border-blue-200 rounded-md focus:border-blue-500 focus:outline-none bg-white"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
 
               {/* Save Button */}
               <div className="flex justify-end pt-4">

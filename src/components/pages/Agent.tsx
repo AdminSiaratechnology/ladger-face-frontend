@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { 
@@ -29,12 +30,19 @@ import {
   X,
   Image as ImageIcon,
   UserCheck,
-  Target
+  Target,
+  Search,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import { Country, State, City } from 'country-state-city';
 import { useAgentStore } from "../../../store/agentStore"; // Assuming a store similar to customerStore
 import { useCompanyStore } from "../../../store/companyStore";
+import HeaderGradient from "../customComponents/HeaderGradint";
+import FilterBar from "../customComponents/FilterBar";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
+import { CheckAccess } from "../customComponents/CheckAccess";
 
 // Interfaces (adapted from provided Agent interface)
 interface Bank {
@@ -207,8 +215,14 @@ const AgentRegistrationPage: React.FC = () => {
     branch: ""
   });
   const [viewingImage, setViewingImage] = useState<RegistrationDocument | {previewUrl: string, type: 'logo'} | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended' | 'probation'>('all');
+  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [filteredAgents, setFilteredAgents] = useState<Agent[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const limit = 10; // Fixed limit per page
   
-  const { fetchAgents, addAgent, updateAgent, deleteAgent, agents } = useAgentStore(); // Assuming store exists
+  const { fetchAgents, addAgent, updateAgent, deleteAgent, agents, filterAgents, pagination, loading, error } = useAgentStore(); // Assuming store exists
   const { companies } = useCompanyStore();
   const getCompanyName = (companyId: string) => {
     const company = companies.find(c => c._id === companyId);
@@ -582,7 +596,7 @@ const AgentRegistrationPage: React.FC = () => {
     agentFormData.append('registrationDocsCount', String(formData.registrationDocs.length));
 
     if (editingAgent) {
-      updateAgent({ id: editingAgent._id, agent: agentFormData });
+      updateAgent({ id: editingAgent._id || '', agent: agentFormData });
     } else {
       addAgent(agentFormData);
     }
@@ -591,11 +605,11 @@ const AgentRegistrationPage: React.FC = () => {
   };
 
   const stats = useMemo(() => ({
-    totalAgents: agents.length,
-    gstRegistered: agents.filter(c => c.gstNumber?.trim() !== "").length,
-    activeAgents: agents.filter(c => c.agentStatus === 'active').length,
-    topPerformers: agents.filter(c => c.performanceRating >= 4).length
-  }), [agents]);
+    totalAgents: pagination?.total,
+    gstRegistered: filteredAgents.filter(c => c.gstNumber?.trim() !== "").length,
+    activeAgents: statusFilter === 'active' ? pagination?.total : filteredAgents.filter(c => c.agentStatus === 'active').length,
+    topPerformers: filteredAgents.filter(c => c.performanceRating >= 4).length
+  }), [filteredAgents, pagination, statusFilter]);
 
   const tabs = [
     { id: "basic", label: "Basic Info" },
@@ -606,66 +620,89 @@ const AgentRegistrationPage: React.FC = () => {
     { id: "settings", label: "Settings" }
   ];
 
+  // Initial fetch
   useEffect(() => {
-    fetchAgents();
-  }, []);
+    fetchAgents(currentPage, limit);
+  }, [fetchAgents, currentPage]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, sortBy]);
+
+  // Filtering with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterAgents(searchTerm, statusFilter, sortBy, currentPage, limit)
+        .then((result) => {
+          setFilteredAgents(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering agents:", err);
+        });
+    }, 500); // 500ms debounce time
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterAgents]);
 
   const formatSimpleDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
 
   // Actions dropdown component
-  const ActionsDropdown = ({ agent }: { agent: Agent }) => {
-    const [showActions, setShowActions] = useState(false);
+  // const ActionsDropdown = ({ agent }: { agent: Agent }) => {
+  //   const [showActions, setShowActions] = useState(false);
     
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+  //   return (
+  //     <div className="relative">
+  //       <Button
+  //         variant="ghost"
+  //         size="sm"
+  //         onClick={() => setShowActions(!showActions)}
+  //         className="h-8 w-8 p-0 hover:bg-gray-100"
+  //       >
+  //         <MoreHorizontal className="h-4 w-4" />
+  //       </Button>
         
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditAgent(agent);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteAgent(agent._id || agent.id.toString());
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  //       {showActions && (
+  //         <>
+  //           <div
+  //             className="fixed inset-0 z-10"
+  //             onClick={() => setShowActions(false)}
+  //           />
+  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleEditAgent(agent);
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
+  //             >
+  //               <Edit className="h-4 w-4 mr-2" />
+  //               Edit
+  //             </Button>
+  //             <Button
+  //               variant="ghost"
+  //               size="sm"
+  //               onClick={() => {
+  //                 handleDeleteAgent(agent._id || agent.id.toString());
+  //                 setShowActions(false);
+  //               }}
+  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
+  //             >
+  //               <Trash2 className="h-4 w-4 mr-2" />
+  //               Delete
+  //             </Button>
+  //           </div>
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
   // Table View Component
   const TableView = () => (
@@ -692,7 +729,7 @@ const AgentRegistrationPage: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {agents.map((agent) => (
+            {filteredAgents.map((agent) => (
               <tr key={agent._id} className="hover:bg-gray-50 transition-colors duration-200">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
@@ -724,7 +761,12 @@ const AgentRegistrationPage: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown agent={agent} />
+                  {/* <ActionsDropdown agent={agent} /> */}
+                                                               <ActionsDropdown
+  onEdit={() =>  handleEditAgent(agent)}
+  onDelete={() =>handleDeleteAgent(agent._id || '')}
+ module="BusinessManagement" subModule="Agent" 
+/>
                 </td>
               </tr>
             ))}
@@ -737,7 +779,7 @@ const AgentRegistrationPage: React.FC = () => {
   // Card View Component
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {agents.map((agent: Agent) => (
+      {filteredAgents.map((agent: Agent) => (
         <Card key={agent._id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
             <div className="flex items-start justify-between">
@@ -759,7 +801,12 @@ const AgentRegistrationPage: React.FC = () => {
                 <Badge className={`${agent.agentStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
                   {agent.agentStatus}
                 </Badge>
-                <ActionsDropdown agent={agent} />
+                {/* <ActionsDropdown agent={agent} /> */}
+                                                             <ActionsDropdown
+  onEdit={() =>  handleEditAgent(agent)}
+  onDelete={() =>handleDeleteAgent(agent._id || '')}
+ module="BusinessManagement" subModule="Agent" 
+/>
               </div>
             </div>
           </CardHeader>
@@ -864,15 +911,50 @@ const AgentRegistrationPage: React.FC = () => {
       ))}
     </div>
   );
+  
+   // Pagination Controls
+    const PaginationControls = () => (
+      <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
+        <div className="text-sm text-gray-600">
+          Showing {(currentPage - 1) * pagination?.limit + 1} - {Math.min(currentPage * pagination?.limit, pagination?.total)} of {pagination?.total} vendors
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="flex items-center gap-1"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Previous
+          </Button>
+          <span className="text-sm text-gray-600">
+            Page {currentPage} of {pagination?.totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(pagination?.totalPages, prev + 1))}
+            disabled={currentPage === pagination?.totalPages}
+            className="flex items-center gap-1"
+          >
+            Next
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Agent Management</h1>
-          <p className="text-gray-600">Manage your agent information and registrations</p>
-        </div>
+       
+        <HeaderGradient title="Agent Management"
+        subtitle="Manage your agent information and registrations"/>
+            <CheckAccess  module="BusinessManagement" subModule="Agent" type="create">
+        
         <Button 
           onClick={() => {
             resetForm();
@@ -883,6 +965,7 @@ const AgentRegistrationPage: React.FC = () => {
           <UserCheck className="w-4 h-4 mr-2" />
           Add Agent
         </Button>
+        </CheckAccess>
       </div>
 
       {/* Stats Cards */}
@@ -936,8 +1019,22 @@ const AgentRegistrationPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* View Toggle */}
-      {agents && agents.length > 0 && (
+     <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onClearFilters={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setSortBy('nameAsc');
+          setCurrentPage(1);
+        }}
+      />
+
+      {pagination?.total ? (
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-gray-600" />
@@ -968,26 +1065,29 @@ const AgentRegistrationPage: React.FC = () => {
             </button>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Agent List */}
-      {agents.length === 0 ? (
+      {pagination?.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <UserCheck className="w-16 h-16 text-gray-400 mb-4" />
             <p className="text-gray-500 text-lg font-medium mb-2">No agents registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first agent to get started</p>
+                <CheckAccess  module="BusinessManagement" subModule="Agent" type="create">
+            
             <Button 
               onClick={() => setOpen(true)}
               className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
             >
               Add Your First Agent
             </Button>
+            </CheckAccess>
           </CardContent>
         </Card>
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
+          <PaginationControls />
         </>
       )}
 
