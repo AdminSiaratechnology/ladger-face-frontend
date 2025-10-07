@@ -1,6 +1,6 @@
 // Updated useVendorStore with pagination and filter support
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api"; 
 
 interface Bank {
@@ -345,7 +345,7 @@ export const useVendorStore = create<VendorStore>()(
     }),
     {
       name: "vendor-storage",
-      getStorage: () => localStorage,
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         vendors: state.vendors,
       }),

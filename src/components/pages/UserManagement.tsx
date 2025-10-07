@@ -30,14 +30,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { Switch } from "../ui/switch";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
+
 import {
   Table,
   TableBody,
@@ -237,6 +230,9 @@ export const UserManagement: React.FC = () => {
     Reports: {
       SalesReport: { create: false, read: false, update: false, delete: false, extra: [] },
       PurchaseReport: { create: false, read: false, update: false, delete: false, extra: [] }
+    },
+    Order:{
+     Orders : { create: false, read: false, update: false, delete: false, extra: [] },
     }
   };
 

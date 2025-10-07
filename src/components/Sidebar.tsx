@@ -202,7 +202,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: 'Orders', 
       roles: ['admin', 'agent', 'salesman'], 
       type: 'link',
-      module: 'InventoryManagement',
+      module: 'OrderManagement',
       subModule: 'Order'
     },
     { path: '/tracking', icon: MapPin, label: 'Location Tracking', roles: ['admin'], type: 'link' },

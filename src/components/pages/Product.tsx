@@ -39,6 +39,7 @@ import FilterBar from "../customComponents/FilterBar";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import { CheckAccess } from "../customComponents/CheckAccess";
 import ActionsDropdown from "../customComponents/ActionsDropdown";
+import useUnsavedChangesWarning from "../../lib/hooks/useUnsavedChangesWarning";
 
 
 // Interfaces
@@ -142,6 +143,8 @@ const formatSimpleDate = (dateString: string) => {
 
 const ProductPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  useUnsavedChangesWarning(isFormDirty);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");

@@ -13,6 +13,7 @@ import CustomInputBox from "../customComponents/CustomInputBox";
 import { useCompanyStore } from "../../../store/companyStore";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
+import api from "../../api/api";
 
 // Bank interface (unchanged)
 interface Bank {
@@ -873,10 +874,24 @@ setCurrentPage(1)
       </div>
     </div>
   );
+  const downloadPDF = async () => {
+  const res = await api.downloadCompanyPDF()
+  console.log(res,"pdfresss")
+
+  // const blob = await res.blob();
+  // const url = window.URL.createObjectURL(blob);
+  // const a = document.createElement("a");
+  // a.href = url;
+  // a.download = "Company_Documentation.pdf";
+  // a.click();
+  // window.URL.revokeObjectURL(url);
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="flex justify-between items-center mb-8">
+        {/* <Button onClick={downloadPDF}>get pdf</Button> */}
+
         <HeaderGradient title="Company Management" subtitle="Manage your company information and registrations"/>
         <Button 
           onClick={() => {

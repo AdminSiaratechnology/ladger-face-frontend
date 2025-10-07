@@ -102,7 +102,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
         
 
             
-        } catch (error) {
+        } catch (error:any) {
              set({ error: error.message, loading: false });
         }
 
@@ -113,7 +113,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
           const response=await api.deleteUserStatus(id)
           console.log(response,"deleteresomnse")
           
-        } catch (error) {
+        } catch (error :any) {
           set({loading:false,error:error.message})
         }
 

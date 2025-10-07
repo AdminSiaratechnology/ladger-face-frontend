@@ -1,6 +1,6 @@
 // stores/useUOMStore.ts
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api";
 
 // ==== Interfaces ====
@@ -193,7 +193,8 @@ export const useUOMStore = create<UnitStore>()(
     }),
     {
       name: "uom-storage", // storage key
-      getStorage: () => localStorage, // default localStorage
+      // getStorage: () => localStorage, // default localStorage
+       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         units: state.units, // sirf units persist honge
       }),

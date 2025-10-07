@@ -4,7 +4,8 @@ import { Login } from './components/pages/Login';
 import { AdminDashboard } from './components/pages/AdminDashboard';
 import UserManagement from './components/pages/UserManagement';
 import { InventoryManagement } from './components/pages/InventoryManagement';
-import { OrderManagement } from './components/pages/OrderManagement';
+import  OrderManagement  from './components/pages/OrderManagement';
+import  Order  from './components/pages/OrderPage';
 import { PriceListManagement } from './components/pages/PriceListManagement';
 import { LocationTracking } from './components/pages/LocationTracking';
 import { Settings } from './components/pages/Settings';
@@ -25,6 +26,7 @@ import UOM from './components/pages/UOM';
 import PriceList from "./components/pages/PriceListPage";
 import { useAuthStore } from '../store/authStore';
 import { checkPermission } from './lib/utils';
+
 
 // Utility function to check permissions
 // function checkPermission(user, module, subModule) {
@@ -70,7 +72,8 @@ function ProtectedRoute({ children, module, subModule, allowedRoles }: {
   subModule?: string;
   allowedRoles?: string[] 
 }) {
-  const { user, isLoading } = useAuthStore();
+  const { user, isLoading, } = useAuthStore();
+
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -158,12 +161,20 @@ export default function App() {
           } />
           
           {/* Order Management */}
-          <Route path="/orders" element={
-            <ProtectedRoute module="InventoryManagement" subModule="Order">
+          <Route path="/order-report" element={
+            // <ProtectedRoute module="OrderManagement" subModule="OrderReport">
               <AppLayout>
                 <OrderManagement />
               </AppLayout>
-            </ProtectedRoute>
+            //  </ProtectedRoute>
+          } />
+          {/* Order Management */}
+          <Route path="/orders" element={
+            // <ProtectedRoute module="OrderManagement" subModule="Order">
+              <AppLayout>
+                <Order />
+              </AppLayout>
+            //  </ProtectedRoute>
           } />
           
           {/* Pricing */}

@@ -1,6 +1,6 @@
 // Updated useAgentStore with pagination and filter support
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api"; 
 
 interface Bank {
@@ -323,7 +323,8 @@ export const useAgentStore = create<AgentStore>()(
     }),
     {
       name: "agent-storage",
-      getStorage: () => localStorage,
+      // getStorage: () => localStorage,
+       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         agents: state.agents,
       }),
