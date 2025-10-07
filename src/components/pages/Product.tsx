@@ -9,9 +9,9 @@ import {
   Archive, 
   Settings2, 
   Star, 
-  Edit, 
+  
   Trash2, 
-  MoreHorizontal, 
+
   Eye, 
   Table, 
   Grid3X3, 
@@ -19,22 +19,22 @@ import {
   Building2,
   FileText,
   Plus,
-  Camera,
+
   Upload,
   X,
-  Search,
+ 
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
-import CustomSelect from "../customComponents/CustomSelect";
+
 import { useCompanyStore } from "../../../store/companyStore";
 import { useGodownStore } from "../../../store/godownStore";
 import { useStockCategory } from "../../../store/stockCategoryStore";
 import { useStockGroup } from "../../../store/stockGroupStore";
 import { useUOMStore } from "../../../store/uomStore";
 import { useProductStore } from "../../../store/productStore";
-import { Input } from "../ui/input";
+
 import FilterBar from "../customComponents/FilterBar";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import { CheckAccess } from "../customComponents/CheckAccess";

@@ -1,6 +1,6 @@
 // Updated companyStore with pagination support
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api";
 import { useEffect, useMemo } from "react";
 
@@ -228,7 +228,8 @@ export const useCompanyStore = create<CompanyStore>()(
     }),
     {
       name: "company-storage",
-      getStorage: () => localStorage,
+      // getStorage: () => localStorage,
+       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         companies: state.companies,
       }),
