@@ -231,8 +231,8 @@ export const UserManagement: React.FC = () => {
       SalesReport: { create: false, read: false, update: false, delete: false, extra: [] },
       PurchaseReport: { create: false, read: false, update: false, delete: false, extra: [] }
     },
-    OrderManagement:{
-     Order : { create: false, read: false, update: false, delete: false, extra: [] },
+    Order:{
+     Orders : { create: false, read: false, update: false, delete: false, extra: [] },
     }
   };
 

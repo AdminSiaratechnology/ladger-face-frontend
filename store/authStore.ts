@@ -1,7 +1,7 @@
 // store/authStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, LoginResponse, LoginCredentials } from '../src/types/auth';
+import type { User, LoginResponse, LoginCredentials } from '../src/types/auth';
 import baseUrl from '../src/lib/constant';
 
 

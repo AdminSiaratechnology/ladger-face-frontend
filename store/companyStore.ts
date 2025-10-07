@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api";
+import { useEffect, useMemo } from "react";
 
 // Types (unchanged, but included for completeness)
 export interface Bank {

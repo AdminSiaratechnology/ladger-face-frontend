@@ -1,6 +1,6 @@
 // Updated useStockGroup store with pagination support
 import {create} from "zustand";
-import {persist} from "zustand/middleware"
+import {createJSONStorage, persist} from "zustand/middleware"
 import api from "../src/api/api"
 
 export interface StockGroup{
@@ -180,7 +180,8 @@ try {
         }),
         {
           name: "stockgroup-storage",
-          getStorage: () => localStorage,
+          // getStorage: () => localStorage,
+           storage: createJSONStorage(() => localStorage),
           partialize: (state) => ({
             stockGroups: state.stockGroups,
           }),

@@ -1,25 +1,19 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { 
   Users, 
-  Building2, 
+
   FileText, 
   Settings2, 
   Star, 
-  Edit, 
-  Trash2, 
-  MoreHorizontal, 
+ 
   Eye, 
   Table, 
   Grid3X3, 
-  Layers,
-  Package,
-  Tag,
-  Archive,
+
   Phone,
   Mail,
   MapPin,
@@ -28,10 +22,10 @@ import {
   Plus,
   Upload,
   X,
-  Image as ImageIcon,
+
   UserCheck,
   Target,
-  Search,
+
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -222,7 +216,7 @@ const AgentRegistrationPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
   
-  const { fetchAgents, addAgent, updateAgent, deleteAgent, agents, filterAgents, pagination, loading, error } = useAgentStore(); // Assuming store exists
+  const { fetchAgents, addAgent, updateAgent, deleteAgent, filterAgents, pagination } = useAgentStore(); // Assuming store exists
   const { companies } = useCompanyStore();
   const getCompanyName = (companyId: string) => {
     const company = companies.find(c => c._id === companyId);

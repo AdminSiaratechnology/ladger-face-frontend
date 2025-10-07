@@ -166,7 +166,8 @@ const deleteStockGroup=async(stockGroupId:string)=>{
 
 //getStockCategory routes
 
-const getStockCategory = async () => {
+const getStockCategory = async (queryParams:string) => {
+  console.log(queryParams,"queryParams")
   const res = await apiClient.get("/stock-categories");
   return res?.data;
 };
