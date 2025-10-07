@@ -95,7 +95,7 @@ const downloadCompanyPDF = async () => {
   const token = localStorage.getItem("token");
   try {
     const res = await axios.get(
-      "http://localhost:8000/api/company/agent/documentation-pdf",
+      "http://localhost:8000/api/company/agent/companies/pdf",
       {
         responseType: "blob", 
         headers: {
@@ -214,13 +214,13 @@ const fetchProducts = async ({queryParams}:{queryParams:string}) => {
   return res.data;
 };
 
-const createProduct = async (product) => {
+const createProduct = async (product:any) => {
   console.log(product,"createProductcreateProduct")
   const res = await apiClient.post("/products", product);
   return res.data;
 };
 
-const updateProduct = async (id, product) => {
+const updateProduct = async ({id, product}:{id:string,product:any}) => {
   const res = await apiClient.put(`/products/${id}`, product);
   return res.data;
 };
