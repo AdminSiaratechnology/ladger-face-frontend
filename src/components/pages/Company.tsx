@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit, Settings2, Eye, Table, Grid3X3, Edit, Trash2, MoreHorizontal, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit, Settings2, Eye, Table, Grid3X3, Edit, Trash2, MoreHorizontal, Search, ChevronLeft, ChevronRight, BookOpenCheck, Download, ArrowBigDownDash } from "lucide-react";
 
 import { Country, State, City } from 'country-state-city';
 import CustomInputBox from "../customComponents/CustomInputBox";
@@ -479,8 +479,8 @@ const CompanyPage: React.FC = () => {
       addCompany(formData);
     }
     
-    resetForm();
-    setOpen(false);
+    // resetForm();
+    // setOpen(false);
   };
 
   // Document upload handler - updated for FormData
@@ -877,32 +877,29 @@ setCurrentPage(1)
   const downloadPDF = async () => {
   const res = await api.downloadCompanyPDF()
   console.log(res,"pdfresss")
-
-  // const blob = await res.blob();
-  // const url = window.URL.createObjectURL(blob);
-  // const a = document.createElement("a");
-  // a.href = url;
-  // a.download = "Company_Documentation.pdf";
-  // a.click();
-  // window.URL.revokeObjectURL(url);
 };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="flex justify-between items-center mb-8">
-        {/* <Button onClick={downloadPDF}>get pdf</Button> */}
+     
+        
 
         <HeaderGradient title="Company Management" subtitle="Manage your company information and registrations"/>
+        <div className="flex gap-2">
+
         <Button 
           onClick={() => {
             resetForm();
             setOpen(true);
           }} 
           className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-        >
+          >
           <Building2 className="w-4 h-4 mr-2" />
           Add Company
         </Button>
+           <Button onClick={downloadPDF} className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">Integration PDF <ArrowBigDownDash /> </Button>
+          </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
