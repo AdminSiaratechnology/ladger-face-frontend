@@ -87,6 +87,35 @@ const deleteCompany = async (companyId: string) => {
   const res = await apiClient.delete(`/company/delete/${companyId}`);
   return res.data;
 }
+// const getCompanyPDF = async () => {
+//   const res = await apiClient.get(`/company/agent/documentation-pdf`);
+//   return res;
+// }
+const downloadCompanyPDF = async () => {
+  const token = localStorage.getItem("token");
+  try {
+    const res = await axios.get(
+      "http://localhost:8000/api/company/agent/documentation-pdf",
+      {
+        responseType: "blob", 
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    // 👇 Convert blob into a downloadable file
+    const blob = new Blob([res.data], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Company_Documentation.pdf"; // 👈 custom filename
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("PDF download failed:", err);
+  }
+};
 
 const getProducts = async () => {
   const res = await apiClient.get("/products");
@@ -345,6 +374,7 @@ const api = {
   getProducts,
   updateCompany,
   deleteCompany,
+  downloadCompanyPDF,
   createUser,
   fetchUsers,
   updateUser,
