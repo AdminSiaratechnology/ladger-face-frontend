@@ -8,8 +8,10 @@ interface CheckAccess{
 
 export const CheckAccess = ({children,module, subModule,type}:CheckAccess) => {
     console.log(children,module, subModule,type,"CheckAccessCheckAccess"
+      
 
     )
+    return <>{children}</>;
         const {user,isLoading}=useAuthStore();
         if (module && subModule) {
             const hasPermission = checkPermission({user, module, subModule,type});

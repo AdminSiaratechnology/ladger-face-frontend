@@ -137,7 +137,7 @@ const mockItems: InventoryItem[] = [
   }
 ];
 
-export function InventoryManagement() {
+export default function InventoryManagement() {
   const [items, setItems] = useState<InventoryItem[]>(mockItems);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');

@@ -1,20 +1,26 @@
-// Updated StockGroupRegistration with pagination and filters
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogContent } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Layers,  Building2, FileText, Star, Edit, Trash2, MoreHorizontal, Eye, Table, Grid3X3, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
+import { Layers, Building2, FileText, Star, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Search, Settings2 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import {useStockGroup} from "../../../store/stockGroupStore"
 import {useCompanyStore} from "../../../store/companyStore"
 import { formatSimpleDate } from "../../lib/formatDates";
-import { Input } from "../ui/input";
+
 import FilterBar from "../customComponents/FilterBar";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import ActionsDropdown from "../customComponents/ActionsDropdown";
 import { CheckAccess } from "../customComponents/CheckAccess";
-
+import { TableViewSkeleton } from "../customComponents/TableViewSkeleton";
+import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
+import CustomStepNavigation from "../customComponents/CustomStepNavigation";
+// import { MultiStepNav } from "../customComponents/MultiStepNav"; // Assuming shared component
+import ViewModeToggle from "../customComponents/ViewModeToggle";
+import PaginationControls from "../customComponents/CustomPaginationControls";
+import TableHeader from "../customComponents/CustomTableHeader";
 
 // StockGroup interface (adjusted to match store)
 interface StockGroup {
@@ -30,10 +36,19 @@ interface StockGroup {
   __v?: number;
 }
 
+interface StockGroupForm {
+  name: string;
+  description: string;
+  status: 'active' | 'inactive';
+  stockGroupId: string;
+  companyId: string;
+}
+
 const StockGroupRegistration: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [editingStockGroup, setEditingStockGroup] = useState<StockGroup | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("basic");
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
@@ -71,14 +86,12 @@ const StockGroupRegistration: React.FC = () => {
     };
   }, [searchTerm, statusFilter, sortBy, currentPage, filterStockGroups]);
 
-  const [formData, setFormData] = useState<StockGroup>({
-    _id: '',
+  const [formData, setFormData] = useState<StockGroupForm>({
     name: '',
     description: '',
     status: 'active',
     stockGroupId: '',
     companyId: '',
-    createdAt: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
@@ -90,7 +103,7 @@ const StockGroupRegistration: React.FC = () => {
     }));
   };
 
-  const handleSelectChange = (name: keyof StockGroup, value: string): void => {
+  const handleSelectChange = (name: keyof StockGroupForm, value: string): void => {
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -99,21 +112,24 @@ const StockGroupRegistration: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
-      _id: '',
       name: '',
       description: '',
       status: 'active',
-      stockGroupId: stockGroups.length > 0 ? stockGroups[0]._id : '',
+      stockGroupId: '',
       companyId: companies.length > 0 ? companies[0]._id : '',
-      createdAt: '',
     });
     setEditingStockGroup(null);
+    setActiveTab("basic");
   };
 
   const handleEditStockGroup = (stockGroup: StockGroup): void => {
     setEditingStockGroup(stockGroup);
     setFormData({
-      ...stockGroup
+      name: stockGroup.name,
+      description: stockGroup.description || '',
+      status: stockGroup.status,
+      stockGroupId: stockGroup.stockGroupId || '',
+      companyId: stockGroup.companyId || '',
     });
     setOpen(true);
   };
@@ -123,24 +139,18 @@ const StockGroupRegistration: React.FC = () => {
   };
 
   const handleSubmit = (): void => {
-    if ( !formData.name.trim()) {
-      alert("Please fill in Stock Group Name");
+    if (!formData.name.trim()) {
+      toast.error("Please enter Stock Group Name");
+      return;
+    }
+    if (!formData.companyId) {
+      toast.error("Please select Company");
       return;
     }
 
     if (editingStockGroup) {
-      let updateStocks={
-      name: formData.name,
-      description: formData.description,
-      status: formData.status,
-      stockGroupId:formData.stockGroupId,
-      companyId:formData.companyId,
-    }
-    console.log("updatinggg")
-      updateStockGroup( editingStockGroup?._id, updateStocks );
+      updateStockGroup(editingStockGroup._id, formData);
     } else {
-      console.log("updatingggadddd")
-      
       addStockGroup(formData);
     }
     
@@ -151,135 +161,60 @@ const StockGroupRegistration: React.FC = () => {
   // Statistics calculations
   const stats = useMemo(() => ({
     totalGroups: pagination?.total,
-    primaryGroups: filteredStockGroups?.filter(g => g.stockGroupId === '').length, // Assuming empty stockGroupId means primary
+    primaryGroups: filteredStockGroups?.filter(g => !g.stockGroupId).length,
     activeGroups: statusFilter === 'active' ? pagination.total : filteredStockGroups?.filter(g => g.status === 'active').length,
     inactiveGroups: statusFilter === 'inactive' ? pagination.total : filteredStockGroups?.filter(g => g.status === 'inactive').length
   }), [filteredStockGroups, pagination, statusFilter]);
 
-  // Actions dropdown component
-  // const ActionsDropdown = ({ stockGroup }: { stockGroup: StockGroup }) => {
-  //   const [showActions, setShowActions] = useState(false);
-    
-  //   return (
-  //     <div className="relative">
-  //       <Button
-  //         variant="ghost"
-  //         size="sm"
-  //         onClick={() => setShowActions(!showActions)}
-  //         className="h-8 w-8 p-0 hover:bg-gray-100"
-  //       >
-  //         <MoreHorizontal className="h-4 w-4" />
-  //       </Button>
-        
-  //       {showActions && (
-  //         <>
-  //           <div
-  //             className="fixed inset-0 z-10"
-  //             onClick={() => setShowActions(false)}
-  //           />
-  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-  //             <Button
-  //               variant="ghost"
-  //               size="sm"
-  //               onClick={() => {
-  //                 handleEditStockGroup(stockGroup);
-  //                 setShowActions(false);
-  //               }}
-  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-  //             >
-  //               <Edit className="h-4 w-4 mr-2" />
-  //               Edit
-  //             </Button>
-  //             <Button
-  //               variant="ghost"
-  //               size="sm"
-  //               onClick={() => {
-  //                 handleDeleteStockGroup(stockGroup?._id);
-  //                 setShowActions(false);
-  //               }}
-  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-  //             >
-  //               <Trash2 className="h-4 w-4 mr-2" />
-  //               Delete
-  //             </Button>
-  //           </div>
-  //         </>
-  //       )}
-  //     </div>
-  //   );
-  // };
+  const tabs = [
+    { id: "basic", label: "Basic Info" },
+    { id: "hierarchy", label: "Hierarchy" },
+    { id: "settings", label: "Settings" }
+  ];
+
+  const stepIcons = {
+    basic: <FileText className="w-2 h-2 md:w-5 md:h-5 " />,
+    hierarchy: <Layers className="w-2 h-2 md:w-5 md:h-5 " />,
+    settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5 " />
+  };
 
   // Table View Component
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-teal-50 to-teal-100">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Stock Group
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Description
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Parent
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
+          <TableHeader headers={["Group Name", "Description", "Parent Group", "Created At", "Status", "Actions"]} />
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredStockGroups.map((stockGroup) => (
-              <tr key={stockGroup._id} className="hover:bg-gray-50 transition-colors duration-200">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{stockGroup.name}</div>
-                    {/* <div className="text-sm text-teal-600 font-mono">{stockGroup.code}</div> */} {/* Removed code as per interface */}
-                  </div>
+            {filteredStockGroups.map((group) => (
+              <tr key={group._id} className="hover:bg-gray-50 transition-colors duration-200">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {group.name}
                 </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 max-w-xs truncate">
-                    {stockGroup.description || 'No description'}
-                  </div>
+                <td className="px-6 py-4 text-sm text-gray-500">
+                  {group.description || 'No description'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {stockGroup.stockGroupId === '' ? ( // Assuming empty means primary
-                      <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
-                        Primary
-                      </Badge>
-                    ) : (
-                      <span className="text-gray-600">{stockGroup.stockGroupId}</span>
-                    )}
-                  </div>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {group.stockGroupId 
+                    ? stockGroups.find(g => g._id === group.stockGroupId)?.name || 'Unknown'
+                    : 'Primary'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{formatSimpleDate(stockGroup.createdAt || '')}</div>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {formatSimpleDate(group.createdAt || '')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Badge className={`${
-                    stockGroup.status === 'active' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-gray-100 text-gray-700'
-                  } hover:bg-green-100`}>
-                    {stockGroup.status}
+                    group.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {group.status}
                   </Badge>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {/* <ActionsDropdown stockGroup={stockGroup} /> */}
-                                <ActionsDropdown
-  onEdit={() =>  handleEditStockGroup(stockGroup)}
-  onDelete={() =>handleDeleteStockGroup(stockGroup._id || '')}
-  module="InventoryManagement" subModule="StockGroup"
-/>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <ActionsDropdown
+                    onEdit={() => handleEditStockGroup(group)}
+                    onDelete={() => handleDeleteStockGroup(group._id)}
+                    module="InventoryManagement" 
+                    subModule="StockGroup"
+                  />
                 </td>
               </tr>
             ))}
@@ -291,111 +226,46 @@ const StockGroupRegistration: React.FC = () => {
 
   // Card View Component
   const CardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {filteredStockGroups.map((group: StockGroup) => (
-        <Card key={group._id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 pb-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-xl font-bold text-gray-800 mb-1">
-                  {group.name}
-                </CardTitle>
-                {/* <p className="text-teal-600 font-medium font-mono">{group.code}</p> */} {/* Removed code */}
-                {group.stockGroupId === '' && (
-                  <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 mt-2">
-                    Primary
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge className={`${group.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
-                  {group.status}
-                </Badge>
-                {/* <ActionsDropdown stockGroup={group} /> */}
-                                               <ActionsDropdown
-  onEdit={() =>  handleEditStockGroup(group)}
-  onDelete={() =>handleDeleteStockGroup(group._id || '')}
-  module="InventoryManagement" subModule="StockGroup"
-/>
-              </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {filteredStockGroups.map((group) => (
+        <Card key={group._id} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+          <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100">
+            <div className="flex justify-between items-start">
+              <CardTitle className="text-lg">{group.name}</CardTitle>
+              <Badge className={`${
+                group.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+              }`}>
+                {group.status}
+              </Badge>
             </div>
           </CardHeader>
-          
-          <CardContent className="p-6 space-y-4">
-            <div className="space-y-3">
-              {group.description && (
-                <div className="flex items-start text-sm">
-                  <FileText className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-600">{group.description}</span>
-                </div>
-              )}
-
-              {group.stockGroupId !== '' && (
-                <div className="flex items-center text-sm">
-                  <Layers className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">Parent: {group.stockGroupId}</span>
-                </div>
-              )}
-              
-              <div className="flex items-center text-sm">
-                <Building2 className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Created: {formatSimpleDate(group.createdAt || '')}</span>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600 mb-4">{group.description || 'No description'}</p>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center">
+                <Layers className="w-4 h-4 mr-2 text-gray-400" />
+                Parent: {group.stockGroupId 
+                  ? stockGroups.find(g => g._id === group.stockGroupId)?.name || 'Unknown'
+                  : 'Primary'}
               </div>
+              <div className="flex items-center">
+                <FileText className="w-4 h-4 mr-2 text-gray-400" />
+                Created: {formatSimpleDate(group.createdAt || '')}
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <ActionsDropdown
+                onEdit={() => handleEditStockGroup(group)}
+                onDelete={() => handleDeleteStockGroup(group._id)}
+                module="InventoryManagement" 
+                subModule="StockGroup"
+              />
             </div>
           </CardContent>
         </Card>
       ))}
     </div>
   );
-
-  // Pagination controls
-  const PaginationControls = () => (
-    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
-      <div className="text-sm text-gray-600">
-        Showing {(currentPage - 1) * pagination?.limit + 1} - {Math.min(currentPage * pagination?.limit, pagination?.total)} of {pagination?.total} stock groups
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-          disabled={currentPage === 1}
-          className="flex items-center gap-1"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Previous
-        </Button>
-        <span className="text-sm text-gray-600">
-          Page {currentPage} of {pagination?.totalPages}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentPage(prev => Math.min(pagination?.totalPages, prev + 1))}
-          disabled={currentPage === pagination?.totalPages}
-          className="flex items-center gap-1"
-        >
-          Next
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
-  );
-
- <FilterBar
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        onClearFilters={() => {
-          setSearchTerm('');
-          setStatusFilter('all');
-          setSortBy('nameAsc');
-          setCurrentPage(1);
-        }}
-      />
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -484,39 +354,14 @@ const StockGroupRegistration: React.FC = () => {
           setCurrentPage(1);
         }}
       />
+      {loading && <TableViewSkeleton/>}
 
-      {pagination?.total ? (
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-gray-600" />
-            <span className="text-gray-700 font-medium">View Mode:</span>
-          </div>
-          <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'table'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Table className="w-4 h-4 mr-2" />
-              Table View
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'cards'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Grid3X3 className="w-4 h-4 mr-2" />
-              Card View
-            </button>
-          </div>
-        </div>
-      ) : null}
+      
+      <ViewModeToggle 
+              viewMode={viewMode} 
+              setViewMode={setViewMode} 
+              totalItems={pagination?.total} 
+            />
 
       {pagination?.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
@@ -540,7 +385,13 @@ const StockGroupRegistration: React.FC = () => {
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
-          <PaginationControls />
+         
+            <PaginationControls
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        pagination={pagination}
+        itemName="stock groups"
+      />
         </>
       )}
 
@@ -551,21 +402,22 @@ const StockGroupRegistration: React.FC = () => {
         }
       }}>
         <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
-          <DialogHeader className="pb-4 border-b border-gray-200">
-            <DialogTitle className="text-2xl font-bold text-gray-800">
-              {editingStockGroup ? 'Edit Stock Group' : 'Add New Stock Group'}
-            </DialogTitle>
-            <p className="text-gray-600 text-sm">
-              {editingStockGroup ? 'Update the stock group details' : 'Fill in the stock group details and information'}
-            </p>
-          </DialogHeader>
+         
+          <CustomFormDialogHeader
+           title=     {editingStockGroup ? 'Edit Stock Group' : 'Add New Stock Group'}
+  subtitle=  {editingStockGroup ? 'Update the stock group details' : 'Fill in the stock group details and information'}
+          
+          />
           
           <div className="space-y-6 py-4">
             <div className="bg-white p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                <Layers className="w-5 h-5 mr-2" />
-                Group Information
-              </h3>
+             
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center shadow-lg">
+                                  <Layers className="w-6 h-6 text-white" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800">Group Information</h3>
+                              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 
@@ -577,58 +429,59 @@ const StockGroupRegistration: React.FC = () => {
                   label="Group Name"
                   
                 />
-                 <div className="mb-4">
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Company</label>
+                 <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Company <span className="text-red-500">*</span>
+                    </label>
                     <select
                       value={formData.companyId}
                       onChange={(e) => handleSelectChange("companyId", e.target.value)}
-                      className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >{
-                      companies.map((companie)=>(
-                       
-                      
-                        <option key={companie?.["_id"]} value={companie?.["_id"]}>{companie?.namePrint} </option>
-                    
-                      ))
-                    }
-                    
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Company</option>
+                      {companies.map((company) => (
+                        <option key={company._id} value={company._id}>
+                          {company.namePrint}
+                        </option>
+                      ))}
                     </select>
                   </div>
               </div>
 
               <div className="mb-4">
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
+                <label className="text-sm font-semibold text-gray-700 mb-1 block">Description</label>
                 <textarea
                   placeholder="Enter group description..."
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full px-3 py-2 border border-blue-200 rounded-md focus:border-blue-500 focus:outline-none resize-none"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
                 />
               </div>
 
-              <div className="mb-4">
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Parent Group</label>
+              <div className="flex flex-col gap-1 mb-4">
+                <label className="text-sm font-semibold text-gray-700">Parent Group</label>
                 <select
                   value={formData.stockGroupId || ''}
                   onChange={(e) => handleSelectChange("stockGroupId", e.target.value)}
-                  className="w-full h-10 px-3 py-2 border border-blue-200 rounded-md focus:border-blue-500 focus:outline-none bg-white"
+                  className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                 >
                   <option value="">Primary (No Parent)</option>
-                  {stockGroups?.filter(group => group?._id !== editingStockGroup?._id) // Prevent self-referencing
-                    .map(group => (
-                    <option key={group?._id} value={group?._id}>{group?.name}</option>
+                  {stockGroups.filter(g => g._id !== editingStockGroup?._id).map((group) => (
+                    <option key={group._id} value={group._id}>
+                      {group.name}
+                    </option>
                   ))}
                 </select>
               </div>
 
-              <div className="mb-4">
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
+              <div className="flex flex-col gap-1 mb-4">
+                <label className="text-sm font-semibold text-gray-700">Status</label>
                 <select
                   value={formData.status}
                   onChange={(e) => handleSelectChange("status", e.target.value)}
-                  className="w-full h-10 px-3 py-2 border border-blue-200 rounded-md focus:border-blue-500 focus:outline-none bg-white"
+                  className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -638,7 +491,7 @@ const StockGroupRegistration: React.FC = () => {
               <div className="flex justify-end mt-6">
                 <Button 
                   onClick={handleSubmit}
-                  className="bg-gradient-to-r from-teal-600 to-blue-700 hover:from-teal-700 hover:to-blue-800 text-white px-8 py-2 shadow-lg"
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
                 >
                   {editingStockGroup ? 'Update Group' : 'Save Group'}
                 </Button>

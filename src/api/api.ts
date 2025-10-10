@@ -95,7 +95,7 @@ const downloadCompanyPDF = async () => {
   const token = localStorage.getItem("token");
   try {
     const res = await axios.get(
-      "http://localhost:8000/api/company/agent/companies/pdf",
+      `${baseUrl}company/agent/companies/pdf`,
       {
         responseType: "blob", 
         headers: {

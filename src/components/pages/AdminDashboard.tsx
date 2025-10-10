@@ -46,7 +46,7 @@ const salesmanPerformance = [
   { name: 'David Wilson', sales: 61000, target: 75000, orders: 29 },
 ];
 
-export function AdminDashboard() {
+export default  function AdminDashboard() {
   const gradient = ["bg-gradient-to-r from-teal-500 to-teal-600", "bg-gradient-to-r from-green-500 to-green-600", "bg-gradient-to-r from-blue-500 to-blue-600", "bg-gradient-to-r from-purple-500 to-purple-600"]
   const stats = [
     {

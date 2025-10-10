@@ -1,11 +1,10 @@
-// Updated CompanyPage with pagination
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo,  useEffect } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Input } from "../ui/input";
+
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image, FileEdit, Settings2, Eye, Table, Grid3X3, Edit, Trash2, MoreHorizontal, Search, ChevronLeft, ChevronRight, BookOpenCheck, Download, ArrowBigDownDash } from "lucide-react";
+import { Building2, Globe, Phone, Mail, MapPin, CreditCard, FileText, Star, Plus, X, Upload, Image as ImageIcon,  Settings2,  ArrowBigDownDash, Users } from "lucide-react";
 
 import { Country, State, City } from 'country-state-city';
 import CustomInputBox from "../customComponents/CustomInputBox";
@@ -14,6 +13,16 @@ import { useCompanyStore } from "../../../store/companyStore";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
 import api from "../../api/api";
+import { TableViewSkeleton } from "../../components/customComponents/TableViewSkeleton";
+import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
+import CustomStepNavigation from "../customComponents/CustomStepNavigation";
+import MultiStepNav from "../customComponents/MultiStepNav";
+import { CheckAccess } from "../customComponents/CheckAccess";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
+import { toast } from "sonner";
+import TableHeader from "../customComponents/CustomTableHeader";
+import PaginationControls from "../customComponents/CustomPaginationControls";
+import ViewModeToggle from "../customComponents/ViewModeToggle";
 
 // Bank interface (unchanged)
 interface Bank {
@@ -82,8 +91,8 @@ interface CompanyForm {
   udyamNumber: string;
   defaultCurrency: string;
   banks: Bank[];
-  logo: File | null;
-  logoPreview?: string;
+  logoFile?: File; // For logo upload
+  logoPreviewUrl?: string;
   notes: string;
   registrationDocs: RegistrationDocument[];
   status: 'active' | 'inactive';
@@ -95,25 +104,23 @@ interface RegistrationDocument {
   type: string;
   file: File;
   fileName: string;
-  preview?: string;
+  previewUrl: string;
 }
+
+const stepIcons = {
+  basic: <Building2 className="w-2 h-2 md:w-5 md:h-5 " />,
+  contact: <Phone className="w-2 h-2 md:w-5 md:h-5 " />,
+  registration: <FileText className="w-2 h-2 md:w-5 md:h-5 " />,
+  bank: <CreditCard className="w-2 h-2 md:w-5 md:h-5 " />,
+  branding: <ImageIcon className="w-2 h-2 md:w-5 md:h-5 " />,
+  settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5 " />
+};
 
 const CompanyPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("basic");
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
-  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const limit = 10; // Fixed limit per page
-
-  const { companies, pagination, loading, error, fetchCompanies, addCompany, updateCompany, deleteCompany, filterCompanies } = useCompanyStore();
-
-  console.log("Companies from store:", companies);
-
+  const [activeTab, setActiveTab] = useState<string>("basic");
   const [bankForm, setBankForm] = useState<Bank>({
     id: Date.now(),
     accountHolderName: "",
@@ -124,8 +131,340 @@ const CompanyPage: React.FC = () => {
     bankName: "",
     branch: ""
   });
+  const [viewingImage, setViewingImage] = useState<RegistrationDocument | {previewUrl: string, type: 'logo'} | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const limit = 10; // Fixed limit per page
+  
+  const { companies, pagination, loading, error, fetchCompanies, addCompany, updateCompany, deleteCompany, filterCompanies } = useCompanyStore();
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  console.log("Companies from store:", companies);
+
+  const [formData, setFormData] = useState<CompanyForm>({
+    namePrint: "",
+    nameStreet: "",
+    address1: "",
+    address2: "",
+    address3: "",
+    city: "",
+    pincode: "",
+    state: "",
+    country: "India",
+    telephone: "",
+    mobile: "",
+    fax: "",
+    email: "",
+    website: "",
+    gstNumber: "",
+    panNumber: "",
+    tanNumber: "",
+    msmeNumber: "",
+    udyamNumber: "",
+    defaultCurrency: "INR",
+    banks: [],
+    notes: "",
+    registrationDocs: [],
+    status: "active",
+  });
+
+  const allCountries = useMemo(() => Country.getAllCountries(), []);
+
+  const availableStates = useMemo(() => {
+    const selectedCountry = allCountries.find(c => c.name === formData.country);
+    if (!selectedCountry) return [];
+    return State.getStatesOfCountry(selectedCountry.isoCode);
+  }, [formData.country, allCountries]);
+
+  const availableCities = useMemo(() => {
+    const selectedCountry = allCountries.find(c => c.name === formData.country);
+    const selectedState = availableStates.find(s => s.name === formData.state);
+    if (!selectedCountry || !selectedState) return [];
+    return City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
+  }, [formData.country, formData.state, availableStates, allCountries]);
+
+  const getCurrencyForCountry = (countryName: string): string => {
+    const country = allCountries.find(c => c.name === countryName);
+    if (!country) return "INR";
+    
+    const currencyMap: Record<string, string> = {
+      'IN': 'INR',
+      'US': 'USD',
+      'GB': 'GBP',
+      'CA': 'CAD',
+      'AU': 'AUD',
+      'DE': 'EUR',
+      'FR': 'EUR',
+      'JP': 'JPY',
+      'CN': 'CNY'
+    };
+    
+    return currencyMap[country.isoCode] || country.currency || 'USD';
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSelectChange = (name: keyof CompanyForm, value: string): void => {
+    if (name === "country") {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        state: "",
+        city: "",
+        defaultCurrency: getCurrencyForCountry(value)
+      }));
+    } else if (name === "state") {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        city: ""
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const { name, value } = e.target;
+    setBankForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const addBank = (): void => {
+    if (!bankForm.accountHolderName || !bankForm.accountNumber || !bankForm.bankName) {
+      toast.error("Please fill in at least Account Holder Name, Account Number, and Bank Name");
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      banks: [...prev.banks, { ...bankForm, id: Date.now() }]
+    }));
+
+    setBankForm({
+      id: Date.now(),
+      accountHolderName: "",
+      accountNumber: "",
+      ifscCode: "",
+      swiftCode: "",
+      micrNumber: "",
+      bankName: "",
+      branch: ""
+    });
+  };
+
+  const removeBank = (id: number): void => {
+    setFormData(prev => ({
+      ...prev,
+      banks: prev.banks.filter(bank => bank.id !== id)
+    }));
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      setFormData(prev => ({
+        ...prev,
+        logoFile: file,
+        logoPreviewUrl: previewUrl
+      }));
+    }
+  };
+
+  const removeLogo = (): void => {
+    if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(formData.logoPreviewUrl);
+    }
+    setFormData(prev => ({
+      ...prev,
+      logoFile: undefined,
+      logoPreviewUrl: undefined
+    }));
+  };
+
+  const handleDocumentUpload = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      
+      const newDoc: RegistrationDocument = {
+        id: Date.now(),
+        type,
+        file,
+        previewUrl,
+        fileName: file.name
+      };
+      
+      setFormData(prev => ({
+        ...prev,
+        registrationDocs: [...prev.registrationDocs.filter(doc => doc.type !== type), newDoc]
+      }));
+    }
+  };
+
+  const removeDocument = (id: number) => {
+    const docToRemove = formData.registrationDocs.find(doc => doc.id === id);
+    if (docToRemove && docToRemove.previewUrl && docToRemove.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(docToRemove.previewUrl);
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      registrationDocs: prev.registrationDocs.filter(doc => doc.id !== id)
+    }));
+  };
+
+  const cleanupImageUrls = (): void => {
+    // Clean up logo
+    if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(formData.logoPreviewUrl);
+    }
+    
+    // Clean up documents
+    formData.registrationDocs.forEach(doc => {
+      if (doc.previewUrl && doc.previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(doc.previewUrl);
+      }
+    });
+  };
+
+  const resetForm = () => {
+    cleanupImageUrls();
+    
+    setFormData({
+      namePrint: "",
+      nameStreet: "",
+      address1: "",
+      address2: "",
+      address3: "",
+      city: "",
+      pincode: "",
+      state: "",
+      country: "India",
+      telephone: "",
+      mobile: "",
+      fax: "",
+      email: "",
+      website: "",
+      gstNumber: "",
+      panNumber: "",
+      tanNumber: "",
+      msmeNumber: "",
+      udyamNumber: "",
+      defaultCurrency: "INR",
+      banks: [],
+      notes: "",
+      registrationDocs: [],
+      status: "active",
+    });
+    setEditingCompany(null);
+    setActiveTab("basic");
+  };
+
+  const handleEditCompany = (company: Company): void => {
+    setEditingCompany(company);
+    setFormData({
+      ...company,
+      logoPreviewUrl: company.logo || undefined,
+      registrationDocs: company.registrationDocs.map(doc => ({
+        ...doc,
+        previewUrl: doc.previewUrl // Assuming previewUrl is URL or base64, adjust if needed
+      }))
+    });
+    setOpen(true);
+  };
+
+  const handleDeleteCompany = (id: string): void => {
+    deleteCompany(id);
+  };
+
+  const handleSubmit = (): void => {
+    if (!formData.namePrint.trim()) {
+      toast.error("Please enter Company Name (Print)");
+      return;
+    }
+    if (!formData.email.trim()) {
+      toast.error("Please enter Email Address");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    if (!formData.country) {
+      toast.error("Please select Country");
+      return;
+    }
+    if (!formData.pincode.trim()) {
+      toast.error("Please enter Pincode");
+      return;
+    }
+
+    const companyFormData = new FormData();
+    
+    Object.keys(formData).forEach(key => {
+      const value = formData[key as keyof CompanyForm];
+      
+      if (key === 'registrationDocs' || key === 'banks' || key === 'logoFile' || key === 'logoPreviewUrl') {
+        return;
+      }
+      
+      if (value !== null && value !== undefined && value !== '') {
+        companyFormData.append(key, String(value));
+      }
+    });
+    
+    companyFormData.append('banks', JSON.stringify(formData.banks));
+    
+    if (formData.logoFile) {
+      companyFormData.append('logo', formData.logoFile);
+    }
+    
+    formData.registrationDocs.forEach((doc) => {
+      companyFormData.append('registrationDocs', doc.file);
+    });
+    companyFormData.append('registrationDocTypes', JSON.stringify(formData.registrationDocs.map(doc => doc.type)));
+    companyFormData.append('registrationDocsCount', String(formData.registrationDocs.length));
+
+    if (editingCompany) {
+      updateCompany({ companyId: editingCompany._id || '', companyData: companyFormData });
+    } else {
+      addCompany(companyFormData);
+    }
+  };
+
+  const stats = useMemo(() => ({
+    totalCompanies: pagination?.total,
+    gstRegistered: filteredCompanies?.filter(c => c.gstNumber?.trim() !== "").length,
+    msmeRegistered: filteredCompanies?.filter(c => c.msmeNumber?.trim() !== "").length,
+    activeCompanies: statusFilter === 'active' ? pagination?.total : filteredCompanies?.filter(c => c.status === "active").length
+  }), [filteredCompanies, pagination, statusFilter]);
+
+  const tabs = [
+    { id: "basic", label: "Basic Info" },
+    { id: "contact", label: "Contact Details" },
+    { id: "registration", label: "Registration Details" },
+    { id: "bank", label: "Banking Details" },
+    { id: "branding", label: "Branding" },
+    { id: "settings", label: "Settings" }
+  ];
 
   // Initial fetch
   useEffect(() => {
@@ -154,560 +493,53 @@ const CompanyPage: React.FC = () => {
     };
   }, [searchTerm, statusFilter, sortBy, currentPage, filterCompanies]);
 
-  const [form, setForm] = useState<CompanyForm>({
-    namePrint: "",
-    nameStreet: "",
-    address1: "",
-    address2: "",
-    address3: "",
-    city: "",
-    pincode: "",
-    state: "",
-    country: "India",
-    telephone: "",
-    mobile: "",
-    fax: "",
-    email: "",
-    website: "",
-    gstNumber: "",
-    panNumber: "",
-    tanNumber: "",
-    msmeNumber: "",
-    udyamNumber: "",
-    defaultCurrency: "INR - Indian Rupee",
-    banks: [],
-    logo: null,
-    logoPreview: undefined,
-    notes: "",
-    registrationDocs: [],
-    status: "active",
-  });
-
-  // Get all countries
-  const allCountries = useMemo(() => Country.getAllCountries(), []);
-
-  // Get states for selected country
-  const availableStates = useMemo(() => {
-    const selectedCountry = allCountries.find(c => c.name === form.country);
-    if (!selectedCountry) return [];
-    return State.getStatesOfCountry(selectedCountry.isoCode);
-  }, [form.country, allCountries]);
-
-  // Get cities for selected state
-  const availableCities = useMemo(() => {
-    const selectedCountry = allCountries.find(c => c.name === form.country);
-    const selectedState = availableStates.find(s => s.name === form.state);
-    if (!selectedCountry || !selectedState) return [];
-    return City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
-  }, [form.country, form.state, availableStates, allCountries]);
-
-  // Currency mapping based on country
-  const getCurrencyForCountry = (countryName: string): string => {
-    const country = allCountries.find(c => c.name === countryName);
-    if (!country) return "INR - Indian Rupee";
-    
-    const currencyMap: Record<string, string> = {
-      'IN': 'INR - Indian Rupee',
-      'US': 'USD - US Dollar',
-      'GB': 'GBP - British Pound',
-      'CA': 'CAD - Canadian Dollar',
-      'AU': 'AUD - Australian Dollar',
-      'EU': 'EUR - Euro',
-      'JP': 'JPY - Japanese Yen',
-      'CN': 'CNY - Chinese Yuan'
-    };
-    
-    return currencyMap[country.isoCode] || `${country.currency} - ${country.currency}`;
+  const formatSimpleDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
   };
-
-  // Auto-set currency based on country selection
-  const handleCountryChange = (countryName: string): void => {
-    setForm(prev => ({
-      ...prev,
-      country: countryName,
-      state: "",
-      city: "",
-      defaultCurrency: getCurrencyForCountry(countryName)
-    }));
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
-    const { name, value } = e.target;
-    setForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSelectChange = (name: keyof CompanyForm, value: string): void => {
-    if (name === "country") {
-      handleCountryChange(value);
-    } else if (name === "state") {
-      setForm(prev => ({
-        ...prev,
-        [name]: value,
-        city: ""
-      }));
-    } else if (name === "status") {
-      setForm(prev => ({
-        ...prev,
-        [name]: value as 'active' | 'inactive'
-      }));
-    } else {
-      setForm(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-  };
-
-  // Bank form handlers
-  const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = e.target;
-    setBankForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const addBank = (): void => {
-    if (!bankForm.accountHolderName || !bankForm.accountNumber || !bankForm.bankName) {
-      alert("Please fill in at least Account Holder Name, Account Number, and Bank Name");
-      return;
-    }
-
-    setForm(prev => ({
-      ...prev,
-      banks: [...prev.banks, { ...bankForm, id: Date.now() }]
-    }));
-
-    // Reset bank form
-    setBankForm({
-      id: Date.now(),
-      accountHolderName: "",
-      accountNumber: "",
-      ifscCode: "",
-      swiftCode: "",
-      micrNumber: "",
-      bankName: "",
-      branch: ""
-    });
-  };
-
-  const removeBank = (id: number): void => {
-    setForm(prev => ({
-      ...prev,
-      banks: prev.banks.filter(bank => bank.id !== id)
-    }))
-  };
-
-  // Logo upload handler - updated for FormData
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Create preview URL for display
-      const previewUrl = URL.createObjectURL(file);
-      
-      setForm(prev => ({
-        ...prev,
-        logo: file,
-        logoPreview: previewUrl
-      }));
-    }
-  };
-
-  const triggerLogoUpload = (): void => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  // Edit company handler - updated for FormData
-  const handleEditCompany = (company: Company): void => {
-    console.log("Editing company:", company);
-    setEditingCompany(company);
-    
-    setForm({
-      namePrint: company.namePrint,
-      nameStreet: company.nameStreet,
-      address1: company.address1,
-      address2: company.address2,
-      address3: company.address3,
-      city: company.city,
-      pincode: company.pincode,
-      state: company.state,
-      country: company.country,
-      telephone: company.telephone,
-      mobile: company.mobile,
-      fax: company.fax,
-      email: company.email,
-      website: company.website,
-      gstNumber: company.gstNumber,
-      panNumber: company.panNumber,
-      tanNumber: company.tanNumber,
-      msmeNumber: company.msmeNumber,
-      udyamNumber: company.udyamNumber,
-      defaultCurrency: company.defaultCurrency,
-      banks: company.banks || [],
-      logo: null,
-      logoPreview: company.logo,
-      notes: company.notes,
-      registrationDocs: [],
-      status: company.status || 'active',
-    });
-    setOpen(true);
-  };
-
-  // Delete company handler
-  const handleDeleteCompany = (companyId: string): void => {
-    console.log("Attempting to delete company with ID:", companyId);
-    deleteCompany(companyId);
-  };
-
-  // Clean up object URLs to prevent memory leaks
-  const cleanupObjectUrls = (): void => {
-    if (form.logoPreview && form.logoPreview.startsWith('blob:')) {
-      URL.revokeObjectURL(form.logoPreview);
-    }
-    form.registrationDocs.forEach(doc => {
-      if (doc.preview && doc.preview.startsWith('blob:')) {
-        URL.revokeObjectURL(doc.preview);
-      }
-    });
-  };
-
-  // Reset form handler
-  const resetForm = (): void => {
-    cleanupObjectUrls();
-    
-    setForm({
-      namePrint: "",
-      nameStreet: "",
-      address1: "",
-      address2: "",
-      address3: "",
-      city: "",
-      pincode: "",
-      state: "",
-      country: "India",
-      telephone: "",
-      mobile: "",
-      fax: "",
-      email: "",
-      website: "",
-      gstNumber: "",
-      panNumber: "",
-      tanNumber: "",
-      msmeNumber: "",
-      udyamNumber: "",
-      defaultCurrency: "INR - Indian Rupee",
-      banks: [],
-      logo: null,
-      logoPreview: undefined,
-      notes: "",
-      registrationDocs: [],
-      status: "active",
-    });
-    setEditingCompany(null);
-    setActiveTab("basic");
-  };
-
-  // Handle submit - updated to create FormData
-  const handleSubmit = (): void => {
-    if (!form.namePrint.trim() || !form.email.trim()) {
-      alert("Please fill in Company Name and Email");
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-      alert("Please enter a valid email address");
-      return;
-    }
-
-    // Create FormData object
-    const formData = new FormData();
-    
-    // Append all text fields
-    Object.keys(form).forEach(key => {
-      const value = form[key as keyof CompanyForm];
-      
-      if (key === 'logo' || key === 'logoPreview' || key === 'registrationDocs' || key === 'banks') {
-        return; // Handle these separately
-      }
-      
-      if (value !== null && value !== undefined && value !== '') {
-        formData.append(key, String(value));
-      }
-    });
-    
-    // Append banks as JSON string (since it's an array)
-    formData.append('banks', JSON.stringify(form.banks));
-    
-    // Append logo file if exists
-    if (form.logo) {
-      formData.append('logo', form.logo);
-    }
-    
-    // Append registration documents
-    form.registrationDocs.forEach((doc) => {
-      formData.append('registrationDocs', doc.file);
-    });
-    formData.append('registrationDocsTypes', JSON.stringify(form.registrationDocs.map(doc => doc.type)));
-    
-    // Add document count
-    formData.append('registrationDocsCount', String(form.registrationDocs.length));
-
-    // Append status
-    formData.append('status', form.status);
-
-    // Debug: Log FormData contents
-    console.log("FormData contents:");
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}:`, { name: value.name, size: value.size, type: value.type });
-      } else {
-        console.log(`${key}:`, value);
-      }
-    }
-
-    if (editingCompany) {
-      console.log("Updating company with ID:", editingCompany._id || editingCompany.id);
-      updateCompany({ companyId: editingCompany._id || String(editingCompany.id), companyData: formData });
-    } else {
-      addCompany(formData);
-    }
-    
-    // resetForm();
-    // setOpen(false);
-  };
-
-  // Document upload handler - updated for FormData
-  const handleDocumentUpload = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      
-      const newDoc: RegistrationDocument = {
-        id: Date.now(),
-        type,
-        file: file,
-        fileName: file.name,
-        preview: previewUrl
-      };
-      
-      setForm(prev => ({
-        ...prev,
-        registrationDocs: [...prev.registrationDocs, newDoc]
-      }));
-    }
-  };
-
-  // Remove document handler
-  const removeDocument = (id: number) => {
-    const docToRemove = form.registrationDocs.find(doc => doc.id === id);
-    if (docToRemove && docToRemove.preview && docToRemove.preview.startsWith('blob:')) {
-      URL.revokeObjectURL(docToRemove.preview);
-    }
-    
-    setForm(prev => ({
-      ...prev,
-      registrationDocs: prev.registrationDocs.filter(doc => doc.id !== id)
-    }))
-  };
-  const handleClearFilters=()=>{
-    setSearchTerm("")
-    setStatusFilter("all")
-setSortBy("nameAsc")    
-setCurrentPage(1)
-  }
-
-  // Statistics calculations (updated for pagination)
-  const stats = useMemo(() => ({
-    totalCompanies: pagination.total,
-    gstRegistered: filteredCompanies.filter(c => c.gstNumber?.trim() !== "").length,
-    msmeRegistered: filteredCompanies.filter(c => c.msmeNumber?.trim() !== "").length,
-    activeCompanies: statusFilter === 'active' ? pagination.total : statusFilter === 'inactive' ? 0 : filteredCompanies.filter(c => c.status === "active").length
-  }), [filteredCompanies, pagination, statusFilter]);
-
-  // Common currencies for the dropdown
-  const currencies: string[] = [
-    "INR - Indian Rupee",
-    "USD - US Dollar", 
-    "EUR - Euro",
-    "GBP - British Pound",
-    "CAD - Canadian Dollar",
-    "AUD - Australian Dollar",
-    "JPY - Japanese Yen",
-    "CNY - Chinese Yuan"
-  ];
-
-  // Form tabs
-  const tabs = [
-    { id: "basic", label: "Basic Info" },
-    { id: "contact", label: "Contact" },
-    { id: "registration", label: "Registration" },
-    { id: "bank", label: "Bank Details" },
-    { id: "branding", label: "Branding" },
-    { id: "settings", label: "Settings" }
-  ];
-
-  // Actions dropdown component
-  const ActionsDropdown = ({ company }: { company: Company }) => {
-    const [showActions, setShowActions] = useState(false);
-    
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowActions(!showActions)}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-        
-        {showActions && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowActions(false)}
-            />
-            <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleEditCompany(company);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleDeleteCompany(company._id || String(company.id));
-                  setShowActions(false);
-                }}
-                className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  const headers=["Company", "Contact", "Address", "Status", "Actions"];
 
   // Table View Component
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-teal-50 to-teal-100">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Company
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contact
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Location
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Registration
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
+          <TableHeader headers={headers} />
+         
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredCompanies?.map((company) => (
-              <tr key={company.id} className="hover:bg-gray-50 transition-colors duration-200">
+            {filteredCompanies.map((company) => (
+              <tr key={company._id} className="hover:bg-gray-50 transition-colors duration-200">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    {company.logo && (
-                      <img 
-                        src={company.logo} 
-                        alt="Logo" 
-                        className="h-10 w-10 rounded-full mr-3 object-cover" 
-                      />
-                    )}
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{company.namePrint}</div>
-                      {company.nameStreet && (
-                        <div className="text-sm text-gray-500">{company.nameStreet}</div>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 space-y-1">
-                    <div className="flex items-center">
-                      <Mail className="w-3 h-3 text-gray-400 mr-2" />
-                      <span className="truncate max-w-48">{company.email}</span>
-                    </div>
-                    {company.mobile && (
-                      <div className="flex items-center">
-                        <Phone className="w-3 h-3 text-gray-400 mr-2" />
-                        <span>{company.mobile}</span>
-                      </div>
-                    )}
-                    {company.website && (
-                      <div className="flex items-center">
-                        <Globe className="w-3 h-3 text-gray-400 mr-2" />
-                        <span className="truncate max-w-48 text-teal-600">{company.website}</span>
-                      </div>
-                    )}
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{company.namePrint}</div>
+                    <div className="text-sm text-gray-500">{company.nameStreet}</div>
                   </div>
                 </td>
                 <td className="px-6 py-4">
                   <div className="text-sm text-gray-900">
-                    {[company.city, company.state, company.pincode].filter(Boolean).join(", ")}
-                  </div>
-                  <div className="text-sm text-gray-500">{company.country}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="space-y-1">
-                    {company.gstNumber && (
-                      <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-mono">
-                        GST: {company.gstNumber}
-                      </div>
-                    )}
-                    {company.udyamNumber && (
-                      <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-mono">
-                        UDYAM: {company.udyamNumber}
-                      </div>
-                    )}
-                    {company.panNumber && (
-                      <div className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
-                        PAN: {company.panNumber}
-                      </div>
-                    )}
-                    {!company.gstNumber && !company.udyamNumber && !company.panNumber && (
-                      <span className="text-xs text-gray-400">No registrations</span>
-                    )}
+                    <div>Email: {company.email}</div>
+                    <div>Phone: {company.mobile}</div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={company.status === 'active' ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-700 hover:bg-red-100"}>
-                    {company?.status?.charAt(0)?.toUpperCase() + company?.status?.slice(1)}
+                  <div className="text-sm text-gray-900">
+                    {[company.city, company.state, company.country].filter(Boolean).join(", ")}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Badge className={`${
+                    company.status === 'active' 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-gray-100 text-gray-700'
+                  } hover:bg-green-100`}>
+                    {company.status}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown company={company} />
+                  <ActionsDropdown
+                    onEdit={() => handleEditCompany(company)}
+                    onDelete={() => handleDeleteCompany(company._id || '')}
+                    module="BusinessManagement" subModule="Company" 
+                  />
                 </td>
               </tr>
             ))}
@@ -720,17 +552,13 @@ setCurrentPage(1)
   // Card View Component
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {filteredCompanies?.map((company: Company) => (
-        <Card key={company.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group">
+      {filteredCompanies.map((company: Company) => (
+        <Card key={company._id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center">
                 {company.logo && (
-                  <img 
-                    src={company.logo} 
-                    alt="Logo" 
-                    className="h-10 w-10 rounded-full mr-3 object-cover" 
-                  />
+                  <img src={company.logo} alt="Company Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
                 )}
                 <div>
                   <CardTitle className="text-xl font-bold text-gray-800 mb-1">
@@ -742,16 +570,27 @@ setCurrentPage(1)
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge className={company.status === 'active' ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-700 hover:bg-red-100"}>
-                   {company?.status?.charAt(0)?.toUpperCase() + company?.status?.slice(1)}
+                <Badge className={`${company.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
+                  {company.status}
                 </Badge>
-                <ActionsDropdown company={company} />
+                <ActionsDropdown
+                  onEdit={() => handleEditCompany(company)}
+                  onDelete={() => handleDeleteCompany(company._id || '')}
+                  module="BusinessManagement" subModule="Company" 
+                />
               </div>
             </div>
           </CardHeader>
           
           <CardContent className="p-6 space-y-4">
             <div className="space-y-3">
+              {company.nameStreet && (
+                <div className="flex items-center text-sm">
+                  <Users className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-gray-600">{company.nameStreet}</span>
+                </div>
+              )}
+              
               {(company.city || company.state || company.pincode) && (
                 <div className="flex items-center text-sm">
                   <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
@@ -781,7 +620,7 @@ setCurrentPage(1)
               )}
             </div>
 
-            {(company.gstNumber || company.udyamNumber || company.panNumber) && (
+            {(company.gstNumber || company.msmeNumber || company.panNumber) && (
               <div className="pt-3 border-t border-gray-100 space-y-2">
                 {company.gstNumber && (
                   <div className="flex justify-between items-center">
@@ -792,11 +631,11 @@ setCurrentPage(1)
                   </div>
                 )}
                 
-                {company.udyamNumber && (
+                {company.msmeNumber && (
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">UDYAM</span>
+                    <span className="text-xs font-medium text-gray-500">MSME</span>
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-mono">
-                      {company.udyamNumber}
+                      {company.msmeNumber}
                     </span>
                   </div>
                 )}
@@ -812,7 +651,7 @@ setCurrentPage(1)
               </div>
             )}
 
-            {company.banks && company.banks.length > 0 && (
+            {company.banks.length > 0 && (
               <div className="pt-3 border-t border-gray-100">
                 <p className="text-xs font-medium text-gray-500 mb-2">Bank Accounts</p>
                 <div className="space-y-2">
@@ -841,67 +680,38 @@ setCurrentPage(1)
     </div>
   );
 
-  // Pagination controls
-  const PaginationControls = () => (
-    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
-      <div className="text-sm text-gray-600">
-        Showing {(currentPage - 1) * pagination.limit + 1} - {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} companies
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-          disabled={currentPage === 1}
-          className="flex items-center gap-1"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Previous
-        </Button>
-        <span className="text-sm text-gray-600">
-          Page {currentPage} of {pagination.totalPages}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
-          disabled={currentPage === pagination.totalPages}
-          className="flex items-center gap-1"
-        >
-          Next
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
-  );
+ 
+
   const downloadPDF = async () => {
-  const res = await api.downloadCompanyPDF()
-  console.log(res,"pdfresss")
-};
+    const res = await api.downloadCompanyPDF()
+    console.log(res,"pdfresss")
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      {/* Header */}
       <div className="flex justify-between items-center mb-8">
-     
-        
-
         <HeaderGradient title="Company Management" subtitle="Manage your company information and registrations"/>
         <div className="flex gap-2">
-
-        <Button 
-          onClick={() => {
-            resetForm();
-            setOpen(true);
-          }} 
-          className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-          <Building2 className="w-4 h-4 mr-2" />
-          Add Company
-        </Button>
-           <Button onClick={downloadPDF} className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">Integration PDF <ArrowBigDownDash /> </Button>
-          </div>
+          <CheckAccess module="BusinessManagement" subModule="Company" type="create">
+            <Button 
+              onClick={() => {
+                resetForm();
+                setOpen(true);
+              }} 
+              className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <Building2 className="w-4 h-4 mr-2" />
+              Add Company
+            </Button>
+          </CheckAccess>
+          <Button onClick={downloadPDF} className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
+            Integration PDF <ArrowBigDownDash />
+          </Button>
+        </div>
       </div>
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
           <CardContent className="p-6">
@@ -952,77 +762,58 @@ setCurrentPage(1)
         </Card>
       </div>
 
-    
-        <FilterBar
+      <FilterBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
         sortBy={sortBy}
         setSortBy={setSortBy}
-        onClearFilters={handleClearFilters}
-        
-        
-        />
+        onClearFilters={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setSortBy('nameAsc');
+          setCurrentPage(1);
+        }}
+      />
+      {loading && <TableViewSkeleton/>}
+
      
+       <ViewModeToggle 
+              viewMode={viewMode} 
+              setViewMode={setViewMode} 
+              totalItems={pagination?.total} 
+            />
 
-      {pagination.total ? (
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-gray-600" />
-            <span className="text-gray-700 font-medium">View Mode:</span>
-          </div>
-          <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'table'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Table className="w-4 h-4 mr-2" />
-              Table View
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'cards'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Grid3X3 className="w-4 h-4 mr-2" />
-              Card View
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {pagination.total === 0 ? (
+      {pagination?.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Building2 className="w-16 h-16 text-gray-400 mb-4" />
-            <p className="text-gray-500 text-lg font-medium mb-2">No companies found</p>
-            <p className="text-gray-400 text-sm mb-6">Create a new company or adjust your search filters</p>
-            <Button 
-              onClick={() => {
-                resetForm();
-                setOpen(true);
-              }}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
-            >
-              Add Your First Company
-            </Button>
+            <p className="text-gray-500 text-lg font-medium mb-2">No companies registered yet</p>
+            <p className="text-gray-400 text-sm mb-6">Create your first company to get started</p>
+            <CheckAccess module="BusinessManagement" subModule="Company" type="create">
+              <Button 
+                onClick={() => setOpen(true)}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
+              >
+                Add Your First Company
+              </Button>
+            </CheckAccess>
           </CardContent>
         </Card>
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
-          <PaginationControls />
+             <PaginationControls
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        pagination={pagination}
+        itemName="companies"
+      />
         </>
       )}
 
+      {/* Modal Form */}
       <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
         if (!isOpen) {
@@ -1030,94 +821,94 @@ setCurrentPage(1)
         }
       }}>
         <DialogContent className="sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
-          <DialogHeader className="pb-4 border-b border-gray-200 h-16">
-            <DialogTitle className="text-2xl font-bold text-gray-800">
-              {editingCompany ? 'Edit Company' : 'Add New Company'}
-            </DialogTitle>
-            <p className="text-gray-600 text-sm">
-              {editingCompany ? 'Update the company details and registration information' : 'Fill in the company details and registration information'}
-            </p>
-          </DialogHeader>
-          <div className="flex border-0 outline-0 h-[100%] flex-1">
-            
-            <div className="flex flex-wrap gap-2 flex-col bg-teal-50 w-52">
-              {tabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 text-md text-start font-semibold ring-0 rounded-none transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-teal-600 text-white"
-                      : "bg-teal-50 text-gray-500 hover:bg-gray-200"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          <CustomFormDialogHeader
+            title={editingCompany ? "Edit Company" : "Add New Company"}
+            subtitle={
+              editingCompany
+                ? "Update the company details"
+                : "Complete company registration information"
+            }
+          />
+          
+          <MultiStepNav 
+            steps={tabs} 
+            currentStep={activeTab} 
+            onStepChange={setActiveTab} 
+            stepIcons={stepIcons}
+          />
 
-            <div className="space-y-6 w-full">
-              {activeTab === "basic" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <Building2 className="w-5 h-5 mr-2" />
-                    Company Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <CustomInputBox
-                      label="Company Name (Street)"
-                      placeholder="Company Name (Street)"
-                      name="nameStreet"
-                      value={form.nameStreet}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Company Name (Print) *"
-                      label="Company Name (Print) *"
-                      name="namePrint"
-                      value={form.namePrint}
-                      onChange={handleChange}
-                    />
+          <div className="flex-1 overflow-y-auto">
+            {activeTab === "basic" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center shadow-lg">
+                    <Building2 className="w-6 h-6 text-white" />
                   </div>
+                  <h3 className="text-xl font-bold text-gray-800">Company Information</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <CustomInputBox
+                    label="Company Name (Street)"
+                    placeholder="e.g., ABC Corp Street Name"
+                    name="nameStreet"
+                    value={formData.nameStreet}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    label="Company Name (Print)"
+                    placeholder="e.g., ABC Corporation"
+                    name="namePrint"
+                    value={formData.namePrint}
+                    onChange={handleChange}
+                    required={true}
+                  />
+                </div>
 
-                  <div className="mt-4 flex flex-col gap-4">
-                    <CustomInputBox
-                      placeholder="Street Address 1"
-                      label="Street Address 1"
-                      name="address1"
-                      value={form.address1}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Street Address 2"
-                      label="Street Address 2"
-                      name="address2"
-                      value={form.address2}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Street Address 3"
-                      name="address3"
-                      value={form.address3}
-                      onChange={handleChange}
-                    />
-                  </div>
+                <div className="mt-6 grid grid-cols-1 gap-6">
+                  <CustomInputBox
+                    label="Address Line 1"
+                    placeholder="e.g., 123 Main St"
+                    name="address1"
+                    value={formData.address1}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    label="Address Line 2"
+                    placeholder="e.g., Apt 4B"
+                    name="address2"
+                    value={formData.address2}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    label="Address Line 3"
+                    placeholder="e.g., Building Name"
+                    name="address3"
+                    value={formData.address3}
+                    onChange={handleChange}
+                  />
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Country</label>
                     <select
-                      value={form.country}
+                      value={formData.country}
                       onChange={(e) => handleSelectChange("country", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       {allCountries.map(country => (
                         <option key={country.isoCode} value={country.name}>{country.name}</option>
                       ))}
                     </select>
-                    
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">State</label>
                     <select
-                      value={form.state}
+                      value={formData.state}
                       onChange={(e) => handleSelectChange("state", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                       disabled={availableStates.length === 0}
                     >
                       <option value="">Select State</option>
@@ -1125,11 +916,14 @@ setCurrentPage(1)
                         <option key={state.isoCode} value={state.name}>{state.name}</option>
                       ))}
                     </select>
-                    
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">City</label>
                     <select
-                      value={form.city}
+                      value={formData.city}
                       onChange={(e) => handleSelectChange("city", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                       disabled={availableCities.length === 0}
                     >
                       <option value="">Select City</option>
@@ -1138,392 +932,438 @@ setCurrentPage(1)
                       ))}
                     </select>
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <CustomInputBox
-                      placeholder="Pincode"
-                      label="Pincode"
-                      name="pincode"
-                      value={form.pincode}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  <CustomInputBox
+                    label="Zip/Pincode"
+                    placeholder="e.g., 12345"
+                    name="pincode"
+                    value={formData.pincode}
+                    onChange={handleChange}
+                    required={true}
+                  />
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Default Currency</label>
                     <select
-                      value={form.defaultCurrency}
+                      value={formData.defaultCurrency}
                       onChange={(e) => handleSelectChange("defaultCurrency", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
-                      {currencies.map(currency => (
-                        <option key={currency} value={currency}>{currency}</option>
-                      ))}
+                      <option value="INR">INR - Indian Rupee</option>
+                      <option value="USD">USD - US Dollar</option>
+                      <option value="EUR">EUR - Euro</option>
+                      <option value="GBP">GBP - British Pound</option>
+                      <option value="CAD">CAD - Canadian Dollar</option>
+                      <option value="AUD">AUD - Australian Dollar</option>
+                      <option value="JPY">JPY - Japanese Yen</option>
+                      <option value="CNY">CNY - Chinese Yuan</option>
                     </select>
                   </div>
-
-                  <div className="mt-4 flex justify-end">
-                    <Button onClick={() => setActiveTab("contact")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Contact
-                    </Button>
-                  </div>
                 </div>
-              )}
 
-              {activeTab === "contact" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <Phone className="w-5 h-5 mr-2" />
-                    Contact Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <CustomInputBox
-                      placeholder="Mobile Number"
-                      label="Mobile Number"
-                      name="mobile"
-                      value={form.mobile}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Telephone"
-                      label="Telephone"
-                      name="telephone"
-                      value={form.telephone}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Fax"
-                      label="Fax"
-                      name="fax"
-                      value={form.fax}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Email Address *"
-                      label="Email Address *"
-                      name="email"
-                      type="email"
-                      value={form.email}
-                      onChange={handleChange}
-                    />
+                <CustomStepNavigation
+                  currentStep={1}
+                  totalSteps={6}
+                  showPrevious={false}
+                  onNext={() => setActiveTab("contact")}
+                />
+              </div>
+            )}
+
+            {activeTab === "contact" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center shadow-lg">
+                    <Phone className="w-6 h-6 text-white" />
                   </div>
+                  <h3 className="text-xl font-bold text-gray-800">Contact Information</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-6">
                   <CustomInputBox
-                    placeholder="Website URL"
-                    label="Website URL"
-                    name="website"
-                    value={form.website}
+                    label="Telephone"
+                    placeholder="e.g., +1-234-567-8900"
+                    name="telephone"
+                    value={formData.telephone}
                     onChange={handleChange}
                   />
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("basic")}>
-                      Previous: Basic Info
-                    </Button>
-                    <Button onClick={() => setActiveTab("registration")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Registration
-                    </Button>
+                  <CustomInputBox
+                    label="Mobile Number"
+                    placeholder="e.g., +1-234-567-8900"
+                    name="mobile"
+                    value={formData.mobile}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    label="Fax Number"
+                    placeholder="e.g., +1-234-567-8900"
+                    name="fax"
+                    value={formData.fax}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    label="Email Address"
+                    placeholder="e.g., info@example.com"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    type="email"
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Website"
+                    placeholder="e.g., https://example.com"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleChange}
+                  />
+                </div>
+                
+                <CustomStepNavigation
+                  currentStep={2}
+                  totalSteps={6}
+                  onPrevious={() => setActiveTab("basic")}
+                  onNext={() => setActiveTab("registration")}
+                />
+              </div>
+            )}
+
+            {activeTab === "registration" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center shadow-lg">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Registration Details</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <CustomInputBox
+                    label="GST Number"
+                    placeholder="e.g., 22AAAAA0000A1Z5"
+                    name="gstNumber"
+                    value={formData.gstNumber}
+                    onChange={handleChange}
+                    maxLength={15}
+                  />
+                  <CustomInputBox
+                    label="PAN Number"
+                    placeholder="e.g., ABCDE1234F"
+                    name="panNumber"
+                    value={formData.panNumber}
+                    onChange={handleChange}
+                    maxLength={10}
+                  />
+                  <CustomInputBox
+                    label="TAN Number"
+                    placeholder="e.g., ABCD12345E"
+                    name="tanNumber"
+                    value={formData.tanNumber}
+                    onChange={handleChange}
+                    maxLength={10}
+                  />
+                  <CustomInputBox
+                    label="MSME Number"
+                    placeholder="e.g., UDYAM-XX-00-0000000"
+                    name="msmeNumber"
+                    value={formData.msmeNumber}
+                    onChange={handleChange}
+                    maxLength={20}
+                  />
+                  <CustomInputBox
+                    label="Udyam Number"
+                    placeholder="e.g., UDYAM-XX-00-0000000"
+                    name="udyamNumber"
+                    value={formData.udyamNumber}
+                    onChange={handleChange}
+                    maxLength={20}
+                  />
+                </div>
+
+                <CustomStepNavigation
+                  currentStep={3}
+                  totalSteps={6}
+                  onPrevious={() => setActiveTab("contact")}
+                  onNext={() => setActiveTab("bank")}
+                />
+              </div>
+            )}
+
+            {activeTab === "bank" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center shadow-lg">
+                    <Building2 className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Banking Details</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
+                  <CustomInputBox
+                    label="Account Holder Name *"
+                    placeholder="e.g., John Doe"
+                    name="accountHolderName"
+                    value={bankForm.accountHolderName}
+                    onChange={handleBankChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Account Number *"
+                    placeholder="e.g., 123456789012"
+                    name="accountNumber"
+                    value={bankForm.accountNumber}
+                    onChange={handleBankChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="IFSC Code"
+                    placeholder="e.g., SBIN0001234"
+                    name="ifscCode"
+                    value={bankForm.ifscCode}
+                    onChange={handleBankChange}
+                  />
+                  <CustomInputBox
+                    label="SWIFT Code"
+                    placeholder="e.g., SBININBBXXX"
+                    name="swiftCode"
+                    value={bankForm.swiftCode}
+                    onChange={handleBankChange}
+                  />
+                  <CustomInputBox
+                    label="MICR Number"
+                    placeholder="e.g., 110002001"
+                    name="micrNumber"
+                    value={bankForm.micrNumber}
+                    onChange={handleBankChange}
+                  />
+                  <CustomInputBox
+                    label="Bank Name *"
+                    placeholder="e.g., State Bank of India"
+                    name="bankName"
+                    value={bankForm.bankName}
+                    onChange={handleBankChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Branch"
+                    placeholder="e.g., Main Branch"
+                    name="branch"
+                    value={bankForm.branch}
+                    onChange={handleBankChange}
+                  />
+                  <Button 
+                    onClick={addBank} 
+                    className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <Plus className="w-5 h-5 mr-2" /> Add Bank
+                  </Button>
+                </div>
+
+                {/* Bank List */}
+                {formData.banks.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-teal-700">Added Banks:</h4>
+                    {formData.banks.map(bank => (
+                      <div key={bank.id} className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{bank.bankName}</p>
+                          <p className="text-sm text-gray-600">{bank.accountHolderName} ••••{bank.accountNumber.slice(-4)}</p>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => removeBank(bank.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <CustomStepNavigation
+                  currentStep={4}
+                  totalSteps={6}
+                  onPrevious={() => setActiveTab("registration")}
+                  onNext={() => setActiveTab("branding")}
+                />
+              </div>
+            )}
+
+            {activeTab === "branding" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-lg">
+                    <ImageIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Branding & Documents</h3>
+                </div>
+                
+                <div className="mb-8">
+                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">Company Logo</h4>
+                  <div className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner">
+                    <input
+                      type="file"
+                      id="logo"
+                      className="hidden"
+                      onChange={handleLogoUpload}
+                      accept="image/*"
+                    />
+                    <label
+                      htmlFor="logo"
+                      className="cursor-pointer flex flex-col items-center gap-3"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 hover:bg-blue-200 transition-colors">
+                        <Upload className="w-8 h-8" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">Upload Logo</p>
+                    </label>
+                    {formData.logoPreviewUrl && (
+                      <div className="mt-4 relative">
+                        <img
+                          src={formData.logoPreviewUrl}
+                          alt="Company Logo"
+                          className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setViewingImage({previewUrl: formData.logoPreviewUrl, type: 'logo'})}
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
+                          onClick={removeLogo}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
 
-              {activeTab === "registration" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <FileText className="w-5 h-5 mr-2" />
-                    Registration Details
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <CustomInputBox
-                      placeholder="GST Number"
-                      label="GST Number"
-                      name="gstNumber"
-                      value={form.gstNumber}
-                      onChange={handleChange}
-                      maxLength={15}
-                    />
-                    <CustomInputBox
-                      placeholder="PAN Number"
-                      label="PAN Number"
-                      name="panNumber"
-                      value={form.panNumber}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
-                    <CustomInputBox
-                      placeholder="TAN Number"
-                      label="TAN Number"
-                      name="tanNumber"
-                      value={form.tanNumber}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
-                    <CustomInputBox
-                      placeholder="MSME Number"
-                      label="MSME Number"
-                      name="msmeNumber"
-                      value={form.msmeNumber}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Udyam Number"
-                      label="Udyam Number"
-                      name="udyamNumber"
-                      value={form.udyamNumber}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="mt-6">
-                    <h4 className="font-medium text-teal-800 mb-3">Registration Documents</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {['GST', 'PAN', 'TAN', 'MSME', 'Udyam'].map(docType => (
-                        <div key={docType} className="p-4 bg-white rounded-lg border border-teal-200">
-                          <p className="text-sm font-medium text-teal-700 mb-2">{docType} Document</p>
-                          <div className="flex items-center justify-between">
-                            <Input
-                              type="file"
-                              id={`${docType.toLowerCase()}-doc`}
-                              className="hidden"
-                              onChange={(e) => handleDocumentUpload(docType, e)}
-                              accept="image/*,.pdf"
-                            />
-                            <label
-                              htmlFor={`${docType.toLowerCase()}-doc`}
-                              className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
-                            >
-                              <Upload className="w-4 h-4 mr-2" />
-                              Upload
-                            </label>
-                            {form.registrationDocs.find(doc => doc.type === docType) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeDocument(form.registrationDocs.find(doc => doc.type === docType)!.id)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                          {form.registrationDocs.find(doc => doc.type === docType) && (
-                            <p className="text-xs text-gray-500 mt-2 truncate">
-                              {form.registrationDocs.find(doc => doc.type === docType)?.fileName}
+                <div className="mb-8">
+                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">Registration Documents</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {['GST', 'PAN', 'TAN', 'MSME', 'UDYAM'].map(docType => (
+                      <div key={docType} className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative">
+                        <p className="text-sm font-semibold text-gray-700 mb-3">{docType} Document</p>
+                        <input
+                          type="file"
+                          id={`${docType.toLowerCase()}-doc`}
+                          className="hidden"
+                          onChange={(e) => handleDocumentUpload(docType, e)}
+                          accept="image/*,.pdf"
+                        />
+                        <label
+                          htmlFor={`${docType.toLowerCase()}-doc`}
+                          className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
+                        >
+                          <Upload className="w-6 h-6 text-blue-500" />
+                          <p className="text-sm text-gray-600">Upload</p>
+                        </label>
+                        {formData.registrationDocs.find(doc => doc.type === docType) && (
+                          <div className="mt-4 w-full">
+                            <p className="text-xs text-gray-500 truncate mb-2">
+                              {formData.registrationDocs.find(doc => doc.type === docType)?.fileName}
                             </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("contact")}>
-                      Previous: Contact
-                    </Button>
-                    <Button onClick={() => setActiveTab("bank")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Bank Details
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "bank" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    Bank Details
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-white rounded-lg border border-teal-200">
-                    <CustomInputBox
-                      placeholder="Account Holder Name *"
-                      label="Account Holder Name *"
-                      name="accountHolderName"
-                      value={bankForm.accountHolderName}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Account Number *"
-                      label="Account Number *"
-                      name="accountNumber"
-                      value={bankForm.accountNumber}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="IFSC Code"
-                      label="IFSC Code"
-                      name="ifscCode"
-                      value={bankForm.ifscCode}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="SWIFT Code"
-                      label="SWIFT Code"
-                      name="swiftCode"
-                      value={bankForm.swiftCode}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="MICR Number"
-                      label="MICR Number"
-                      name="micrNumber"
-                      value={bankForm.micrNumber}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Bank Name *"
-                      label="Bank Name *"
-                      name="bankName"
-                      value={bankForm.bankName}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Branch"
-                      label="Branch"
-                      name="branch"
-                      value={bankForm.branch}
-                      onChange={handleBankChange}
-                    />
-                    <div className="flex items-end">
-                      <Button onClick={addBank} className="bg-teal-600 hover:bg-teal-700 w-full">
-                        <Plus className="w-4 h-4 mr-1" /> Add Bank
-                      </Button>
-                    </div>
-                  </div>
-
-                  {form.banks.length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-teal-700">Added Banks:</h4>
-                      {form.banks.map(bank => (
-                        <div key={bank.id} className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">{bank.bankName}</p>
-                            <p className="text-sm text-gray-600">{bank.accountHolderName} ••••{bank.accountNumber.slice(-4)}</p>
+                            {formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl && docType !== 'PDF' && (
+                              <img
+                                src={formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl}
+                                alt={`${docType} document`}
+                                className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
+                                onClick={() => setViewingImage(formData.registrationDocs.find(doc => doc.type === docType)!)}
+                              />
+                            )}
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2 w-6 h-6 rounded-full"
+                              onClick={() => removeDocument(formData.registrationDocs.find(doc => doc.type === docType)!.id)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => removeBank(bank.id)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("registration")}>
-                      Previous: Registration
-                    </Button>
-                    <Button onClick={() => setActiveTab("branding")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Branding
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "branding" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <Image className="w-5 h-5 mr-2" />
-                    Branding & Notes
-                  </h3>
-                  
-                  <div className="mb-6">
-                    <p className="text-sm font-medium text-teal-700 mb-2">Company Logo</p>
-                    <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 rounded-full border-2 border-dashed border-teal-300 flex items-center justify-center overflow-hidden bg-white">
-                        {form.logoPreview ? (
-                          <img src={form.logoPreview} alt="Company Logo" className="w-full h-full object-cover" />
-                        ) : (
-                          <Image className="w-8 h-8 text-teal-300" />
                         )}
                       </div>
-                      <div>
-                        <Input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleLogoUpload}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                        <Button 
-                          onClick={triggerLogoUpload}
-                          variant="outline"
-                          className="border-teal-300 text-teal-700 hover:bg-teal-50"
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          {form.logo ? "Change Logo" : "Upload Logo"}
-                        </Button>
-                        <p className="text-xs text-gray-500 mt-1">Recommended: 200x200px PNG or JPG</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-teal-700 mb-2">Company Notes</p>
-                    <textarea
-                      placeholder="Add any additional notes about the company..."
-                      name="notes"
-                      value={form.notes}
-                      onChange={handleChange}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none resize-none"
-                    />
-                  </div>
-
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("bank")}>
-                      Previous: Bank Details
-                    </Button>
-                    <Button onClick={() => setActiveTab("settings")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Settings
-                    </Button>
+                    ))}
                   </div>
                 </div>
-              )}
 
-              {activeTab === "settings" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <Settings2 className="w-5 h-5 mr-2" />
-                    Settings
-                  </h3>
-                  
-                  <div className="mb-6">
-                    <p className="text-sm font-medium text-teal-700 mb-2">Company Status</p>
+                <CustomStepNavigation
+                  currentStep={5}
+                  totalSteps={6}
+                  onPrevious={() => setActiveTab("bank")}
+                  onNext={() => setActiveTab("settings")}
+                />
+              </div>
+            )}
+
+            {activeTab === "settings" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg">
+                    <Settings2 className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Settings</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Company Status</label>
                     <select
-                      value={form.status}
+                      value={formData.status}
                       onChange={(e) => handleSelectChange("status", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white w-full md:w-1/2"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
                     </select>
                   </div>
-                  
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("branding")}>
-                      Previous: Branding
-                    </Button>
-                    <Button onClick={handleSubmit} className="bg-teal-600 hover:bg-teal-700">
-                      {editingCompany ? 'Update Company' : 'Save Company'}
-                    </Button>
-                  </div>
                 </div>
-              )}
 
-              {activeTab !== "settings" && (
-                <div className="flex justify-end pt-4">
-                  <Button 
-                    onClick={handleSubmit}
-                    className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-8 py-2 shadow-lg"
-                  >
-                    {editingCompany ? 'Update Company' : 'Save Company'}
-                  </Button>
+                <div className="mb-6">
+                  <label className="text-sm font-semibold text-gray-700 mb-2">Internal Notes</label>
+                  <textarea
+                    placeholder="Add any additional notes about the company..."
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleChange}
+                    rows={4}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
+                  />
                 </div>
-              )}
-            </div>
+
+                <CustomStepNavigation
+                  currentStep={6}
+                  totalSteps={6}
+                  onPrevious={() => setActiveTab("branding")}
+                  onSubmit={handleSubmit}
+                  submitLabel={editingCompany ? 'Update Company' : 'Save Company'}
+                  isLastStep={true}
+                />
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image viewing modal */}
+      {viewingImage && (
+        <Dialog open={!!viewingImage} onOpenChange={() => setViewingImage(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>{viewingImage.type} {viewingImage.type === 'logo' ? 'Logo' : 'Document'}</DialogTitle>
+            </DialogHeader>
+            <div className="flex justify-center">
+              <img
+                src={viewingImage.previewUrl}
+                alt={`${viewingImage.type}`}
+                className="max-w-full max-h-96 object-contain rounded-lg"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

@@ -14,7 +14,7 @@ export function cn(...inputs: ClassValue[]) {
 
 // Utility function to check permissions
 export function checkPermission({user, module, subModule,type}:CheckPermission) {
-  console.log(user,module,subModule,type,"user,module,subModule,type")
+  // console.log(user,module,subModule,type,"user,module,subModule,type")
   // If user has all permissions, allow access
   if (user.allPermissions) {
     return true;

@@ -148,7 +148,7 @@ const mockPriceLists: PriceList[] = [
   }
 ];
 
-export function PriceListManagement() {
+export default function PriceListManagement() {
   const [priceLists, setPriceLists] = useState<PriceList[]>(mockPriceLists);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');

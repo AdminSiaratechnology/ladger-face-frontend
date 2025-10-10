@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
+import { toast } from "sonner";
 import { 
   Users, 
   Building2, 
@@ -31,7 +32,10 @@ import {
   Image as ImageIcon,
   Search,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Shield,
+  AlertCircle,
+  UserCheck
 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import { Country, State, City } from 'country-state-city';
@@ -41,8 +45,25 @@ import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
 import { CheckAccess } from "../customComponents/CheckAccess";
 import ActionsDropdown from "../customComponents/ActionsDropdown";
+import { TableViewSkeleton } from "../customComponents/TableViewSkeleton";
+import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
+import CustomStepNavigation from "../customComponents/CustomStepNavigation";
+import MultiStepNav from "../customComponents/MultiStepNav";
+import PaginationControls from "../customComponents/CustomPaginationControls";
+import ViewModeToggle from "../customComponents/ViewModeToggle";
+import TableHeader from "../customComponents/CustomTableHeader";
 
-// Interfaces (adapted from provided Vendor interface)
+
+
+const stepIcons = {
+    basic: <Users className="w-2 h-2 md:w-5 md:h-5 " />,
+    contact: <Phone className="w-2 h-2 md:w-5 md:h-5 " />,
+    financialSettings: <CreditCard className="w-2 h-2 md:w-5 md:h-5 " />,
+    tax: <FileText className="w-2 h-2 md:w-5 md:h-5 " />,
+    bank: <Building2 className="w-2 h-2 md:w-5 md:h-5 " />,
+    settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5 " />
+  };
+
 interface Bank {
   id: number;
   accountHolderName: string;
@@ -402,7 +423,7 @@ const VendorRegistrationPage: React.FC = () => {
 
   const addBank = (): void => {
     if (!bankForm.accountHolderName || !bankForm.accountNumber || !bankForm.bankName) {
-      alert("Please fill in at least Account Holder Name, Account Number, and Bank Name");
+      toast.error("Please fill in at least Account Holder Name, Account Number, and Bank Name");
       return;
     }
 
@@ -598,14 +619,33 @@ const VendorRegistrationPage: React.FC = () => {
   };
 
   const handleSubmit = (): void => {
-    if (!formData.vendorName.trim() || !formData.emailAddress.trim()) {
-      alert("Please fill in Vendor Name and Email Address");
+    if (!formData.vendorName.trim()) {
+      toast.error("Please enter Vendor Name");
       return;
     }
-
+    if (!formData.companyId) {
+      toast.error("Please select Company");
+      return;
+    }
+    if (!formData.contactPerson.trim()) {
+      toast.error("Please enter Contact Person");
+      return;
+    }
+    if (!formData.emailAddress.trim()) {
+      toast.error("Please enter Email Address");
+      return;
+    }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.emailAddress)) {
-      alert("Please enter a valid email address");
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    if (!formData.country) {
+      toast.error("Please select Country");
+      return;
+    }
+    if (!formData.zipCode.trim()) {
+      toast.error("Please enter Zip/Pincode");
       return;
     }
 
@@ -693,83 +733,15 @@ const VendorRegistrationPage: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Actions dropdown component
-  // const ActionsDropdown = ({ vendor }: { vendor: Vendor }) => {
-  //   const [showActions, setShowActions] = useState(false);
-    
-  //   return (
-  //     <div className="relative">
-  //       <Button
-  //         variant="ghost"
-  //         size="sm"
-  //         onClick={() => setShowActions(!showActions)}
-  //         className="h-8 w-8 p-0 hover:bg-gray-100"
-  //       >
-  //         <MoreHorizontal className="h-4 w-4" />
-  //       </Button>
-        
-  //       {showActions && (
-  //         <>
-  //           <div
-  //             className="fixed inset-0 z-10"
-  //             onClick={() => setShowActions(false)}
-  //           />
-  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-  //             <Button
-  //               variant="ghost"
-  //               size="sm"
-  //               onClick={() => {
-  //                 handleEditVendor(vendor);
-  //                 setShowActions(false);
-  //               }}
-  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-  //             >
-  //               <Edit className="h-4 w-4 mr-2" />
-  //               Edit
-  //             </Button>
-  //             <Button
-  //               variant="ghost"
-  //               size="sm"
-  //               onClick={() => {
-  //                 handleDeleteVendor(vendor._id || vendor.id.toString());
-  //                 setShowActions(false);
-  //               }}
-  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-  //             >
-  //               <Trash2 className="h-4 w-4 mr-2" />
-  //               Delete
-  //             </Button>
-  //           </div>
-  //         </>
-  //       )}
-  //     </div>
-  //   );
-  // };
 
   // Table View Component
+  const header=["Vendor","Contact","Address","Status","Actions"]
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-teal-50 to-teal-100">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Vendor
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contact
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Address
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
+        
+             <TableHeader headers={header} />
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredVendors.map((vendor) => (
               <tr key={vendor._id} className="hover:bg-gray-50 transition-colors duration-200">
@@ -951,94 +923,7 @@ const VendorRegistrationPage: React.FC = () => {
     </div>
   );
 
-  // Pagination Controls
-  const PaginationControls = () => (
-    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
-      <div className="text-sm text-gray-600">
-        Showing {(currentPage - 1) * pagination?.limit + 1} - {Math.min(currentPage * pagination?.limit, pagination?.total)} of {pagination?.total} vendors
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-          disabled={currentPage === 1}
-          className="flex items-center gap-1"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Previous
-        </Button>
-        <span className="text-sm text-gray-600">
-          Page {currentPage} of {pagination?.totalPages}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentPage(prev => Math.min(pagination?.totalPages, prev + 1))}
-          disabled={currentPage === pagination?.totalPages}
-          className="flex items-center gap-1"
-        >
-          Next
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
-  );
-
-  // FilterBar component
-  // const FilterBar = ({
-  //   searchTerm,
-  //   setSearchTerm,
-  //   statusFilter,
-  //   setStatusFilter,
-  //   sortBy,
-  //   setSortBy,
-  //   onClearFilters
-  // }: {
-  //   searchTerm: string;
-  //   setSearchTerm: (value: string) => void;
-  //   statusFilter: string;
-  //   setStatusFilter: (value: any) => void;
-  //   sortBy: string;
-  //   setSortBy: (value: any) => void;
-  //   onClearFilters: () => void;
-  // }) => (
-  //   <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 bg-white rounded-md p-4 shadow-sm">
-  //     <div className="flex gap-3">
-  //       <div className="relative w-full md:w-auto flex-1">
-  //         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 " />
-  //         <Input
-  //           placeholder="Search by name, email, or code..."
-  //           value={searchTerm}
-  //           onChange={(e) => setSearchTerm(e.target.value)}
-  //           className="pl-10 pr-4 py-2 w-full md:w-64 border-gray-300 focus:border-teal-500 active:!ring-2 active:!ring-teal-500 !outline-0 focus:!border-none"
-  //         />
-  //       </div>
-  //       <button className=" bg-black text-white px-2 rounded-sm  font-bold text-sm" onClick={onClearFilters}>Clear Fitler</button>
-  //     </div>
-  //     <select
-  //       value={statusFilter}
-  //       onChange={(e) => setStatusFilter(e.target.value)}
-  //       className="h-10 px-3 py-2 border border-gray-300 rounded-md focus:border-teal-500 focus:outline-none bg-white w-full md:w-auto"
-  //     >
-  //       <option value="all">All Statuses</option>
-  //       <option value="active">Active</option>
-  //       <option value="inactive">Inactive</option>
-  //       <option value="suspended">Suspended</option>
-  //       <option value="prospect">Prospect</option>
-  //     </select>
-  //     <select
-  //       value={sortBy}
-  //       onChange={(e) => setSortBy(e.target.value)}
-  //       className="h-10 px-3 py-2 border border-gray-300 rounded-md focus:border-teal-500 focus:outline-none bg-white w-full md:w-auto"
-  //     >
-  //       <option value="nameAsc">Name A-Z</option>
-  //       <option value="nameDesc">Name Z-A</option>
-  //       <option value="dateAsc">Oldest First</option>
-  //       <option value="dateDesc">Newest First</option>
-  //     </select>
-  //   </div>
-  // );
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -1127,39 +1012,14 @@ const VendorRegistrationPage: React.FC = () => {
           setCurrentPage(1);
         }}
       />
+      {loading && <TableViewSkeleton/>}
 
-      {pagination?.total ? (
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-gray-600" />
-            <span className="text-gray-700 font-medium">View Mode:</span>
-          </div>
-          <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'table'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Table className="w-4 h-4 mr-2" />
-              Table View
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'cards'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Grid3X3 className="w-4 h-4 mr-2" />
-              Card View
-            </button>
-          </div>
-        </div>
-      ) : null}
+     
+        <ViewModeToggle 
+              viewMode={viewMode} 
+              setViewMode={setViewMode} 
+              totalItems={pagination?.total} 
+            />
 
       {pagination?.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
@@ -1181,7 +1041,13 @@ const VendorRegistrationPage: React.FC = () => {
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
-          <PaginationControls />
+          
+               <PaginationControls
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        pagination={pagination}
+        itemName="stock groups"
+      />
         </>
       )}
 
@@ -1193,92 +1059,93 @@ const VendorRegistrationPage: React.FC = () => {
         }
       }}>
         <DialogContent className="sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
-          <DialogHeader className="pb-4 border-b border-gray-200 h-16">
-            <DialogTitle className="text-2xl font-bold text-gray-800">
-              {editingVendor ? 'Edit Vendor' : 'Add New Vendor'}
-            </DialogTitle>
-            <p className="text-gray-600 text-sm">
-              {editingVendor ? 'Update the vendor details' : 'Fill in the vendor details and registration information'}
-            </p>
-          </DialogHeader>
+          <CustomFormDialogHeader
+  title={editingVendor ? "Edit Vendor" : "Add New Vendor"}
+  subtitle={
+    editingVendor
+      ? "Update the vendor details"
+      : "Complete vendor registration information"
+  }
+/>
           
-          <div className="flex border-0 outline-0 h-[100%] flex-1">
-            {/* Form Tabs */}
-            <div className="flex flex-wrap gap-2 flex-col bg-teal-50 w-52">
-              {tabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 text-md text-start font-semibold ring-0 rounded-none transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-teal-600 text-white"
-                      : "bg-teal-50 text-gray-500 hover:bg-gray-200"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          <MultiStepNav 
+            steps={tabs} 
+            currentStep={activeTab} 
+            onStepChange={setActiveTab} 
+            stepIcons={stepIcons}
+          />
 
-            <div className="space-y-6 w-full">
-              {activeTab === "basic" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <Users className="w-5 h-5 mr-2" />
-                    Vendor Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
+          <div className="flex-1 overflow-y-auto">
+            {activeTab === "basic" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center shadow-lg">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Vendor Information</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Vendor Type <span className="text-red-500">*</span>
+                    </label>
                     <select
                       value={formData.vendorType}
                       onChange={(e) => handleSelectChange("vendorType", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="individual">Individual</option>
                       <option value="company">Company</option>
                       <option value="partnership">Partnership</option>
                       <option value="trust">Trust</option>
                     </select>
-                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">
-                        Company *
-                      </label>
-                      <select
-                        value={formData.companyId}
-                        onChange={(e) => handleSelectChange("companyId", e.target.value)}
-                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
-                   focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
-                      >
-                        <option value="">Select Company</option>
-                        {companies.map((company) => (
-                          <option key={company._id} value={company._id}>
-                            {company.namePrint}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
-
-                  <div className="mt-4 flex flex-col gap-4">
-                    <CustomInputBox
-                      placeholder="Vendor Name *"
-                      name="vendorName"
-                      value={formData.vendorName}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Short Name"
-                      name="shortName"
-                      value={formData.shortName}
-                      onChange={handleChange}
-                    />
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Company <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.companyId}
+                      onChange={(e) => handleSelectChange("companyId", e.target.value)}
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Company</option>
+                      {companies.map((company) => (
+                        <option key={company._id} value={company._id}>
+                          {company.namePrint}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <CustomInputBox
+                    label="Vendor Name"
+                    placeholder="e.g., ABC Suppliers"
+                    name="vendorName"
+                    value={formData.vendorName}
+                    onChange={handleChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Short Name"
+                    placeholder="e.g., ABC"
+                    name="shortName"
+                    value={formData.shortName}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Vendor Group</label>
                     <select
                       value={formData.vendorGroup}
                       onChange={(e) => handleSelectChange("vendorGroup", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Vendor Group</option>
                       <option value="supplier">Supplier</option>
@@ -1286,11 +1153,14 @@ const VendorRegistrationPage: React.FC = () => {
                       <option value="manufacturer">Manufacturer</option>
                       <option value="service">Service Provider</option>
                     </select>
-                    
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Industry Type</label>
                     <select
                       value={formData.industryType}
                       onChange={(e) => handleSelectChange("industryType", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Industry Type</option>
                       <option value="manufacturing">Manufacturing</option>
@@ -1298,11 +1168,14 @@ const VendorRegistrationPage: React.FC = () => {
                       <option value="healthcare">Healthcare</option>
                       <option value="technology">Technology</option>
                     </select>
-                    
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Territory</label>
                     <select
                       value={formData.territory}
                       onChange={(e) => handleSelectChange("territory", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Territory</option>
                       <option value="north">North</option>
@@ -1311,34 +1184,43 @@ const VendorRegistrationPage: React.FC = () => {
                       <option value="west">West</option>
                     </select>
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Procurement Person</label>
                     <select
                       value={formData.procurementPerson}
                       onChange={(e) => handleSelectChange("procurementPerson", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Procurement Person</option>
                       <option value="john">John Smith</option>
                       <option value="jane">Jane Doe</option>
                       <option value="mike">Mike Johnson</option>
                     </select>
-                    
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Vendor Status</label>
                     <select
                       value={formData.vendorStatus}
                       onChange={(e) => handleSelectChange("vendorStatus", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
                       <option value="suspended">Suspended</option>
                       <option value="prospect">Prospect</option>
                     </select>
-                    
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Company Size</label>
                     <select
                       value={formData.companySize}
                       onChange={(e) => handleSelectChange("companySize", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Company Size</option>
                       <option value="small">Small (1-50)</option>
@@ -1347,88 +1229,108 @@ const VendorRegistrationPage: React.FC = () => {
                       <option value="enterprise">Enterprise (1000+)</option>
                     </select>
                   </div>
-
-                  <div className="mt-4 flex justify-end">
-                    <Button onClick={() => setActiveTab("contact")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Contact
-                    </Button>
-                  </div>
                 </div>
-              )}
 
-              {activeTab === "contact" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <Phone className="w-5 h-5 mr-2" />
-                    Contact Information
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
+                <CustomStepNavigation
+  currentStep={1}
+  totalSteps={6}
+  showPrevious={false}
+  onNext={() => setActiveTab("contact")}
+/>
+
+              </div>
+            )}
+               {activeTab === "contact" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center shadow-lg">
+                    <Phone className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Contact Information</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-6">
+                  <CustomInputBox
+                    label="Contact Person"
+                    placeholder="e.g., John Doe"
+                    name="contactPerson"
+                    value={formData.contactPerson}
+                    onChange={handleChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Designation"
+                    placeholder="e.g., Manager"
+                    name="designation"
+                    value={formData.designation}
+                    onChange={handleChange}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <CustomInputBox
-                      placeholder="Contact Person *"
-                      name="contactPerson"
-                      value={formData.contactPerson}
+                      label="Phone Number"
+                      placeholder="e.g., +1-234-567-8900"
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
                       onChange={handleChange}
                     />
                     <CustomInputBox
-                      placeholder="Designation"
-                      name="designation"
-                      value={formData.designation}
+                      label="Mobile Number"
+                      placeholder="e.g., +1-234-567-8900"
+                      name="mobileNumber"
+                      value={formData.mobileNumber}
                       onChange={handleChange}
                     />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <CustomInputBox
-                        placeholder="Phone Number"
-                        name="phoneNumber"
-                        value={formData.phoneNumber}
-                        onChange={handleChange}
-                      />
-                      <CustomInputBox
-                        placeholder="Mobile Number"
-                        name="mobileNumber"
-                        value={formData.mobileNumber}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <CustomInputBox
-                      placeholder="Email Address *"
-                      name="emailAddress"
-                      value={formData.emailAddress}
-                      onChange={handleChange}
-                      type="email"
-                    />
-                    <CustomInputBox
-                      placeholder="Fax Number"
-                      name="faxNumber"
-                      value={formData.faxNumber}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Address Line 1"
-                      name="addressLine1"
-                      value={formData.addressLine1}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Address Line 2"
-                      name="addressLine2"
-                      value={formData.addressLine2}
-                      onChange={handleChange}
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  </div>
+                  <CustomInputBox
+                    label="Email Address"
+                    placeholder="e.g., john@example.com"
+                    name="emailAddress"
+                    value={formData.emailAddress}
+                    onChange={handleChange}
+                    type="email"
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Fax Number"
+                    placeholder="e.g., +1-234-567-8900"
+                    name="faxNumber"
+                    value={formData.faxNumber}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    label="Address Line 1"
+                    placeholder="e.g., 123 Main St"
+                    name="addressLine1"
+                    value={formData.addressLine1}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    label="Address Line 2"
+                    placeholder="e.g., Apt 4B"
+                    name="addressLine2"
+                    value={formData.addressLine2}
+                    onChange={handleChange}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">Country</label>
                       <select
                         value={formData.country}
                         onChange={(e) => handleSelectChange("country", e.target.value)}
-                        className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                       >
                         {allCountries.map(country => (
                           <option key={country.isoCode} value={country.name}>{country.name}</option>
                         ))}
                       </select>
-                      
+                    </div>
+                    
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">State</label>
                       <select
                         value={formData.state}
                         onChange={(e) => handleSelectChange("state", e.target.value)}
-                        className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                         disabled={availableStates.length === 0}
                       >
                         <option value="">Select State</option>
@@ -1436,11 +1338,14 @@ const VendorRegistrationPage: React.FC = () => {
                           <option key={state.isoCode} value={state.name}>{state.name}</option>
                         ))}
                       </select>
-                      
+                    </div>
+                    
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">City</label>
                       <select
                         value={formData.city}
                         onChange={(e) => handleSelectChange("city", e.target.value)}
-                        className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                         disabled={availableCities.length === 0}
                       >
                         <option value="">Select City</option>
@@ -1449,80 +1354,95 @@ const VendorRegistrationPage: React.FC = () => {
                         ))}
                       </select>
                     </div>
-                    <CustomInputBox
-                      placeholder="Zip/Pincode"
-                      name="zipCode"
-                      value={formData.zipCode}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
-                    <CustomInputBox
-                      placeholder="Website"
-                      name="website"
-                      value={formData.website}
-                      onChange={handleChange}
-                    />
                   </div>
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("basic")}>
-                      Previous: Basic Info
-                    </Button>
-                    <Button onClick={() => setActiveTab("financialSettings")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Financial Settings
-                    </Button>
-                  </div>
+                  <CustomInputBox
+                    label="Zip/Pincode"
+                    placeholder="e.g., 12345"
+                    name="zipCode"
+                    value={formData.zipCode}
+                    onChange={handleChange}
+                    maxLength={10}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Website"
+                    placeholder="e.g., https://example.com"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleChange}
+                  />
                 </div>
-              )}
+                
+               <CustomStepNavigation
+  currentStep={2}
+  totalSteps={6}
+  onPrevious={() => setActiveTab("basic")}
+  onNext={() => setActiveTab("financialSettings")}
+/>
+              </div>
+            )}
 
               {activeTab === "financialSettings" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    Financial Settings
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <select
-                      value={formData.currency}
-                      onChange={(e) => handleSelectChange("currency", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="USD">USD - US Dollar</option>
-                      <option value="EUR">EUR - Euro</option>
-                      <option value="GBP">GBP - British Pound</option>
-                      <option value="INR">INR - Indian Rupee</option>
-                      <option value="CAD">CAD - Canadian Dollar</option>
-                      <option value="AUD">AUD - Australian Dollar</option>
-                    </select>
-                    <select
-                      value={formData.priceList}
-                      onChange={(e) => handleSelectChange("priceList", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select Price List</option>
-                      <option value="standard">Standard Pricing</option>
-                      <option value="wholesale">Wholesale Pricing</option>
-                      <option value="vip">VIP Pricing</option>
-                      <option value="promotional">Promotional Pricing</option>
-                    </select>
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center shadow-lg">
+                      <CreditCard className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800">Financial Settings</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">Currency</label>
+                      <select
+                        value={formData.currency}
+                        onChange={(e) => handleSelectChange("currency", e.target.value)}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="INR">INR - Indian Rupee</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">Price List</label>
+                      <select
+                        value={formData.priceList}
+                        onChange={(e) => handleSelectChange("priceList", e.target.value)}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="">Select Price List</option>
+                        <option value="standard">Standard Pricing</option>
+                        <option value="wholesale">Wholesale Pricing</option>
+                        <option value="vip">VIP Pricing</option>
+                        <option value="promotional">Promotional Pricing</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                     <CustomInputBox
-                      placeholder="Credit Limit"
+                      label="Credit Limit"
+                      placeholder="e.g., 10000"
                       name="creditLimit"
                       value={formData.creditLimit}
                       onChange={handleChange}
                       type="number"
                     />
                     <CustomInputBox
-                      placeholder="Credit Days"
+                      label="Credit Days"
+                      placeholder="e.g., 30"
                       name="creditDays"
                       value={formData.creditDays}
                       onChange={handleChange}
                       type="number"
                     />
                     <CustomInputBox
-                      placeholder="Discount %"
+                      label="Discount %"
+                      placeholder="e.g., 5"
                       name="discount"
                       value={formData.discount}
                       onChange={handleChange}
@@ -1530,84 +1450,97 @@ const VendorRegistrationPage: React.FC = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <select
-                      value={formData.paymentTerms}
-                      onChange={(e) => handleSelectChange("paymentTerms", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select Payment Terms</option>
-                      <option value="net_30">Net 30</option>
-                      <option value="net_60">Net 60</option>
-                      <option value="immediate">Immediate</option>
-                      <option value="advance">Advance Payment</option>
-                    </select>
-                    <select
-                      value={formData.agent}
-                      onChange={(e) => handleSelectChange("agent", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select Agent</option>
-                      <option value="procurement">Procurement Department</option>
-                      <option value="operations">Operations</option>
-                    </select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">Payment Terms</label>
+                      <select
+                        value={formData.paymentTerms}
+                        onChange={(e) => handleSelectChange("paymentTerms", e.target.value)}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="">Select Payment Terms</option>
+                        <option value="net_30">Net 30</option>
+                        <option value="net_60">Net 60</option>
+                        <option value="immediate">Immediate</option>
+                        <option value="advance">Advance Payment</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">Agent</label>
+                      <select
+                        value={formData.agent}
+                        onChange={(e) => handleSelectChange("agent", e.target.value)}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="">Select Agent</option>
+                        <option value="procurement">Procurement Department</option>
+                        <option value="operations">Operations</option>
+                      </select>
+                    </div>
                   </div>
-
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("contact")}>
-                      Previous: Contact
-                    </Button>
-                    <Button onClick={() => setActiveTab("tax")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Tax Information
-                    </Button>
-                  </div>
+                  
+                  <CustomStepNavigation
+  currentStep={3}
+  totalSteps={6}
+  onPrevious={() => setActiveTab("contact")}
+  onNext={() => setActiveTab("tax")}
+/>
                 </div>
               )}
 
               {activeTab === "tax" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <FileText className="w-5 h-5 mr-2" />
-                    Tax Details
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center shadow-lg">
+                      <FileText className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800">Tax Details</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <CustomInputBox
-                      placeholder="Tax ID/Registration Number"
+                      label="Tax ID/Registration Number"
+                      placeholder="e.g., 1234567890"
                       name="taxId"
                       value={formData.taxId}
                       onChange={handleChange}
                       maxLength={15}
                     />
                     <CustomInputBox
-                      placeholder="VAT Number"
+                      label="VAT Number"
+                      placeholder="e.g., VAT123456"
                       name="vatNumber"
                       value={formData.vatNumber}
                       onChange={handleChange}
                       maxLength={15}
                     />
                     <CustomInputBox
-                      placeholder="GST Number"
+                      label="GST Number"
+                      placeholder="e.g., 22AAAAA0000A1Z5"
                       name="gstNumber"
                       value={formData.gstNumber}
                       onChange={handleChange}
                       maxLength={15}
                     />
                     <CustomInputBox
-                      placeholder="PAN Number"
+                      label="PAN Number"
+                      placeholder="e.g., ABCDE1234F"
                       name="panNumber"
                       value={formData.panNumber}
                       onChange={handleChange}
                       maxLength={10}
                     />
                     <CustomInputBox
-                      placeholder="TAN Number"
+                      label="TAN Number"
+                      placeholder="e.g., ABCD12345E"
                       name="tanNumber"
                       value={formData.tanNumber}
                       onChange={handleChange}
                       maxLength={10}
                     />
                     <CustomInputBox
-                      placeholder="MSME Registration Number"
+                      label="MSME Number"
+                      placeholder="e.g., UDYAM-XX-00-0000000"
                       name="msmeRegistration"
                       value={formData.msmeRegistration}
                       onChange={handleChange}
@@ -1615,110 +1548,129 @@ const VendorRegistrationPage: React.FC = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    <select
-                      value={formData.taxCategory}
-                      onChange={(e) => handleSelectChange("taxCategory", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select Tax Category</option>
-                      <option value="taxable">Taxable</option>
-                      <option value="exempt">Tax Exempt</option>
-                      <option value="zero_rated">Zero Rated</option>
-                      <option value="out_of_scope">Out of Scope</option>
-                    </select>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">Tax Category</label>
+                      <select
+                        value={formData.taxCategory}
+                        onChange={(e) => handleSelectChange("taxCategory", e.target.value)}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="">Select Tax Category</option>
+                        <option value="taxable">Taxable</option>
+                        <option value="exempt">Tax Exempt</option>
+                        <option value="zero_rated">Zero Rated</option>
+                        <option value="out_of_scope">Out of Scope</option>
+                      </select>
+                    </div>
                     
-                    <select
-                      value={formData.taxTemplate}
-                      onChange={(e) => handleSelectChange("taxTemplate", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select Tax Template</option>
-                      <option value="standard_tax">Standard Tax</option>
-                      <option value="zero_tax">Zero Tax</option>
-                      <option value="igst_18">IGST 18%</option>
-                      <option value="cgst_sgst_18">CGST+SGST 18%</option>
-                    </select>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">Tax Template</label>
+                      <select
+                        value={formData.taxTemplate}
+                        onChange={(e) => handleSelectChange("taxTemplate", e.target.value)}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="">Select Tax Template</option>
+                        <option value="standard_tax">Standard Tax</option>
+                        <option value="zero_tax">Zero Tax</option>
+                        <option value="igst_18">IGST 18%</option>
+                        <option value="cgst_sgst_18">CGST+SGST 18%</option>
+                      </select>
+                    </div>
                     
-                    <select
-                      value={formData.withholdingTaxCategory}
-                      onChange={(e) => handleSelectChange("withholdingTaxCategory", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select WHT Category</option>
-                      <option value="tds_contractor">TDS - Contractor</option>
-                      <option value="tds_professional">TDS - Professional</option>
-                      <option value="tds_commission">TDS - Commission</option>
-                    </select>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">Withholding Tax Category</label>
+                      <select
+                        value={formData.withholdingTaxCategory}
+                        onChange={(e) => handleSelectChange("withholdingTaxCategory", e.target.value)}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="">Select WHT Category</option>
+                        <option value="tds_contractor">TDS - Contractor</option>
+                        <option value="tds_professional">TDS - Professional</option>
+                        <option value="tds_commission">TDS - Commission</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("financialSettings")}>
-                      Previous: Financial Settings
-                    </Button>
-                    <Button onClick={() => setActiveTab("bank")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Bank Details
-                    </Button>
-                  </div>
+                  <CustomStepNavigation
+  currentStep={4}
+  totalSteps={6}
+  onPrevious={() => setActiveTab("financialSettings")}
+  onNext={() => setActiveTab("bank")}
+/>
                 </div>
               )}
 
               {activeTab === "bank" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    Bank Details
-                  </h3>
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-lg">
+                      <Building2 className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800">Bank Details</h3>
+                  </div>
                   
-                  {/* Bank Form */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-white rounded-lg border border-teal-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                     <CustomInputBox
-                      placeholder="Account Holder Name *"
+                      label="Account Holder Name *"
+                      placeholder="e.g., John Doe"
                       name="accountHolderName"
                       value={bankForm.accountHolderName}
                       onChange={handleBankChange}
+                      required={true}
                     />
                     <CustomInputBox
-                      placeholder="Account Number *"
+                      label="Account Number *"
+                      placeholder="e.g., 123456789012"
                       name="accountNumber"
                       value={bankForm.accountNumber}
                       onChange={handleBankChange}
+                      required={true}
                     />
                     <CustomInputBox
-                      placeholder="IFSC Code"
+                      label="IFSC Code"
+                      placeholder="e.g., SBIN0001234"
                       name="ifscCode"
                       value={bankForm.ifscCode}
                       onChange={handleBankChange}
                     />
                     <CustomInputBox
-                      placeholder="SWIFT Code"
+                      label="SWIFT Code"
+                      placeholder="e.g., SBININBBXXX"
                       name="swiftCode"
                       value={bankForm.swiftCode}
                       onChange={handleBankChange}
                     />
                     <CustomInputBox
-                      placeholder="MICR Number"
+                      label="MICR Number"
+                      placeholder="e.g., 110002001"
                       name="micrNumber"
                       value={bankForm.micrNumber}
                       onChange={handleBankChange}
                     />
                     <CustomInputBox
-                      placeholder="Bank Name *"
+                      label="Bank Name *"
+                      placeholder="e.g., State Bank of India"
                       name="bankName"
                       value={bankForm.bankName}
                       onChange={handleBankChange}
+                      required={true}
                     />
                     <CustomInputBox
-                      placeholder="Branch"
+                      label="Branch"
+                      placeholder="e.g., Main Branch"
                       name="branch"
                       value={bankForm.branch}
                       onChange={handleBankChange}
                     />
-                    <div className="flex items-end">
-                      <Button onClick={addBank} className="bg-teal-600 hover:bg-teal-700 w-full">
-                        <Plus className="w-4 h-4 mr-1" /> Add Bank
-                      </Button>
-                    </div>
+                    <Button 
+                      onClick={addBank} 
+                      className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+                    >
+                      <Plus className="w-5 h-5 mr-2" /> Add Bank
+                    </Button>
                   </div>
 
                   {/* Bank List */}
@@ -1744,113 +1696,105 @@ const VendorRegistrationPage: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("tax")}>
-                      Previous: Tax Information
-                    </Button>
-                    <Button onClick={() => setActiveTab("settings")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Settings
-                    </Button>
-                  </div>
+                  <CustomStepNavigation
+  currentStep={5}
+  totalSteps={6}
+  onPrevious={() => setActiveTab("tax")}
+  onNext={() => setActiveTab("settings")}
+/>
                 </div>
               )}
 
               {activeTab === "settings" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <Settings2 className="w-5 h-5 mr-2" />
-                    Additional Settings
-                  </h3>
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg">
+                      <Settings2 className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800">Additional Settings</h3>
+                  </div>
                   
-                  {/* Logo Upload */}
-                  <div className="mb-6">
-                    <h4 className="font-medium text-teal-800 mb-3">Vendor Logo</h4>
-                    <div className="p-4 bg-white rounded-lg border border-teal-200">
-                      <div className="flex items-center justify-between">
-                        <input
-                          type="file"
-                          id="logo"
-                          className="hidden"
-                          onChange={handleLogoUpload}
-                          accept="image/*"
-                        />
-                        <label
-                          htmlFor="logo"
-                          className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          Upload Logo
-                        </label>
-                        {formData.logoPreviewUrl && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={removeLogo}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
+                  <div className="mb-8">
+                    <h4 className="font-semibold text-gray-800 mb-4 text-lg">Vendor Logo</h4>
+                    <div className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner">
+                      <input
+                        type="file"
+                        id="logo"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                        accept="image/*"
+                      />
+                      <label
+                        htmlFor="logo"
+                        className="cursor-pointer flex flex-col items-center gap-3"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 hover:bg-blue-200 transition-colors">
+                          <Upload className="w-8 h-8" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-600">Upload Logo</p>
+                      </label>
                       {formData.logoPreviewUrl && (
-                        <div className="mt-2">
+                        <div className="mt-4 relative">
                           <img
                             src={formData.logoPreviewUrl}
                             alt="Vendor Logo"
-                            className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75"
+                            className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 shadow-md cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() => setViewingImage({previewUrl: formData.logoPreviewUrl, type: 'logo'})}
                           />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
+                            onClick={removeLogo}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Registration Documents */}
-                  <div className="mb-6">
-                    <h4 className="font-medium text-teal-800 mb-3">Registration Documents</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="mb-8">
+                    <h4 className="font-semibold text-gray-800 mb-4 text-lg">Registration Documents</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {['TAX', 'VAT', 'GST', 'PAN', 'TAN', 'MSME'].map(docType => (
-                        <div key={docType} className="p-4 bg-white rounded-lg border border-teal-200">
-                          <p className="text-sm font-medium text-teal-700 mb-2">{docType} Document</p>
-                          <div className="flex items-center justify-between">
-                            <input
-                              type="file"
-                              id={`${docType.toLowerCase()}-doc`}
-                              className="hidden"
-                              onChange={(e) => handleDocumentUpload(docType, e)}
-                              accept="image/*,.pdf"
-                            />
-                            <label
-                              htmlFor={`${docType.toLowerCase()}-doc`}
-                              className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
-                            >
-                              <Upload className="w-4 h-4 mr-2" />
-                              Upload
-                            </label>
-                            {formData.registrationDocs.find(doc => doc.type === docType) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeDocument(formData.registrationDocs.find(doc => doc.type === docType)!.id)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
+                        <div key={docType} className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative">
+                          <p className="text-sm font-semibold text-gray-700 mb-3">{docType} Document</p>
+                          <input
+                            type="file"
+                            id={`${docType.toLowerCase()}-doc`}
+                            className="hidden"
+                            onChange={(e) => handleDocumentUpload(docType, e)}
+                            accept="image/*,.pdf"
+                          />
+                          <label
+                            htmlFor={`${docType.toLowerCase()}-doc`}
+                            className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
+                          >
+                            <Upload className="w-6 h-6 text-blue-500" />
+                            <p className="text-sm text-gray-600">Upload</p>
+                          </label>
                           {formData.registrationDocs.find(doc => doc.type === docType) && (
-                            <div className="mt-2">
-                              <p className="text-xs text-gray-500 truncate">
+                            <div className="mt-4 w-full">
+                              <p className="text-xs text-gray-500 truncate mb-2">
                                 {formData.registrationDocs.find(doc => doc.type === docType)?.fileName}
                               </p>
-                              {formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl && docType !== 'PDF' && ( // Assume PDF not previewable as image
+                              {formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl && docType !== 'PDF' && (
                                 <img
                                   src={formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl}
                                   alt={`${docType} document`}
-                                  className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75 mt-2"
+                                  className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
                                   onClick={() => setViewingImage(formData.registrationDocs.find(doc => doc.type === docType)!)}
                                 />
                               )}
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2 w-6 h-6 rounded-full"
+                                onClick={() => removeDocument(formData.registrationDocs.find(doc => doc.type === docType)!.id)}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
                             </div>
                           )}
                         </div>
@@ -1859,101 +1803,108 @@ const VendorRegistrationPage: React.FC = () => {
                   </div>
 
                   {/* Advanced Settings */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <select
-                      value={formData.vendorPriority}
-                      onChange={(e) => handleSelectChange("vendorPriority", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="low">Low Priority</option>
-                      <option value="medium">Medium Priority</option>
-                      <option value="high">High Priority</option>
-                      <option value="vip">VIP</option>
-                    </select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">Vendor Priority</label>
+                      <select
+                        value={formData.vendorPriority}
+                        onChange={(e) => handleSelectChange("vendorPriority", e.target.value)}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="low">Low Priority</option>
+                        <option value="medium">Medium Priority</option>
+                        <option value="high">High Priority</option>
+                        <option value="vip">VIP</option>
+                      </select>
+                    </div>
                     
-                    <select
-                      value={formData.leadSource}
-                      onChange={(e) => handleSelectChange("leadSource", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select Lead Source</option>
-                      <option value="website">Website</option>
-                      <option value="referral">Referral</option>
-                      <option value="advertising">Advertising</option>
-                      <option value="social_media">Social Media</option>
-                      <option value="cold_call">Cold Call</option>
-                    </select>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">Lead Source</label>
+                      <select
+                        value={formData.leadSource}
+                        onChange={(e) => handleSelectChange("leadSource", e.target.value)}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="">Select Lead Source</option>
+                        <option value="website">Website</option>
+                        <option value="referral">Referral</option>
+                        <option value="advertising">Advertising</option>
+                        <option value="social_media">Social Media</option>
+                        <option value="cold_call">Cold Call</option>
+                      </select>
+                    </div>
                   </div>
 
                   {/* Checkboxes */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <label className="flex items-center">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
                       <input
                         type="checkbox"
                         name="isFrozenAccount"
                         checked={formData.isFrozenAccount}
                         onChange={handleChange}
-                        className="mr-2"
+                        className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
                       />
                       Frozen Account
                     </label>
-                    <label className="flex items-center">
+                    <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
                       <input
                         type="checkbox"
                         name="disabled"
                         checked={formData.disabled}
                         onChange={handleChange}
-                        className="mr-2"
+                        className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
                       />
                       Disabled
                     </label>
-                    <label className="flex items-center">
+                    <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
                       <input
                         type="checkbox"
                         name="allowZeroValuation"
                         checked={formData.allowZeroValuation}
                         onChange={handleChange}
-                        className="mr-2"
+                        className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
                       />
                       Allow Zero Valuation
                     </label>
-                    <label className="flex items-center">
+                    <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
                       <input
                         type="checkbox"
                         name="isTaxExempt"
                         checked={formData.isTaxExempt}
                         onChange={handleChange}
-                        className="mr-2"
+                        className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
                       />
                       Tax Exempt
                     </label>
                   </div>
 
                   {/* Notes */}
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-teal-700 mb-2">Internal Notes</p>
+                  <div className="mb-6">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">Internal Notes</p>
                     <textarea
                       placeholder="Add any additional notes about the vendor..."
                       name="internalNotes"
                       value={formData.internalNotes}
                       onChange={handleChange}
                       rows={4}
-                      className="w-full px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none resize-none"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
                     />
                   </div>
 
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("bank")}>
-                      Previous: Bank Details
-                    </Button>
-                    <Button onClick={handleSubmit} className="bg-teal-600 hover:bg-teal-700">
-                      {editingVendor ? 'Update Vendor' : 'Save Vendor'}
-                    </Button>
-                  </div>
+                  <CustomStepNavigation
+  currentStep={6}
+  totalSteps={6}
+  onPrevious={() => setActiveTab("bank")}
+  onSubmit={handleSubmit}
+  submitLabel={editingVendor ? 'Update Vendor' : 'Save Vendor'}
+  isLastStep={true}
+  editing={editingVendor}
+/>
                 </div>
               )}
             </div>
-          </div>
+          {/* </div> */}
         </DialogContent>
       </Dialog>
 
