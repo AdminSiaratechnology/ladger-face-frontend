@@ -231,7 +231,7 @@ const mockSalesmen: SalesmanLocation[] = [
   }
 ];
 
-export function LocationTracking() {
+export default function LocationTracking() {
   const [salesmen] = useState<SalesmanLocation[]>(mockSalesmen);
   const [selectedSalesman, setSelectedSalesman] = useState<SalesmanLocation | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');

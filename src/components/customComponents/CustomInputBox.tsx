@@ -1,6 +1,6 @@
-import { Input } from '../ui/input'
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { Input } from '../ui/input';
 
 interface CustomInputBoxProps {
   label?: string;
@@ -13,9 +13,9 @@ interface CustomInputBoxProps {
   required?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-   autoComplete?:string;
-  autoCorrect?:string;
-  spellCheck?:boolean;
+  autoComplete?: string;
+  autoCorrect?: string;
+  spellCheck?: boolean;
 }
 
 function CustomInputBox({
@@ -29,9 +29,9 @@ function CustomInputBox({
   required = false,
   leftIcon,
   rightIcon,
-   autoComplete="on",
-  autoCorrect="on",
-  spellCheck=true,
+  autoComplete = "on",
+  autoCorrect = "on",
+  spellCheck = true,
 }: CustomInputBoxProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -49,18 +49,19 @@ function CustomInputBox({
   ) : rightIcon;
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       {label && (
         <label
           htmlFor={name}
-          className="text-sm font-medium text-gray-700"
+          className="text-sm font-medium text-gray-800 flex items-center gap-1"
         >
-          {label} {required && "*"}
+          {label}
+          {required && <span className="text-pink-500">*</span>}
         </label>
       )}
       <div className="relative">
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
             {leftIcon}
           </div>
         )}
@@ -73,20 +74,20 @@ function CustomInputBox({
           onChange={onChange}
           maxLength={maxLength}
           autoComplete={autoComplete}
-  autoCorrect={autoCorrect}
-  spellCheck={spellCheck}
-          className={`border border-teal-200 rounded-md focus:border-teal-500 focus:ring-teal-500 focus:ring-2 focus:outline-none bg-white ${
-            leftIcon ? 'pl-10' : 'pl-3'
-          } ${passwordRightIcon || rightIcon ? 'pr-10' : 'pr-3'}`}
+          autoCorrect={autoCorrect}
+          spellCheck={spellCheck}
+          className={`h-12 px-4 py-3 bg-gray-50/50 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 focus:border-blue-500 focus:ring-0 focus:bg-white transition-all shadow-sm ${
+            leftIcon ? 'pl-12' : 'pl-4'
+          } ${passwordRightIcon || rightIcon ? 'pr-12' : 'pr-4'}`}
         />
         {passwordRightIcon && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className="absolute right-4 top-1/2 -translate-y-1/2">
             {passwordRightIcon}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
 
-export default CustomInputBox
+export default CustomInputBox;

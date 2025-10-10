@@ -91,7 +91,7 @@ function hasMenuAccess(user: any, item: MenuItem | SubMenuItem) {
   return false;
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
   console.log("Sidebar User:", user);
   const location = useLocation();
@@ -139,6 +139,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const fullMenuItems: MenuItem[] = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'agent', 'salesman'], type: 'link' },
     { path: '/company', icon: LayoutDashboard, label: 'Company', roles: ['admin', 'agent', 'salesman'], type: 'link' },
+    { path: '/users', icon: Users, label: 'User Management', roles: ['admin'], type: 'link' },
     {
       id: 'business-partners',
       icon: Building2,
@@ -166,7 +167,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { path: '/ladger-registration', icon: HatGlasses, label: 'Ladger', roles: ['admin', 'agent'] },
       ]
     },
-    { path: '/users', icon: Users, label: 'User Management', roles: ['admin'], type: 'link' },
+    
     {
       id: 'inventory-management',
       icon: Package,
@@ -255,18 +256,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     return subItems.some(subItem => location.pathname === subItem.path);
   };
 
-  // Get the ID of the accordion that should be expanded based on current location
-  const getActiveAccordionId = () => {
-    for (const item of filteredMenuItems) {
-      if (item.type === 'accordion' && item.subItems) {
-        if (isAccordionItemActive(item.subItems)) {
-          return item.id;
-        }
-      }
-    }
-    return undefined;
-  };
-
   // Handle link click - close sidebar on mobile
   const handleLinkClick = () => {
     if (window.innerWidth < 768 && onClose) {
@@ -279,14 +268,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <Link
         to={to}
         onClick={handleLinkClick}
-        className={`flex items-center space-x-3 px-6 py-3 transition-colors ${
+        className={`flex items-center space-x-3 px-6 py-3 transition-colors duration-200 ${
           location.pathname === to
-            ? 'bg-teal-600 text-white border-r-2 border-teal-200'
-            : 'text-gray-300 hover:bg-teal-700'
+            ? 'bg-teal-600 text-white border-r-4 border-teal-300'
+            : 'text-teal-100 hover:bg-teal-700/80 hover:text-white'
         }`}
       >
-        <Icon className="w-5 h-5 text-white" />
-        <span className='text-white text-lg'>{label}</span>
+        <Icon className="w-5 h-5" />
+        <span className='text-base font-medium'>{label}</span>
       </Link>
     );
   };
@@ -298,29 +287,36 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
     const Icon = accordionItem.icon;
     const isActive = isAccordionItemActive(accordionItem.subItems);
+    const [openValue, setOpenValue] = useState<string | undefined>(isActive ? accordionItem.id : undefined);
+
+    useEffect(() => {
+      if (isActive) {
+        setOpenValue(accordionItem.id);
+      }
+    }, [location.pathname, accordionItem.id, isActive]);
 
     return (
       <Accordion 
         type="single" 
         collapsible 
         className="w-full"
-        defaultValue={getActiveAccordionId()}
-        value={getActiveAccordionId()}
+        value={openValue}
+        onValueChange={setOpenValue}
       >
         <AccordionItem value={accordionItem.id!} className="border-none">
           <AccordionTrigger 
-            className={`flex items-center space-x-3 rounded-none px-6 pr-2 py-3 transition-colors hover:no-underline [&>svg]:w-4 [&>svg]:h-4 ${
+            className={`flex items-center space-x-3 rounded-none px-6 pr-2 py-3 transition-colors duration-200 hover:no-underline [&>svg]:w-4 [&>svg]:h-4 [&[data-state=open]]:bg-teal-700/50 ${
               isActive
-                ? 'bg-teal-600 text-white border-r-2 border-teal-200'
-                : 'text-gray-300 hover:bg-teal-700'
+                ? 'bg-teal-600 text-white border-r-4 border-teal-300'
+                : 'text-teal-100 hover:bg-teal-700/80 hover:text-white'
             }`}
           >
-            <div className="flex items-center space-x-3 flex-1 text-md ">
-              <Icon className="w-5 h-5 text-white" />
-              <span className='text-white !text-lg font-normal'>{accordionItem.label}</span>
+            <div className="flex items-center space-x-3 flex-1">
+              <Icon className="w-5 h-5" />
+              <span className='text-base font-medium'>{accordionItem.label}</span>
             </div>
           </AccordionTrigger>
-          <AccordionContent className="pb-0">
+          <AccordionContent className="pb-0 data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
             {accordionItem.subItems.map((subItem) => {
               const SubIcon = subItem.icon;
               return (
@@ -328,14 +324,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   key={subItem.path}
                   to={subItem.path}
                   onClick={handleLinkClick}
-                  className={`flex items-center space-x-3 px-12 pr-2 py-2 transition-colors ${
+                  className={`flex items-center space-x-3 px-12 pr-2 py-2 transition-colors duration-200 ${
                     location.pathname === subItem.path
-                      ? 'bg-teal-700 text-white border-r-2 border-teal-200'
-                      : 'text-gray-300 hover:bg-teal-900'
+                      ? 'bg-teal-700 text-white border-r-4 border-teal-300'
+                      : 'text-teal-100 hover:bg-teal-800/80 hover:text-white'
                   }`}
                 >
-                  <SubIcon className="w-4 h-4 text-white" />
-                  <span className='text-white text-sm'>{subItem.label}</span>
+                  <SubIcon className="w-4 h-4" />
+                  <span className='text-sm font-medium'>{subItem.label}</span>
                 </Link>
               );
             })}
@@ -349,7 +345,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     <>
       {/* Backdrop overlay for mobile */}
       <div 
-        className={`fixed inset-0 bg-black/15 bg-opacity-50 z-40 md:hidden transition-opacity ${
+        className={`fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -358,18 +354,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar */}
       <div className={`
         fixed md:relative top-0 left-0 h-full z-50
-        w-64 bg-gradient-to-b from-teal-800 to-teal-900 text-white flex flex-col
+        w-64 bg-gradient-to-b from-teal-900 to-teal-950 text-white flex flex-col shadow-2xl
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* Header with close button */}
-        <div className="p-6 border-b border-gray-700">
+        <div className="p-6 border-b border-teal-800/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Shield className="w-8 h-8 text-blue-400" />
+              <Shield className="w-8 h-8 text-teal-400" />
               <div>
-                <h1 className="font-bold">BMS</h1>
-                <p className="text-xs text-gray-400">Business Management</p>
+                <h1 className="font-bold text-xl">BMS</h1>
+                <p className="text-xs text-teal-300">Business Management System</p>
               </div>
             </div>
             {/* Close button - only visible on mobile */}
@@ -377,7 +373,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="md:hidden p-1 text-gray-300 hover:bg-gray-700"
+              className="md:hidden p-1 text-teal-300 hover:bg-teal-800/50 rounded-full"
             >
               <X className="w-5 h-5" />
             </Button>
@@ -385,31 +381,32 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* User info */}
-        <div className="p-4 border-b border-gray-700">
+        <div className="p-4 border-b border-teal-800/50">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-b from-teal-600 to-teal-400 rounded-full flex items-center justify-center">
-              <span className="font-medium text-sm">
+            <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-300 rounded-full flex items-center justify-center ring-2 ring-teal-700/50">
+              <span className="font-medium text-sm text-teal-950">
                 {user?.name.charAt(0).toUpperCase()}
               </span>
             </div>
             <div>
-              <p className="font-medium text-sm">{user?.name}</p>
-              <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
+              <p className="font-medium text-sm text-teal-100">{user?.name}</p>
+              <p className="text-xs text-teal-300 capitalize">{user?.role}</p>
             </div>
           </div>
         </div>
 
         {/* Company Status Indicator (Optional - you can remove this if not needed) */}
         {!hasCompany && (
-          <div className="px-4 py-2 bg-amber-600/20 border-b border-gray-700">
-            <p className="text-xs text-amber-200">
-              ⚠️ Please add company details to access all features
+          <div className="px-4 py-3 bg-amber-900/30 border-b border-teal-800/50">
+            <p className="text-xs text-amber-300 flex items-center">
+              <span className="mr-2">⚠️</span>
+              Please add company details to access all features
             </p>
           </div>
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 py-4 overflow-y-auto">
+        <nav className="flex-1 py-4 overflow-y-auto scrollbar-thin scrollbar-thumb-teal-600 scrollbar-track-teal-900 scrollbar-thumb-rounded-full">
           {filteredMenuItems.length > 0 ? (
             filteredMenuItems.map((item) => {
               return (
@@ -423,18 +420,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               );
             })
           ) : (
-            <div className="px-6 py-4 text-gray-400 text-sm">
+            <div className="px-6 py-4 text-teal-300 text-sm">
               No menu items available based on your permissions.
             </div>
           )}
         </nav>
 
         {/* Logout button */}
-        <div className="p-6 border-t border-gray-700">
+        <div className="p-6 border-t border-teal-800/50">
           <Button
             variant="ghost"
             onClick={logout}
-            className="w-full justify-start text-gray-300 hover:bg-gray-700"
+            className="w-full justify-start text-teal-100 hover:bg-teal-800/50 hover:text-white transition-colors duration-200"
           >
             <LogOut className="w-5 h-5 mr-3" />
             Logout

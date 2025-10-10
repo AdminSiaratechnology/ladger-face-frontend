@@ -1,56 +1,61 @@
-import React, { useState } from 'react';
+// import React, { useState } from 'react';
+// import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// import { Login } from './components/pages/Login';
+// import { AdminDashboard } from './components/pages/AdminDashboard';
+// import UserManagement from './components/pages/UserManagement';
+// import { InventoryManagement } from './components/pages/InventoryManagement';
+// import  OrderManagement  from './components/pages/OrderManagement';
+// import  Order  from './components/pages/OrderPage';
+// import { PriceListManagement } from './components/pages/PriceListManagement';
+// import { LocationTracking } from './components/pages/LocationTracking';
+// import { Settings } from './components/pages/Settings';
+// import { Sidebar } from './components/Sidebar';
+// import { Header } from './components/pages/Header';
+// import Company from './components/pages/Company';
+// import { Toaster } from 'sonner';
+// import "./index.css";
+// import VendorRegistration from './components/pages/VendorRegistration';
+// import CustomerRegistration from './components/pages/CustomerRegistration';
+// import Agent from './components/pages/Agent';
+// import Ladger from './components/pages/Ladger';
+// import Product from './components/pages/Product';
+// import Godown from './components/pages/Godown';
+// import StockCategory from './components/pages/StockCategory';
+// import StockGroup from './components/pages/StockGroup';
+// import UOM from './components/pages/UOM';
+// import PriceList from "./components/pages/PriceListPage";
+// import { useAuthStore } from '../store/authStore';
+// import { checkPermission } from './lib/utils';
+
+import React, { useState, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Login } from './components/pages/Login';
-import { AdminDashboard } from './components/pages/AdminDashboard';
-import UserManagement from './components/pages/UserManagement';
-import { InventoryManagement } from './components/pages/InventoryManagement';
-import  OrderManagement  from './components/pages/OrderManagement';
-import  Order  from './components/pages/OrderPage';
-import { PriceListManagement } from './components/pages/PriceListManagement';
-import { LocationTracking } from './components/pages/LocationTracking';
-import { Settings } from './components/pages/Settings';
-import { Sidebar } from './components/Sidebar';
-import { Header } from './components/pages/Header';
-import Company from './components/pages/Company';
 import { Toaster } from 'sonner';
 import "./index.css";
-import VendorRegistration from './components/pages/VendorRegistration';
-import CustomerRegistration from './components/pages/CustomerRegistration';
-import Agent from './components/pages/Agent';
-import Ladger from './components/pages/Ladger';
-import Product from './components/pages/Product';
-import Godown from './components/pages/Godown';
-import StockCategory from './components/pages/StockCategory';
-import StockGroup from './components/pages/StockGroup';
-import UOM from './components/pages/UOM';
-import PriceList from "./components/pages/PriceListPage";
 import { useAuthStore } from '../store/authStore';
 import { checkPermission } from './lib/utils';
 
-
-// Utility function to check permissions
-// function checkPermission(user, module, subModule) {
-//   // If user has all permissions, allow access
-//   if (user.allPermissions) {
-//     return true;
-//   }
-
-//   // Check if user has access array and it's not empty
-//   if (!user.access || user.access.length === 0) {
-//     return false;
-//   }
-
-//   // Check permissions in the access array
-//   for (const accessItem of user.access) {
-//     const modules = accessItem.modules;
-    
-//     if (modules && modules[module] && modules[module][subModule]) {
-//       return modules[module][subModule].read === true;
-//     }
-//   }
-
-//   return false;
-// }
+const Login = React.lazy(() => import('./components/pages/Login'));
+const AdminDashboard = React.lazy(() => import('./components/pages/AdminDashboard'));
+const UserManagement = React.lazy(() => import('./components/pages/UserManagement'));
+const InventoryManagement = React.lazy(() => import('./components/pages/InventoryManagement'));
+const OrderManagement = React.lazy(() => import('./components/pages/OrderManagement'));
+const Order = React.lazy(() => import('./components/pages/OrderPage'));
+const PriceListManagement = React.lazy(() => import('./components/pages/PriceListManagement'));
+const LocationTracking = React.lazy(() => import('./components/pages/LocationTracking'));
+const Settings = React.lazy(() => import('./components/pages/Settings'));
+const Sidebar = React.lazy(() => import('./components/Sidebar'));
+const Header = React.lazy(() => import('./components/pages/Header'));
+const Company = React.lazy(() => import('./components/pages/Company'));
+const VendorRegistration = React.lazy(() => import('./components/pages/VendorRegistration'));
+const CustomerRegistration = React.lazy(() => import('./components/pages/CustomerRegistration'));
+const Agent = React.lazy(() => import('./components/pages/Agent'));
+const Ladger = React.lazy(() => import('./components/pages/Ladger'));
+const Product = React.lazy(() => import('./components/pages/Product'));
+const Godown = React.lazy(() => import('./components/pages/Godown'));
+const StockCategory = React.lazy(() => import('./components/pages/StockCategory'));
+const StockGroup = React.lazy(() => import('./components/pages/StockGroup'));
+const UOM = React.lazy(() => import('./components/pages/UOM'));
+const PriceList = React.lazy(() => import('./components/pages/PriceListPage'));
 
 // Unauthorized Access Component
 function UnauthorizedAccess() {
@@ -105,11 +110,17 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-indigo-50">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Suspense fallback={<div>Loading Sidebar...</div>}>
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </Suspense>
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        <Suspense fallback={<div>Loading Header...</div>}>
+          <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        </Suspense>
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
-          {children}
+          <Suspense fallback={<div>Loading...</div>}>
+            {children}
+          </Suspense>
         </main>
       </div>
     </div>
@@ -122,7 +133,11 @@ export default function App() {
       <div className="min-h-screen w-screen">
         <Toaster position="top-right" richColors />
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <Login />
+            </Suspense>
+          } />
           
           {/* Dashboard - accessible to all authenticated users */}
           <Route path="/" element={
@@ -162,19 +177,19 @@ export default function App() {
           
           {/* Order Management */}
           <Route path="/order-report" element={
-            // <ProtectedRoute module="OrderManagement" subModule="OrderReport">
+            <ProtectedRoute module="OrderManagement" subModule="OrderReport">
               <AppLayout>
                 <OrderManagement />
               </AppLayout>
-            //  </ProtectedRoute>
+             </ProtectedRoute>
           } />
           {/* Order Management */}
           <Route path="/orders" element={
-            // <ProtectedRoute module="OrderManagement" subModule="Order">
+            <ProtectedRoute module="OrderManagement" subModule="Order">
               <AppLayout>
                 <Order />
               </AppLayout>
-            //  </ProtectedRoute>
+             </ProtectedRoute>
           } />
           
           {/* Pricing */}

@@ -28,7 +28,7 @@ import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../../store/authStore'; 
 
-export function Login() {
+export default function Login() {
 
   // const { user, login, loading } = useAuth();
   const { login, isLoading:loading ,user} = useAuthStore()
@@ -196,7 +196,7 @@ export function Login() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-2 mb-4 md:mb-8 bg-slate-100 p-1 rounded-xl h-12 md:h-14 w-full ">
+              {/* <TabsList className="grid grid-cols-2 mb-4 md:mb-8 bg-slate-100 p-1 rounded-xl h-12 md:h-14 w-full ">
                 <TabsTrigger 
                   value="email" 
                   className="data-[state=active]:bg-white data-[state=active]:text-teal-500 data-[state=active]:bg-clip-text data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-indigo-600 data-[state=active]:shadow-sm rounded-lg py-3 px-2 flex items-center justify-center gap-2 transition-all duration-200 font-medium w-full"
@@ -204,13 +204,13 @@ export function Login() {
                   <Mail className="w-4 h-4" />
                   <span className="hidden sm:inline">Email</span>
                 </TabsTrigger>
-                {/* <TabsTrigger 
+                <TabsTrigger 
                   value="otp" 
                   className="data-[state=active]:bg-white data-[state=active]:text-transparent data-[state=active]:bg-clip-text data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-indigo-600 data-[state=active]:shadow-sm rounded-lg py-3 px-2 flex items-center justify-center gap-2 transition-all duration-200 font-medium"
                 >
                   <Phone className="w-4 h-4" />
                   <span className="hidden sm:inline">OTP</span>
-                </TabsTrigger> */}
+                </TabsTrigger>
                 <TabsTrigger 
                   value="social" 
                   className="group data-[state=active]:bg-white data-[state=active]:text-teal-600 data-[state=active]:shadow-sm rounded-lg py-3 px-2 flex items-center justify-center gap-2 transition-all duration-200 font-medium w-full"
@@ -223,14 +223,14 @@ export function Login() {
                   </svg>
                   <span className="hidden sm:inline group-data-[state=active]:text-transparent group-data-[state=active]:bg-clip-text group-data-[state=active]:bg-gradient-to-r group-data-[state=active]:from-teal-600 group-data-[state=active]:to-indigo-600">Google</span>
                 </TabsTrigger>
-                {/* <TabsTrigger 
+                <TabsTrigger 
                   value="biometric" 
                   className="data-[state=active]:bg-white data-[state=active]:text-transparent data-[state=active]:bg-clip-text data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-indigo-600 data-[state=active]:shadow-sm rounded-lg py-3 px-2 flex items-center justify-center gap-2 transition-all duration-200 font-medium"
                 >
                   <Fingerprint className="w-4 h-4" />
                   <span className="hidden sm:inline">Bio</span>
-                </TabsTrigger> */}
-              </TabsList>
+                </TabsTrigger>
+              </TabsList> */}
 
               <TabsContent value="email" className="space-y-4 md:space-y-6">
                 <div className="space-y-4 md:space-y-6">

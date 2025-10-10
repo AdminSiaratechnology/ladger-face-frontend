@@ -24,18 +24,37 @@ import {
   Plus,
   Upload,
   X,
-  Image as ImageIcon,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Shield,
+  AlertCircle,
+  UserCheck,
+  Target
 } from "lucide-react";
 import { Country, State, City } from 'country-state-city';
+import { useCompanyStore } from "../../../store/companyStore";
+import { useLedgerStore } from "../../../store/ladgerStore";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
-import { useCompanyStore } from "../../../store/companyStore";
-import { useLedgerStore } from "../../../store/ladgerStore";
 import { CheckAccess } from "../customComponents/CheckAccess";
 import ActionsDropdown from "../customComponents/ActionsDropdown";
+import { TableViewSkeleton } from "../customComponents/TableViewSkeleton";
+import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
+import CustomStepNavigation from "../customComponents/CustomStepNavigation";
+import MultiStepNav from "../customComponents/MultiStepNav";
+import PaginationControls from "../customComponents/CustomPaginationControls";
+import ViewModeToggle from "../customComponents/ViewModeToggle";
+import TableHeader from "../customComponents/CustomTableHeader";
+
+// Step icons for multi-step navigation
+const stepIcons = {
+  basic: <Users className="w-2 h-2 md:w-5 md:h-5" />,
+  contact: <Phone className="w-2 h-2 md:w-5 md:h-5" />,
+  tax: <FileText className="w-2 h-2 md:w-5 md:h-5" />,
+  bank: <Building2 className="w-2 h-2 md:w-5 md:h-5" />,
+  settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />
+};
 
 // Interfaces
 interface Bank {
@@ -109,30 +128,71 @@ interface Ledger {
   leadSource: string;
   internalNotes: string;
   logo: string | null;
-  logoFile?: File;
-  logoPreviewUrl?: string;
   notes: string;
   createdAt: string;
   registrationDocs: RegistrationDocument[];
 }
 
+interface LedgerForm {
+  ledgerType: string;
+  ledgerCode: string;
+  ledgerName: string;
+  shortName: string;
+  companyId: string;
+  ledgerGroup: string;
+  industryType: string;
+  territory: string;
+  ledgerStatus: string;
+  companySize: string;
+  contactPerson: string;
+  designation: string;
+  phoneNumber: string;
+  mobileNumber: string;
+  emailAddress: string;
+  faxNumber: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  website: string;
+  currency: string;
+  taxId: string;
+  vatNumber: string;
+  gstNumber: string;
+  panNumber: string;
+  tanNumber: string;
+  taxCategory: string;
+  taxTemplate: string;
+  withholdingTaxCategory: string;
+  isTaxExempt: boolean;
+  reverseCharge: boolean;
+  isFrozenAccount: boolean;
+  disabled: boolean;
+  bankName: string;
+  branchName: string;
+  accountNumber: string;
+  accountHolderName: string;
+  ifscCode: string;
+  swiftCode: string;
+  banks: Bank[];
+  externalSystemId: string;
+  dataSource: string;
+  ledgerPriority: string;
+  leadSource: string;
+  internalNotes: string;
+  logoFile?: File;
+  logoPreviewUrl?: string;
+  notes: string;
+  registrationDocs: RegistrationDocument[];
+}
+
 const LedgerRegistration: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [editingLedger, setEditingLedger] = useState<Ledger | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");
-  const [viewingImage, setViewingImage] = useState<RegistrationDocument | { previewUrl: string; type: 'logo' } | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all');
-  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
-  const [filteredLedgers, setFilteredLedgers] = useState<Ledger[]>([]);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const limit = 10; // Fixed limit per page
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { ledgers, fetchLedgers, addLedger, updateLedger, deleteLedger, filterLedgers, pagination, loading, error } = useLedgerStore();
-  const { companies } = useCompanyStore();
-
   const [bankForm, setBankForm] = useState<Bank>({
     id: Date.now(),
     accountHolderName: "",
@@ -143,14 +203,54 @@ const LedgerRegistration: React.FC = () => {
     bankName: "",
     branch: ""
   });
+  const [viewingImage, setViewingImage] = useState<RegistrationDocument | { previewUrl: string; type: 'logo' } | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all');
+  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [filteredLedgers, setFilteredLedgers] = useState<Ledger[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const limit = 10;
 
-  const [formData, setFormData] = useState<Ledger>({
-    id: 0,
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { ledgers, fetchLedgers, addLedger, updateLedger, deleteLedger, filterLedgers, pagination, loading } = useLedgerStore();
+  const { companies } = useCompanyStore();
+
+  // Initial fetch
+  useEffect(() => {
+    fetchLedgers(currentPage, limit);
+  }, [fetchLedgers, currentPage]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, sortBy]);
+
+  // Filtering with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterLedgers(searchTerm, statusFilter, sortBy, currentPage, limit)
+        .then((result) => {
+          setFilteredLedgers(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering ledgers:", err);
+          toast.error("Error", {
+            description: "Failed to filter ledgers. Please try again.",
+          });
+        });
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterLedgers]);
+
+  const [formData, setFormData] = useState<LedgerForm>({
     ledgerType: 'individual',
-    companyId: "",
     ledgerCode: '',
     ledgerName: '',
     shortName: '',
+    companyId: '',
     ledgerGroup: '',
     industryType: '',
     territory: '',
@@ -188,47 +288,43 @@ const LedgerRegistration: React.FC = () => {
     accountHolderName: '',
     ifscCode: '',
     swiftCode: '',
+    banks: [],
     externalSystemId: '',
     dataSource: 'manual',
     ledgerPriority: 'medium',
     leadSource: '',
     internalNotes: '',
-    banks: [],
-    logo: null,
-    logoFile: undefined,
-    logoPreviewUrl: undefined,
     notes: '',
-    createdAt: '',
     registrationDocs: []
   });
 
   // Country, State, City Data
   const allCountries = useMemo(() => Country.getAllCountries(), []);
   const availableStates = useMemo(() => {
-    const selectedCountry = allCountries.find((c) => c.name === formData.country);
+    const selectedCountry = allCountries.find(c => c.name === formData.country);
     if (!selectedCountry) return [];
     return State.getStatesOfCountry(selectedCountry.isoCode);
   }, [formData.country, allCountries]);
   const availableCities = useMemo(() => {
-    const selectedCountry = allCountries.find((c) => c.name === formData.country);
-    const selectedState = availableStates.find((s) => s.name === formData.state);
+    const selectedCountry = allCountries.find(c => c.name === formData.country);
+    const selectedState = availableStates.find(s => s.name === formData.state);
     if (!selectedCountry || !selectedState) return [];
     return City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
   }, [formData.country, formData.state, availableStates, allCountries]);
 
   const getCurrencyForCountry = (countryName: string): string => {
-    const country = allCountries.find((c) => c.name === countryName);
+    const country = allCountries.find(c => c.name === countryName);
     if (!country) return "INR";
     const currencyMap: Record<string, string> = {
-      IN: 'INR',
-      US: 'USD',
-      GB: 'GBP',
-      CA: 'CAD',
-      AU: 'AUD',
-      DE: 'EUR',
-      FR: 'EUR',
-      JP: 'JPY',
-      CN: 'CNY'
+      'IN': 'INR',
+      'US': 'USD',
+      'GB': 'GBP',
+      'CA': 'CAD',
+      'AU': 'AUD',
+      'DE': 'EUR',
+      'FR': 'EUR',
+      'JP': 'JPY',
+      'CN': 'CNY'
     };
     return currencyMap[country.isoCode] || country.currency || 'USD';
   };
@@ -237,15 +333,15 @@ const LedgerRegistration: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
   };
 
-  const handleSelectChange = (name: keyof Ledger, value: string): void => {
+  const handleSelectChange = (name: keyof LedgerForm, value: string): void => {
     if (name === "country") {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         [name]: value,
         state: "",
@@ -253,13 +349,13 @@ const LedgerRegistration: React.FC = () => {
         currency: getCurrencyForCountry(value)
       }));
     } else if (name === "state") {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         [name]: value,
         city: ""
       }));
     } else {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         [name]: value
       }));
@@ -268,7 +364,7 @@ const LedgerRegistration: React.FC = () => {
 
   const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setBankForm((prev) => ({
+    setBankForm(prev => ({
       ...prev,
       [name]: value
     }));
@@ -276,16 +372,10 @@ const LedgerRegistration: React.FC = () => {
 
   const addBank = (): void => {
     if (!bankForm.accountHolderName || !bankForm.accountNumber || !bankForm.bankName) {
-      toast.error("Validation Failed", {
-        description: "Please fill in at least Account Holder Name, Account Number, and Bank Name",
-        action: {
-          label: "Undo",
-          onClick: () => console.log("Undo"),
-        },
-      });
+      toast.error("Please fill in at least Account Holder Name, Account Number, and Bank Name");
       return;
     }
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       banks: [...prev.banks, { ...bankForm, id: Date.now() }]
     }));
@@ -302,9 +392,9 @@ const LedgerRegistration: React.FC = () => {
   };
 
   const removeBank = (id: number): void => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      banks: prev.banks.filter((bank) => bank.id !== id)
+      banks: prev.banks.filter(bank => bank.id !== id)
     }));
   };
 
@@ -312,7 +402,7 @@ const LedgerRegistration: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       const previewUrl = URL.createObjectURL(file);
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         logoFile: file,
         logoPreviewUrl: previewUrl
@@ -324,7 +414,7 @@ const LedgerRegistration: React.FC = () => {
     if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(formData.logoPreviewUrl);
     }
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       logoFile: undefined,
       logoPreviewUrl: undefined
@@ -342,21 +432,21 @@ const LedgerRegistration: React.FC = () => {
         previewUrl,
         fileName: file.name
       };
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
-        registrationDocs: [...prev.registrationDocs.filter((doc) => doc.type !== type), newDoc]
+        registrationDocs: [...prev.registrationDocs.filter(doc => doc.type !== type), newDoc]
       }));
     }
   };
 
   const removeDocument = (id: number) => {
-    const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
+    const docToRemove = formData.registrationDocs.find(doc => doc.id === id);
     if (docToRemove && docToRemove.previewUrl && docToRemove.previewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(docToRemove.previewUrl);
     }
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      registrationDocs: prev.registrationDocs.filter((doc) => doc.id !== id)
+      registrationDocs: prev.registrationDocs.filter(doc => doc.id !== id)
     }));
   };
 
@@ -364,7 +454,7 @@ const LedgerRegistration: React.FC = () => {
     if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(formData.logoPreviewUrl);
     }
-    formData.registrationDocs.forEach((doc) => {
+    formData.registrationDocs.forEach(doc => {
       if (doc.previewUrl && doc.previewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(doc.previewUrl);
       }
@@ -374,12 +464,11 @@ const LedgerRegistration: React.FC = () => {
   const resetForm = () => {
     cleanupImageUrls();
     setFormData({
-      id: 0,
       ledgerType: 'individual',
-      companyId: "",
       ledgerCode: '',
       ledgerName: '',
       shortName: '',
+      companyId: '',
       ledgerGroup: '',
       industryType: '',
       territory: '',
@@ -417,17 +506,13 @@ const LedgerRegistration: React.FC = () => {
       accountHolderName: '',
       ifscCode: '',
       swiftCode: '',
+      banks: [],
       externalSystemId: '',
       dataSource: 'manual',
       ledgerPriority: 'medium',
       leadSource: '',
       internalNotes: '',
-      banks: [],
-      logo: null,
-      logoFile: undefined,
-      logoPreviewUrl: undefined,
       notes: '',
-      createdAt: '',
       registrationDocs: []
     });
     setEditingLedger(null);
@@ -439,9 +524,9 @@ const LedgerRegistration: React.FC = () => {
     setFormData({
       ...ledger,
       logoPreviewUrl: ledger.logo || undefined,
-      registrationDocs: ledger.registrationDocs.map((doc) => ({
+      registrationDocs: ledger.registrationDocs.map(doc => ({
         ...doc,
-        previewUrl: doc.file
+        previewUrl: doc.previewUrl // Assuming previewUrl is URL or base64
       }))
     });
     setOpen(true);
@@ -452,45 +537,54 @@ const LedgerRegistration: React.FC = () => {
   };
 
   const handleSubmit = (): void => {
-    if (!formData.ledgerName.trim() || !formData.emailAddress.trim()) {
-      toast.error("Validation Failed", {
-        description: "Please fill in Ledger Name and Email Address",
-        action: {
-          label: "Undo",
-          onClick: () => console.log("Undo"),
-        },
-      });
+    if (!formData.ledgerName.trim()) {
+      toast.error("Please enter Ledger Name");
+      return;
+    }
+    if (!formData.companyId) {
+      toast.error("Please select Company");
+      return;
+    }
+    if (!formData.contactPerson.trim()) {
+      toast.error("Please enter Contact Person");
+      return;
+    }
+    if (!formData.emailAddress.trim()) {
+      toast.error("Please enter Email Address");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.emailAddress)) {
-      toast.error("Invalid Email", {
-        description: "Please enter a valid email address",
-        action: {
-          label: "Undo",
-          onClick: () => console.log("Undo"),
-        },
-      });
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    if (!formData.country) {
+      toast.error("Please select Country");
+      return;
+    }
+    if (!formData.zipCode.trim()) {
+      toast.error("Please enter Zip/Pincode");
       return;
     }
 
     const ledgerFormData = new FormData();
-    Object.keys(formData).forEach((key) => {
-      const value = formData[key as keyof Ledger];
+    Object.keys(formData).forEach(key => {
+      const value = formData[key as keyof LedgerForm];
       if (key === 'registrationDocs' || key === 'banks' || key === 'logoFile' || key === 'logoPreviewUrl') return;
       if (value !== null && value !== undefined && value !== '') {
         ledgerFormData.append(key, String(value));
       }
     });
+    ledgerFormData.append("companyID", formData.companyId);
     ledgerFormData.append('banks', JSON.stringify(formData.banks));
     if (formData.logoFile) {
       ledgerFormData.append('logo', formData.logoFile);
     }
-    formData.registrationDocs.forEach((doc) => {
+    formData.registrationDocs.forEach(doc => {
       ledgerFormData.append('registrationDocs', doc.file);
     });
-    ledgerFormData.append('registrationDocTypes', JSON.stringify(formData.registrationDocs.map((doc) => doc.type)));
-    ledgerFormData.append("companyID", formData.companyId);
+    ledgerFormData.append('registrationDocTypes', JSON.stringify(formData.registrationDocs.map(doc => doc.type)));
+    ledgerFormData.append('registrationDocsCount', String(formData.registrationDocs.length));
 
     if (editingLedger) {
       updateLedger({ id: editingLedger._id || '', ledger: ledgerFormData });
@@ -501,12 +595,11 @@ const LedgerRegistration: React.FC = () => {
     resetForm();
   };
 
-  // Statistics
   const stats = useMemo(() => ({
     totalLedgers: pagination?.total || 0,
-    activeLedgers: statusFilter === 'active' ? pagination?.total : filteredLedgers.filter((c) => c.ledgerStatus === 'active').length,
-    gstRegistered: filteredLedgers?.filter((c) => c.gstNumber?.trim() !== "").length,
-    individualAccounts: filteredLedgers?.filter((c) => c.ledgerType === 'individual').length
+    activeLedgers: statusFilter === 'active' ? pagination?.total : filteredLedgers.filter(c => c.ledgerStatus === 'active').length,
+    gstRegistered: filteredLedgers.filter(c => c.gstNumber?.trim() !== "").length,
+    individualAccounts: filteredLedgers.filter(c => c.ledgerType === 'individual').length
   }), [filteredLedgers, pagination, statusFilter]);
 
   const tabs = [
@@ -516,138 +609,65 @@ const LedgerRegistration: React.FC = () => {
     { id: "bank", label: "Banking Details" },
     { id: "settings", label: "Settings" }
   ];
-
-  // Initial fetch
-  useEffect(() => {
-    fetchLedgers(currentPage, limit);
-  }, [fetchLedgers, currentPage]);
-
-  // Reset page to 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, sortBy]);
-
-  // Filtering with debounce
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      filterLedgers(searchTerm, statusFilter, sortBy, currentPage, limit)
-        .then((result) => {
-          setFilteredLedgers(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering ledgers:", err);
-        });
-    }, 500); // 500ms debounce time
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterLedgers]);
-
-  // Actions Dropdown
-  // const ActionsDropdown = ({ ledger }: { ledger: Ledger }) => {
-  //   const [showActions, setShowActions] = useState(false);
-
-  //   return (
-  //     <div className="relative">
-  //       <Button
-  //         variant="ghost"
-  //         size="sm"
-  //         onClick={() => setShowActions(!showActions)}
-  //         className="h-8 w-8 p-0 hover:bg-gray-100"
-  //       >
-  //         <MoreHorizontal className="h-4 w-4" />
-  //       </Button>
-  //       {showActions && (
-  //         <>
-  //           <div className="fixed inset-0 z-10" onClick={() => setShowActions(false)} />
-  //           <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-  //             <Button
-  //               variant="ghost"
-  //               size="sm"
-  //               onClick={() => {
-  //                 handleEditLedger(ledger);
-  //                 setShowActions(false);
-  //               }}
-  //               className="w-full justify-start text-left hover:bg-gray-50 rounded-none"
-  //             >
-  //               <Edit className="h-4 w-4 mr-2" />
-  //               Edit
-  //             </Button>
-  //             <Button
-  //               variant="ghost"
-  //               size="sm"
-  //               onClick={() => {
-  //                 handleDeleteLedger(ledger._id || ledger.id.toString());
-  //                 setShowActions(false);
-  //               }}
-  //               className="w-full justify-start text-left rounded-none text-red-600 hover:bg-red-50"
-  //             >
-  //               <Trash2 className="h-4 w-4 mr-2" />
-  //               Delete
-  //             </Button>
-  //           </div>
-  //         </>
-  //       )}
-  //     </div>
-  //   );
-  // };
-
-  // Table View
+const headers=["Ledger","Contact","Address","Status","Actions"];
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-teal-50 to-teal-100">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ledger</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
+         
+              <TableHeader headers={headers} />
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredLedgers.map((ledger) => (
               <tr key={ledger._id} className="hover:bg-gray-50 transition-colors duration-200">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{ledger.ledgerName}</div>
-                    <div className="text-sm text-gray-500">{ledger.ledgerCode}</div>
-                    {ledger.shortName && (
-                      <div className="text-sm text-gray-500">Short: {ledger.shortName}</div>
+                  <div className="flex items-center">
+                    <UserCheck className="h-10 w-10 text-teal-600 mr-3" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{ledger.ledgerName}</div>
+                      <div className="text-sm text-teal-600">{ledger.ledgerCode}</div>
+                      {ledger.shortName && (
+                        <div className="text-xs text-gray-500">Short: {ledger.shortName}</div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-900 space-y-1">
+                    <div className="flex items-center">
+                      <Mail className="w-3 h-3 text-gray-400 mr-2" />
+                      <span className="truncate max-w-48">{ledger.emailAddress}</span>
+                    </div>
+                    {ledger.mobileNumber && (
+                      <div className="flex items-center">
+                        <Phone className="w-3 h-3 text-gray-400 mr-2" />
+                        <span>{ledger.mobileNumber}</span>
+                      </div>
                     )}
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">
-                    <div>Email: {ledger.emailAddress}</div>
-                    <div>Phone: {ledger.mobileNumber}</div>
+                  <div className="text-sm text-gray-900 space-y-1">
+                    <div className="flex items-center">
+                      <MapPin className="w-3 h-3 text-gray-400 mr-2" />
+                      <span>{[ledger.city, ledger.state].filter(Boolean).join(", ")}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 truncate max-w-48">{ledger.addressLine1}</div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {[ledger.city, ledger.state, ledger.country].filter(Boolean).join(", ")}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge
-                    className={`${
-                      ledger.ledgerStatus === 'active'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-700'
-                    } hover:bg-green-100`}
-                  >
+                  <Badge className={`${ledger.ledgerStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-current`}>
                     {ledger.ledgerStatus}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {/* <ActionsDropdown ledger={ledger} /> */}
-                                                      <ActionsDropdown
-  onEdit={() =>  handleEditLedger(ledger)}
-  onDelete={() =>handleDeleteLedger(ledger._id || '')}
- module="BusinessManagement" subModule="Ledger" 
-/>
+                  <CheckAccess module="BusinessManagement" subModule="Ledger" type="edit">
+                    <ActionsDropdown
+                      onEdit={() => handleEditLedger(ledger)}
+                      onDelete={() => handleDeleteLedger(ledger._id || '')}
+                      module="BusinessManagement"
+                      subModule="Ledger"
+                    />
+                  </CheckAccess>
                 </td>
               </tr>
             ))}
@@ -657,14 +677,10 @@ const LedgerRegistration: React.FC = () => {
     </div>
   );
 
-  // Card View
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
       {filteredLedgers.map((ledger: Ledger) => (
-        <Card
-          key={ledger._id}
-          className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden"
-        >
+        <Card key={ledger._id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group">
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center">
@@ -673,24 +689,24 @@ const LedgerRegistration: React.FC = () => {
                 )}
                 <div>
                   <CardTitle className="text-xl font-bold text-gray-800 mb-1">{ledger.ledgerName}</CardTitle>
-                  {ledger.shortName && <p className="text-teal-600 font-medium">{ledger.shortName}</p>}
+                  {ledger.shortName && (
+                    <p className="text-teal-600 font-medium">{ledger.shortName}</p>
+                  )}
                   <p className="text-sm text-gray-500">{ledger.ledgerCode}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge
-                  className={`${
-                    ledger.ledgerStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                  } hover:bg-green-100`}
-                >
+                <Badge className={`${ledger.ledgerStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-current`}>
                   {ledger.ledgerStatus}
                 </Badge>
-                {/* <ActionsDropdown ledger={ledger} /> */}
-                                                                    <ActionsDropdown
-  onEdit={() =>  handleEditLedger(ledger)}
-  onDelete={() =>handleDeleteLedger(ledger._id || '')}
- module="BusinessManagement" subModule="Ledger" 
-/>
+                <CheckAccess module="BusinessManagement" subModule="Ledger" type="edit">
+                  <ActionsDropdown
+                    onEdit={() => handleEditLedger(ledger)}
+                    onDelete={() => handleDeleteLedger(ledger._id || '')}
+                    module="BusinessManagement"
+                    subModule="Ledger"
+                  />
+                </CheckAccess>
               </div>
             </div>
           </CardHeader>
@@ -705,9 +721,7 @@ const LedgerRegistration: React.FC = () => {
               {(ledger.city || ledger.state || ledger.zipCode) && (
                 <div className="flex items-center text-sm">
                   <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">
-                    {[ledger.city, ledger.state, ledger.zipCode].filter(Boolean).join(", ")}
-                  </span>
+                  <span className="text-gray-600">{[ledger.city, ledger.state, ledger.zipCode].filter(Boolean).join(", ")}</span>
                 </div>
               )}
               {ledger.mobileNumber && (
@@ -748,79 +762,49 @@ const LedgerRegistration: React.FC = () => {
                 {ledger.gstNumber && (
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-medium text-gray-500">GST</span>
-                    <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
-                      {ledger.gstNumber}
-                    </span>
+                    <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">{ledger.gstNumber}</span>
                   </div>
                 )}
                 {ledger.panNumber && (
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-medium text-gray-500">PAN</span>
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
-                      {ledger.panNumber}
-                    </span>
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">{ledger.panNumber}</span>
                   </div>
                 )}
               </div>
             )}
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex items-center text-sm">
+                <FileText className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                <span className="text-gray-600">Created: {new Date(ledger.createdAt).toLocaleDateString()}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       ))}
     </div>
   );
 
-  // Pagination Controls
-  const PaginationControls = () => (
-    <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
-      <div className="text-sm text-gray-600">
-        Showing {(currentPage - 1) * pagination?.limit + 1} - {Math.min(currentPage * pagination?.limit, pagination?.total)} of {pagination?.total} ledgers
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-          disabled={currentPage === 1}
-          className="flex items-center gap-1"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Previous
-        </Button>
-        <span className="text-sm text-gray-600">
-          Page {currentPage} of {pagination?.totalPages}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentPage(prev => Math.min(pagination?.totalPages || 1, prev + 1))}
-          disabled={currentPage === pagination?.totalPages}
-          className="flex items-center gap-1"
-        >
-          Next
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
-  );
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <HeaderGradient title="Ledger Management" subtitle="Manage your ledger information and registrations"/>
-        <Button
-          onClick={() => {
-            resetForm();
-            setOpen(true);
-          }}
-          className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-        >
-          <Users className="w-4 h-4 mr-2" />
-          Add Ledger
-        </Button>
+        <HeaderGradient title="Ledger Management" subtitle="Manage your ledger information and registrations" />
+        <CheckAccess module="BusinessManagement" subModule="Ledger" type="create">
+          <Button 
+            onClick={() => {
+              resetForm();
+              setOpen(true);
+            }} 
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <UserCheck className="w-4 h-4 mr-2" />
+            Add Ledger
+          </Button>
+        </CheckAccess>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
           <CardContent className="p-6">
@@ -829,7 +813,7 @@ const LedgerRegistration: React.FC = () => {
                 <p className="text-teal-100 text-sm font-medium">Total Ledgers</p>
                 <p className="text-3xl font-bold">{stats.totalLedgers}</p>
               </div>
-              <Users className="w-8 h-8 text-teal-200" />
+              <UserCheck className="w-8 h-8 text-teal-200" />
             </div>
           </CardContent>
         </Card>
@@ -840,7 +824,7 @@ const LedgerRegistration: React.FC = () => {
                 <p className="text-blue-100 text-sm font-medium">Active Ledgers</p>
                 <p className="text-3xl font-bold">{stats.activeLedgers}</p>
               </div>
-              <Star className="w-8 h-8 text-blue-200" />
+              <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
             </div>
           </CardContent>
         </Card>
@@ -862,13 +846,12 @@ const LedgerRegistration: React.FC = () => {
                 <p className="text-purple-100 text-sm font-medium">Individual Accounts</p>
                 <p className="text-3xl font-bold">{stats.individualAccounts}</p>
               </div>
-              <Building2 className="w-8 h-8 text-purple-200" />
+              <Target className="w-8 h-8 text-purple-200" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filter Bar */}
       <FilterBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -883,152 +866,133 @@ const LedgerRegistration: React.FC = () => {
           setCurrentPage(1);
         }}
       />
+      {loading && <TableViewSkeleton />}
 
-      {/* View Toggle */}
-      {pagination?.total ? (
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-gray-600" />
-            <span className="text-gray-700 font-medium">View Mode:</span>
-          </div>
-          <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'table' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Table className="w-4 h-4 mr-2" />
-              Table View
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'cards' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Grid3X3 className="w-4 h-4 mr-2" />
-              Card View
-            </button>
-          </div>
-        </div>
-      ) : null}
+    <ViewModeToggle 
+              viewMode={viewMode} 
+              setViewMode={setViewMode} 
+              totalItems={pagination?.total} 
+            />
 
-      {/* Ledger List */}
-      {pagination?.total === 0 ? (
+
+      {pagination.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Users className="w-16 h-16 text-gray-400 mb-4" />
+            <UserCheck className="w-16 h-16 text-gray-400 mb-4" />
             <p className="text-gray-500 text-lg font-medium mb-2">No ledgers registered yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first ledger to get started</p>
-             <CheckAccess  module="BusinessManagement" subModule="Ledger" type="create">
-
-            <Button
-              onClick={() => setOpen(true)}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
+            <CheckAccess module="BusinessManagement" subModule="Ledger" type="create">
+              <Button 
+                onClick={() => setOpen(true)}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
               >
-              Add Your First Ledger
-            </Button>
-              </CheckAccess>
+                Add Your First Ledger
+              </Button>
+            </CheckAccess>
           </CardContent>
         </Card>
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
-          <PaginationControls />
+               <PaginationControls
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        pagination={pagination}
+        itemName="ledgers"
+      />
         </>
       )}
 
-      {/* Modal Form */}
-      <Dialog
-        open={open}
-        onOpenChange={(isOpen) => {
-          setOpen(isOpen);
-          if (!isOpen) {
-            resetForm();
-          }
-        }}
-      >
+      <Dialog open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+          resetForm();
+        }
+      }}>
         <DialogContent className="sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
-          <DialogHeader className="pb-4 border-b border-gray-200 h-16">
-            <DialogTitle className="text-2xl font-bold text-gray-800">
-              {editingLedger ? 'Edit Ledger' : 'Add New Ledger'}
-            </DialogTitle>
-            <p className="text-gray-600 text-sm">
-              {editingLedger ? 'Update the ledger details' : 'Fill in the ledger details and registration information'}
-            </p>
-          </DialogHeader>
-          <div className="flex border-0 outline-0 h-[100%] flex-1">
-            <div className="flex flex-wrap gap-2 flex-col bg-teal-50 w-52">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 text-md text-start font-semibold ring-0 rounded-none transition-colors ${
-                    activeTab === tab.id ? 'bg-teal-600 text-white' : 'bg-teal-50 text-gray-500 hover:bg-gray-200'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-            <div className="space-y-6 w-full">
-              {/* Basic Information Tab */}
-              {activeTab === "basic" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <Users className="w-5 h-5 mr-2" />
-                    Ledger Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CustomFormDialogHeader
+            title={editingLedger ? "Edit Ledger" : "Add New Ledger"}
+            subtitle={editingLedger ? "Update the ledger details" : "Complete ledger registration information"}
+          />
+          
+          <MultiStepNav 
+            steps={tabs} 
+            currentStep={activeTab} 
+            onStepChange={setActiveTab} 
+            stepIcons={stepIcons}
+          />
+
+          <div className="flex-1 overflow-y-auto">
+            {activeTab === "basic" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center shadow-lg">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Ledger Information</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Ledger Type <span className="text-red-500">*</span>
+                    </label>
                     <select
                       value={formData.ledgerType}
                       onChange={(e) => handleSelectChange("ledgerType", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="individual">Individual</option>
                       <option value="company">Company</option>
                       <option value="partnership">Partnership</option>
                       <option value="trust">Trust</option>
                     </select>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">
-                        Company *
-                      </label>
-                      <select
-                        value={formData.companyId}
-                        onChange={(e) => handleSelectChange("companyId", e.target.value)}
-                        className="w-full h-10 px-3 py-2 border border-teal-200 rounded-md 
-                   focus:border-teal-500 focus:ring-teal-100 focus:outline-none bg-white"
-                      >
-                        <option value="">Select Company</option>
-                        {companies.map((company) => (
-                          <option key={company._id} value={company._id}>
-                            {company.namePrint}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
-                  <div className="mt-4 flex flex-col gap-4">
-                    <CustomInputBox
-                      placeholder="Ledger Name *"
-                      name="ledgerName"
-                      value={formData.ledgerName}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Short Name"
-                      name="shortName"
-                      value={formData.shortName}
-                      onChange={handleChange}
-                    />
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Company <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.companyId}
+                      onChange={(e) => handleSelectChange("companyId", e.target.value)}
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Company</option>
+                      {companies.map((company) => (
+                        <option key={company._id} value={company._id}>
+                          {company.namePrint}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <CustomInputBox
+                    label="Ledger Name"
+                    placeholder="e.g., ABC Ledger"
+                    name="ledgerName"
+                    value={formData.ledgerName}
+                    onChange={handleChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Short Name"
+                    placeholder="e.g., ABC"
+                    name="shortName"
+                    value={formData.shortName}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Ledger Group</label>
                     <select
                       value={formData.ledgerGroup}
                       onChange={(e) => handleSelectChange("ledgerGroup", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Ledger Group</option>
                       <option value="customer">Customer</option>
@@ -1036,10 +1000,14 @@ const LedgerRegistration: React.FC = () => {
                       <option value="bank">Bank</option>
                       <option value="cash">Cash</option>
                     </select>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Industry Type</label>
                     <select
                       value={formData.industryType}
                       onChange={(e) => handleSelectChange("industryType", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Industry Type</option>
                       <option value="manufacturing">Manufacturing</option>
@@ -1047,10 +1015,14 @@ const LedgerRegistration: React.FC = () => {
                       <option value="healthcare">Healthcare</option>
                       <option value="technology">Technology</option>
                     </select>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Territory</label>
                     <select
                       value={formData.territory}
                       onChange={(e) => handleSelectChange("territory", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Territory</option>
                       <option value="north">North</option>
@@ -1059,20 +1031,28 @@ const LedgerRegistration: React.FC = () => {
                       <option value="west">West</option>
                     </select>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Ledger Status</label>
                     <select
                       value={formData.ledgerStatus}
                       onChange={(e) => handleSelectChange("ledgerStatus", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
                       <option value="suspended">Suspended</option>
                     </select>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Company Size</label>
                     <select
                       value={formData.companySize}
                       onChange={(e) => handleSelectChange("companySize", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Company Size</option>
                       <option value="small">Small (1-50)</option>
@@ -1080,10 +1060,14 @@ const LedgerRegistration: React.FC = () => {
                       <option value="large">Large (251-1000)</option>
                       <option value="enterprise">Enterprise (1000+)</option>
                     </select>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Currency</label>
                     <select
                       value={formData.currency}
                       onChange={(e) => handleSelectChange("currency", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="USD">USD - US Dollar</option>
                       <option value="EUR">EUR - Euro</option>
@@ -1093,187 +1077,217 @@ const LedgerRegistration: React.FC = () => {
                       <option value="AUD">AUD - Australian Dollar</option>
                     </select>
                   </div>
-                  <div className="mt-4 flex justify-end">
-                    <Button onClick={() => setActiveTab("contact")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Contact
-                    </Button>
-                  </div>
                 </div>
-              )}
 
-              {/* Contact Information Tab */}
-              {activeTab === "contact" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <Phone className="w-5 h-5 mr-2" />
-                    Contact Information
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
+                <CustomStepNavigation
+                  currentStep={1}
+                  totalSteps={5}
+                  showPrevious={false}
+                  onNext={() => setActiveTab("contact")}
+                />
+              </div>
+            )}
+
+            {activeTab === "contact" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center shadow-lg">
+                    <Phone className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Contact Information</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-6">
+                  <CustomInputBox
+                    label="Contact Person"
+                    placeholder="e.g., John Doe"
+                    name="contactPerson"
+                    value={formData.contactPerson}
+                    onChange={handleChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Designation"
+                    placeholder="e.g., Manager"
+                    name="designation"
+                    value={formData.designation}
+                    onChange={handleChange}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <CustomInputBox
-                      placeholder="Contact Person *"
-                      name="contactPerson"
-                      value={formData.contactPerson}
+                      label="Phone Number"
+                      placeholder="e.g., +1-234-567-8900"
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
                       onChange={handleChange}
                     />
                     <CustomInputBox
-                      placeholder="Designation"
-                      name="designation"
-                      value={formData.designation}
+                      label="Mobile Number"
+                      placeholder="e.g., +1-234-567-8900"
+                      name="mobileNumber"
+                      value={formData.mobileNumber}
                       onChange={handleChange}
                     />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <CustomInputBox
-                        placeholder="Phone Number"
-                        name="phoneNumber"
-                        value={formData.phoneNumber}
-                        onChange={handleChange}
-                      />
-                      <CustomInputBox
-                        placeholder="Mobile Number"
-                        name="mobileNumber"
-                        value={formData.mobileNumber}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <CustomInputBox
-                      placeholder="Email Address *"
-                      name="emailAddress"
-                      value={formData.emailAddress}
-                      onChange={handleChange}
-                      type="email"
-                      label="Email *"
-                    />
-                    <CustomInputBox
-                      placeholder="Fax Number"
-                      name="faxNumber"
-                      value={formData.faxNumber}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Address Line 1"
-                      name="addressLine1"
-                      value={formData.addressLine1}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Address Line 2"
-                      name="addressLine2"
-                      value={formData.addressLine2}
-                      onChange={handleChange}
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  </div>
+                  <CustomInputBox
+                    label="Email Address"
+                    placeholder="e.g., john.doe@example.com"
+                    name="emailAddress"
+                    value={formData.emailAddress}
+                    onChange={handleChange}
+                    type="email"
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Fax Number"
+                    placeholder="e.g., +1-234-567-8900"
+                    name="faxNumber"
+                    value={formData.faxNumber}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    label="Address Line 1"
+                    placeholder="e.g., 123 Main St"
+                    name="addressLine1"
+                    value={formData.addressLine1}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    label="Address Line 2"
+                    placeholder="e.g., Apt 4B"
+                    name="addressLine2"
+                    value={formData.addressLine2}
+                    onChange={handleChange}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">Country</label>
                       <select
                         value={formData.country}
                         onChange={(e) => handleSelectChange("country", e.target.value)}
-                        className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                       >
-                        {allCountries.map((country) => (
-                          <option key={country.isoCode} value={country.name}>
-                            {country.name}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={formData.state}
-                        onChange={(e) => handleSelectChange("state", e.target.value)}
-                        className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                        disabled={availableStates.length === 0}
-                      >
-                        <option value="">Select State</option>
-                        {availableStates.map((state) => (
-                          <option key={state.isoCode} value={state.name}>
-                            {state.name}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={formData.city}
-                        onChange={(e) => handleSelectChange("city", e.target.value)}
-                        className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
-                        disabled={availableCities.length === 0}
-                      >
-                        <option value="">Select City</option>
-                        {availableCities.map((city) => (
-                          <option key={city.name} value={city.name}>
-                            {city.name}
-                          </option>
+                        {allCountries.map(country => (
+                          <option key={country.isoCode} value={country.name}>{country.name}</option>
                         ))}
                       </select>
                     </div>
-                    <CustomInputBox
-                      placeholder="Zip/Pincode"
-                      name="zipCode"
-                      value={formData.zipCode}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
-                    <CustomInputBox
-                      placeholder="Website"
-                      name="website"
-                      value={formData.website}
-                      onChange={handleChange}
-                    />
+                    
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">State</label>
+                      <select
+                        value={formData.state}
+                        onChange={(e) => handleSelectChange("state", e.target.value)}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                        disabled={availableStates.length === 0}
+                      >
+                        <option value="">Select State</option>
+                        {availableStates.map(state => (
+                          <option key={state.isoCode} value={state.name}>{state.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">City</label>
+                      <select
+                        value={formData.city}
+                        onChange={(e) => handleSelectChange("city", e.target.value)}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                        disabled={availableCities.length === 0}
+                      >
+                        <option value="">Select City</option>
+                        {availableCities.map(city => (
+                          <option key={city.name} value={city.name}>{city.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("basic")}>
-                      Previous: Basic Info
-                    </Button>
-                    <Button onClick={() => setActiveTab("tax")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Tax Information
-                    </Button>
-                  </div>
+                  <CustomInputBox
+                    label="Zip/Pincode"
+                    placeholder="e.g., 12345"
+                    name="zipCode"
+                    value={formData.zipCode}
+                    onChange={handleChange}
+                    maxLength={10}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Website"
+                    placeholder="e.g., https://example.com"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleChange}
+                  />
                 </div>
-              )}
+                <CustomStepNavigation
+                  currentStep={2}
+                  totalSteps={5}
+                  onPrevious={() => setActiveTab("basic")}
+                  onNext={() => setActiveTab("tax")}
+                />
+              </div>
+            )}
 
-              {/* Tax Information Tab */}
-              {activeTab === "tax" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <FileText className="w-5 h-5 mr-2" />
-                    Tax Details
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <CustomInputBox
-                      placeholder="Tax ID/Registration Number"
-                      name="taxId"
-                      value={formData.taxId}
-                      onChange={handleChange}
-                      maxLength={15}
-                    />
-                    <CustomInputBox
-                      placeholder="VAT Number"
-                      name="vatNumber"
-                      value={formData.vatNumber}
-                      onChange={handleChange}
-                      maxLength={15}
-                    />
-                    <CustomInputBox
-                      placeholder="GST Number"
-                      name="gstNumber"
-                      value={formData.gstNumber}
-                      onChange={handleChange}
-                      maxLength={15}
-                    />
-                    <CustomInputBox
-                      placeholder="PAN Number"
-                      name="panNumber"
-                      value={formData.panNumber}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
-                    <CustomInputBox
-                      placeholder="TAN Number"
-                      name="tanNumber"
-                      value={formData.tanNumber}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
+            {activeTab === "tax" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center shadow-lg">
+                    <FileText className="w-6 h-6 text-white" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <h3 className="text-xl font-bold text-gray-800">Tax Details</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <CustomInputBox
+                    label="Tax ID/Registration Number"
+                    placeholder="e.g., 1234567890"
+                    name="taxId"
+                    value={formData.taxId}
+                    onChange={handleChange}
+                    maxLength={15}
+                  />
+                  <CustomInputBox
+                    label="VAT Number"
+                    placeholder="e.g., VAT123456"
+                    name="vatNumber"
+                    value={formData.vatNumber}
+                    onChange={handleChange}
+                    maxLength={15}
+                  />
+                  <CustomInputBox
+                    label="GST Number"
+                    placeholder="e.g., 22AAAAA0000A1Z5"
+                    name="gstNumber"
+                    value={formData.gstNumber}
+                    onChange={handleChange}
+                    maxLength={15}
+                  />
+                  <CustomInputBox
+                    label="PAN Number"
+                    placeholder="e.g., ABCDE1234F"
+                    name="panNumber"
+                    value={formData.panNumber}
+                    onChange={handleChange}
+                    maxLength={10}
+                  />
+                  <CustomInputBox
+                    label="TAN Number"
+                    placeholder="e.g., ABCD12345E"
+                    name="tanNumber"
+                    value={formData.tanNumber}
+                    onChange={handleChange}
+                    maxLength={10}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Tax Category</label>
                     <select
                       value={formData.taxCategory}
                       onChange={(e) => handleSelectChange("taxCategory", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Tax Category</option>
                       <option value="taxable">Taxable</option>
@@ -1281,10 +1295,14 @@ const LedgerRegistration: React.FC = () => {
                       <option value="zero_rated">Zero Rated</option>
                       <option value="out_of_scope">Out of Scope</option>
                     </select>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Tax Template</label>
                     <select
                       value={formData.taxTemplate}
                       onChange={(e) => handleSelectChange("taxTemplate", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Tax Template</option>
                       <option value="standard_tax">Standard Tax</option>
@@ -1292,10 +1310,14 @@ const LedgerRegistration: React.FC = () => {
                       <option value="igst_18">IGST 18%</option>
                       <option value="cgst_sgst_18">CGST+SGST 18%</option>
                     </select>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Withholding Tax Category</label>
                     <select
                       value={formData.withholdingTaxCategory}
                       onChange={(e) => handleSelectChange("withholdingTaxCategory", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select WHT Category</option>
                       <option value="tds_contractor">TDS - Contractor</option>
@@ -1303,233 +1325,237 @@ const LedgerRegistration: React.FC = () => {
                       <option value="tds_commission">TDS - Commission</option>
                     </select>
                   </div>
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("contact")}>
-                      Previous: Contact
-                    </Button>
-                    <Button onClick={() => setActiveTab("bank")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Bank Details
-                    </Button>
-                  </div>
                 </div>
-              )}
 
-              {/* Bank Details Tab */}
-              {activeTab === "bank" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    Bank Details
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-white rounded-lg border border-teal-200">
-                    <CustomInputBox
-                      placeholder="Account Holder Name *"
-                      name="accountHolderName"
-                      value={bankForm.accountHolderName}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Account Number *"
-                      name="accountNumber"
-                      value={bankForm.accountNumber}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="IFSC Code"
-                      name="ifscCode"
-                      value={bankForm.ifscCode}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="SWIFT Code"
-                      name="swiftCode"
-                      value={bankForm.swiftCode}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="MICR Number"
-                      name="micrNumber"
-                      value={bankForm.micrNumber}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Bank Name *"
-                      name="bankName"
-                      value={bankForm.bankName}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      placeholder="Branch"
-                      name="branch"
-                      value={bankForm.branch}
-                      onChange={handleBankChange}
-                    />
-                    <div className="flex items-end">
-                          <CheckAccess  module="BusinessManagement" subModule="Ledger" type="create">
+                <CustomStepNavigation
+                  currentStep={3}
+                  totalSteps={5}
+                  onPrevious={() => setActiveTab("contact")}
+                  onNext={() => setActiveTab("bank")}
+                />
+              </div>
+            )}
 
-                      <Button onClick={addBank} className="bg-teal-600 hover:bg-teal-700 w-full">
-                        <Plus className="w-4 h-4 mr-1" /> Add Bank
-                      </Button>
-                          </CheckAccess>
-                    </div>
+            {activeTab === "bank" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-lg">
+                    <Building2 className="w-6 h-6 text-white" />
                   </div>
-                  {formData.banks.length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-teal-700">Added Banks:</h4>
-                      {formData.banks.map((bank) => (
-                        <div
-                          key={bank.id}
-                          className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center"
-                        >
-                          <div>
-                            <p className="font-medium">{bank.bankName}</p>
-                            <p className="text-sm text-gray-600">
-                              {bank.accountHolderName} ••••{bank.accountNumber.slice(-4)}
-                            </p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeBank(bank.id)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                  <h3 className="text-xl font-bold text-gray-800">Bank Details</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
+                  <CustomInputBox
+                    label="Account Holder Name *"
+                    placeholder="e.g., John Doe"
+                    name="accountHolderName"
+                    value={bankForm.accountHolderName}
+                    onChange={handleBankChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Account Number *"
+                    placeholder="e.g., 123456789012"
+                    name="accountNumber"
+                    value={bankForm.accountNumber}
+                    onChange={handleBankChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="IFSC Code"
+                    placeholder="e.g., SBIN0001234"
+                    name="ifscCode"
+                    value={bankForm.ifscCode}
+                    onChange={handleBankChange}
+                  />
+                  <CustomInputBox
+                    label="SWIFT Code"
+                    placeholder="e.g., SBININBBXXX"
+                    name="swiftCode"
+                    value={bankForm.swiftCode}
+                    onChange={handleBankChange}
+                  />
+                  <CustomInputBox
+                    label="MICR Number"
+                    placeholder="e.g., 110002001"
+                    name="micrNumber"
+                    value={bankForm.micrNumber}
+                    onChange={handleBankChange}
+                  />
+                  <CustomInputBox
+                    label="Bank Name *"
+                    placeholder="e.g., State Bank of India"
+                    name="bankName"
+                    value={bankForm.bankName}
+                    onChange={handleBankChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Branch"
+                    placeholder="e.g., Main Branch"
+                    name="branch"
+                    value={bankForm.branch}
+                    onChange={handleBankChange}
+                  />
+                  <Button 
+                    onClick={addBank} 
+                    className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <Plus className="w-5 h-5 mr-2" /> Add Bank
+                  </Button>
+                </div>
+
+                {formData.banks.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-teal-700">Added Banks:</h4>
+                    {formData.banks.map(bank => (
+                      <div key={bank.id} className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{bank.bankName}</p>
+                          <p className="text-sm text-gray-600">{bank.accountHolderName} ••••{bank.accountNumber.slice(-4)}</p>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("tax")}>
-                      Previous: Tax Information
-                    </Button>
-                    <Button onClick={() => setActiveTab("settings")} className="bg-teal-600 hover:bg-teal-700">
-                      Next: Settings
-                    </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => removeBank(bank.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <CustomStepNavigation
+                  currentStep={4}
+                  totalSteps={5}
+                  onPrevious={() => setActiveTab("tax")}
+                  onNext={() => setActiveTab("settings")}
+                />
+              </div>
+            )}
+
+            {activeTab === "settings" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg">
+                    <Settings2 className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Additional Settings</h3>
+                </div>
+                
+                <div className="mb-8">
+                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">Ledger Logo</h4>
+                  <div className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner">
+                    <input
+                      type="file"
+                      id="logo"
+                      className="hidden"
+                      onChange={handleLogoUpload}
+                      accept="image/*"
+                      ref={fileInputRef}
+                    />
+                    <label
+                      htmlFor="logo"
+                      className="cursor-pointer flex flex-col items-center gap-3"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 hover:bg-blue-200 transition-colors">
+                        <Upload className="w-8 h-8" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">Upload Logo</p>
+                    </label>
+                    {formData.logoPreviewUrl && (
+                      <div className="mt-4 relative">
+                        <img
+                          src={formData.logoPreviewUrl}
+                          alt="Ledger Logo"
+                          className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setViewingImage({ previewUrl: formData.logoPreviewUrl, type: 'logo' })}
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
+                          onClick={removeLogo}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
 
-              {/* Settings Tab */}
-              {activeTab === "settings" && (
-                <div className="bg-white p-4">
-                  <h3 className="text-lg font-semibold text-teal-800 mb-4 flex items-center">
-                    <Settings2 className="w-5 h-5 mr-2" />
-                    Additional Settings
-                  </h3>
-                  <div className="mb-6">
-                    <h4 className="font-medium text-teal-800 mb-3">Ledger Logo</h4>
-                    <div className="p-4 bg-white rounded-lg border border-teal-200">
-                      <div className="flex items-center justify-between">
+                <div className="mb-8">
+                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">Registration Documents</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {['TAX', 'VAT', 'GST', 'PAN', 'TAN'].map(docType => (
+                      <div key={docType} className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative">
+                        <p className="text-sm font-semibold text-gray-700 mb-3">{docType} Document</p>
                         <input
                           type="file"
-                          id="logo"
+                          id={`${docType.toLowerCase()}-doc`}
                           className="hidden"
-                          onChange={handleLogoUpload}
-                          accept="image/*"
-                          ref={fileInputRef}
+                          onChange={(e) => handleDocumentUpload(docType, e)}
+                          accept="image/*,.pdf"
                         />
                         <label
-                          htmlFor="logo"
-                          className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
+                          htmlFor={`${docType.toLowerCase()}-doc`}
+                          className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
                         >
-                          <Upload className="w-4 h-4 mr-2" />
-                          Upload Logo
+                          <Upload className="w-6 h-6 text-blue-500" />
+                          <p className="text-sm text-gray-600">Upload</p>
                         </label>
-                        {formData.logoPreviewUrl && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={removeLogo}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                        {formData.registrationDocs.find(doc => doc.type === docType) && (
+                          <div className="mt-4 w-full">
+                            <p className="text-xs text-gray-500 truncate mb-2">
+                              {formData.registrationDocs.find(doc => doc.type === docType)?.fileName}
+                            </p>
+                            {formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl && docType !== 'PDF' && (
+                              <img
+                                src={formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl}
+                                alt={`${docType} document`}
+                                className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
+                                onClick={() => setViewingImage(formData.registrationDocs.find(doc => doc.type === docType)!)}
+                              />
+                            )}
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2 w-6 h-6 rounded-full"
+                              onClick={() => removeDocument(formData.registrationDocs.find(doc => doc.type === docType)!.id)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
                         )}
                       </div>
-                      {formData.logoPreviewUrl && (
-                        <div className="mt-2">
-                          <img
-                            src={formData.logoPreviewUrl}
-                            alt="Ledger Logo"
-                            className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75"
-                            onClick={() => setViewingImage({ previewUrl: formData.logoPreviewUrl, type: 'logo' })}
-                          />
-                        </div>
-                      )}
-                    </div>
+                    ))}
                   </div>
-                  <div className="mb-6">
-                    <h4 className="font-medium text-teal-800 mb-3">Registration Documents</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {['TAX', 'VAT', 'GST', 'PAN', 'TAN'].map((docType) => (
-                        <div key={docType} className="p-4 bg-white rounded-lg border border-teal-200">
-                          <p className="text-sm font-medium text-teal-700 mb-2">{docType} Document</p>
-                          <div className="flex items-center justify-between">
-                            <input
-                              type="file"
-                              id={`${docType.toLowerCase()}-doc`}
-                              className="hidden"
-                              onChange={(e) => handleDocumentUpload(docType, e)}
-                              accept="image/*,.pdf"
-                            />
-                            <label
-                              htmlFor={`${docType.toLowerCase()}-doc`}
-                              className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
-                            >
-                              <Upload className="w-4 h-4 mr-2" />
-                              Upload
-                            </label>
-                            {formData.registrationDocs.find((doc) => doc.type === docType) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  removeDocument(formData.registrationDocs.find((doc) => doc.type === docType)!.id)
-                                }
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                          {formData.registrationDocs.find((doc) => doc.type === docType) && (
-                            <div className="mt-2">
-                              <p className="text-xs text-gray-500 truncate">
-                                {formData.registrationDocs.find((doc) => doc.type === docType)?.fileName}
-                              </p>
-                              {formData.registrationDocs.find((doc) => doc.type === docType)?.previewUrl &&
-                                docType !== 'PDF' && (
-                                  <img
-                                    src={formData.registrationDocs.find((doc) => doc.type === docType)?.previewUrl}
-                                    alt={`${docType} document`}
-                                    className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75 mt-2"
-                                    onClick={() =>
-                                      setViewingImage(formData.registrationDocs.find((doc) => doc.type === docType)!)
-                                    }
-                                  />
-                                )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Ledger Priority</label>
                     <select
                       value={formData.ledgerPriority}
                       onChange={(e) => handleSelectChange("ledgerPriority", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="low">Low Priority</option>
                       <option value="medium">Medium Priority</option>
                       <option value="high">High Priority</option>
                       <option value="vip">VIP</option>
                     </select>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">Lead Source</label>
                     <select
                       value={formData.leadSource}
                       onChange={(e) => handleSelectChange("leadSource", e.target.value)}
-                      className="h-10 px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none bg-white"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Lead Source</option>
                       <option value="website">Website</option>
@@ -1539,82 +1565,81 @@ const LedgerRegistration: React.FC = () => {
                       <option value="cold_call">Cold Call</option>
                     </select>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="isTaxExempt"
-                        checked={formData.isTaxExempt}
-                        onChange={handleChange}
-                        className="mr-2"
-                      />
-                      Tax Exempt
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="reverseCharge"
-                        checked={formData.reverseCharge}
-                        onChange={handleChange}
-                        className="mr-2"
-                      />
-                      Reverse Charge
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="isFrozenAccount"
-                        checked={formData.isFrozenAccount}
-                        onChange={handleChange}
-                        className="mr-2"
-                      />
-                      Frozen Account
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="disabled"
-                        checked={formData.disabled}
-                        onChange={handleChange}
-                        className="mr-2"
-                      />
-                      Disabled
-                    </label>
-                  </div>
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-teal-700 mb-2">Internal Notes</p>
-                    <textarea
-                      placeholder="Add any additional notes about the ledger..."
-                      name="internalNotes"
-                      value={formData.internalNotes}
-                      onChange={handleChange}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-teal-200 rounded-md focus:border-teal-500 focus:outline-none resize-none"
-                    />
-                  </div>
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("bank")}>
-                      Previous: Bank Details
-                    </Button>
-                    <Button onClick={handleSubmit} className="bg-teal-600 hover:bg-teal-700">
-                      {editingLedger ? 'Update Ledger' : 'Save Ledger'}
-                    </Button>
-                  </div>
                 </div>
-              )}
-            </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="isTaxExempt"
+                      checked={formData.isTaxExempt}
+                      onChange={handleChange}
+                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
+                    />
+                    Tax Exempt
+                  </label>
+                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="reverseCharge"
+                      checked={formData.reverseCharge}
+                      onChange={handleChange}
+                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
+                    />
+                    Reverse Charge
+                  </label>
+                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="isFrozenAccount"
+                      checked={formData.isFrozenAccount}
+                      onChange={handleChange}
+                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
+                    />
+                    Frozen Account
+                  </label>
+                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="disabled"
+                      checked={formData.disabled}
+                      onChange={handleChange}
+                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
+                    />
+                    Disabled
+                  </label>
+                </div>
+
+                <div className="mb-6">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Internal Notes</p>
+                  <textarea
+                    placeholder="Add any additional notes about the ledger..."
+                    name="internalNotes"
+                    value={formData.internalNotes}
+                    onChange={handleChange}
+                    rows={4}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
+                  />
+                </div>
+
+                <CustomStepNavigation
+                  currentStep={5}
+                  totalSteps={5}
+                  onPrevious={() => setActiveTab("bank")}
+                  onSubmit={handleSubmit}
+                  submitLabel={editingLedger ? 'Update Ledger' : 'Save Ledger'}
+                />
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Image Viewing Modal */}
       {viewingImage && (
         <Dialog open={!!viewingImage} onOpenChange={() => setViewingImage(null)}>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
-              <DialogTitle>
-                {viewingImage.type} {viewingImage.type === 'logo' ? 'Logo' : 'Document'}
-              </DialogTitle>
+              <DialogTitle>{viewingImage.type} {viewingImage.type === 'logo' ? 'Logo' : 'Document'}</DialogTitle>
             </DialogHeader>
             <div className="flex justify-center">
               <img

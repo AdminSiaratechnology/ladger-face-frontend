@@ -16,7 +16,7 @@ interface HeaderProps {
   onMenuClick: () => void;
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export default function Header({ onMenuClick }: HeaderProps) {
   const [isDark, setIsDark] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 

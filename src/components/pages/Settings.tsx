@@ -85,7 +85,7 @@ interface SecuritySettings {
   ipWhitelist: string[];
 }
 
-export function Settings() {
+export default function Settings() {
   const [companySettings, setCompanySettings] = useState<CompanySettings>({
     name: 'ABC Business Solutions Pvt Ltd',
     logo: '',
