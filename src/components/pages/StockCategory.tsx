@@ -22,6 +22,7 @@ import CustomStepNavigation from "../customComponents/CustomStepNavigation";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
 import TableHeader from "../customComponents/CustomTableHeader";
 import PaginationControls from "../customComponents/CustomPaginationControls";
+import SectionHeader from "../customComponents/SectionHeader";
 
 // StockCategory interface
 interface StockCategory {
@@ -294,7 +295,7 @@ const StockCategoryRegistration: React.FC = () => {
  
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="custom-container">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
        
@@ -439,13 +440,13 @@ const StockCategoryRegistration: React.FC = () => {
           
           <div className="space-y-6 py-4">
             <div className="bg-white p-4 rounded-lg">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center shadow-lg">
-                  <Package className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">Category Information</h3>
-              </div>
-              
+             <SectionHeader
+        icon={<Package className="w-4 h-4 text-white" />}
+        title="Category Information"
+        gradientFrom="from-pink-400"
+        gradientTo="to-pink-500"
+      />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <CustomInputBox
                   label="Category Name "

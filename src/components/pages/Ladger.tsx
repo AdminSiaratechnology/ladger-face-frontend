@@ -46,6 +46,7 @@ import MultiStepNav from "../customComponents/MultiStepNav";
 import PaginationControls from "../customComponents/CustomPaginationControls";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
 import TableHeader from "../customComponents/CustomTableHeader";
+import SectionHeader from "../customComponents/SectionHeader";
 
 // Step icons for multi-step navigation
 const stepIcons = {
@@ -788,7 +789,7 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="custom-container">
       <div className="flex justify-between items-center mb-8">
         <HeaderGradient title="Ledger Management" subtitle="Manage your ledger information and registrations" />
         <CheckAccess module="BusinessManagement" subModule="Ledger" type="create">
@@ -925,12 +926,13 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center shadow-lg">
-                    <Users className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Ledger Information</h3>
-                </div>
+               
+                    <SectionHeader
+        icon={<Users className="w-4 h-4 text-white" />}
+        title="Ledger Details"
+        gradientFrom="from-pink-400"
+        gradientTo="to-pink-500"
+      />  
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-1">
@@ -1096,7 +1098,13 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                   </div>
                   <h3 className="text-xl font-bold text-gray-800">Contact Information</h3>
                 </div>
-                
+                <SectionHeader
+                  icon={<Phone className="w-4 h-4 text-white" />}
+                  title="Contact Information"
+                  gradientFrom="from-green-400"
+                  gradientTo="to-green-500"
+                />
+
                 <div className="grid grid-cols-1 gap-6">
                   <CustomInputBox
                     label="Contact Person"
@@ -1231,13 +1239,13 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center shadow-lg">
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Tax Details</h3>
-                </div>
-                
+                <SectionHeader
+        icon={<FileText className="w-4 h-4 text-white" />}
+        title="Tax Details"
+        gradientFrom="from-yellow-400"
+        gradientTo="to-yellow-500"
+      />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Tax ID/Registration Number"
@@ -1338,13 +1346,13 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
             {activeTab === "bank" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-lg">
-                    <Building2 className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Bank Details</h3>
-                </div>
-                
+               <SectionHeader
+        icon={<Building2 className="w-4 h-4 text-white" />}
+        title="Bank Details"
+        gradientFrom="from-purple-400"
+        gradientTo="to-purple-500"
+      />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                   <CustomInputBox
                     label="Account Holder Name *"
@@ -1439,13 +1447,13 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg">
-                    <Settings2 className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Additional Settings</h3>
-                </div>
-                
+                  <SectionHeader
+        icon={<Settings2 className="w-4 h-4 text-white" />}
+        title="Settings "
+        gradientFrom="from-cyan-400"
+        gradientTo="to-cyan-500"
+      />
+
                 <div className="mb-8">
                   <h4 className="font-semibold text-gray-800 mb-4 text-lg">Ledger Logo</h4>
                   <div className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner">

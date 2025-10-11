@@ -3,9 +3,19 @@
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
-/* font-family: "Plus Jakarta Sans",sans-serif; */
-font-family: "Roboto",sans-serif;
+font-family: "Plus Jakarta Sans",sans-serif;
+/* font-family: "Roboto",sans-serif; */
 }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 
 .logo {
   height: 6em;
@@ -41,4 +51,30 @@ font-family: "Roboto",sans-serif;
 
 .read-the-docs {
   color: #888;
+}
+.hide-scrollbar {
+  overflow-y: scroll !important;              /* allow vertical scrolling */
+  scrollbar-width: none !important;           /* Firefox */
+  -ms-overflow-style: none !important;        /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none !important;                   /* Chrome, Safari, Opera */
+}
+* {
+  scrollbar-width: none !important;          /* Firefox */
+  -ms-overflow-style: none !important;       /* Internet Explorer and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none !important;                  /* Chrome, Safari, Opera */
+}
+
+/* Optional: keep smooth scrolling */
+html, body {
+  overflow: auto !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+  scroll-behavior: smooth !important;
 }

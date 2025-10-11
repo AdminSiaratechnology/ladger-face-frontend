@@ -45,6 +45,7 @@ import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
 import PaginationControls from "../customComponents/CustomPaginationControls";
 import TableHeader from "../customComponents/CustomTableHeader";
+import SectionHeader from "../customComponents/SectionHeader";
 
 // Interfaces
 interface Unit {
@@ -729,7 +730,7 @@ const ProductPage: React.FC = () => {
   
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="custom-container">
       <div className="flex justify-between items-center mb-8">
         <HeaderGradient title="Product Management" subtitle="Manage your product inventory and details" />
         <CheckAccess module="InventoryManagement" subModule="product" type="create">
@@ -834,6 +835,7 @@ const ProductPage: React.FC = () => {
             </CheckAccess>
           </CardContent>
         </Card>
+        
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
@@ -868,12 +870,12 @@ const ProductPage: React.FC = () => {
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center shadow-lg">
-                    <Package className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Product Information</h3>
-                </div>
+                <SectionHeader
+        icon={<Package className="w-4 h-4 text-white" />}
+        title="Product Information"
+        gradientFrom="from-pink-400"
+        gradientTo="to-pink-500"
+      />  
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Product Code"
@@ -1064,12 +1066,12 @@ const ProductPage: React.FC = () => {
             )}
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center shadow-lg">
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Tax Configuration</h3>
-                </div>
+                <SectionHeader
+        icon={<FileText className="w-4 h-4 text-white" />}
+        title="Tax Configuration"
+        gradientFrom="from-blue-400"
+        gradientTo="to-blue-500"
+      />  
                 <div className="mb-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">Tax Applicability</label>
@@ -1235,12 +1237,12 @@ const ProductPage: React.FC = () => {
             )}
             {activeTab === "opening" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center shadow-lg">
-                    <Star className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Opening Stock</h3>
-                </div>
+                <SectionHeader
+        icon={<Star className="w-4 h-4 text-white" />}
+        title="Opening Stock Details"
+        gradientFrom="from-blue-400"
+        gradientTo="to-blue-500"
+      />  
                 <div className="mb-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-sm font-semibold text-gray-700">Total Opening Quantity</label>
@@ -1369,12 +1371,12 @@ const ProductPage: React.FC = () => {
             )}
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg">
-                    <Settings2 className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Product Settings</h3>
-                </div>
+                <SectionHeader
+        icon={<Settings2 className="w-4 h-4 text-white" />}
+        title="Product Settings"
+        gradientFrom="from-cyan-400"
+        gradientTo="to-cyan-500"
+      />  
                 <div className="mb-6">
                   <h4 className="text-md font-semibold text-gray-800 mb-3">Product Images</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

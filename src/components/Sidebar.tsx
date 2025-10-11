@@ -427,7 +427,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Logout button */}
-        <div className="p-6 border-t border-teal-800/50">
+        {/* <div className="p-6 border-t border-teal-800/50">
           <Button
             variant="ghost"
             onClick={logout}
@@ -436,7 +436,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <LogOut className="w-5 h-5 mr-3" />
             Logout
           </Button>
-        </div>
+        </div> */}
       </div>
     </>
   );

@@ -12,10 +12,6 @@ import {
   FileText, 
   Star, 
   Phone, 
- 
-  Eye, 
-  Table, 
-  Grid3X3,
   Settings2,
 
 } from "lucide-react";
@@ -33,6 +29,8 @@ import CustomStepNavigation from "../customComponents/CustomStepNavigation";
 import { CheckAccess } from "../customComponents/CheckAccess";
 import TableHeader from "../customComponents/CustomTableHeader";
 import PaginationControls from "../customComponents/CustomPaginationControls";
+import SectionHeader from "../customComponents/SectionHeader";
+import ViewModeToggle from "../customComponents/ViewModeToggle";
 
 // Godown interface
 interface Godown {
@@ -73,7 +71,7 @@ const GodownRegistration: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
 
-  const { godowns, pagination, loading, error, fetchGodowns, addGodown, updateGodown, deleteGodown, filterGodowns } = useGodownStore();
+  const { godowns, pagination, loading, fetchGodowns, addGodown, updateGodown, deleteGodown, filterGodowns } = useGodownStore();
   const { companies } = useCompanyStore();
 
   // Initial fetch
@@ -448,7 +446,7 @@ const GodownRegistration: React.FC = () => {
 
  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="custopm-container">
       <div className="flex justify-between items-center mb-8">
         <HeaderGradient title="Godown Management" subtitle="Manage your godown information and registrations" />
         <CheckAccess module="InventoryManagement" subModule="Godown" type="create">
@@ -531,38 +529,12 @@ const GodownRegistration: React.FC = () => {
       />
       {loading && <TableViewSkeleton />}
 
-      {pagination.total ? (
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-gray-600" />
-            <span className="text-gray-700 font-medium">View Mode:</span>
-          </div>
-          <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'table'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Table className="w-4 h-4 mr-2" />
-              Table View
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'cards'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Grid3X3 className="w-4 h-4 mr-2" />
-              Card View
-            </button>
-          </div>
-        </div>
-      ) : null}
+      
+      <ViewModeToggle 
+              viewMode={viewMode} 
+              setViewMode={setViewMode} 
+              totalItems={pagination?.total} 
+            />
 
       {pagination.total === 0 ? (
         <Card className="border-2 border-dashed border-gray-300 bg-white/50">
@@ -622,13 +594,13 @@ const GodownRegistration: React.FC = () => {
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center shadow-lg">
-                    <Warehouse className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Godown Information</h3>
-                </div>
-                
+                <SectionHeader
+        icon={<Warehouse className="w-4 h-4 text-white" />}
+        title="Godown Information"
+        gradientFrom="from-teal-400"
+        gradientTo="to-teal-500"
+      />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Godown Code"
@@ -724,13 +696,13 @@ const GodownRegistration: React.FC = () => {
 
             {activeTab === "location" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center shadow-lg">
-                    <MapPin className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Location Information</h3>
-                </div>
-                
+                <SectionHeader
+                  icon={<MapPin className="w-4 h-4 text-white" />}
+                  title="Location Information"
+                  gradientFrom="from-blue-400"
+                  gradientTo="to-blue-500"
+                />
+
                 <div className="grid grid-cols-1 gap-6">
                   <CustomInputBox
                     label="Address"
@@ -796,13 +768,13 @@ const GodownRegistration: React.FC = () => {
 
             {activeTab === "management" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center shadow-lg">
-                    <Users className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Management Information</h3>
-                </div>
-                
+                <SectionHeader
+        icon={<Users className="w-4 h-4 text-white" />}
+        title="Management Details"
+        gradientFrom="from-green-400"
+        gradientTo="to-green-500"
+      />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Manager Name"
@@ -831,13 +803,13 @@ const GodownRegistration: React.FC = () => {
 
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg">
-                    <Settings2 className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Settings</h3>
-                </div>
-                
+                <SectionHeader
+        icon={<Settings2 className="w-4 h-4 text-white" />}
+        title="Setting"
+        gradientFrom="from-cyan-400"
+        gradientTo="to-cyan-500"
+      />
+
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h4 className="font-medium text-gray-800 mb-2">Summary</h4>
                   <div className="space-y-2 text-sm text-gray-600">

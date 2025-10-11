@@ -49,6 +49,7 @@ import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import MultiStepNav from "../customComponents/MultiStepNav";
 import CustomStepNavigation from "../customComponents/CustomStepNavigation";
+import SectionHeader from "../customComponents/SectionHeader";
 
 // Interfaces (unchanged from original)
 interface Company {
@@ -252,6 +253,7 @@ export const UserManagement: React.FC = () => {
     subRole: [],
     allPermissions: false,
     parent: "",
+    createdBy: "",
     clientAgent: "",
     company: "",
     access: [],
@@ -259,6 +261,85 @@ export const UserManagement: React.FC = () => {
     area: "",
     pincode: ""
   });
+
+  // Initialize access with all companies
+  useEffect(() => {
+    if (!isEditing) {
+      setForm(prev => ({
+        ...prev,
+        access: companies.map(company => ({
+          company: company._id,
+          modules: {}
+        }))
+      }));
+    }
+  }, [companies, isEditing]);
+
+  // Function to set all permissions
+  const setAllPermissions = (enabled: boolean) => {
+    setForm(prev => ({
+      ...prev,
+      access: prev.access.map(access => ({
+        ...access,
+        modules: Object.fromEntries(
+          Object.entries(availableModules).map(([moduleName, subModules]) => [
+            moduleName,
+            Object.fromEntries(
+              Object.keys(subModules).map(subModuleName => [
+                subModuleName,
+                {
+                  create: enabled,
+                  read: enabled,
+                  update: enabled,
+                  delete: enabled,
+                  extra: []
+                }
+              ])
+            )
+          ])
+        )
+      }))
+    }));
+  };
+
+  // Effect for role change
+  useEffect(() => {
+    if (form.role === 'Admin') {
+      setAllPermissions(true);
+    } else {
+      setAllPermissions(false);
+      // Set default permissions for Salesman and Customer
+      const defaultPermissions = form.role === 'Salesman' 
+        ? {
+            // Example defaults for Salesman
+            BusinessManagement: {
+              CustomerRegistration: { create: true, read: true, update: true, delete: false, extra: [] },
+              Vendor: { create: false, read: true, update: false, delete: false, extra: [] },
+              // ... other defaults
+            },
+            InventoryManagement: {
+              Product: { create: false, read: true, update: false, delete: false, extra: [] },
+              // ... etc
+            },
+            // Add more as needed
+          }
+        : {
+            // Defaults for Customer - even less
+            Order: {
+              Orders: { create: false, read: true, update: false, delete: false, extra: [] }
+            },
+            // ... etc
+          };
+
+      setForm(prev => ({
+        ...prev,
+        access: prev.access.map(access => ({
+          ...access,
+          modules: JSON.parse(JSON.stringify(defaultPermissions)) // Deep copy
+        }))
+      }));
+    }
+  }, [form.role]);
 
   // Reset form function
   const resetForm = () => {
@@ -270,9 +351,13 @@ export const UserManagement: React.FC = () => {
       subRole: [],
       allPermissions: false,
       parent: "",
+      createdBy: "",
       clientAgent: "",
       company: "",
-      access: [],
+      access: companies.map(company => ({
+        company: company._id,
+        modules: {}
+      })),
       phone: "",
       area: "",
       pincode: ""
@@ -313,77 +398,35 @@ export const UserManagement: React.FC = () => {
     value: boolean | string[]
   ): void => {
     setForm((prev) => {
-      const updatedAccess = [...prev.access];
-      let companyAccess = updatedAccess.find(a => a.company === companyId);
-      
-      if (!companyAccess) {
-        companyAccess = { company: companyId, modules: {} };
-        updatedAccess.push(companyAccess);
-      }
-      
-      if (!companyAccess.modules[moduleName]) {
-        companyAccess.modules[moduleName] = {};
-      }
-      
-      if (!companyAccess.modules[moduleName][subModuleName]) {
-        companyAccess.modules[moduleName][subModuleName] = {
-          create: false,
-          read: false,
-          update: false,
-          delete: false,
-          extra: []
-        };
-      }
-      
-      companyAccess.modules[moduleName][subModuleName][permissionType] = value;
+      const updatedAccess = prev.access.map(a => {
+        if (a.company !== companyId) return a;
+        
+        const updatedModules = { ...a.modules };
+        if (!updatedModules[moduleName]) {
+          updatedModules[moduleName] = {};
+        }
+        if (!updatedModules[moduleName][subModuleName]) {
+          updatedModules[moduleName][subModuleName] = {
+            create: false,
+            read: false,
+            update: false,
+            delete: false,
+            extra: []
+          };
+        }
+        updatedModules[moduleName][subModuleName][permissionType] = value;
+        
+        return { ...a, modules: updatedModules };
+      });
       
       return { ...prev, access: updatedAccess };
     });
   };
 
-  const addCompanyAccess = (): void => {
-    if (form.access.length < companies.length) {
-      const usedCompanies = form.access.map(a => a.company);
-      const availableCompany = companies.find(c => !usedCompanies.includes(c["_id"]));
-      
-      if (availableCompany) {
-        setForm((prev) => ({
-          ...prev,
-          access: [
-            ...prev.access,
-            {
-              company: availableCompany["_id"],
-              modules: {}
-            }
-          ]
-        }));
-      } else {
-        toast.error("No more companies available to add");
-      }
-    } else {
-      toast.error("All available companies have been added");
-    }
-  };
-
-  const removeCompanyAccess = (companyId: string): void => {
-    setForm((prev) => ({
-      ...prev,
-      access: prev.access.filter(a => a.company !== companyId)
-    }));
-  };
-
   const handleToggleAllPermissions = (companyId: string, moduleKey: string, subModuleKey: string, enabled: boolean): void => {
-    if (enabled) {
-      handlePermissionChange(companyId, moduleKey, subModuleKey, 'create', true);
-      handlePermissionChange(companyId, moduleKey, subModuleKey, 'read', true);
-      handlePermissionChange(companyId, moduleKey, subModuleKey, 'update', true);
-      handlePermissionChange(companyId, moduleKey, subModuleKey, 'delete', true);
-    } else {
-      handlePermissionChange(companyId, moduleKey, subModuleKey, 'create', false);
-      handlePermissionChange(companyId, moduleKey, subModuleKey, 'read', false);
-      handlePermissionChange(companyId, moduleKey, subModuleKey, 'update', false);
-      handlePermissionChange(companyId, moduleKey, subModuleKey, 'delete', false);
-    }
+    ['create', 'read', 'update', 'delete'].forEach(perm => {
+      handlePermissionChange(companyId, moduleKey, subModuleKey, perm as keyof Permission, enabled);
+    });
   };
 
   const handleSubmit = (): void => {
@@ -408,10 +451,6 @@ export const UserManagement: React.FC = () => {
       toast.error("Please select a role");
       return;
     }
-    if (!form.company) {
-      toast.error("Please select a company");
-      return;
-    }
 
     const userData: User = {
       ...form,
@@ -420,8 +459,9 @@ export const UserManagement: React.FC = () => {
       lastLogin: editingUser?.lastLogin || 'Never',
       createdAt: editingUser?.createdAt || new Date().toISOString(),
       createdBy: form.createdBy || 'current_user_id', // Replace with actual user ID
+      parent: form.parent || '',
       clientAgent: form.clientAgent || '',
-      parent: form.parent || ''
+      company: form.company || ''
     };
 
     if (isEditing && editingUser) {
@@ -450,7 +490,7 @@ export const UserManagement: React.FC = () => {
       parent: user.parent,
       clientAgent: user.clientAgent,
       company: user.company || "",
-      access: user.access,
+      access: user.access.length > 0 ? user.access : companies.map(c => ({company: c._id, modules: {}})),
       phone: user.phone || "",
       area: user.area || "",
       pincode: user.pincode || ""
@@ -508,7 +548,7 @@ export const UserManagement: React.FC = () => {
   };
 
   const getCompanyName = (companyId: string) => {
-    return companies.find(c => c?.["_id"] === companyId)?.namePrint || 'Unknown Company';
+    return companies.find(c => c?._id === companyId)?.namePrint || 'Unknown Company';
   };
 
   const getPermissionForCompany = (companyId: string, moduleName: string, subModuleName: string, permissionType: keyof Permission) => {
@@ -557,7 +597,7 @@ export const UserManagement: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="custom-container ">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
         <HeaderGradient 
@@ -829,417 +869,365 @@ export const UserManagement: React.FC = () => {
       <PaginationControls />
 
       {/* Modal Form */}
-      <Dialog open={open} onOpenChange={handleCloseModal}>
-        <DialogContent className="sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
-          <CustomFormDialogHeader
-            title={isEditing ? 'Edit User' : 'Add New User'}
-            subtitle={isEditing ? 'Update user details, roles, and permissions' : 'Fill in the user details, roles, and permissions'}
+     <Dialog open={open} onOpenChange={handleCloseModal}>
+  <DialogContent className="sm:max-w-full flex flex-col sm:w-[80vw] max-h-[85vh] min-h-[85vh] overflow-y-auto rounded-xl shadow-xl ">
+    <CustomFormDialogHeader
+      title={isEditing ? 'Edit User' : 'Add New User'}
+      subtitle={isEditing ? 'Update user details, roles, and permissions' : 'Fill in the user details, roles, and permissions'}
+    />
+
+    <MultiStepNav 
+      steps={tabs} 
+      currentStep={activeTab} 
+      onStepChange={setActiveTab} 
+      stepIcons={stepIcons}
+    />
+
+    <div className="flex-1 overflow-y-auto px-1">
+      {/* Basic Information Tab */}
+      {activeTab === "basic" && (
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+         
+            <SectionHeader
+        icon={<Users className="w-4 h-4 text-white" />}
+        title="User Information"
+        gradientFrom="from-teal-400"
+        gradientTo="to-teal-500"
+      />  
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CustomInputBox
+              name="name"
+              label="Name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="e.g., John Doe"
+              required={true}
+            />
+            <CustomInputBox
+              label="Email"
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="e.g., john.doe@example.com"
+              required={true}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <CustomInputBox 
+              label="Password"
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder={isEditing ? "Enter new password (leave blank to keep current)" : "e.g., SecurePass123!"}
+              required={!isEditing}
+            />
+            <CustomInputBox
+              label="Phone"
+              name="phone"
+              value={form.phone}
+              onChange={handleChange}
+              placeholder="e.g., +91 9876543210"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <CustomInputBox
+              label="Area"
+              name="area"
+              value={form.area}
+              onChange={handleChange}
+              placeholder="e.g., Downtown Mumbai"
+            />
+            <CustomInputBox
+              label="Pincode"
+              name="pincode"
+              value={form.pincode}
+              onChange={handleChange}
+              placeholder="e.g., 400001"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-semibold text-gray-700">Company <span className="text-red-500">*</span></label>
+              <select
+                name="company"
+                value={form.company}
+                onChange={(e) => handleSelectChange('company', e.target.value)}
+                className="h-10 px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-100 focus:outline-none bg-white transition-all text-sm"
+              >
+                <option value="">Select a Company</option>
+                {companies.map(company => (
+                  <option key={company["_id"]} value={company["_id"]}>{company.namePrint}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <CustomStepNavigation
+            currentStep={1}
+            totalSteps={4}
+            showPrevious={false}
+            onNext={() => setActiveTab("role")}
           />
+        </div>
+      )}
 
-          <MultiStepNav 
-            steps={tabs} 
-            currentStep={activeTab} 
-            onStepChange={setActiveTab} 
-            stepIcons={stepIcons}
-          />
+      {/* Role & Sub-Role Tab */}
+      {activeTab === "role" && (
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+         
+              <SectionHeader
+        icon={<Users className="w-4 h-4 text-white" />}
+        title="Role & Sub-Role"
+        gradientFrom="from-blue-400"
+        gradientTo="to-blue-500"
+      />  
 
-          <div className="flex-1 overflow-y-auto">
-            {/* Basic Information Tab */}
-            {activeTab === "basic" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center shadow-lg">
-                    <Users className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">User Information</h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <CustomInputBox
-                    name="name"
-                    label="Name"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="e.g., John Doe"
-                    required={true}
-                  />
-                  <CustomInputBox
-                    label="Email"
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="e.g., john.doe@example.com"
-                    required={true}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                  <CustomInputBox 
-                    label="Password"
-                    type="password"
-                    name="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    placeholder={isEditing ? "Enter new password (leave blank to keep current)" : "e.g., SecurePass123!"}
-                    required={!isEditing}
-                  />
-                  <CustomInputBox
-                    label="Phone"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    placeholder="e.g., +91 9876543210"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                  <CustomInputBox
-                    label="Area"
-                    name="area"
-                    value={form.area}
-                    onChange={handleChange}
-                    placeholder="e.g., Downtown Mumbai"
-                  />
-                  <CustomInputBox
-                    label="Pincode"
-                    name="pincode"
-                    value={form.pincode}
-                    onChange={handleChange}
-                    placeholder="e.g., 400001"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Company <span className="text-red-500">*</span></label>
-                    <select
-                      name="company"
-                      value={form.company}
-                      onChange={(e) => handleSelectChange('company', e.target.value)}
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:ring-4 focus:ring-teal-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select a Company</option>
-                      {companies.map(company => (
-                        <option key={company["_id"]} value={company["_id"]}>{company.namePrint}</option>
-                      ))}
-                    </select>
+          {/* Role Selection */}
+          <div className="mb-4">
+            <label className="text-sm font-semibold text-gray-700 mb-2 block">Primary Role <span className="text-red-500">*</span></label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {roles.map((role) => (
+                <div
+                  key={role}
+                  className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                    form.role === role
+                      ? 'border-teal-500 bg-teal-50'
+                      : 'border-gray-200 hover:border-teal-300'
+                  }`}
+                  onClick={() => handleSelectChange('role', role)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full border-2 ${
+                      form.role === role 
+                        ? 'bg-teal-500 border-teal-500' 
+                        : 'border-gray-300'
+                    }`}>
+                      {form.role === role && (
+                        <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                      )}
+                    </div>
+                    <span className="font-medium text-gray-700 text-sm">{role}</span>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                <CustomStepNavigation
-                  currentStep={1}
-                  totalSteps={4}
-                  showPrevious={false}
-                  onNext={() => setActiveTab("role")}
-                />
+          {/* Sub-Role Selection */}
+          {form.role && (
+            <div className="mb-4">
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">Sub-Roles</label>
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {subRoles[form.role as keyof typeof subRoles]?.map((subRole) => (
+                    <div key={subRole} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={subRole}
+                        checked={form.subRole.includes(subRole)}
+                        onChange={(e) => handleSubRoleChange(subRole, e.target.checked)}
+                        className="w-3 h-3 text-teal-600 rounded focus:ring-teal-500"
+                      />
+                      <label htmlFor={subRole} className="text-sm font-medium text-gray-700">
+                        {subRole.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Role & Sub-Role Tab */}
-            {activeTab === "role" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center shadow-lg">
-                    <Shield className="w-6 h-6 text-white" />
+          <CustomStepNavigation
+            currentStep={2}
+            totalSteps={4}
+            onPrevious={() => setActiveTab("basic")}
+            onNext={() => setActiveTab("permissions")}
+            disabledNext={!form.role}
+          />
+        </div>
+      )}
+
+      {/* Permissions Tab */}
+      {activeTab === "permissions" && (
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+          
+                  <SectionHeader
+        icon={<Key className="w-4 h-4 text-white" />}
+        title="Company Permissions"
+        gradientFrom="from-purple-400"
+        gradientTo="to-purple-500"
+      />
+
+
+          <div className="space-y-4">
+            {/* Company Access Sections */}
+            {form.access.map((access, companyIndex) => (
+              <Card key={access.company} className="border-teal-200 shadow-sm">
+                <CardHeader className="bg-teal-50 py-2 rounded-t-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Building2 className="w-4 h-4 mr-2 text-teal-600" />
+                      <CardTitle className="text-base text-teal-800">
+                        {getCompanyName(access.company)}
+                      </CardTitle>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-800">Role & Sub-Role Configuration</h3>
-                </div>
-
-                {/* Role Selection */}
-                <div className="mb-6">
-                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Primary Role <span className="text-red-500">*</span></label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {roles.map((role) => (
-                      <div
-                        key={role}
-                        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                          form.role === role
-                            ? 'border-teal-500 bg-teal-50'
-                            : 'border-gray-200 hover:border-teal-300'
-                        }`}
-                        onClick={() => handleSelectChange('role', role)}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-4 h-4 rounded-full border-2 ${
-                            form.role === role 
-                              ? 'bg-teal-500 border-teal-500' 
-                              : 'border-gray-300'
-                          }`}>
-                            {form.role === role && (
-                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                            )}
-                          </div>
-                          <span className="font-medium text-gray-700">{role}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Sub-Role Selection */}
-                {form.role && (
-                  <div className="mb-6">
-                    <label className="text-sm font-semibold text-gray-700 mb-2 block">Sub-Roles</label>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {subRoles[form.role as keyof typeof subRoles]?.map((subRole) => (
-                          <div key={subRole} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id={subRole}
-                              checked={form.subRole.includes(subRole)}
-                              onChange={(e) => handleSubRoleChange(subRole, e.target.checked)}
-                              className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
-                            />
-                            <label htmlFor={subRole} className="text-sm font-medium text-gray-700">
-                              {subRole.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </label>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {Object.entries(availableModules).map(([moduleKey, moduleValue]) => (
+                    <div key={moduleKey} className="mb-4 last:mb-0">
+                      <h4 className="font-semibold text-gray-800 mb-2 flex items-center text-sm">
+                        <Lock className="w-3 h-3 mr-2 text-gray-600" />
+                        {moduleKey}
+                      </h4>
+                      <div className="pl-4 space-y-3">
+                        {Object.entries(moduleValue).map(([subModuleKey, defaultPermissions]) => (
+                          <div key={subModuleKey} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-gray-700 text-sm">{subModuleKey}</span>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs text-gray-500">All</span>
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    getPermissionForCompany(access.company, moduleKey, subModuleKey, 'create') &&
+                                    getPermissionForCompany(access.company, moduleKey, subModuleKey, 'read') &&
+                                    getPermissionForCompany(access.company, moduleKey, subModuleKey, 'update') &&
+                                    getPermissionForCompany(access.company, moduleKey, subModuleKey, 'delete')
+                                  }
+                                  onChange={(e) => handleToggleAllPermissions(access.company, moduleKey, subModuleKey, e.target.checked)}
+                                  className="w-3 h-3 text-teal-600 rounded focus:ring-teal-500"
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                              {(['create', 'read', 'update', 'delete'] as const).map((permissionType) => (
+                                <div key={permissionType} className="flex items-center space-x-1">
+                                  <input
+                                    type="checkbox"
+                                    id={`${access.company}-${moduleKey}-${subModuleKey}-${permissionType}`}
+                                    checked={getPermissionForCompany(access.company, moduleKey, subModuleKey, permissionType) as boolean}
+                                    onChange={(e) => handlePermissionChange(access.company, moduleKey, subModuleKey, permissionType, e.target.checked)}
+                                    className="w-3 h-3 text-teal-600 rounded focus:ring-teal-500"
+                                  />
+                                  <label 
+                                    htmlFor={`${access.company}-${moduleKey}-${subModuleKey}-${permissionType}`}
+                                    className="text-xs text-gray-600 capitalize"
+                                  >
+                                    {permissionType}
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </CardContent>
+              </Card>
+            ))}
 
-                {/* All Permissions Toggle */}
-                <div className="mb-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      id="allPermissions"
-                      name="allPermissions"
-                      checked={form.allPermissions}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
-                    />
-                    <label htmlFor="allPermissions" className="text-sm font-semibold text-teal-700">
-                      Grant All Permissions (Super User)
-                    </label>
-                  </div>
-                  <p className="text-xs text-teal-600 mt-1">
-                    Enable to grant full access to all modules across all companies
+            {form.access.length === 0 && (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-base font-semibold">
+                    No Company Access Configured
                   </p>
+                  <p className="text-gray-400 text-xs mb-3">
+                    Add company access to configure permissions
+                  </p>
+                  <Button
+                    onClick={addCompanyAccess}
+                    variant="outline"
+                    className="flex items-center border-gray-300 hover:bg-gray-100 text-sm py-1"
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add Company Access
+                  </Button>
                 </div>
-
-                <CustomStepNavigation
-                  currentStep={2}
-                  totalSteps={4}
-                  onPrevious={() => setActiveTab("basic")}
-                  onNext={() => setActiveTab("permissions")}
-                  disabledNext={!form.role}
-                />
-              </div>
-            )}
-
-            {/* Permissions Tab */}
-            {activeTab === "permissions" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-lg">
-                    <Key className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Company Permissions</h3>
-                </div>
-
-                {form.allPermissions ? (
-                  <div className="flex items-center justify-center py-16">
-                    <div className="text-center">
-                      <Shield className="w-16 h-16 text-teal-400 mx-auto mb-4" />
-                      <p className="text-teal-600 text-lg font-semibold">
-                        Super User Access Granted
-                      </p>
-                      <p className="text-gray-500 text-sm">
-                        This user has full access to all modules across all companies
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Add Company Access Button */}
-                    <div className="flex justify-between items-center">
-                      <p className="text-gray-600">Configure access for specific companies and their modules</p>
-                      <Button
-                        onClick={addCompanyAccess}
-                        variant="outline"
-                        className="flex items-center border-gray-300 hover:bg-gray-100"
-                        disabled={form.access.length >= companies.length}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Company Access
-                      </Button>
-                    </div>
-
-                    {/* Company Access Cards */}
-                    {form.access.map((access, companyIndex) => (
-                      <Card key={access.company} className="border-teal-200 shadow-sm">
-                        <CardHeader className="bg-teal-50 pb-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Building2 className="w-5 h-5 mr-2 text-teal-600" />
-                              <CardTitle className="text-lg text-teal-800">
-                                {getCompanyName(access.company)}
-                              </CardTitle>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeCompanyAccess(access.company)}
-                              className="text-red-500 hover:text-red-700 h-8 w-8 p-0"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-6">
-                          {Object.entries(availableModules).map(([moduleKey, moduleValue]) => (
-                            <div key={moduleKey} className="mb-6 last:mb-0">
-                              <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                                <Lock className="w-4 h-4 mr-2 text-gray-600" />
-                                {moduleKey}
-                              </h4>
-                              <div className="pl-6 space-y-4">
-                                {Object.entries(moduleValue).map(([subModuleKey, defaultPermissions]) => (
-                                  <div key={subModuleKey} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                    <div className="flex items-center justify-between mb-3">
-                                      <span className="font-medium text-gray-700">{subModuleKey}</span>
-                                      <div className="flex items-center space-x-2">
-                                        <span className="text-xs text-gray-500">All</span>
-                                        <input
-                                          type="checkbox"
-                                          checked={
-                                            getPermissionForCompany(access.company, moduleKey, subModuleKey, 'create') &&
-                                            getPermissionForCompany(access.company, moduleKey, subModuleKey, 'read') &&
-                                            getPermissionForCompany(access.company, moduleKey, subModuleKey, 'update') &&
-                                            getPermissionForCompany(access.company, moduleKey, subModuleKey, 'delete')
-                                          }
-                                          onChange={(e) => handleToggleAllPermissions(access.company, moduleKey, subModuleKey, e.target.checked)}
-                                          className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
-                                        />
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                      {(['create', 'read', 'update', 'delete'] as const).map((permissionType) => (
-                                        <div key={permissionType} className="flex items-center space-x-2">
-                                          <input
-                                            type="checkbox"
-                                            id={`${access.company}-${moduleKey}-${subModuleKey}-${permissionType}`}
-                                            checked={getPermissionForCompany(access.company, moduleKey, subModuleKey, permissionType) as boolean}
-                                            onChange={(e) => handlePermissionChange(access.company, moduleKey, subModuleKey, permissionType, e.target.checked)}
-                                            className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
-                                          />
-                                          <label 
-                                            htmlFor={`${access.company}-${moduleKey}-${subModuleKey}-${permissionType}`}
-                                            className="text-sm text-gray-600 capitalize"
-                                          >
-                                            {permissionType}
-                                          </label>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </CardContent>
-                      </Card>
-                    ))}
-
-                    {form.access.length === 0 && (
-                      <div className="flex items-center justify-center py-16">
-                        <div className="text-center">
-                          <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                          <p className="text-gray-500 text-lg font-semibold">
-                            No Company Access Configured
-                          </p>
-                          <p className="text-gray-400 text-sm mb-4">
-                            Add company access to configure permissions
-                          </p>
-                          <Button
-                            onClick={addCompanyAccess}
-                            variant="outline"
-                            className="flex items-center border-gray-300 hover:bg-gray-100"
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Company Access
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <CustomStepNavigation
-                  currentStep={3}
-                  totalSteps={4}
-                  onPrevious={() => setActiveTab("role")}
-                  onNext={() => setActiveTab("settings")}
-                />
-              </div>
-            )}
-
-            {/* Settings Tab */}
-            {activeTab === "settings" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg">
-                    <Settings2 className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">User Settings & Summary</h3>
-                </div>
-
-                {/* User Summary */}
-                <div className="bg-teal-50 p-4 rounded-lg border border-teal-200 mb-6">
-                  <h4 className="text-md font-semibold text-teal-700 mb-3">User Summary</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600"><strong>Name:</strong> {form.name || 'Not specified'}</p>
-                      <p className="text-sm text-gray-600"><strong>Email:</strong> {form.email || 'Not specified'}</p>
-                      <p className="text-sm text-gray-600"><strong>Role:</strong> {form.role || 'Not selected'}</p>
-                      <p className="text-sm text-gray-600"><strong>Sub-Roles:</strong> {form.subRole.join(', ') || 'None'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600"><strong>Phone:</strong> {form.phone || 'Not specified'}</p>
-                      <p className="text-sm text-gray-600"><strong>Location:</strong> {form.area && form.pincode ? `${form.area}, ${form.pincode}` : 'Not specified'}</p>
-                      <p className="text-sm text-gray-600"><strong>All Permissions:</strong> {form.allPermissions ? 'Yes' : 'No'}</p>
-                      <p className="text-sm text-gray-600"><strong>Company Access:</strong> {form.access.length} companies</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Permission Summary */}
-                {!form.allPermissions && form.access.length > 0 && (
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
-                    <h4 className="text-md font-semibold text-blue-700 mb-3">Permission Summary</h4>
-                    {form.access.map((access) => (
-                      <div key={access.company} className="mb-3 last:mb-0">
-                        <p className="font-medium text-blue-800">{getCompanyName(access.company)}</p>
-                        <div className="text-sm text-blue-600 ml-4">
-                          {Object.entries(access.modules).map(([moduleName, modulePermissions]) => (
-                            <div key={moduleName}>
-                              <strong>{moduleName}:</strong> {Object.keys(modulePermissions).join(', ')}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <CustomStepNavigation
-                  currentStep={4}
-                  totalSteps={4}
-                  onPrevious={() => setActiveTab("permissions")}
-                  onSubmit={handleSubmit}
-                  submitLabel={isEditing ? 'Update User' : 'Create User'}
-                  isLastStep={true}
-                />
               </div>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+
+          <CustomStepNavigation
+            currentStep={3}
+            totalSteps={4}
+            onPrevious={() => setActiveTab("role")}
+            onNext={() => setActiveTab("settings")}
+          />
+        </div>
+      )}
+
+      {/* Settings Tab */}
+      {activeTab === "settings" && (
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+         
+                  <SectionHeader
+        icon={<Settings2 className="w-4 h-4 text-white" />}
+        title="User & Permission Summary"
+        gradientFrom="from-blue-400"
+        gradientTo="to-blue-500"
+      />  
+
+          {/* User Summary */}
+          <div className="bg-teal-50 p-3 rounded-lg border border-teal-200 mb-4">
+            <h4 className="text-sm font-semibold text-teal-700 mb-2">User Summary</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <p className="text-xs text-gray-600"><strong>Name:</strong> {form.name || 'Not specified'}</p>
+                <p className="text-xs text-gray-600"><strong>Email:</strong> {form.email || 'Not specified'}</p>
+                <p className="text-xs text-gray-600"><strong>Role:</strong> {form.role || 'Not selected'}</p>
+                <p className="text-xs text-gray-600"><strong>Sub-Roles:</strong> {form.subRole.join(', ') || 'None'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-600"><strong>Phone:</strong> {form.phone || 'Not specified'}</p>
+                <p className="text-xs text-gray-600"><strong>Location:</strong> {form.area && form.pincode ? `${form.area}, ${form.pincode}` : 'Not specified'}</p>
+                <p className="text-xs text-gray-600"><strong>Company Access:</strong> {form.access.length} companies</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Permission Summary */}
+          {form.access.length > 0 && (
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
+              <h4 className="text-sm font-semibold text-blue-700 mb-2">Permission Summary</h4>
+              {form.access.map((access) => (
+                <div key={access.company} className="mb-2 last:mb-0">
+                  <p className="font-medium text-blue-800 text-sm">{getCompanyName(access.company)}</p>
+                  <div className="text-xs text-blue-600 ml-3">
+                    {Object.entries(access.modules).map(([moduleName, modulePermissions]) => (
+                      <div key={moduleName}>
+                        <strong>{moduleName}:</strong> {Object.keys(modulePermissions).join(', ')}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <CustomStepNavigation
+            currentStep={4}
+            totalSteps={4}
+            onPrevious={() => setActiveTab("permissions")}
+            onSubmit={handleSubmit}
+            submitLabel={isEditing ? 'Update User' : 'Create User'}
+            isLastStep={true}
+          />
+        </div>
+      )}
+    </div>
+  </DialogContent>
+</Dialog>
     </div>
   );
 };
