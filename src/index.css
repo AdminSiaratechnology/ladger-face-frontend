@@ -62,8 +62,8 @@ body {
   min-height: 100vh;
   width: 100vw;
   /* font-family: "Lobster", sans-serif; */
-  /* font-family: "Plus Jakarta Sans",sans-serif; */
-  font-family: "Roboto",sans-serif;
+  font-family: "Plus Jakarta Sans",sans-serif;
+  /* font-family: "Roboto",sans-serif; */
   /* ===== Scrollbar CSS ===== */
   /* Firefox */
   * {
@@ -73,7 +73,8 @@ body {
 
   /* Chrome, Edge, and Safari */
   *::-webkit-scrollbar {
-    width: 16px;
+    /* width: 16px; */
+    width: 0px;
   }
 
   *::-webkit-scrollbar-track {
@@ -86,6 +87,35 @@ body {
     border: 3px solid #ffffff;
   }
 }
+/* Global style (hide scrollbar on page) */
+html, body {
+  overflow: auto; /* keeps scrolling active */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+}
+* {
+  scrollbar-width: none !important;          /* Firefox */
+  -ms-overflow-style: none !important;       /* Internet Explorer and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none !important;                  /* Chrome, Safari, Opera */
+}
+
+/* Optional: keep smooth scrolling */
+html, body {
+  overflow: auto !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+  scroll-behavior: smooth !important;
+}
+
 
 
 
@@ -180,4 +210,8 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@utility custom-container {
+  @apply min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3;
 }

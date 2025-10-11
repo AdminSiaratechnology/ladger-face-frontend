@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import TableHeader from "../customComponents/CustomTableHeader";
 import PaginationControls from "../customComponents/CustomPaginationControls";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
+import SectionHeader from "../customComponents/SectionHeader";
 
 // Bank interface (unchanged)
 interface Bank {
@@ -688,7 +689,7 @@ const CompanyPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className=" custom-container">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <HeaderGradient title="Company Management" subtitle="Manage your company information and registrations"/>
@@ -840,12 +841,14 @@ const CompanyPage: React.FC = () => {
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center shadow-lg">
-                    <Building2 className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Company Information</h3>
-                </div>
+                
+                    <SectionHeader
+        icon={<Users className="w-4 h-4 text-white" />}
+        title="Company Information"
+        gradientFrom="from-blue-400"
+        gradientTo="to-blue-500"
+      />  
+
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
@@ -973,12 +976,13 @@ const CompanyPage: React.FC = () => {
 
             {activeTab === "contact" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center shadow-lg">
-                    <Phone className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Contact Information</h3>
-                </div>
+               
+                    <SectionHeader
+        icon={<Users className="w-4 h-4 text-white" />}
+        title="Contact Details"
+        gradientFrom="from-green-400"
+        gradientTo="to-green-500"
+      />  
                 
                 <div className="grid grid-cols-1 gap-6">
                   <CustomInputBox
@@ -1031,13 +1035,12 @@ const CompanyPage: React.FC = () => {
 
             {activeTab === "registration" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center shadow-lg">
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Registration Details</h3>
-                </div>
-                
+                <SectionHeader
+                  icon={<Users className="w-4 h-4 text-white" />}
+                  title="Registration Details"
+                  gradientFrom="from-yellow-400"
+        gradientTo="to-yellow-500"
+      />  
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="GST Number"
@@ -1092,12 +1095,14 @@ const CompanyPage: React.FC = () => {
 
             {activeTab === "bank" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center shadow-lg">
-                    <Building2 className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Banking Details</h3>
-                </div>
+                
+                    <SectionHeader
+        icon={<Building2 className="w-4 h-4 text-white" />}
+        title="Banking Details"
+        gradientFrom="from-blue-400"
+        gradientTo="to-blue-500"
+      />  
+
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                   <CustomInputBox
@@ -1194,13 +1199,14 @@ const CompanyPage: React.FC = () => {
 
             {activeTab === "branding" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-lg">
-                    <ImageIcon className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Branding & Documents</h3>
-                </div>
-                
+               
+                    <SectionHeader
+        icon={<ImageIcon className="w-4 h-4 text-white" />}
+        title="Branding & Documents"
+        gradientFrom="from-purple-400"
+        gradientTo="to-purple-500"
+      />
+
                 <div className="mb-8">
                   <h4 className="font-semibold text-gray-800 mb-4 text-lg">Company Logo</h4>
                   <div className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner">
@@ -1300,12 +1306,13 @@ const CompanyPage: React.FC = () => {
 
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg">
-                    <Settings2 className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Settings</h3>
-                </div>
+                <SectionHeader
+                  icon={<Settings2 className="w-4 h-4 text-white" />}
+                  title="Settings"
+                  gradientFrom="from-cyan-400"
+        gradientTo="to-cyan-500"
+      />  
+
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div className="flex flex-col gap-1">

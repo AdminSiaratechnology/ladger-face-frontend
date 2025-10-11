@@ -21,6 +21,7 @@ import CustomStepNavigation from "../customComponents/CustomStepNavigation";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
 import PaginationControls from "../customComponents/CustomPaginationControls";
 import TableHeader from "../customComponents/CustomTableHeader";
+import SectionHeader from "../customComponents/SectionHeader";
 
 // StockGroup interface (adjusted to match store)
 interface StockGroup {
@@ -268,7 +269,7 @@ const StockGroupRegistration: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="custom-container">
       <div className="flex justify-between items-center mb-8">
         
         <HeaderGradient title="Stock Group Management"
@@ -411,13 +412,13 @@ const StockGroupRegistration: React.FC = () => {
           
           <div className="space-y-6 py-4">
             <div className="bg-white p-4 rounded-lg">
-             
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center shadow-lg">
-                                  <Layers className="w-6 h-6 text-white" />
-                                </div>
-                                <h3 className="text-xl font-bold text-gray-800">Group Information</h3>
-                              </div>
+             <SectionHeader
+        icon={<Layers className="w-4 h-4 text-white" />}
+        title="Group Information"
+        gradientFrom="from-pink-400"
+        gradientTo="to-Pink-500"
+      />  
+                              
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 

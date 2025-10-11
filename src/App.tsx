@@ -110,14 +110,14 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-indigo-50">
-      <Suspense fallback={<div>Loading Sidebar...</div>}>
+      {/* <Suspense fallback={<div>Loading Sidebar...</div>}> */}
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      </Suspense>
+      {/* </Suspense> */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Suspense fallback={<div>Loading Header...</div>}>
+        {/* <Suspense fallback={<div>Loading Header...</div>}> */}
           <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        </Suspense>
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+        {/* </Suspense> */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 px-3 py-0">
           <Suspense fallback={<div>Loading...</div>}>
             {children}
           </Suspense>
@@ -134,9 +134,9 @@ export default function App() {
         <Toaster position="top-right" richColors />
         <Routes>
           <Route path="/login" element={
-            <Suspense fallback={<div>Loading...</div>}>
+            // <Suspense fallback={<div>Loading...</div>}>
               <Login />
-            </Suspense>
+            // </Suspense>
           } />
           
           {/* Dashboard - accessible to all authenticated users */}

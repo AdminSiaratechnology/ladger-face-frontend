@@ -21,6 +21,7 @@ import ViewModeToggle from "../customComponents/ViewModeToggle";
 import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 import CustomStepNavigation from "../customComponents/CustomStepNavigation";
 import  MultiStepNav  from "../customComponents/MultiStepNav"; // Assuming shared component
+import SectionHeader from "../customComponents/SectionHeader";
 
 // Unit interface
 interface Unit {
@@ -366,7 +367,7 @@ const UnitManagement: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="custom-container">
       <div className="flex justify-between items-center mb-8">
         <HeaderGradient 
           title="Unit of Measurement"
@@ -505,13 +506,13 @@ const UnitManagement: React.FC = () => {
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center shadow-lg">
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Basic Information</h3>
-                </div>
-                
+                <SectionHeader
+        icon={<FileText className="w-4 h-4 text-white" />}
+        title="Basic Information"
+        gradientFrom="from-pink-400"
+        gradientTo="to-pink-500"
+      />
+
                 <CustomInputBox
                   label="Unit Name "
                   placeholder="e.g., Meter"
@@ -564,13 +565,13 @@ const UnitManagement: React.FC = () => {
 
             {activeTab === "details" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center shadow-lg">
-                    <Calculator className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Unit Details</h3>
-                </div>
-                
+                <SectionHeader
+        icon={<Calculator className="w-4 h-4 text-white" />}
+        title="Unit Details"
+        gradientFrom="from-green-400"
+        gradientTo="to-green-500"
+      />
+
                 {formData.type === 'simple' ? (
                   <>
                     <CustomInputBox
@@ -660,12 +661,13 @@ const UnitManagement: React.FC = () => {
 
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center shadow-lg">
-                    <Settings2 className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Settings</h3>
-                </div>
+                <SectionHeader
+                  icon={<Settings2 className="w-4 h-4 text-white" />}
+                  title="Settings"
+                  gradientFrom="from-blue-400"
+                  gradientTo="to-blue-500"
+                />
+      
                 
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">Status</label>
