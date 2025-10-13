@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
-import { Package, Building2, FileText, Star, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Package, Building2, FileText, Star, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Search, Calculator } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import {useStockCategory} from "../../../store/stockCategoryStore"
 import {useCompanyStore} from "../../../store/companyStore"
@@ -23,6 +23,7 @@ import ViewModeToggle from "../customComponents/ViewModeToggle";
 import TableHeader from "../customComponents/CustomTableHeader";
 import PaginationControls from "../customComponents/CustomPaginationControls";
 import SectionHeader from "../customComponents/SectionHeader";
+import EmptyStateCard from "../customComponents/EmptyStateCard";
 
 // StockCategory interface
 interface StockCategory {
@@ -393,24 +394,16 @@ const StockCategoryRegistration: React.FC = () => {
             />
 
       {pagination?.total === 0 ? (
-        <Card className="border-2 border-dashed border-gray-300 bg-white/50">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Package className="w-16 h-16 text-gray-400 mb-4" />
-            <p className="text-gray-500 text-lg font-medium mb-2">No stock categories registered yet</p>
-            <p className="text-gray-400 text-sm mb-6">Create your first stock category to get started</p>
-             <CheckAccess module="InventoryManagement" subModule="StockCategory" type="create">
-            <Button 
-              onClick={() => {
-                resetForm();
-                setOpen(true);
-              }}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
-            >
-              Add Your First Category
-            </Button>
-            </CheckAccess>
-          </CardContent>
-        </Card>
+        <EmptyStateCard
+          icon={Package}
+          title="No categories registered yet"
+          description="Create your first category to get started"
+          buttonLabel="Add Your First Category"
+      module="InventoryManagement"
+      subModule="StockCategory"
+      type="create"
+      onButtonClick={() => setOpen(true)}
+    />
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}

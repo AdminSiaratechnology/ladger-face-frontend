@@ -22,6 +22,7 @@ import ViewModeToggle from "../customComponents/ViewModeToggle";
 import PaginationControls from "../customComponents/CustomPaginationControls";
 import TableHeader from "../customComponents/CustomTableHeader";
 import SectionHeader from "../customComponents/SectionHeader";
+import EmptyStateCard from "../customComponents/EmptyStateCard";
 
 // StockGroup interface (adjusted to match store)
 interface StockGroup {
@@ -365,24 +366,18 @@ const StockGroupRegistration: React.FC = () => {
             />
 
       {pagination?.total === 0 ? (
-        <Card className="border-2 border-dashed border-gray-300 bg-white/50">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Layers className="w-16 h-16 text-gray-400 mb-4" />
-            <p className="text-gray-500 text-lg font-medium mb-2">No stock groups registered yet</p>
-            <p className="text-gray-400 text-sm mb-6">Create your first stock group to get started</p>
-            <CheckAccess module="InventoryManagement" subModule="StockGroup" type="create">
-            <Button 
-              onClick={() => {
-                resetForm();
-                setOpen(true);
-              }}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
-            >
-              Add Your First Group
-            </Button>
-            </CheckAccess>
-          </CardContent>
-        </Card>
+       <EmptyStateCard
+      icon={Layers}
+      title="No stock groups registered yet"
+      description="Create your first stock group to get started"
+      buttonLabel="Add Your First Group"
+      module="InventoryManagement"
+      subModule="StockGroup"
+      type="create"
+      onButtonClick={() => setOpen(true)}
+    />
+        
+        
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}

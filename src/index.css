@@ -215,3 +215,9 @@ html, body {
 @utility custom-container {
   @apply min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3;
 }
+@layer utilities {
+  .custom-dialog-container {
+    @apply sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl;
+  }
+}
+
