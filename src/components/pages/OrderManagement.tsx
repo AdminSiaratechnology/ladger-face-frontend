@@ -441,7 +441,7 @@ export default function OrderManagement() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="custom-container">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
        

@@ -50,6 +50,7 @@ import HeaderGradient from "../customComponents/HeaderGradint";
 import MultiStepNav from "../customComponents/MultiStepNav";
 import CustomStepNavigation from "../customComponents/CustomStepNavigation";
 import SectionHeader from "../customComponents/SectionHeader";
+import EmptyStateCard from "../customComponents/EmptyStateCard";
 
 // Interfaces (unchanged from original)
 interface Company {
@@ -734,25 +735,16 @@ export const UserManagement: React.FC = () => {
 
       {/* User List */}
       {pagination.total === 0 ? (
-        <Card className="border-2 border-dashed border-gray-300 bg-white/50">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Users className="w-16 h-16 text-gray-400 mb-4" />
-            <p className="text-gray-500 text-lg font-medium mb-2">
-              No users created yet
-            </p>
-            <p className="text-gray-400 text-sm mb-6">
-              Create your first user to get started
-            </p>
-            <CheckAccess module="UserManagement" subModule="User" type="create">
-              <Button
-                onClick={() => setOpen(true)}
-                className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded-lg"
-              >
-                Add Your First User
-              </Button>
-            </CheckAccess>
-          </CardContent>
-        </Card>
+       <EmptyStateCard
+      icon={Users}
+      title="No users registered yet"
+      description="Create your first user to get started"
+      buttonLabel="Add Your First User"
+      module="UserManagement"
+      subModule="User"
+      type="create"
+      onButtonClick={() => setOpen(true)}
+    />
       ) : (
         <Card className="border-0 shadow-sm bg-white rounded-xl overflow-hidden">
           <CardContent className="p-0">
@@ -870,7 +862,7 @@ export const UserManagement: React.FC = () => {
 
       {/* Modal Form */}
      <Dialog open={open} onOpenChange={handleCloseModal}>
-  <DialogContent className="sm:max-w-full flex flex-col sm:w-[80vw] max-h-[85vh] min-h-[85vh] overflow-y-auto rounded-xl shadow-xl ">
+  <DialogContent className="custom-dialog-container">
     <CustomFormDialogHeader
       title={isEditing ? 'Edit User' : 'Add New User'}
       subtitle={isEditing ? 'Update user details, roles, and permissions' : 'Fill in the user details, roles, and permissions'}

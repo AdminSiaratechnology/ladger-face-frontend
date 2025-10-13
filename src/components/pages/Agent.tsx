@@ -48,6 +48,8 @@ import PaginationControls from "../customComponents/CustomPaginationControls";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
 import TableHeader from "../customComponents/CustomTableHeader";
 import SectionHeader from "../customComponents/SectionHeader";
+import EmptyStateCard from "../customComponents/EmptyStateCard";
+import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 
 const stepIcons = {
   basic: <Users className="w-2 h-2 md:w-5 md:h-5" />,
@@ -953,21 +955,16 @@ const headers=["Agent","Contact","Address","Status","Actions"];
             />
 
       {pagination.total === 0 ? (
-        <Card className="border-2 border-dashed border-gray-300 bg-white/50">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <UserCheck className="w-16 h-16 text-gray-400 mb-4" />
-            <p className="text-gray-500 text-lg font-medium mb-2">No agents registered yet</p>
-            <p className="text-gray-400 text-sm mb-6">Create your first agent to get started</p>
-            <CheckAccess module="BusinessManagement" subModule="Agent" type="create">
-              <Button 
-                onClick={() => setOpen(true)}
-                className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
-              >
-                Add Your First Agent
-              </Button>
-            </CheckAccess>
-          </CardContent>
-        </Card>
+      <EmptyStateCard
+              icon={UserCheck}
+              title="No agents registered yet"
+              description="Create your first agent to get started"
+              buttonLabel="Add Your First Agent"
+              module="BusinessManagement"
+              subModule="Agent"
+              type="create"
+              onButtonClick={() => setOpen(true)}
+            />
       ) : (
         <>
           {viewMode === 'table' ? <TableView /> : <CardView />}
@@ -986,7 +983,7 @@ const headers=["Agent","Contact","Address","Status","Actions"];
           resetForm();
         }
       }}>
-        <DialogContent className="sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
+        <DialogContent className="custom-dialog-container">
           <CustomFormDialogHeader
             title={editingAgent ? "Edit Agent" : "Add New Agent"}
             subtitle={
@@ -1768,22 +1765,7 @@ const headers=["Agent","Contact","Address","Status","Actions"];
           </div>
         </DialogContent>
       </Dialog>
-      {viewingImage && (
-        <Dialog open={!!viewingImage} onOpenChange={() => setViewingImage(null)}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>{viewingImage.type} {viewingImage.type === 'logo' ? 'Logo' : 'Document'}</DialogTitle>
-            </DialogHeader>
-            <div className="flex justify-center">
-              <img
-                src={viewingImage.previewUrl}
-                alt={`${viewingImage.type}`}
-                className="max-w-full max-h-96 object-contain rounded-lg"
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+  <ImagePreviewDialog viewingImage={viewingImage} onClose={() => setViewingImage(null)} />
     </div>
   );
 };
