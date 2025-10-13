@@ -92,7 +92,7 @@ export default  function AdminDashboard() {
 
   const integrationStats = [
     { name: 'Tally ERP', status: 'Connected', lastSync: '5 min ago', orders: 1234, success: 98.5 },
-    { name: 'QuickBooks', status: 'Connected', lastSync: '1 hour ago', orders: 456, success: 95.2 },
+    { name: 'QuickBooks', status: 'Connected', lastSync: '1 hour ago', orders: 456, success: 95.29},
     { name: 'Zoho', status: 'Disconnected', lastSync: 'Never', orders: 0, success: 0 },
   ];
   function StatsGrid() {
