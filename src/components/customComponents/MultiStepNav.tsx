@@ -33,7 +33,7 @@ const MultiStepNav: React.FC<MultiStepNavProps> = ({ steps, currentStep, onStepC
   }, [currentIndex])
 
   return (
-    <div className="flex items-center justify-between bg-gradient-to-r from-cyan-50 to-blue-50 px-3 py-3 rounded-lg mb-4 overflow-x-auto shadow-sm scrollbar-hide min-h-[70px]">
+    <div className="flex items-center justify-between bg-gradient-to-r from-cyan-50 to-blue-50 px-3 py-3 rounded-lg overflow-x-auto shadow-sm scrollbar-hide min-h-[70px]">
       {steps.map((step, index) => (
         <React.Fragment key={step.id}>
           <div 
@@ -42,7 +42,7 @@ const MultiStepNav: React.FC<MultiStepNavProps> = ({ steps, currentStep, onStepC
           >
             <button
               onClick={() => onStepChange(step.id)}
-              className={`flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 ${
+              className={`flex items-center justify-center w-6 h-6 rounded-full transition-all duration-300 ${
                 index < currentIndex
                   ? 'bg-green-500 text-white shadow scale-105'
                   : index === currentIndex
@@ -52,7 +52,7 @@ const MultiStepNav: React.FC<MultiStepNavProps> = ({ steps, currentStep, onStepC
             >
               {index < currentIndex ? (
                 <svg 
-                  className="w-4 h-4 flex-shrink-0" 
+                  className="w-3 h-3 flex-shrink-0" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"

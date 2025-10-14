@@ -105,7 +105,7 @@ export const useGodownStore = create<GodownStore>()(
           const res = await api.createGodown(godownData);
           console.log("Created godown response:", res);
 
-          const newGodown: Godown = res.data.data;
+          const newGodown: Godown = res.data;
 
           set({
             godowns: [...get().godowns, newGodown],

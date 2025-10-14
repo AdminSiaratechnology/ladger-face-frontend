@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, LoginResponse, LoginCredentials } from '../src/types/auth';
 import baseUrl from '../src/lib/constant';
+import {useCompanyStore}  from "./companyStore"
 
 
 interface AuthState {
@@ -26,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (credentials: LoginCredentials) => {
         set({ isLoading: true, error: null });
+    
         try {
           // Replace this with your actual API call
           const response = await fetch(`${baseUrl}auth/login`, {
@@ -46,6 +48,8 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false,
             });
             localStorage.setItem('token', data.data.token);
+
+
           } else {
             throw new Error(data.message || 'Login failed');
           }

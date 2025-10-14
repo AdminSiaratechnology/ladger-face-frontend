@@ -3,14 +3,14 @@
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
-font-family: "Plus Jakarta Sans",sans-serif;
-/* font-family: "Roboto",sans-serif; */
+/* font-family: "Plus Jakarta Sans",sans-serif; */
+font-family: "Roboto",sans-serif;
 }
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Roboto', sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

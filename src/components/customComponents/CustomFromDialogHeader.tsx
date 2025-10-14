@@ -19,7 +19,7 @@ const CustomFormDialogHeader: React.FC<CustomFormDialogHeaderProps> = ({
 }) => {
   return (
     <DialogHeader
-      className={`pb-2 bg-gradient-to-r ${gradientFrom} ${gradientTo} text-white px-4 py-3 -mx-4 -mt-4 rounded-t-lg`}
+      className={`bg-gradient-to-r ${gradientFrom} ${gradientTo} text-white px-3 py-2 -mx-6 -mt-6 rounded-t-lg`}
     >
       <div className="flex items-center justify-between">
         <div className="w-full">
@@ -29,7 +29,7 @@ const CustomFormDialogHeader: React.FC<CustomFormDialogHeaderProps> = ({
             </div>
             <span className="break-words">{title}</span>
           </DialogTitle>
-          <p className="text-cyan-50 text-xs mt-1 ml-8 leading-relaxed">
+          <p className="text-cyan-50 text-xs ml-8 leading-relaxed">
             {subtitle}
           </p>
         </div>
