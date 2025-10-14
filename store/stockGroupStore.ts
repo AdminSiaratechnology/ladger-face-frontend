@@ -82,7 +82,7 @@ set({loading:true})
 try {
     const result=await api.createSockGroup(stockGroupData)
     console.log(result ,"add stockgroup")
-    const newStockGroup: StockGroup = result.data.data;
+    const newStockGroup: StockGroup = result.data;
 
     set({
       stockGroups: [...get().stockGroups, newStockGroup],

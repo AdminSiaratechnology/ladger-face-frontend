@@ -4,9 +4,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* font-family: system-ui, Avenir, Helvetica, Arial, sans-serif; */
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   /* font-family:  "Roboto", sans-serif; */
-  font-family: 'Plus Jakarta Sans',sans-serif;
+  /* font-family: 'Plus Jakarta Sans',sans-serif; */
   line-height: 1.5;
   font-weight: 400;
 
@@ -62,8 +62,8 @@ body {
   min-height: 100vh;
   width: 100vw;
   /* font-family: "Lobster", sans-serif; */
-  font-family: "Plus Jakarta Sans",sans-serif;
-  /* font-family: "Roboto",sans-serif; */
+  /* font-family: "Plus Jakarta Sans",sans-serif; */
+  font-family: "Roboto",sans-serif;
   /* ===== Scrollbar CSS ===== */
   /* Firefox */
   * {
@@ -217,7 +217,7 @@ html, body {
 }
 @layer utilities {
   .custom-dialog-container {
-    @apply sm:max-w-full flex flex-col sm:w-[75vw] max-h-[80vh] min-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl;
+    @apply sm:max-w-full flex flex-col sm:w-[75vw] max-h-[90vh] min-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl;
   }
 }
 

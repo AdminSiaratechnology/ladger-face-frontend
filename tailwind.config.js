@@ -4,12 +4,12 @@ module.exports = {
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
-    extend: {
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
-      },
-    },
+    // extend: {
+    //   fontFamily: {
+    //     sans: ['Inter', 'system-ui', 'sans-serif'],
+    //     display: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+    //   },
+    // },
   },
   plugins: [],
 }

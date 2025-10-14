@@ -1,29 +1,28 @@
-
 import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
-import { 
-  Package, 
-  Tag, 
-  Archive, 
-  Settings2, 
-  Star, 
-  Trash2, 
-  Eye, 
-  Table, 
-  Grid3X3, 
-  Layers, 
-  Building2, 
-  FileText, 
-  Plus, 
-  Upload, 
-  X, 
-  ChevronLeft, 
-  ChevronRight, 
-  Heading1
+import {
+  Package,
+  Tag,
+  Archive,
+  Settings2,
+  Star,
+  Trash2,
+  Eye,
+  Table,
+  Grid3X3,
+  Layers,
+  Building2,
+  FileText,
+  Plus,
+  Upload,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Heading1,
 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import { useCompanyStore } from "../../../store/companyStore";
@@ -48,6 +47,7 @@ import TableHeader from "../customComponents/CustomTableHeader";
 import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
+import SelectedCompany from "../customComponents/SelectedCompany";
 
 // Interfaces
 interface Unit {
@@ -148,37 +148,50 @@ const stepIcons = {
   basic: <Package className="w-2 h-2 md:w-5 md:h-5" />,
   tax: <FileText className="w-2 h-2 md:w-5 md:h-5" />,
   opening: <Star className="w-2 h-2 md:w-5 md:h-5" />,
-  settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />
+  settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />,
 };
 
 const ProductPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [isFormDirty, setIsFormDirty] = useState(false);
   useUnsavedChangesWarning(isFormDirty);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");
-  const [openingQuantities, setOpeningQuantities] = useState<OpeningQuantity[]>([
-    { id: 1, godown: "", batch: "", quantity: 0, rate: 0, amount: 0 }
-  ]);
+  const [openingQuantities, setOpeningQuantities] = useState<OpeningQuantity[]>(
+    [{ id: 1, godown: "", batch: "", quantity: 0, rate: 0, amount: 0 }]
+  );
   const [totalOpeningQuantity, setTotalOpeningQuantity] = useState<number>(0);
   const [usedQuantity, setUsedQuantity] = useState<number>(0);
   const [remainingQuantity, setRemainingQuantity] = useState<number>(0);
   const [viewingImage, setViewingImage] = useState<ProductImage | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
-  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "Active" | "Inactive"
+  >("all");
+  const [sortBy, setSortBy] = useState<
+    "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
+  >("nameAsc");
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10;
 
-  const { companies } = useCompanyStore();
+  const { companies, defaultSelected } = useCompanyStore();
   const { godowns } = useGodownStore();
   const { stockCategories } = useStockCategory();
   const { stockGroups } = useStockGroup();
   const { units } = useUOMStore();
-  const { fetchProducts, addProduct, updateProduct, deleteProduct, products, filterProducts, pagination, loading } = useProductStore();
-  
+  const {
+    fetchProducts,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    products,
+    filterProducts,
+    pagination,
+    loading,
+  } = useProductStore();
+
   const [country] = useState<string>("india");
   const [suppliers] = useState<Supplier[]>([
     { id: 1, name: "Tech Suppliers Inc", code: "SUP001" },
@@ -215,9 +228,16 @@ const ProductPage: React.FC = () => {
     },
     images: [],
     remarks: "",
-    status: "Active"
+    status: "Active",
   });
-
+  useEffect(() => {
+    if (defaultSelected && companies.length > 0) {
+      const selectedCompany = companies.find((c) => c._id === defaultSelected);
+      if (selectedCompany) {
+        setFormData((prev) => ({ ...prev, companyId: selectedCompany._id }));
+      }
+    }
+  }, [defaultSelected, companies]);
   // Initial fetch
   useEffect(() => {
     fetchProducts(currentPage, limit);
@@ -245,12 +265,19 @@ const ProductPage: React.FC = () => {
     };
   }, [searchTerm, statusFilter, sortBy, currentPage, filterProducts]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ): void => {
     const { name, value, type, checked } = e.target as HTMLInputElement;
     setIsFormDirty(true);
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : type === "number" ? Number(value) : value,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : type === "number"
+          ? Number(value)
+          : value,
     }));
   };
 
@@ -260,11 +287,15 @@ const ProductPage: React.FC = () => {
       ...prev,
       [name]: value,
     }));
+     if (name === "companyId") {
+    localStorage.setItem("selectedCompanyId", value);
+  }
   };
 
   const handleTaxChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value, type, checked } = e.target;
-    const newValue = type === "checkbox" ? checked : type === "number" ? Number(value) : value;
+    const newValue =
+      type === "checkbox" ? checked : type === "number" ? Number(value) : value;
     setIsFormDirty(true);
 
     setFormData((prev) => {
@@ -332,7 +363,8 @@ const ProductPage: React.FC = () => {
             [field]: value,
           };
           if (field === "quantity" || field === "rate") {
-            updatedItem.amount = Number(updatedItem.quantity) * Number(updatedItem.rate);
+            updatedItem.amount =
+              Number(updatedItem.quantity) * Number(updatedItem.rate);
           }
           return updatedItem;
         }
@@ -348,7 +380,10 @@ const ProductPage: React.FC = () => {
     }
   };
 
-  const handleProductImageUpload = (imageType: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProductImageUpload = (
+    imageType: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       setIsFormDirty(true);
@@ -361,7 +396,10 @@ const ProductPage: React.FC = () => {
       };
       setFormData((prev) => ({
         ...prev,
-        images: [...prev.images.filter((img) => img.angle !== imageType), newImage],
+        images: [
+          ...prev.images.filter((img) => img.angle !== imageType),
+          newImage,
+        ],
       }));
     }
   };
@@ -369,7 +407,11 @@ const ProductPage: React.FC = () => {
   const removeProductImage = (id: number) => {
     setIsFormDirty(true);
     const imageToRemove = formData.images.find((img) => img.id === id);
-    if (imageToRemove && imageToRemove.previewUrl && imageToRemove.previewUrl.startsWith('blob:')) {
+    if (
+      imageToRemove &&
+      imageToRemove.previewUrl &&
+      imageToRemove.previewUrl.startsWith("blob:")
+    ) {
       URL.revokeObjectURL(imageToRemove.previewUrl);
     }
     setFormData((prev) => ({
@@ -380,7 +422,7 @@ const ProductPage: React.FC = () => {
 
   const cleanupImageUrls = (): void => {
     formData.images.forEach((img) => {
-      if (img.previewUrl && img.previewUrl.startsWith('blob:')) {
+      if (img.previewUrl && img.previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(img.previewUrl);
       }
     });
@@ -416,10 +458,12 @@ const ProductPage: React.FC = () => {
       },
       images: [],
       remarks: "",
-      status: "Active"
+      status: "Active",
     });
     setEditingProduct(null);
-    setOpeningQuantities([{ id: 1, godown: "", batch: "", quantity: 0, rate: 0, amount: 0 }]);
+    setOpeningQuantities([
+      { id: 1, godown: "", batch: "", quantity: 0, rate: 0, amount: 0 },
+    ]);
     setTotalOpeningQuantity(0);
     setActiveTab("basic");
     setIsFormDirty(false);
@@ -455,11 +499,14 @@ const ProductPage: React.FC = () => {
       },
       images: product.images || [],
       remarks: product.remarks || "",
-      status: product.status || "Active"
+      status: product.status || "Active",
     });
     if (product.openingQuantities && product.openingQuantities.length > 0) {
       setOpeningQuantities(product.openingQuantities);
-      const totalQty = product.openingQuantities.reduce((sum, item) => sum + item.quantity, 0);
+      const totalQty = product.openingQuantities.reduce(
+        (sum, item) => sum + item.quantity,
+        0
+      );
       setTotalOpeningQuantity(totalQty);
     }
     setOpen(true);
@@ -502,31 +549,45 @@ const ProductPage: React.FC = () => {
       return;
     }
     if (remainingQuantity < 0) {
-      toast.error("Total quantity in the table exceeds the available opening quantity");
+      toast.error(
+        "Total quantity in the table exceeds the available opening quantity"
+      );
       return;
     }
 
     const productFormData = new FormData();
     Object.keys(formData).forEach((key) => {
       const value = formData[key as keyof ProductForm];
-      if (key === 'images' || key === 'taxConfiguration') return;
-      if (value !== null && value !== undefined && value !== '') {
+      if (key === "images" || key === "taxConfiguration") return;
+      if (value !== null && value !== undefined && value !== "") {
         productFormData.append(key, String(value));
       }
     });
-    productFormData.append('taxConfiguration', JSON.stringify(formData.taxConfiguration));
+    productFormData.append(
+      "taxConfiguration",
+      JSON.stringify(formData.taxConfiguration)
+    );
     const validOpeningQuantities = openingQuantities.filter(
       (q) => q.godown && (q.quantity > 0 || q.rate > 0)
     );
-    productFormData.append('openingQuantities', JSON.stringify(validOpeningQuantities));
+    productFormData.append(
+      "openingQuantities",
+      JSON.stringify(validOpeningQuantities)
+    );
     formData.images.forEach((image) => {
-      productFormData.append('productImages', image.file);
+      productFormData.append("productImages", image.file);
     });
-    productFormData.append('productImageTypes', JSON.stringify(formData.images.map((img) => img.angle)));
-    productFormData.append('productImagesCount', String(formData.images.length));
+    productFormData.append(
+      "productImageTypes",
+      JSON.stringify(formData.images.map((img) => img.angle))
+    );
+    productFormData.append(
+      "productImagesCount",
+      String(formData.images.length)
+    );
 
     if (editingProduct) {
-      updateProduct({ id: editingProduct._id || '', product: productFormData });
+      updateProduct({ id: editingProduct._id || "", product: productFormData });
     } else {
       addProduct(productFormData);
     }
@@ -535,14 +596,17 @@ const ProductPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const used = openingQuantities.reduce((sum, item) => sum + item.quantity, 0);
+    const used = openingQuantities.reduce(
+      (sum, item) => sum + item.quantity,
+      0
+    );
     setUsedQuantity(used);
     setRemainingQuantity(totalOpeningQuantity - used);
   }, [openingQuantities, totalOpeningQuantity]);
 
   const getCompanyName = (companyId: string) => {
     const company = companies?.find((c) => c._id === companyId);
-    return company ? company?.namePrint : 'Unknown Company';
+    return company ? company?.namePrint : "Unknown Company";
   };
 
   const getStockGroupName = (stockGroupId: string) => {
@@ -560,12 +624,31 @@ const ProductPage: React.FC = () => {
     return unit ? unit.name : unitId;
   };
 
+  const getMaintainGodownStatus = (companyId: string) => {
+    const company = companies?.find((c) => c._id === companyId);
+    return company ? company?.maintainGodown : false;
+  };
+
+  const getMaintainBatchStatus = (companyId: string) => {
+    const company = companies?.find((c) => c._id === companyId);
+      // console.log("Selected company:", company);
+    return company ? company?.maintainBatch : false;
+  };
+
+ const selectedCompanyId = defaultSelected;
+
+
   const stats = useMemo(
     () => ({
       totalProducts: pagination?.total || 0,
-      activeProducts: statusFilter === 'Active' ? pagination?.total : filteredProducts?.filter((p) => p.status === 'Active').length || 0,
+      activeProducts:
+        statusFilter === "Active"
+          ? pagination?.total
+          : filteredProducts?.filter((p) => p.status === "Active").length || 0,
       batchProducts: filteredProducts?.filter((p) => p.batch).length || 0,
-      taxableProducts: filteredProducts?.filter((p) => p.taxConfiguration?.applicable).length || 0,
+      taxableProducts:
+        filteredProducts?.filter((p) => p.taxConfiguration?.applicable)
+          .length || 0,
     }),
     [filteredProducts, pagination, statusFilter]
   );
@@ -576,77 +659,110 @@ const ProductPage: React.FC = () => {
     { id: "opening", label: "Opening" },
     { id: "settings", label: "Settings" },
   ];
-  const headers=["Product", "Details", "Company", "Stock Group", "Category", "Status", "Actions"];
+  const headers = [
+    "Product",
+    "Details",
+    "Company",
+    "Stock Group",
+    "Category",
+    "Status",
+    "Actions",
+  ];
 
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-         
           <TableHeader headers={headers} />
 
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredProducts.map((product) =>
-            {
-              console.log('Rendering product:', product);
+            {filteredProducts.map((product) => {
+              console.log("Rendering product:", product);
               return (
-              <tr key={product._id} className="hover:bg-gray-50 transition-colors duration-200">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <Package className="h-10 w-10 text-teal-600 mr-3" />
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                      <div className="text-sm text-teal-600">{product.code}</div>
-                      {product.partNo && (
-                        <div className="text-xs text-gray-500">Part: {product.partNo}</div>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 space-y-1">
+                <tr
+                  key={product._id}
+                  className="hover:bg-gray-50 transition-colors duration-200"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <Archive className="w-3 h-3 text-gray-400 mr-2" />
-                      <span>Unit: {getUnitName(product?.unit?.name)}</span>
-                    </div>
-                    {product?.minimumQuantity && product?.minimumQuantity > 0 && (
-                      <div className="flex items-center">
-                        <Settings2 className="w-3 h-3 text-gray-400 mr-2" />
-                        <span>Min Qty: {product?.minimumQuantity}</span>
+                      <Package className="h-10 w-10 text-teal-600 mr-3" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {product.name}
+                        </div>
+                        <div className="text-sm text-teal-600">
+                          {product.code}
+                        </div>
+                        {product.partNo && (
+                          <div className="text-xs text-gray-500">
+                            Part: {product.partNo}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div className="flex items-center">
-                      <Tag className="w-3 h-3 text-gray-400 mr-2" />
-                      <span>Batch: {product?.batch ? "Yes" : "No"}</span>
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{getCompanyName(product?.companyId || "")}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{getStockGroupName(product?.stockGroup?.name)}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{getCategoryName(product?.stockCategory?.name)}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={`${product.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-current`}>
-                    {product.status}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <CheckAccess module="InventoryManagement" subModule="product" type="edit">
-                    <ActionsDropdown
-                      onEdit={() => handleEditProduct(product)}
-                      onDelete={() => handleDeleteProduct(product._id || '')}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 space-y-1">
+                      <div className="flex items-center">
+                        <Archive className="w-3 h-3 text-gray-400 mr-2" />
+                        <span>Unit: {getUnitName(product?.unit?.name)}</span>
+                      </div>
+                      {product?.minimumQuantity &&
+                        product?.minimumQuantity > 0 && (
+                          <div className="flex items-center">
+                            <Settings2 className="w-3 h-3 text-gray-400 mr-2" />
+                            <span>Min Qty: {product?.minimumQuantity}</span>
+                          </div>
+                        )}
+                      <div className="flex items-center">
+                        <Tag className="w-3 h-3 text-gray-400 mr-2" />
+                        <span>Batch: {product?.batch ? "Yes" : "No"}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {getCompanyName(product?.companyId || "")}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {getStockGroupName(product?.stockGroup?.name)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {getCategoryName(product?.stockCategory?.name)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge
+                      className={`${
+                        product.status === "Active"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-700"
+                      } hover:bg-current`}
+                    >
+                      {product.status}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <CheckAccess
                       module="InventoryManagement"
                       subModule="product"
-                    />
-                  </CheckAccess>
-                </td>
-              </tr>
-            )})}
+                      type="edit"
+                    >
+                      <ActionsDropdown
+                        onEdit={() => handleEditProduct(product)}
+                        onDelete={() => handleDeleteProduct(product._id || "")}
+                        module="InventoryManagement"
+                        subModule="product"
+                      />
+                    </CheckAccess>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -656,7 +772,10 @@ const ProductPage: React.FC = () => {
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
       {filteredProducts.map((product: Product) => (
-        <Card key={product._id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group">
+        <Card
+          key={product._id}
+          className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group"
+        >
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
             <div className="flex items-start justify-between">
               <div>
@@ -665,17 +784,29 @@ const ProductPage: React.FC = () => {
                 </CardTitle>
                 <p className="text-teal-600 font-medium">{product.code}</p>
                 {product.partNo && (
-                  <p className="text-sm text-gray-600 mt-1">Part No: {product.partNo}</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Part No: {product.partNo}
+                  </p>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Badge className={`${product.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-current`}>
+                <Badge
+                  className={`${
+                    product.status === "Active"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-700"
+                  } hover:bg-current`}
+                >
                   {product.status}
                 </Badge>
-                <CheckAccess module="InventoryManagement" subModule="product" type="edit">
+                <CheckAccess
+                  module="InventoryManagement"
+                  subModule="product"
+                  type="edit"
+                >
                   <ActionsDropdown
                     onEdit={() => handleEditProduct(product)}
-                    onDelete={() => handleDeleteProduct(product._id || '')}
+                    onDelete={() => handleDeleteProduct(product._id || "")}
                     module="InventoryManagement"
                     subModule="product"
                   />
@@ -687,39 +818,55 @@ const ProductPage: React.FC = () => {
             <div className="space-y-3">
               <div className="flex items-center text-sm">
                 <Building2 className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Company: {getCompanyName(product.companyId || "")}</span>
+                <span className="text-gray-600">
+                  Company: {getCompanyName(product.companyId || "")}
+                </span>
               </div>
               <div className="flex items-center text-sm">
                 <Layers className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Group: {getStockGroupName(product.stockGroup?.name)}</span>
+                <span className="text-gray-600">
+                  Group: {getStockGroupName(product.stockGroup?.name)}
+                </span>
               </div>
               <div className="flex items-center text-sm">
                 <Package className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Category: {getCategoryName(product.stockCategory.name)}</span>
+                <span className="text-gray-600">
+                  Category: {getCategoryName(product.stockCategory.name)}
+                </span>
               </div>
               <div className="flex items-center text-sm">
                 <Archive className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Unit: {getUnitName(product.unit.name)}</span>
+                <span className="text-gray-600">
+                  Unit: {getUnitName(product.unit.name)}
+                </span>
               </div>
               {product.minimumQuantity && product.minimumQuantity > 0 && (
                 <div className="flex items-center text-sm">
                   <Settings2 className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">Min Qty: {product.minimumQuantity}</span>
+                  <span className="text-gray-600">
+                    Min Qty: {product.minimumQuantity}
+                  </span>
                 </div>
               )}
               <div className="flex items-center text-sm">
                 <Tag className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Batch: {product.batch ? "Yes" : "No"}</span>
+                <span className="text-gray-600">
+                  Batch: {product.batch ? "Yes" : "No"}
+                </span>
               </div>
               {product.taxConfiguration?.applicable && (
                 <div className="flex items-center text-sm">
                   <FileText className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">Tax: {product.taxConfiguration.taxPercentage}%</span>
+                  <span className="text-gray-600">
+                    Tax: {product.taxConfiguration.taxPercentage}%
+                  </span>
                 </div>
               )}
               <div className="flex items-center text-sm">
                 <Star className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Created: {new Date(product.createdAt).toLocaleDateString()}</span>
+                <span className="text-gray-600">
+                  Created: {new Date(product.createdAt).toLocaleDateString()}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -728,14 +875,18 @@ const ProductPage: React.FC = () => {
     </div>
   );
 
-
-  
-
   return (
     <div className="custom-container">
       <div className="flex justify-between items-center mb-8">
-        <HeaderGradient title="Product Management" subtitle="Manage your product inventory and details" />
-        <CheckAccess module="InventoryManagement" subModule="product" type="create">
+        <HeaderGradient
+          title="Product Management"
+          subtitle="Manage your product inventory and details"
+        />
+        <CheckAccess
+          module="InventoryManagement"
+          subModule="product"
+          type="create"
+        >
           <Button
             onClick={() => {
               resetForm();
@@ -754,7 +905,9 @@ const ProductPage: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-teal-100 text-sm font-medium">Total Products</p>
+                <p className="text-teal-100 text-sm font-medium">
+                  Total Products
+                </p>
                 <p className="text-3xl font-bold">{stats?.totalProducts}</p>
               </div>
               <Package className="w-8 h-8 text-teal-200" />
@@ -765,7 +918,9 @@ const ProductPage: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">Active Products</p>
+                <p className="text-blue-100 text-sm font-medium">
+                  Active Products
+                </p>
                 <p className="text-3xl font-bold">{stats?.activeProducts}</p>
               </div>
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
@@ -776,7 +931,9 @@ const ProductPage: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Batch Managed</p>
+                <p className="text-green-100 text-sm font-medium">
+                  Batch Managed
+                </p>
                 <p className="text-3xl font-bold">{stats?.batchProducts}</p>
               </div>
               <Tag className="w-8 h-8 text-green-200" />
@@ -787,7 +944,9 @@ const ProductPage: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Taxable Products</p>
+                <p className="text-purple-100 text-sm font-medium">
+                  Taxable Products
+                </p>
                 <p className="text-3xl font-bold">{stats.taxableProducts}</p>
               </div>
               <FileText className="w-8 h-8 text-purple-200" />
@@ -804,73 +963,77 @@ const ProductPage: React.FC = () => {
         sortBy={sortBy}
         setSortBy={setSortBy}
         onClearFilters={() => {
-          setSearchTerm('');
-          setStatusFilter('all');
-          setSortBy('nameAsc');
+          setSearchTerm("");
+          setStatusFilter("all");
+          setSortBy("nameAsc");
           setCurrentPage(1);
         }}
       />
       {loading && <TableViewSkeleton />}
 
-      <ViewModeToggle 
-        viewMode={viewMode} 
-        setViewMode={setViewMode} 
-        totalItems={pagination?.total} 
+      <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={pagination?.total}
       />
 
       {pagination?.total === 0 ? (
-      <EmptyStateCard
-              icon={Package}
-              title="No products registered yet"
-              description="Create your first product to get started"
-              buttonLabel="Add Your First Product"
-              module="InventoryManagement"
-              subModule="product"
-              type="create"
-              onButtonClick={() => setOpen(true)}
-            />
-        
-        
+        <EmptyStateCard
+          icon={Package}
+          title="No products registered yet"
+          description="Create your first product to get started"
+          buttonLabel="Add Your First Product"
+          module="InventoryManagement"
+          subModule="product"
+          type="create"
+          onButtonClick={() => setOpen(true)}
+        />
       ) : (
         <>
-          {viewMode === 'table' ? <TableView /> : <CardView />}
-        
-               <PaginationControls
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        pagination={pagination}
-        itemName="products"
-      />
-          
+          {viewMode === "table" ? <TableView /> : <CardView />}
+
+          <PaginationControls
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            pagination={pagination}
+            itemName="products"
+          />
         </>
       )}
 
-      <Dialog open={open} onOpenChange={(isOpen) => {
-        setOpen(isOpen);
-        if (!isOpen) {
-          resetForm();
-        }
-      }}>
+      <Dialog
+        open={open}
+        onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            resetForm();
+          }
+        }}
+      >
         <DialogContent className="custom-dialog-container">
           <CustomFormDialogHeader
             title={editingProduct ? "Edit Product" : "Add New Product"}
-            subtitle={editingProduct ? "Update the product details" : "Complete product registration information"}
+            subtitle={
+              editingProduct
+                ? "Update the product details"
+                : "Complete product registration information"
+            }
           />
-          <MultiStepNav 
-            steps={tabs} 
-            currentStep={activeTab} 
-            onStepChange={setActiveTab} 
+          <MultiStepNav
+            steps={tabs}
+            currentStep={activeTab}
+            onStepChange={setActiveTab}
             stepIcons={stepIcons}
           />
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <SectionHeader
-        icon={<Package className="w-4 h-4 text-white" />}
-        title="Product Information"
-        gradientFrom="from-pink-400"
-        gradientTo="to-pink-500"
-      />  
+                  icon={<Package className="w-4 h-4 text-white" />}
+                  title="Product Information"
+                  gradientFrom="from-pink-400"
+                  gradientTo="to-pink-500"
+                />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Product Code"
@@ -896,67 +1059,81 @@ const ProductPage: React.FC = () => {
                     onChange={handleChange}
                   />
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Company</label>
-                    <select
-                      value={formData.companyId}
-                      onChange={(e) => handleSelectChange("companyId", e.target.value)}
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Company</option>
-                      {companies.map((company) => (
-                        <option key={company._id} value={company._id}>{company.namePrint}</option>
-                      ))}
-                    </select>
+                   <SelectedCompany/>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Stock Group</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Stock Group
+                    </label>
                     <select
                       value={formData.stockGroup}
-                      onChange={(e) => handleSelectChange("stockGroup", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("stockGroup", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Stock Group</option>
                       {stockGroups.map((group) => (
-                        <option key={group._id} value={group._id}>{group.name} ({group.code})</option>
+                        <option key={group._id} value={group._id}>
+                          {group.name} ({group.code})
+                        </option>
                       ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Stock Category</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Stock Category
+                    </label>
                     <select
                       value={formData.stockCategory}
-                      onChange={(e) => handleSelectChange("stockCategory", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("stockCategory", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Stock Category</option>
                       {stockCategories.map((category) => (
-                        <option key={category._id} value={category._id}>{category.name}</option>
+                        <option key={category._id} value={category._id}>
+                          {category.name}
+                        </option>
                       ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Unit</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Unit
+                    </label>
                     <select
                       value={formData.unit}
-                      onChange={(e) => handleSelectChange("unit", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("unit", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Unit</option>
                       {units.map((unit) => (
-                        <option key={unit._id} value={unit._id}>{unit.name} {unit.symbol && `(${unit.symbol})`}</option>
+                        <option key={unit._id} value={unit._id}>
+                          {unit.name} {unit.symbol && `(${unit.symbol})`}
+                        </option>
                       ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Alternate Unit</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Alternate Unit
+                    </label>
                     <select
                       value={formData.alternateUnit}
-                      onChange={(e) => handleSelectChange("alternateUnit", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("alternateUnit", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Alternate Unit</option>
                       {units.map((unit) => (
-                        <option key={unit._id} value={unit._id}>{unit.name} {unit.symbol && `(${unit.symbol})`}</option>
+                        <option key={unit._id} value={unit._id}>
+                          {unit.name} {unit.symbol && `(${unit.symbol})`}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -970,15 +1147,21 @@ const ProductPage: React.FC = () => {
                     min="0"
                   />
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Default Supplier</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Default Supplier
+                    </label>
                     <select
                       value={formData.defaultSupplier}
-                      onChange={(e) => handleSelectChange("defaultSupplier", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("defaultSupplier", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Default Supplier</option>
                       {suppliers.map((supplier) => (
-                        <option key={supplier.id} value={supplier.name}>{supplier.name} ({supplier.code})</option>
+                        <option key={supplier.id} value={supplier.name}>
+                          {supplier.name} ({supplier.code})
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -1003,23 +1186,33 @@ const ProductPage: React.FC = () => {
                     step="0.01"
                   />
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Default Godown</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Default Godown
+                    </label>
                     <select
                       value={formData.defaultGodown}
-                      onChange={(e) => handleSelectChange("defaultGodown", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("defaultGodown", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Default Godown</option>
                       {godowns.map((godown) => (
-                        <option key={godown._id} value={godown._id}>{godown.name} ({godown.code})</option>
+                        <option key={godown._id} value={godown._id}>
+                          {godown.name} ({godown.code})
+                        </option>
                       ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Product Type</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Product Type
+                    </label>
                     <select
                       value={formData.productType}
-                      onChange={(e) => handleSelectChange("productType", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("productType", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Product Type</option>
@@ -1028,10 +1221,14 @@ const ProductPage: React.FC = () => {
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Status</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Status
+                    </label>
                     <select
                       value={formData.status}
-                      onChange={(e) => handleSelectChange("status", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("status", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="Active">Active</option>
@@ -1062,14 +1259,16 @@ const ProductPage: React.FC = () => {
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <SectionHeader
-        icon={<FileText className="w-4 h-4 text-white" />}
-        title="Tax Configuration"
-        gradientFrom="from-blue-400"
-        gradientTo="to-blue-500"
-      />  
+                  icon={<FileText className="w-4 h-4 text-white" />}
+                  title="Tax Configuration"
+                  gradientFrom="from-blue-400"
+                  gradientTo="to-blue-500"
+                />
                 <div className="mb-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Tax Applicability</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Tax Applicability
+                    </label>
                     <div className="flex items-center space-x-4 mt-2">
                       <div className="flex items-center space-x-2">
                         <input
@@ -1077,10 +1276,24 @@ const ProductPage: React.FC = () => {
                           id="tax-applicable"
                           name="applicable"
                           checked={formData.taxConfiguration.applicable}
-                          onChange={() => handleTaxChange({ target: { name: 'applicable', value: true, type: 'checkbox', checked: true } } as React.ChangeEvent<HTMLInputElement>)}
+                          onChange={() =>
+                            handleTaxChange({
+                              target: {
+                                name: "applicable",
+                                value: true,
+                                type: "checkbox",
+                                checked: true,
+                              },
+                            } as React.ChangeEvent<HTMLInputElement>)
+                          }
                           className="w-4 h-4 text-teal-600 focus:ring-teal-500"
                         />
-                        <label htmlFor="tax-applicable" className="text-sm font-medium text-green-700">Applicable</label>
+                        <label
+                          htmlFor="tax-applicable"
+                          className="text-sm font-medium text-green-700"
+                        >
+                          Applicable
+                        </label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <input
@@ -1088,10 +1301,24 @@ const ProductPage: React.FC = () => {
                           id="tax-not-applicable"
                           name="applicable"
                           checked={!formData.taxConfiguration.applicable}
-                          onChange={() => handleTaxChange({ target: { name: 'applicable', value: false, type: 'checkbox', checked: false } } as React.ChangeEvent<HTMLInputElement>)}
+                          onChange={() =>
+                            handleTaxChange({
+                              target: {
+                                name: "applicable",
+                                value: false,
+                                type: "checkbox",
+                                checked: false,
+                              },
+                            } as React.ChangeEvent<HTMLInputElement>)
+                          }
                           className="w-4 h-4 text-teal-600 focus:ring-teal-500"
                         />
-                        <label htmlFor="tax-not-applicable" className="text-sm font-medium text-red-700">Not Applicable</label>
+                        <label
+                          htmlFor="tax-not-applicable"
+                          className="text-sm font-medium text-red-700"
+                        >
+                          Not Applicable
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -1168,15 +1395,23 @@ const ProductPage: React.FC = () => {
                             step="0.01"
                           />
                         </div>
-                        {(formData.taxConfiguration.cgst + formData.taxConfiguration.sgst > formData.taxConfiguration.taxPercentage) && (
+                        {formData.taxConfiguration.cgst +
+                          formData.taxConfiguration.sgst >
+                          formData.taxConfiguration.taxPercentage && (
                           <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
                             <p className="text-red-700 text-sm font-medium">
-                              Warning: CGST + SGST ({formData.taxConfiguration.cgst + formData.taxConfiguration.sgst}%) exceeds Tax Percentage ({formData.taxConfiguration.taxPercentage}%)
+                              Warning: CGST + SGST (
+                              {formData.taxConfiguration.cgst +
+                                formData.taxConfiguration.sgst}
+                              %) exceeds Tax Percentage (
+                              {formData.taxConfiguration.taxPercentage}%)
                             </p>
                           </div>
                         )}
                         <div className="mt-4 p-3 bg-blue-50 border border-teal-200 rounded-md">
-                          <p className="text-teal-700 text-sm font-medium mb-2">Tax Summary:</p>
+                          <p className="text-teal-700 text-sm font-medium mb-2">
+                            Tax Summary:
+                          </p>
                           <div className="text-sm text-teal-600 space-y-1">
                             <div className="flex justify-between">
                               <span>CGST:</span>
@@ -1192,11 +1427,19 @@ const ProductPage: React.FC = () => {
                             </div>
                             <div className="flex justify-between">
                               <span>Additional Cess:</span>
-                              <span>{formData.taxConfiguration.additionalCess}%</span>
+                              <span>
+                                {formData.taxConfiguration.additionalCess}%
+                              </span>
                             </div>
                             <div className="flex justify-between font-semibold border-t border-teal-300 pt-1">
                               <span>Total:</span>
-                              <span>{formData.taxConfiguration.cgst + formData.taxConfiguration.sgst + formData.taxConfiguration.cess + formData.taxConfiguration.additionalCess}%</span>
+                              <span>
+                                {formData.taxConfiguration.cgst +
+                                  formData.taxConfiguration.sgst +
+                                  formData.taxConfiguration.cess +
+                                  formData.taxConfiguration.additionalCess}
+                                %
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1216,8 +1459,12 @@ const ProductPage: React.FC = () => {
                   <div className="flex items-center justify-center py-16">
                     <div className="text-center">
                       <Archive className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 text-lg font-medium">Tax Not Applicable</p>
-                      <p className="text-gray-400 text-sm">This product is not subject to tax</p>
+                      <p className="text-gray-500 text-lg font-medium">
+                        Tax Not Applicable
+                      </p>
+                      <p className="text-gray-400 text-sm">
+                        This product is not subject to tax
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1226,24 +1473,40 @@ const ProductPage: React.FC = () => {
                   totalSteps={4}
                   onPrevious={() => setActiveTab("basic")}
                   onNext={() => setActiveTab("opening")}
-                  nextDisabled={formData.taxConfiguration.applicable && !isTaxValid()}
+                  nextDisabled={
+                    formData.taxConfiguration.applicable && !isTaxValid()
+                  }
                 />
               </div>
             )}
             {activeTab === "opening" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <SectionHeader
-        icon={<Star className="w-4 h-4 text-white" />}
-        title="Opening Stock Details"
-        gradientFrom="from-blue-400"
-        gradientTo="to-blue-500"
-      />  
+                  icon={<Star className="w-4 h-4 text-white" />}
+                  title="Opening Stock Details"
+                  gradientFrom="from-blue-400"
+                  gradientTo="to-blue-500"
+                />
                 <div className="mb-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-semibold text-gray-700">Total Opening Quantity</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Total Opening Quantity
+                    </label>
                     <div className="flex items-center space-x-4">
-                      <span className="text-sm text-teal-600">Used: <span className="font-semibold">{usedQuantity}</span></span>
-                      <span className="text-sm text-teal-600">Remaining: <span className={`font-semibold ${remainingQuantity < 0 ? "text-red-600" : ""}`}>{remainingQuantity}</span></span>
+                      <span className="text-sm text-teal-600">
+                        Used:{" "}
+                        <span className="font-semibold">{usedQuantity}</span>
+                      </span>
+                      <span className="text-sm text-teal-600">
+                        Remaining:{" "}
+                        <span
+                          className={`font-semibold ${
+                            remainingQuantity < 0 ? "text-red-600" : ""
+                          }`}
+                        >
+                          {remainingQuantity}
+                        </span>
+                      </span>
                     </div>
                   </div>
                   <input
@@ -1251,7 +1514,9 @@ const ProductPage: React.FC = () => {
                     value={totalOpeningQuantity}
                     onChange={(e) => {
                       setIsFormDirty(true);
-                      setTotalOpeningQuantity(Math.max(0, Number(e.target.value)));
+                      setTotalOpeningQuantity(
+                        Math.max(0, Number(e.target.value))
+                      );
                     }}
                     min="0"
                     step="0.01"
@@ -1260,7 +1525,8 @@ const ProductPage: React.FC = () => {
                   />
                   {remainingQuantity < 0 && (
                     <p className="text-red-500 text-sm mt-2">
-                      The total quantity in the table exceeds the available opening quantity.
+                      The total quantity in the table exceeds the available
+                      opening quantity.
                     </p>
                   )}
                 </div>
@@ -1268,44 +1534,84 @@ const ProductPage: React.FC = () => {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="bg-teal-50">
-                        <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">Godown</th>
-                        <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">Batch</th>
-                        <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">Quantity</th>
-                        <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">Rate</th>
-                        <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">Amount</th>
-                        <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">Actions</th>
+                        {getMaintainGodownStatus(selectedCompanyId || "") && (
+                          <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">
+                            Godown
+                          </th>
+                        )}
+                        {getMaintainBatchStatus(selectedCompanyId || "") && (
+                          <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">
+                            Batch
+                          </th>
+                        )}
+                        <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">
+                          Quantity
+                        </th>
+                        <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">
+                          Rate
+                        </th>
+                        <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">
+                          Amount
+                        </th>
+                        <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
+
                     <tbody>
                       {openingQuantities.map((item) => (
                         <tr key={item.id}>
-                          <td className="p-2 border border-teal-200">
-                            <select
-                              value={item.godown}
-                              onChange={(e) => handleOpeningQuantityChange(item.id, "godown", e.target.value)}
-                              className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                            >
-                              <option value="">Select Godown</option>
-                              {godowns.map((godown) => (
-                                <option key={godown._id} value={godown._id}>{godown.name} ({godown.code})</option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="p-2 border border-teal-200">
-                            <input
-                              type="text"
-                              value={item.batch}
-                              onChange={(e) => handleOpeningQuantityChange(item.id, "batch", e.target.value)}
-                              className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                              placeholder="Enter batch number"
-                              disabled={!formData.batch}
-                            />
-                          </td>
+                          {getMaintainGodownStatus(selectedCompanyId || "") && (
+                            <td className="p-2 border border-teal-200">
+                              <select
+                                value={item.godown}
+                                onChange={(e) =>
+                                  handleOpeningQuantityChange(
+                                    item.id,
+                                    "godown",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                              >
+                                <option value="">Select Godown</option>
+                                {godowns.map((godown) => (
+                                  <option key={godown._id} value={godown._id}>
+                                    {godown.name} ({godown.code})
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          )}
+                          {getMaintainBatchStatus(selectedCompanyId || "") && (
+                            <td className="p-2 border border-teal-200">
+                              <input
+                                type="text"
+                                value={item.batch}
+                                onChange={(e) =>
+                                  handleOpeningQuantityChange(
+                                    item.id,
+                                    "batch",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                                placeholder="Enter batch number"
+                              />
+                            </td>
+                          )}
                           <td className="p-2 border border-teal-200">
                             <input
                               type="number"
                               value={item.quantity}
-                              onChange={(e) => handleOpeningQuantityChange(item.id, "quantity", Number(e.target.value))}
+                              onChange={(e) =>
+                                handleOpeningQuantityChange(
+                                  item.id,
+                                  "quantity",
+                                  Number(e.target.value)
+                                )
+                              }
                               className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                               min="0"
                               step="0.01"
@@ -1316,7 +1622,13 @@ const ProductPage: React.FC = () => {
                             <input
                               type="number"
                               value={item.rate}
-                              onChange={(e) => handleOpeningQuantityChange(item.id, "rate", Number(e.target.value))}
+                              onChange={(e) =>
+                                handleOpeningQuantityChange(
+                                  item.id,
+                                  "rate",
+                                  Number(e.target.value)
+                                )
+                              }
                               className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                               min="0"
                               step="0.01"
@@ -1367,66 +1679,105 @@ const ProductPage: React.FC = () => {
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <SectionHeader
-        icon={<Settings2 className="w-4 h-4 text-white" />}
-        title="Product Settings"
-        gradientFrom="from-cyan-400"
-        gradientTo="to-cyan-500"
-      />  
+                  icon={<Settings2 className="w-4 h-4 text-white" />}
+                  title="Product Settings"
+                  gradientFrom="from-cyan-400"
+                  gradientTo="to-cyan-500"
+                />
                 <div className="mb-6">
-                  <h4 className="text-md font-semibold text-gray-800 mb-3">Product Images</h4>
+                  <h4 className="text-md font-semibold text-gray-800 mb-3">
+                    Product Images
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {['Front', 'Back', 'Left', 'Right', 'Top', 'Bottom'].map((imageType) => (
-                      <div key={imageType} className="p-4 bg-white rounded-lg border border-teal-200">
-                        <p className="text-sm font-medium text-teal-700 mb-2">{imageType} View</p>
-                        <div className="flex items-center justify-between">
-                          <input
-                            type="file"
-                            id={`${imageType.toLowerCase()}-image`}
-                            className="hidden"
-                            onChange={(e) => handleProductImageUpload(imageType, e)}
-                            accept="image/*"
-                          />
-                          <label
-                            htmlFor={`${imageType.toLowerCase()}-image`}
-                            className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Upload
-                          </label>
-                          {formData.images.find((img) => img.angle === imageType) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeProductImage(formData.images.find((img) => img.angle === imageType)!.id)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    {["Front", "Back", "Left", "Right", "Top", "Bottom"].map(
+                      (imageType) => (
+                        <div
+                          key={imageType}
+                          className="p-4 bg-white rounded-lg border border-teal-200"
+                        >
+                          <p className="text-sm font-medium text-teal-700 mb-2">
+                            {imageType} View
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <input
+                              type="file"
+                              id={`${imageType.toLowerCase()}-image`}
+                              className="hidden"
+                              onChange={(e) =>
+                                handleProductImageUpload(imageType, e)
+                              }
+                              accept="image/*"
+                            />
+                            <label
+                              htmlFor={`${imageType.toLowerCase()}-image`}
+                              className="px-4 py-2 bg-teal-50 text-teal-700 rounded-md cursor-pointer hover:bg-teal-100 transition-colors flex items-center"
                             >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                        {formData.images.find((img) => img.angle === imageType) && (
-                          <div className="mt-2">
-                            <p className="text-xs text-gray-500 truncate">
-                              {formData.images.find((img) => img.angle === imageType)?.file?.name}
-                            </p>
-                            {formData.images.find((img) => img.angle === imageType)?.previewUrl && (
-                              <div className="mt-2">
-                                <img
-                                  src={formData.images.find((img) => img.angle === imageType)?.previewUrl}
-                                  alt={`${imageType} view`}
-                                  className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75"
-                                  onClick={() => setViewingImage(formData.images.find((img) => img.angle === imageType)!)}
-                                />
-                              </div>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Upload
+                            </label>
+                            {formData.images.find(
+                              (img) => img.angle === imageType
+                            ) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  removeProductImage(
+                                    formData.images.find(
+                                      (img) => img.angle === imageType
+                                    )!.id
+                                  )
+                                }
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
                             )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {formData.images.find(
+                            (img) => img.angle === imageType
+                          ) && (
+                            <div className="mt-2">
+                              <p className="text-xs text-gray-500 truncate">
+                                {
+                                  formData.images.find(
+                                    (img) => img.angle === imageType
+                                  )?.file?.name
+                                }
+                              </p>
+                              {formData.images.find(
+                                (img) => img.angle === imageType
+                              )?.previewUrl && (
+                                <div className="mt-2">
+                                  <img
+                                    src={
+                                      formData.images.find(
+                                        (img) => img.angle === imageType
+                                      )?.previewUrl
+                                    }
+                                    alt={`${imageType} view`}
+                                    className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75"
+                                    onClick={() =>
+                                      setViewingImage(
+                                        formData.images.find(
+                                          (img) => img.angle === imageType
+                                        )!
+                                      )
+                                    }
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Product Remarks</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">
+                    Product Remarks
+                  </p>
                   <textarea
                     placeholder="Add any additional remarks about the product..."
                     name="remarks"
@@ -1439,30 +1790,74 @@ const ProductPage: React.FC = () => {
                 <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                   <h4 className="font-medium text-gray-800 mb-2">Summary</h4>
                   <div className="space-y-2 text-sm text-gray-600">
-                    <p><strong>Code:</strong> {formData.code || 'Not specified'}</p>
-                    <p><strong>Name:</strong> {formData.name || 'Not specified'}</p>
-                    <p><strong>Part No:</strong> {formData.partNo || 'Not specified'}</p>
-                    <p><strong>Company:</strong> {getCompanyName(formData.companyId || '')}</p>
-                    <p><strong>Stock Group:</strong> {getStockGroupName(formData.stockGroup)}</p>
-                    <p><strong>Category:</strong> {getCategoryName(formData.stockCategory)}</p>
-                    <p><strong>Unit:</strong> {getUnitName(formData.unit)}</p>
-                    <p><strong>Batch Managed:</strong> {formData.batch ? 'Yes' : 'No'}</p>
-                    <p><strong>Tax Applicable:</strong> {formData.taxConfiguration.applicable ? 'Yes' : 'No'}</p>
+                    <p>
+                      <strong>Code:</strong> {formData.code || "Not specified"}
+                    </p>
+                    <p>
+                      <strong>Name:</strong> {formData.name || "Not specified"}
+                    </p>
+                    <p>
+                      <strong>Part No:</strong>{" "}
+                      {formData.partNo || "Not specified"}
+                    </p>
+                    <p>
+                      <strong>Company:</strong>{" "}
+                      {getCompanyName(formData.companyId || "")}
+                    </p>
+                    <p>
+                      <strong>Stock Group:</strong>{" "}
+                      {getStockGroupName(formData.stockGroup)}
+                    </p>
+                    <p>
+                      <strong>Category:</strong>{" "}
+                      {getCategoryName(formData.stockCategory)}
+                    </p>
+                    <p>
+                      <strong>Unit:</strong> {getUnitName(formData.unit)}
+                    </p>
+                    <p>
+                      <strong>Batch Managed:</strong>{" "}
+                      {formData.batch ? "Yes" : "No"}
+                    </p>
+                    <p>
+                      <strong>Tax Applicable:</strong>{" "}
+                      {formData.taxConfiguration.applicable ? "Yes" : "No"}
+                    </p>
                     {formData.taxConfiguration.applicable && (
                       <>
-                        <p><strong>HSN Code:</strong> {formData.taxConfiguration.hsnCode || 'Not specified'}</p>
-                        <p><strong>Tax Percentage:</strong> {formData.taxConfiguration.taxPercentage}%</p>
+                        <p>
+                          <strong>HSN Code:</strong>{" "}
+                          {formData.taxConfiguration.hsnCode || "Not specified"}
+                        </p>
+                        <p>
+                          <strong>Tax Percentage:</strong>{" "}
+                          {formData.taxConfiguration.taxPercentage}%
+                        </p>
                         {country.toLowerCase() === "india" && (
                           <>
-                            <p><strong>CGST:</strong> {formData.taxConfiguration.cgst}%</p>
-                            <p><strong>SGST:</strong> {formData.taxConfiguration.sgst}%</p>
-                            <p><strong>Cess:</strong> {formData.taxConfiguration.cess}%</p>
-                            <p><strong>Additional Cess:</strong> {formData.taxConfiguration.additionalCess}%</p>
+                            <p>
+                              <strong>CGST:</strong>{" "}
+                              {formData.taxConfiguration.cgst}%
+                            </p>
+                            <p>
+                              <strong>SGST:</strong>{" "}
+                              {formData.taxConfiguration.sgst}%
+                            </p>
+                            <p>
+                              <strong>Cess:</strong>{" "}
+                              {formData.taxConfiguration.cess}%
+                            </p>
+                            <p>
+                              <strong>Additional Cess:</strong>{" "}
+                              {formData.taxConfiguration.additionalCess}%
+                            </p>
                           </>
                         )}
                       </>
                     )}
-                    <p><strong>Status:</strong> {formData.status}</p>
+                    <p>
+                      <strong>Status:</strong> {formData.status}
+                    </p>
                   </div>
                 </div>
                 <CustomStepNavigation
@@ -1470,15 +1865,20 @@ const ProductPage: React.FC = () => {
                   totalSteps={4}
                   onPrevious={() => setActiveTab("opening")}
                   onSubmit={handleSubmit}
-                  submitLabel={editingProduct ? 'Update Product' : 'Save Product'}
-                  isLastStep = {true}
+                  submitLabel={
+                    editingProduct ? "Update Product" : "Save Product"
+                  }
+                  isLastStep={true}
                 />
               </div>
             )}
           </div>
         </DialogContent>
       </Dialog>
-     <ImagePreviewDialog viewingImage={viewingImage} onClose={() => setViewingImage(null)} />
+      <ImagePreviewDialog
+        viewingImage={viewingImage}
+        onClose={() => setViewingImage(null)}
+      />
     </div>
   );
 };

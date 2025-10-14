@@ -54,6 +54,10 @@ export interface Company {
   updatedAt: string;
   __v: number;
   status: 'active' | 'inactive';
+  maintainGodown: Boolean;
+  maintainBatch: Boolean;
+  closingQuantityOrder: Boolean;
+  negativeOrder: Boolean;
 }
 
 interface CompanyStore {
@@ -61,6 +65,8 @@ interface CompanyStore {
   pagination: Pagination;
   loading: boolean;
   error: string | null;
+  defaultSelected: string | null;
+  setDefaultCompany: (companyId: string) => Promise<void>;
   fetchCompanies: (agentId: string, page?: number, limit?: number) => Promise<void>;
   addCompany: (companyData: FormData) => Promise<void>;
   updateCompany: (params: { companyId: string; companyData: FormData }) => Promise<void>;
@@ -82,6 +88,7 @@ export const useCompanyStore = create<CompanyStore>()(
       companies: [],
       loading: false,
       error: null,
+      defaultSelected: null,
       pagination: {
         total: 0,
         page: 1,
@@ -225,13 +232,18 @@ export const useCompanyStore = create<CompanyStore>()(
           return [];
         }
       },
+      setDefaultCompany: async(companyId: string) =>{
+      set({defaultSelected : companyId})
+    }
     }),
+    
     {
       name: "company-storage",
       // getStorage: () => localStorage,
        storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         companies: state.companies,
+        defaultSelected: state.defaultSelected,
       }),
     }
   )

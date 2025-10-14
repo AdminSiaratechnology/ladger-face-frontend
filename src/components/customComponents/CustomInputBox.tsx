@@ -6,8 +6,8 @@ interface CustomInputBoxProps {
   label?: string;
   placeholder: string;
   name: string;
-  value: string | number;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  value: string | number | null;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   maxLength?: number;
   type?: string;
   required?: boolean;

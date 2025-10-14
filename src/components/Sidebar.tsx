@@ -96,7 +96,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   console.log("Sidebar User:", user);
   const location = useLocation();
   const [hasCompany, setHasCompany] = useState(false);
-  
+   const [openAccordionId, setOpenAccordionId] = useState<string | undefined>(undefined);
+
+  // On location change, open the accordion that contains the active route's subitem
+  useEffect(() => {
+    const activeAccordion = filteredMenuItems.find(item => 
+      item.type === 'accordion' && item.subItems && item.subItems.some(sub => location.pathname === sub.path)
+    );
+    if (activeAccordion) {
+      setOpenAccordionId(activeAccordion.id);
+    } else {
+      setOpenAccordionId(undefined); // Close all if none active
+    }
+  }, [location.pathname]);
 
   // Check if company exists in localStorage on component mount
   useEffect(() => {
@@ -268,52 +280,47 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <Link
         to={to}
         onClick={handleLinkClick}
-        className={`flex items-center space-x-3 px-6 py-3 transition-colors duration-200 ${
+        className={`flex items-center space-x-2 px-4 py-2 transition-colors duration-200 ${
           location.pathname === to
-            ? 'bg-teal-600 text-white border-r-4 border-teal-300'
+            ? 'bg-teal-600 text-white'
             : 'text-teal-100 hover:bg-teal-700/80 hover:text-white'
         }`}
       >
-        <Icon className="w-5 h-5" />
-        <span className='text-base font-medium'>{label}</span>
+        <Icon className="w-4 h-4" />
+        <span className='text-sm font-light'>{label}</span>
       </Link>
     );
   };
 
-  const SimpleAccordionComponent = ({ accordionItem }: { accordionItem: MenuItem }) => {
-    if (!accordionItem.subItems || accordionItem.type !== 'accordion') {
-      return null;
-    }
+ const SimpleAccordionComponent = ({ accordionItem }: { accordionItem: MenuItem }) => {
+    if (!accordionItem.subItems || accordionItem.type !== 'accordion') return null;
 
     const Icon = accordionItem.icon;
-    const isActive = isAccordionItemActive(accordionItem.subItems);
-    const [openValue, setOpenValue] = useState<string | undefined>(isActive ? accordionItem.id : undefined);
-
-    useEffect(() => {
-      if (isActive) {
-        setOpenValue(accordionItem.id);
-      }
-    }, [location.pathname, accordionItem.id, isActive]);
+    const isActive = openAccordionId === accordionItem.id;
 
     return (
-      <Accordion 
-        type="single" 
-        collapsible 
+      <Accordion
+        type="single"
+        collapsible
         className="w-full"
-        value={openValue}
-        onValueChange={setOpenValue}
+        value={isActive ? accordionItem.id : undefined}
+        onValueChange={(value) => {
+          // If user clicks an open accordion, value is undefined — close it
+          // Otherwise, open the clicked accordion
+          setOpenAccordionId(value);
+        }}
       >
         <AccordionItem value={accordionItem.id!} className="border-none">
-          <AccordionTrigger 
-            className={`flex items-center space-x-3 rounded-none px-6 pr-2 py-3 transition-colors duration-200 hover:no-underline [&>svg]:w-4 [&>svg]:h-4 [&[data-state=open]]:bg-teal-700/50 ${
+          <AccordionTrigger
+            className={`flex items-center space-x-2 rounded-none px-4 pr-2 py-2 transition-colors duration-200 hover:no-underline [&>svg]:w-4 [&>svg]:h-4 [&[data-state=open]]:bg-teal-700/50 ${
               isActive
-                ? 'bg-teal-600 text-white border-r-4 border-teal-300'
+                ? 'bg-teal-600 text-white'
                 : 'text-teal-100 hover:bg-teal-700/80 hover:text-white'
             }`}
           >
-            <div className="flex items-center space-x-3 flex-1">
-              <Icon className="w-5 h-5" />
-              <span className='text-base font-medium'>{accordionItem.label}</span>
+            <div className="flex items-center space-x-2 flex-1">
+              <Icon className="w-4 h-4" />
+              <span className="text-sm font-light">{accordionItem.label}</span>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-0 data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
@@ -324,14 +331,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   key={subItem.path}
                   to={subItem.path}
                   onClick={handleLinkClick}
-                  className={`flex items-center space-x-3 px-12 pr-2 py-2 transition-colors duration-200 ${
+                  className={`flex items-center space-x-2 px-8 pr-2 py-1 transition-colors duration-200 ${
                     location.pathname === subItem.path
-                      ? 'bg-teal-700 text-white border-r-4 border-teal-300'
+                      ? 'bg-teal-700 text-white'
                       : 'text-teal-100 hover:bg-teal-800/80 hover:text-white'
                   }`}
                 >
-                  <SubIcon className="w-4 h-4" />
-                  <span className='text-sm font-medium'>{subItem.label}</span>
+                  <SubIcon className="w-3 h-3" />
+                  <span className="text-xs font-light">{subItem.label}</span>
                 </Link>
               );
             })}
@@ -354,17 +361,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar */}
       <div className={`
         fixed md:relative top-0 left-0 h-full z-50
-        w-64 bg-gradient-to-b from-teal-900 to-teal-950 text-white flex flex-col shadow-2xl
+        w-56 bg-gradient-to-b from-teal-900 to-teal-950 text-white flex flex-col shadow-2xl
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* Header with close button */}
-        <div className="p-6 border-b border-teal-800/50">
+        <div className="p-3 border-b border-teal-800/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Shield className="w-8 h-8 text-teal-400" />
               <div>
-                <h1 className="font-bold text-xl">BMS</h1>
+                <h1 className="font-bold text-lg">BMS</h1>
                 <p className="text-xs text-teal-300">Business Management System</p>
               </div>
             </div>
@@ -381,9 +388,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* User info */}
-        <div className="p-4 border-b border-teal-800/50">
+        <div className="p-3 border-b border-teal-800/50">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-300 rounded-full flex items-center justify-center ring-2 ring-teal-700/50">
+            <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-300 rounded-full flex items-center justify-center ring-2 ring-teal-700/50">
               <span className="font-medium text-sm text-teal-950">
                 {user?.name.charAt(0).toUpperCase()}
               </span>
