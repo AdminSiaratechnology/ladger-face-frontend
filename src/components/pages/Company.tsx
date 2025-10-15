@@ -44,6 +44,8 @@ import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import CheckboxWithLabel from "../customComponents/CheckboxWithLabel";
 import type { Value } from "@radix-ui/react-select";
+import { SwitchThumb } from "@radix-ui/react-switch";
+import CompanySelectorModal from "../customComponents/CompanySelectorModal";
 
 // Bank interface (unchanged)
 interface Bank {
@@ -169,6 +171,7 @@ const CompanyPage: React.FC = () => {
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
+  const [showCompanyPopup, setShowCompanyPopup] = useState(false);
 
   const {
     companies,
@@ -180,6 +183,7 @@ const CompanyPage: React.FC = () => {
     updateCompany,
     deleteCompany,
     filterCompanies,
+    defaultSelected,
   } = useCompanyStore();
 
   console.log("Companies from store:", companies);
@@ -504,6 +508,11 @@ const CompanyPage: React.FC = () => {
       toast.error("Please enter Pincode");
       return;
     }
+    const pinRegex = /^\d{6}$/;
+    if (!pinRegex.test(formData.pincode.trim())) {
+      toast.error("Pincode must be a 6-digit number");
+      return;
+    }
 
     const companyFormData = new FormData();
 
@@ -616,7 +625,11 @@ const CompanyPage: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
   const headers = ["Company", "Contact", "Address", "Status", "Actions"];
-
+  const setDefaultCompany = useCompanyStore((state) => state.setDefaultCompany);
+  const handleSelect = (company) => {
+    setDefaultCompany(company._id);
+    setShowCompanyPopup(false);
+  };
   // Table View Component
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -852,795 +865,828 @@ const CompanyPage: React.FC = () => {
   };
 
   return (
-    <div className=" custom-container">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <HeaderGradient
-          title="Company Management"
-          subtitle="Manage your company information and registrations"
+    <>
+      <div className=" custom-container">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <HeaderGradient
+            title="Company Management"
+            subtitle="Manage your company information and registrations"
+          />
+          <div className="flex gap-2">
+            <CheckAccess
+              module="BusinessManagement"
+              subModule="Company"
+              type="create"
+            >
+              <Button
+                onClick={() => {
+                  resetForm();
+                  setOpen(true);
+                }}
+                className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-3 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
+              >
+                Add Company
+                <Building2 className="w-4 h-4 mr-2" />
+              </Button>
+            </CheckAccess>
+            <Button
+              onClick={downloadPDF}
+              className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-3 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
+            >
+              Integration PDF <ArrowBigDownDash />
+            </Button>
+            {/* {companies.length > 0 && (
+              <Button
+                onClick={() => {
+                  setShowCompanyPopup(true);
+                }}
+                className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-3 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
+              >
+                Switch Company
+              </Button>
+            )} */}
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-teal-100 text-sm font-medium">
+                    Total Companies
+                  </p>
+                  <p className="text-3xl font-bold">{stats.totalCompanies}</p>
+                </div>
+                <Building2 className="w-8 h-8 text-teal-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium">
+                    GST Registered
+                  </p>
+                  <p className="text-3xl font-bold">{stats.gstRegistered}</p>
+                </div>
+                <FileText className="w-8 h-8 text-blue-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-medium">
+                    MSME Registered
+                  </p>
+                  <p className="text-3xl font-bold">{stats.msmeRegistered}</p>
+                </div>
+                <Star className="w-8 h-8 text-green-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-medium">Active</p>
+                  <p className="text-3xl font-bold">{stats.activeCompanies}</p>
+                </div>
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <FilterBar
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          onClearFilters={() => {
+            setSearchTerm("");
+            setStatusFilter("all");
+            setSortBy("nameAsc");
+            setCurrentPage(1);
+          }}
         />
-        <div className="flex gap-2">
-          <CheckAccess
+        {loading && <TableViewSkeleton />}
+
+        <ViewModeToggle
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          totalItems={pagination?.total}
+        />
+
+        {pagination?.total === 0 ? (
+          <EmptyStateCard
+            icon={Building2}
+            title="No companies registered yet"
+            description="Create your first company to get started"
+            buttonLabel="Add Your First Company"
             module="BusinessManagement"
             subModule="Company"
             type="create"
-          >
-            <Button
-              onClick={() => {
-                resetForm();
-                setOpen(true);
-              }}
-              className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              <Building2 className="w-4 h-4 mr-2" />
-              Add Company
-            </Button>
-          </CheckAccess>
-          <Button
-            onClick={downloadPDF}
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            Integration PDF <ArrowBigDownDash />
-          </Button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-teal-100 text-sm font-medium">
-                  Total Companies
-                </p>
-                <p className="text-3xl font-bold">{stats.totalCompanies}</p>
-              </div>
-              <Building2 className="w-8 h-8 text-teal-200" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm font-medium">
-                  GST Registered
-                </p>
-                <p className="text-3xl font-bold">{stats.gstRegistered}</p>
-              </div>
-              <FileText className="w-8 h-8 text-blue-200" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm font-medium">
-                  MSME Registered
-                </p>
-                <p className="text-3xl font-bold">{stats.msmeRegistered}</p>
-              </div>
-              <Star className="w-8 h-8 text-green-200" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium">Active</p>
-                <p className="text-3xl font-bold">{stats.activeCompanies}</p>
-              </div>
-              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <FilterBar
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        onClearFilters={() => {
-          setSearchTerm("");
-          setStatusFilter("all");
-          setSortBy("nameAsc");
-          setCurrentPage(1);
-        }}
-      />
-      {loading && <TableViewSkeleton />}
-
-      <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
-
-      {pagination?.total === 0 ? (
-        <EmptyStateCard
-          icon={Building2}
-          title="No companies registered yet"
-          description="Create your first company to get started"
-          buttonLabel="Add Your First Company"
-          module="BusinessManagement"
-          subModule="Company"
-          type="create"
-          onButtonClick={() => setOpen(true)}
-        />
-      ) : (
-        <>
-          {viewMode === "table" ? <TableView /> : <CardView />}
-          <PaginationControls
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            pagination={pagination}
-            itemName="companies"
+            onButtonClick={() => setOpen(true)}
           />
-        </>
-      )}
+        ) : (
+          <>
+            {viewMode === "table" ? <TableView /> : <CardView />}
+            <PaginationControls
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pagination={pagination}
+              itemName="companies"
+            />
+          </>
+        )}
 
-      {/* Modal Form */}
-      <Dialog
-        open={open}
-        onOpenChange={(isOpen) => {
-          setOpen(isOpen);
-          if (!isOpen) {
-            resetForm();
-          }
-        }}
-      >
-        <DialogContent className="custom-dialog-container">
-          <CustomFormDialogHeader
-            title={editingCompany ? "Edit Company" : "Add New Company"}
-            subtitle={
-              editingCompany
-                ? "Update the company details"
-                : "Complete company registration information"
+        {/* Modal Form */}
+        <Dialog
+          open={open}
+          onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) {
+              resetForm();
             }
-          />
+          }}
+        >
+          <DialogContent className="custom-dialog-container">
+            <CustomFormDialogHeader
+              title={editingCompany ? "Edit Company" : "Add New Company"}
+              subtitle={
+                editingCompany
+                  ? "Update the company details"
+                  : "Complete company registration information"
+              }
+              showCompany={false}
+            />
 
-          <MultiStepNav
-            steps={tabs}
-            currentStep={activeTab}
-            onStepChange={setActiveTab}
-            stepIcons={stepIcons}
-          />
+            <MultiStepNav
+              steps={tabs}
+              currentStep={activeTab}
+              onStepChange={setActiveTab}
+              stepIcons={stepIcons}
+            />
 
-          <div className="flex-1 overflow-y-auto">
-            {activeTab === "basic" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
-                  icon={<Users className="w-4 h-4 text-white" />}
-                  title="Company Information"
-                  gradientFrom="from-blue-400"
-                  gradientTo="to-blue-500"
-                />
+            <div className="flex-1 overflow-y-auto">
+              {activeTab === "basic" && (
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <SectionHeader
+                    icon={<Users className="w-4 h-4 text-white" />}
+                    title="Company Information"
+                    gradientFrom="from-blue-400"
+                    gradientTo="to-blue-500"
+                  />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <CustomInputBox
-                    label="Company Name (Street)"
-                    placeholder="e.g., ABC Corp Street Name"
-                    name="nameStreet"
-                    value={formData.nameStreet}
-                    onChange={handleChange}
-                  />
-                  <CustomInputBox
-                    label="Company Name (Print)"
-                    placeholder="e.g., ABC Corporation"
-                    name="namePrint"
-                    value={formData.namePrint}
-                    onChange={handleChange}
-                    required={true}
-                  />
-                </div>
-
-                <div className="mt-6 grid grid-cols-1 gap-6">
-                  <CustomInputBox
-                    label="Address Line 1"
-                    placeholder="e.g., 123 Main St"
-                    name="address1"
-                    value={formData.address1}
-                    onChange={handleChange}
-                  />
-                  <CustomInputBox
-                    label="Address Line 2"
-                    placeholder="e.g., Apt 4B"
-                    name="address2"
-                    value={formData.address2}
-                    onChange={handleChange}
-                  />
-                  <CustomInputBox
-                    label="Address Line 3"
-                    placeholder="e.g., Building Name"
-                    name="address3"
-                    value={formData.address3}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Country
-                    </label>
-                    <select
-                      value={formData.country}
-                      onChange={(e) =>
-                        handleSelectChange("country", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      {allCountries.map((country) => (
-                        <option key={country.isoCode} value={country.name}>
-                          {country.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      State
-                    </label>
-                    <select
-                      value={formData.state}
-                      onChange={(e) =>
-                        handleSelectChange("state", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      disabled={availableStates.length === 0}
-                    >
-                      <option value="">Select State</option>
-                      {availableStates.map((state) => (
-                        <option key={state.isoCode} value={state.name}>
-                          {state.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      City
-                    </label>
-                    <select
-                      value={formData.city}
-                      onChange={(e) =>
-                        handleSelectChange("city", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      disabled={availableCities.length === 0}
-                    >
-                      <option value="">Select City</option>
-                      {availableCities.map((city) => (
-                        <option key={city.name} value={city.name}>
-                          {city.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                  <CustomInputBox
-                    label="Zip/Pincode"
-                    placeholder="e.g., 12345"
-                    name="pincode"
-                    value={formData.pincode}
-                    onChange={handleChange}
-                    required={true}
-                  />
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Default Currency
-                    </label>
-                    <select
-                      value={formData.defaultCurrency}
-                      onChange={(e) =>
-                        handleSelectChange("defaultCurrency", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="INR">INR - Indian Rupee</option>
-                      <option value="USD">USD - US Dollar</option>
-                      <option value="EUR">EUR - Euro</option>
-                      <option value="GBP">GBP - British Pound</option>
-                      <option value="CAD">CAD - Canadian Dollar</option>
-                      <option value="AUD">AUD - Australian Dollar</option>
-                      <option value="JPY">JPY - Japanese Yen</option>
-                      <option value="CNY">CNY - Chinese Yuan</option>
-                    </select>
-                  </div>
-                </div>
-
-                <CustomStepNavigation
-                  currentStep={1}
-                  totalSteps={6}
-                  showPrevious={false}
-                  onNext={() => setActiveTab("contact")}
-                />
-              </div>
-            )}
-
-            {activeTab === "contact" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
-                  icon={<Users className="w-4 h-4 text-white" />}
-                  title="Contact Details"
-                  gradientFrom="from-green-400"
-                  gradientTo="to-green-500"
-                />
-
-                <div className="grid grid-cols-1 gap-6">
-                  <CustomInputBox
-                    label="Telephone"
-                    placeholder="e.g., +1-234-567-8900"
-                    name="telephone"
-                    value={formData.telephone}
-                    onChange={handleChange}
-                  />
-                  <CustomInputBox
-                    label="Mobile Number"
-                    placeholder="e.g., +1-234-567-8900"
-                    name="mobile"
-                    value={formData.mobile}
-                    onChange={handleChange}
-                  />
-                  <CustomInputBox
-                    label="Fax Number"
-                    placeholder="e.g., +1-234-567-8900"
-                    name="fax"
-                    value={formData.fax}
-                    onChange={handleChange}
-                  />
-                  <CustomInputBox
-                    label="Email Address"
-                    placeholder="e.g., info@example.com"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    type="email"
-                    required={true}
-                  />
-                  <CustomInputBox
-                    label="Website"
-                    placeholder="e.g., https://example.com"
-                    name="website"
-                    value={formData.website}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <CustomStepNavigation
-                  currentStep={2}
-                  totalSteps={6}
-                  onPrevious={() => setActiveTab("basic")}
-                  onNext={() => setActiveTab("registration")}
-                />
-              </div>
-            )}
-
-            {activeTab === "registration" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
-                  icon={<Users className="w-4 h-4 text-white" />}
-                  title="Registration Details"
-                  gradientFrom="from-yellow-400"
-                  gradientTo="to-yellow-500"
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <CustomInputBox
-                    label="GST Number"
-                    placeholder="e.g., 22AAAAA0000A1Z5"
-                    name="gstNumber"
-                    value={formData.gstNumber}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                  <CustomInputBox
-                    label="PAN Number"
-                    placeholder="e.g., ABCDE1234F"
-                    name="panNumber"
-                    value={formData.panNumber}
-                    onChange={handleChange}
-                    maxLength={10}
-                  />
-                  <CustomInputBox
-                    label="TAN Number"
-                    placeholder="e.g., ABCD12345E"
-                    name="tanNumber"
-                    value={formData.tanNumber}
-                    onChange={handleChange}
-                    maxLength={10}
-                  />
-                  <CustomInputBox
-                    label="MSME Number"
-                    placeholder="e.g., UDYAM-XX-00-0000000"
-                    name="msmeNumber"
-                    value={formData.msmeNumber}
-                    onChange={handleChange}
-                    maxLength={20}
-                  />
-                  <CustomInputBox
-                    label="Udyam Number"
-                    placeholder="e.g., UDYAM-XX-00-0000000"
-                    name="udyamNumber"
-                    value={formData.udyamNumber}
-                    onChange={handleChange}
-                    maxLength={20}
-                  />
-                </div>
-
-                <CustomStepNavigation
-                  currentStep={3}
-                  totalSteps={6}
-                  onPrevious={() => setActiveTab("contact")}
-                  onNext={() => setActiveTab("bank")}
-                />
-              </div>
-            )}
-
-            {activeTab === "bank" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
-                  icon={<Building2 className="w-4 h-4 text-white" />}
-                  title="Banking Details"
-                  gradientFrom="from-blue-400"
-                  gradientTo="to-blue-500"
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
-                  <CustomInputBox
-                    label="Account Holder Name *"
-                    placeholder="e.g., John Doe"
-                    name="accountHolderName"
-                    value={bankForm.accountHolderName}
-                    onChange={handleBankChange}
-                    required={true}
-                  />
-                  <CustomInputBox
-                    label="Account Number *"
-                    placeholder="e.g., 123456789012"
-                    name="accountNumber"
-                    value={bankForm.accountNumber}
-                    onChange={handleBankChange}
-                    required={true}
-                  />
-                  <CustomInputBox
-                    label="IFSC Code"
-                    placeholder="e.g., SBIN0001234"
-                    name="ifscCode"
-                    value={bankForm.ifscCode}
-                    onChange={handleBankChange}
-                  />
-                  <CustomInputBox
-                    label="SWIFT Code"
-                    placeholder="e.g., SBININBBXXX"
-                    name="swiftCode"
-                    value={bankForm.swiftCode}
-                    onChange={handleBankChange}
-                  />
-                  <CustomInputBox
-                    label="MICR Number"
-                    placeholder="e.g., 110002001"
-                    name="micrNumber"
-                    value={bankForm.micrNumber}
-                    onChange={handleBankChange}
-                  />
-                  <CustomInputBox
-                    label="Bank Name *"
-                    placeholder="e.g., State Bank of India"
-                    name="bankName"
-                    value={bankForm.bankName}
-                    onChange={handleBankChange}
-                    required={true}
-                  />
-                  <CustomInputBox
-                    label="Branch"
-                    placeholder="e.g., Main Branch"
-                    name="branch"
-                    value={bankForm.branch}
-                    onChange={handleBankChange}
-                  />
-                  <Button
-                    onClick={addBank}
-                    className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
-                  >
-                    <Plus className="w-5 h-5 mr-2" /> Add Bank
-                  </Button>
-                </div>
-
-                {/* Bank List */}
-                {formData.banks.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-teal-700">Added Banks:</h4>
-                    {formData.banks.map((bank) => (
-                      <div
-                        key={bank.id}
-                        className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center"
-                      >
-                        <div>
-                          <p className="font-medium">{bank.bankName}</p>
-                          <p className="text-sm text-gray-600">
-                            {bank.accountHolderName} ••••
-                            {bank.accountNumber.slice(-4)}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeBank(bank.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <CustomStepNavigation
-                  currentStep={4}
-                  totalSteps={6}
-                  onPrevious={() => setActiveTab("registration")}
-                  onNext={() => setActiveTab("branding")}
-                />
-              </div>
-            )}
-
-            {activeTab === "branding" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
-                  icon={<ImageIcon className="w-4 h-4 text-white" />}
-                  title="Branding & Documents"
-                  gradientFrom="from-purple-400"
-                  gradientTo="to-purple-500"
-                />
-
-                <div className="mb-8">
-                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">
-                    Company Logo
-                  </h4>
-                  <div className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner">
-                    <input
-                      type="file"
-                      id="logo"
-                      className="hidden"
-                      onChange={handleLogoUpload}
-                      accept="image/*"
-                    />
-                    <label
-                      htmlFor="logo"
-                      className="cursor-pointer flex flex-col items-center gap-3"
-                    >
-                      <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 hover:bg-blue-200 transition-colors">
-                        <Upload className="w-8 h-8" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-600">
-                        Upload Logo
-                      </p>
-                    </label>
-                    {formData.logoPreviewUrl && (
-                      <div className="mt-4 relative">
-                        <img
-                          src={formData.logoPreviewUrl}
-                          alt="Company Logo"
-                          className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 shadow-md cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() =>
-                            setViewingImage({
-                              previewUrl: formData.logoPreviewUrl,
-                              type: "logo",
-                            })
-                          }
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
-                          onClick={removeLogo}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mb-8">
-                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">
-                    Registration Documents
-                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {["GST", "PAN", "TAN", "MSME", "UDYAM"].map((docType) => (
-                      <div
-                        key={docType}
-                        className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
+                    <CustomInputBox
+                      label="Company Name (Street)"
+                      placeholder="e.g., ABC Corp Street Name"
+                      name="nameStreet"
+                      value={formData.nameStreet}
+                      onChange={handleChange}
+                    />
+                    <CustomInputBox
+                      label="Company Name (Print)"
+                      placeholder="e.g., ABC Corporation"
+                      name="namePrint"
+                      value={formData.namePrint}
+                      onChange={handleChange}
+                      required={true}
+                    />
+                  </div>
+
+                  <div className="mt-6 grid grid-cols-1 gap-6">
+                    <CustomInputBox
+                      label="Address Line 1"
+                      placeholder="e.g., 123 Main St"
+                      name="address1"
+                      value={formData.address1}
+                      onChange={handleChange}
+                    />
+                    <CustomInputBox
+                      label="Address Line 2"
+                      placeholder="e.g., Apt 4B"
+                      name="address2"
+                      value={formData.address2}
+                      onChange={handleChange}
+                    />
+                    <CustomInputBox
+                      label="Address Line 3"
+                      placeholder="e.g., Building Name"
+                      name="address3"
+                      value={formData.address3}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Country
+                      </label>
+                      <select
+                        value={formData.country}
+                        onChange={(e) =>
+                          handleSelectChange("country", e.target.value)
+                        }
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                       >
-                        <p className="text-sm font-semibold text-gray-700 mb-3">
-                          {docType} Document
-                        </p>
-                        <input
-                          type="file"
-                          id={`${docType.toLowerCase()}-doc`}
-                          className="hidden"
-                          onChange={(e) => handleDocumentUpload(docType, e)}
-                          accept="image/*,.pdf"
-                        />
-                        <label
-                          htmlFor={`${docType.toLowerCase()}-doc`}
-                          className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
+                        {allCountries.map((country) => (
+                          <option key={country.isoCode} value={country.name}>
+                            {country.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">
+                        State
+                      </label>
+                      <select
+                        value={formData.state}
+                        onChange={(e) =>
+                          handleSelectChange("state", e.target.value)
+                        }
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                        disabled={availableStates.length === 0}
+                      >
+                        <option value="">Select State</option>
+                        {availableStates.map((state) => (
+                          <option key={state.isoCode} value={state.name}>
+                            {state.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">
+                        City
+                      </label>
+                      <select
+                        value={formData.city}
+                        onChange={(e) =>
+                          handleSelectChange("city", e.target.value)
+                        }
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                        disabled={availableCities.length === 0}
+                      >
+                        <option value="">Select City</option>
+                        {availableCities.map((city) => (
+                          <option key={city.name} value={city.name}>
+                            {city.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <CustomInputBox
+                      label="Zip/Pincode"
+                      placeholder="e.g., 12345"
+                      name="pincode"
+                      value={formData.pincode}
+                      onChange={handleChange}
+                      required={true}
+                    />
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Default Currency
+                      </label>
+                      <select
+                        value={formData.defaultCurrency}
+                        onChange={(e) =>
+                          handleSelectChange("defaultCurrency", e.target.value)
+                        }
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="INR">INR - Indian Rupee</option>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
+                        <option value="JPY">JPY - Japanese Yen</option>
+                        <option value="CNY">CNY - Chinese Yuan</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <CustomStepNavigation
+                    currentStep={1}
+                    totalSteps={6}
+                    showPrevious={false}
+                    onNext={() => setActiveTab("contact")}
+                  />
+                </div>
+              )}
+
+              {activeTab === "contact" && (
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <SectionHeader
+                    icon={<Users className="w-4 h-4 text-white" />}
+                    title="Contact Details"
+                    gradientFrom="from-green-400"
+                    gradientTo="to-green-500"
+                  />
+
+                  <div className="grid grid-cols-1 gap-6">
+                    <CustomInputBox
+                      label="Telephone"
+                      placeholder="e.g., +1-234-567-8900"
+                      name="telephone"
+                      value={formData.telephone}
+                      onChange={handleChange}
+                    />
+                    <CustomInputBox
+                      label="Mobile Number"
+                      placeholder="e.g., +1-234-567-8900"
+                      name="mobile"
+                      value={formData.mobile}
+                      onChange={handleChange}
+                    />
+                    <CustomInputBox
+                      label="Fax Number"
+                      placeholder="e.g., +1-234-567-8900"
+                      name="fax"
+                      value={formData.fax}
+                      onChange={handleChange}
+                    />
+                    <CustomInputBox
+                      label="Email Address"
+                      placeholder="e.g., info@example.com"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      type="email"
+                      required={true}
+                    />
+                    <CustomInputBox
+                      label="Website"
+                      placeholder="e.g., https://example.com"
+                      name="website"
+                      value={formData.website}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <CustomStepNavigation
+                    currentStep={2}
+                    totalSteps={6}
+                    onPrevious={() => setActiveTab("basic")}
+                    onNext={() => setActiveTab("registration")}
+                  />
+                </div>
+              )}
+
+              {activeTab === "registration" && (
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <SectionHeader
+                    icon={<Users className="w-4 h-4 text-white" />}
+                    title="Registration Details"
+                    gradientFrom="from-yellow-400"
+                    gradientTo="to-yellow-500"
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <CustomInputBox
+                      label="GST Number"
+                      placeholder="e.g., 22AAAAA0000A1Z5"
+                      name="gstNumber"
+                      value={formData.gstNumber}
+                      onChange={handleChange}
+                      maxLength={15}
+                    />
+                    <CustomInputBox
+                      label="PAN Number"
+                      placeholder="e.g., ABCDE1234F"
+                      name="panNumber"
+                      value={formData.panNumber}
+                      onChange={handleChange}
+                      maxLength={10}
+                    />
+                    <CustomInputBox
+                      label="TAN Number"
+                      placeholder="e.g., ABCD12345E"
+                      name="tanNumber"
+                      value={formData.tanNumber}
+                      onChange={handleChange}
+                      maxLength={10}
+                    />
+                    <CustomInputBox
+                      label="MSME Number"
+                      placeholder="e.g., UDYAM-XX-00-0000000"
+                      name="msmeNumber"
+                      value={formData.msmeNumber}
+                      onChange={handleChange}
+                      maxLength={20}
+                    />
+                    <CustomInputBox
+                      label="Udyam Number"
+                      placeholder="e.g., UDYAM-XX-00-0000000"
+                      name="udyamNumber"
+                      value={formData.udyamNumber}
+                      onChange={handleChange}
+                      maxLength={20}
+                    />
+                  </div>
+
+                  <CustomStepNavigation
+                    currentStep={3}
+                    totalSteps={6}
+                    onPrevious={() => setActiveTab("contact")}
+                    onNext={() => setActiveTab("bank")}
+                  />
+                </div>
+              )}
+
+              {activeTab === "bank" && (
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <SectionHeader
+                    icon={<Building2 className="w-4 h-4 text-white" />}
+                    title="Banking Details"
+                    gradientFrom="from-blue-400"
+                    gradientTo="to-blue-500"
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
+                    <CustomInputBox
+                      label="Account Holder Name *"
+                      placeholder="e.g., John Doe"
+                      name="accountHolderName"
+                      value={bankForm.accountHolderName}
+                      onChange={handleBankChange}
+                      required={true}
+                    />
+                    <CustomInputBox
+                      label="Account Number *"
+                      placeholder="e.g., 123456789012"
+                      name="accountNumber"
+                      value={bankForm.accountNumber}
+                      onChange={handleBankChange}
+                      required={true}
+                    />
+                    <CustomInputBox
+                      label="IFSC Code"
+                      placeholder="e.g., SBIN0001234"
+                      name="ifscCode"
+                      value={bankForm.ifscCode}
+                      onChange={handleBankChange}
+                    />
+                    <CustomInputBox
+                      label="SWIFT Code"
+                      placeholder="e.g., SBININBBXXX"
+                      name="swiftCode"
+                      value={bankForm.swiftCode}
+                      onChange={handleBankChange}
+                    />
+                    <CustomInputBox
+                      label="MICR Number"
+                      placeholder="e.g., 110002001"
+                      name="micrNumber"
+                      value={bankForm.micrNumber}
+                      onChange={handleBankChange}
+                    />
+                    <CustomInputBox
+                      label="Bank Name *"
+                      placeholder="e.g., State Bank of India"
+                      name="bankName"
+                      value={bankForm.bankName}
+                      onChange={handleBankChange}
+                      required={true}
+                    />
+                    <CustomInputBox
+                      label="Branch"
+                      placeholder="e.g., Main Branch"
+                      name="branch"
+                      value={bankForm.branch}
+                      onChange={handleBankChange}
+                    />
+                    <Button
+                      onClick={addBank}
+                      className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+                    >
+                      <Plus className="w-5 h-5 mr-2" /> Add Bank
+                    </Button>
+                  </div>
+
+                  {/* Bank List */}
+                  {formData.banks.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-teal-700">
+                        Added Banks:
+                      </h4>
+                      {formData.banks.map((bank) => (
+                        <div
+                          key={bank.id}
+                          className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center"
                         >
-                          <Upload className="w-6 h-6 text-blue-500" />
-                          <p className="text-sm text-gray-600">Upload</p>
-                        </label>
-                        {formData.registrationDocs.find(
-                          (doc) => doc.type === docType
-                        ) && (
-                          <div className="mt-4 w-full">
-                            <p className="text-xs text-gray-500 truncate mb-2">
-                              {
-                                formData.registrationDocs.find(
-                                  (doc) => doc.type === docType
-                                )?.fileName
-                              }
+                          <div>
+                            <p className="font-medium">{bank.bankName}</p>
+                            <p className="text-sm text-gray-600">
+                              {bank.accountHolderName} ••••
+                              {bank.accountNumber.slice(-4)}
                             </p>
-                            {formData.registrationDocs.find(
-                              (doc) => doc.type === docType
-                            )?.previewUrl &&
-                              docType !== "PDF" && (
-                                <img
-                                  src={
-                                    formData.registrationDocs.find(
-                                      (doc) => doc.type === docType
-                                    )?.previewUrl
-                                  }
-                                  alt={`${docType} document`}
-                                  className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
-                                  onClick={() =>
-                                    setViewingImage(
-                                      formData.registrationDocs.find(
-                                        (doc) => doc.type === docType
-                                      )!
-                                    )
-                                  }
-                                />
-                              )}
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-2 right-2 w-6 h-6 rounded-full"
-                              onClick={() =>
-                                removeDocument(
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeBank(bank.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <CustomStepNavigation
+                    currentStep={4}
+                    totalSteps={6}
+                    onPrevious={() => setActiveTab("registration")}
+                    onNext={() => setActiveTab("branding")}
+                  />
+                </div>
+              )}
+
+              {activeTab === "branding" && (
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <SectionHeader
+                    icon={<ImageIcon className="w-4 h-4 text-white" />}
+                    title="Branding & Documents"
+                    gradientFrom="from-purple-400"
+                    gradientTo="to-purple-500"
+                  />
+
+                  <div className="mb-8">
+                    <h4 className="font-semibold text-gray-800 mb-4 text-lg">
+                      Company Logo
+                    </h4>
+                    <div className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner">
+                      <input
+                        type="file"
+                        id="logo"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                        accept="image/*"
+                      />
+                      <label
+                        htmlFor="logo"
+                        className="cursor-pointer flex flex-col items-center gap-3"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 hover:bg-blue-200 transition-colors">
+                          <Upload className="w-8 h-8" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-600">
+                          Upload Logo
+                        </p>
+                      </label>
+                      {formData.logoPreviewUrl && (
+                        <div className="mt-4 relative">
+                          <img
+                            src={formData.logoPreviewUrl}
+                            alt="Company Logo"
+                            className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() =>
+                              setViewingImage({
+                                previewUrl: formData.logoPreviewUrl,
+                                type: "logo",
+                              })
+                            }
+                          />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
+                            onClick={removeLogo}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mb-8">
+                    <h4 className="font-semibold text-gray-800 mb-4 text-lg">
+                      Registration Documents
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {["GST", "PAN", "TAN", "MSME", "UDYAM"].map((docType) => (
+                        <div
+                          key={docType}
+                          className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
+                        >
+                          <p className="text-sm font-semibold text-gray-700 mb-3">
+                            {docType} Document
+                          </p>
+                          <input
+                            type="file"
+                            id={`${docType.toLowerCase()}-doc`}
+                            className="hidden"
+                            onChange={(e) => handleDocumentUpload(docType, e)}
+                            accept="image/*,.pdf"
+                          />
+                          <label
+                            htmlFor={`${docType.toLowerCase()}-doc`}
+                            className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
+                          >
+                            <Upload className="w-6 h-6 text-blue-500" />
+                            <p className="text-sm text-gray-600">Upload</p>
+                          </label>
+                          {formData.registrationDocs.find(
+                            (doc) => doc.type === docType
+                          ) && (
+                            <div className="mt-4 w-full">
+                              <p className="text-xs text-gray-500 truncate mb-2">
+                                {
                                   formData.registrationDocs.find(
                                     (doc) => doc.type === docType
-                                  )!.id
-                                )
-                              }
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                                  )?.fileName
+                                }
+                              </p>
+                              {formData.registrationDocs.find(
+                                (doc) => doc.type === docType
+                              )?.previewUrl &&
+                                docType !== "PDF" && (
+                                  <img
+                                    src={
+                                      formData.registrationDocs.find(
+                                        (doc) => doc.type === docType
+                                      )?.previewUrl
+                                    }
+                                    alt={`${docType} document`}
+                                    className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
+                                    onClick={() =>
+                                      setViewingImage(
+                                        formData.registrationDocs.find(
+                                          (doc) => doc.type === docType
+                                        )!
+                                      )
+                                    }
+                                  />
+                                )}
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2 w-6 h-6 rounded-full"
+                                onClick={() =>
+                                  removeDocument(
+                                    formData.registrationDocs.find(
+                                      (doc) => doc.type === docType
+                                    )!.id
+                                  )
+                                }
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
+
+                  <CustomStepNavigation
+                    currentStep={5}
+                    totalSteps={6}
+                    onPrevious={() => setActiveTab("bank")}
+                    onNext={() => setActiveTab("settings")}
+                  />
                 </div>
+              )}
 
-                <CustomStepNavigation
-                  currentStep={5}
-                  totalSteps={6}
-                  onPrevious={() => setActiveTab("bank")}
-                  onNext={() => setActiveTab("settings")}
-                />
-              </div>
-            )}
+              {activeTab === "settings" && (
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <SectionHeader
+                    icon={<Settings2 className="w-4 h-4 text-white" />}
+                    title="Settings"
+                    gradientFrom="from-cyan-400"
+                    gradientTo="to-cyan-500"
+                  />
 
-            {activeTab === "settings" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
-                  icon={<Settings2 className="w-4 h-4 text-white" />}
-                  title="Settings"
-                  gradientFrom="from-cyan-400"
-                  gradientTo="to-cyan-500"
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Company Status
-                    </label>
-                    <select
-                      value={formData.status}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Company Status
+                      </label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) =>
+                          handleSelectChange("status", e.target.value)
+                        }
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap justify-between border px-2 py-2 mb-6">
+                    <CheckboxWithLabel
+                      title="Maintain Godown"
                       onChange={(e) =>
-                        handleSelectChange("status", e.target.value)
+                        handleCheckSelectChange(
+                          "maintainGodown",
+                          e.target.checked
+                        )
                       }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
+                      checked={formData.maintainGodown}
+                    />
+                    <CheckboxWithLabel
+                      title="Maintain Batch"
+                      onChange={(e) =>
+                        handleCheckSelectChange(
+                          "maintainBatch",
+                          e.target.checked
+                        )
+                      }
+                      checked={formData.maintainBatch}
+                    />
+                    <CheckboxWithLabel
+                      title=" Closing Quantity Order"
+                      onChange={(e) =>
+                        handleCheckSelectChange(
+                          "closingQuantityOrder",
+                          e.target.checked
+                        )
+                      }
+                      checked={formData.closingQuantityOrder}
+                    />
+                    <CheckboxWithLabel
+                      title="Negative Order"
+                      onChange={(e) =>
+                        handleCheckSelectChange(
+                          "negativeOrder",
+                          e.target.checked
+                        )
+                      }
+                      checked={formData.negativeOrder}
+                    />
                   </div>
-                </div>
-                <div className="flex flex-wrap justify-between border px-2 py-2 mb-6">
-                  <CheckboxWithLabel
-                    title="Maintain Godown"
-                    onChange={(e) =>
-                      handleCheckSelectChange(
-                        "maintainGodown",
-                        e.target.checked
-                      )
-                    }
-                    checked={formData.maintainGodown}
-                  />
-                  <CheckboxWithLabel
-                    title="Maintain Batch"
-                    onChange={(e) =>
-                      handleCheckSelectChange("maintainBatch", e.target.checked)
-                    }
-                    checked={formData.maintainBatch}
-                  />
-                  <CheckboxWithLabel
-                    title=" Closing Quantity Order"
-                    onChange={(e) =>
-                      handleCheckSelectChange(
-                        "closingQuantityOrder",
-                        e.target.checked
-                      )
-                    }
-                    checked={formData.closingQuantityOrder}
-                  />
-                  <CheckboxWithLabel
-                    title="Negative Order"
-                    onChange={(e) =>
-                      handleCheckSelectChange("negativeOrder", e.target.checked)
-                    }
-                    checked={formData.negativeOrder}
-                  />
-                </div>
-                <div className="mb-6">
-                  <label className="text-sm font-semibold text-gray-700 mb-2">
-                    Internal Notes
-                  </label>
-                  <textarea
-                    placeholder="Add any additional notes about the company..."
-                    name="notes"
-                    value={formData.notes}
-                    onChange={handleChange}
-                    rows={4}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
-                  />
-                </div>
+                  <div className="mb-6">
+                    <label className="text-sm font-semibold text-gray-700 mb-2">
+                      Internal Notes
+                    </label>
+                    <textarea
+                      placeholder="Add any additional notes about the company..."
+                      name="notes"
+                      value={formData.notes}
+                      onChange={handleChange}
+                      rows={4}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
+                    />
+                  </div>
 
-                <CustomStepNavigation
-                  currentStep={6}
-                  totalSteps={6}
-                  onPrevious={() => setActiveTab("branding")}
-                  onSubmit={handleSubmit}
-                  submitLabel={
-                    editingCompany ? "Update Company" : "Save Company"
-                  }
-                  isLastStep={true}
-                />
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+                  <CustomStepNavigation
+                    currentStep={6}
+                    totalSteps={6}
+                    onPrevious={() => setActiveTab("branding")}
+                    onSubmit={handleSubmit}
+                    submitLabel={
+                      editingCompany ? "Update Company" : "Save Company"
+                    }
+                    isLastStep={true}
+                  />
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
-      {/* Image viewing modal */}
-      <ImagePreviewDialog
-        viewingImage={viewingImage}
-        onClose={() => setViewingImage(null)}
-      />
-    </div>
+        {/* Image viewing modal */}
+        <ImagePreviewDialog
+          viewingImage={viewingImage}
+          onClose={() => setViewingImage(null)}
+        />
+      </div>
+      {companies && (
+        <CompanySelectorModal
+          open={showCompanyPopup}
+          companies={companies}
+          defaultSelected={defaultSelected}
+          onSelect={handleSelect}
+          onClose={() => setShowCompanyPopup(false)}
+          onConfirmNavigate={() => {
+            setShowCompanyPopup(false);
+          }}
+        />
+      )}
+    </>
   );
 };
 

@@ -262,7 +262,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
     return true;
   });
-
+  
   // Check if any sub-item is active
   const isAccordionItemActive = (subItems: SubMenuItem[]) => {
     return subItems.some(subItem => location.pathname === subItem.path);
@@ -388,7 +388,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* User info */}
-        <div className="p-3 border-b border-teal-800/50">
+        {/* <div className="p-3 border-b border-teal-800/50">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-300 rounded-full flex items-center justify-center ring-2 ring-teal-700/50">
               <span className="font-medium text-sm text-teal-950">
@@ -400,7 +400,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <p className="text-xs text-teal-300 capitalize">{user?.role}</p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Company Status Indicator (Optional - you can remove this if not needed) */}
         {!hasCompany && (

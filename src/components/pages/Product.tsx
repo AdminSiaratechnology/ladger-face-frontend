@@ -129,7 +129,7 @@ interface ProductForm {
   defaultSupplier?: string;
   minimumRate?: number;
   maximumRate?: number;
-  companyId?: string;
+  companyId?: string | null;
   defaultGodown?: string;
   productType?: string;
   taxConfiguration: TaxConfiguration;
@@ -199,7 +199,7 @@ const ProductPage: React.FC = () => {
     { id: 3, name: "Quality Materials Co", code: "SUP003" },
     { id: 4, name: "Prime Components Corp", code: "SUP004" },
   ]);
-
+console.log(defaultSelected)
   const [formData, setFormData] = useState<ProductForm>({
     code: "",
     name: "",
@@ -213,7 +213,7 @@ const ProductPage: React.FC = () => {
     defaultSupplier: "",
     minimumRate: 0,
     maximumRate: 0,
-    companyId: "",
+    companyId: defaultSelected,
     defaultGodown: "",
     productType: "",
     taxConfiguration: {
@@ -443,7 +443,7 @@ const ProductPage: React.FC = () => {
       defaultSupplier: "",
       minimumRate: 0,
       maximumRate: 0,
-      companyId: "",
+      companyId: defaultSelected,
       defaultGodown: "",
       productType: "",
       taxConfiguration: {
@@ -518,7 +518,7 @@ const ProductPage: React.FC = () => {
   };
 
   const handleSubmit = (): void => {
-    // console.log('Submitting form with data:', formData, 'and opening quantities:', openingQuantities);
+    console.log('Submitting form with data:', formData, 'and opening quantities:', openingQuantities);
     if (!formData.code.trim()) {
       toast.error("Please enter Product Code");
       return;
