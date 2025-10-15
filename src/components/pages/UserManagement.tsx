@@ -615,8 +615,13 @@ export const UserManagement: React.FC = () => {
       toast.error("Please enter a valid email address");
       return;
     }
-    if (!/^\d{6}$/.test(form.pincode)) {
-      toast.error("Please enter a valid 6-digit pincode");
+    if (!form.pincode.trim()) {
+      toast.error("Please enter Pincode");
+      return;
+    }
+    const pinRegex = /^\d{6}$/;
+    if (!pinRegex.test(form.pincode.trim())) {
+      toast.error("Pincode must be a 6-digit number");
       return;
     }
 
@@ -1219,12 +1224,12 @@ export const UserManagement: React.FC = () => {
             {/* Role & Sub-Role Tab */}
             {activeTab === "role" && (
               <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
                   icon={<Users className="w-4 h-4 text-white" />}
                   title="Role & Sub-Role"
                   gradientFrom="from-blue-400"
                   gradientTo="to-blue-500"
-                />
+                /> */}
 
                 {/* Role Selection */}
                 <div className="mb-4">
@@ -1301,12 +1306,12 @@ export const UserManagement: React.FC = () => {
             {/* Permissions Tab */}
             {activeTab === "permissions" && (
               <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
                   icon={<Key className="w-4 h-4 text-white" />}
                   title="Company Permissions"
                   gradientFrom="from-purple-400"
                   gradientTo="to-purple-500"
-                />
+                /> */}
 
                 <div className="space-y-4">
                   {/* Company Access Sections */}
@@ -1478,12 +1483,12 @@ export const UserManagement: React.FC = () => {
             {/* Settings Tab */}
             {activeTab === "settings" && (
               <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
                   icon={<Settings2 className="w-4 h-4 text-white" />}
                   title="User & Permission Summary"
                   gradientFrom="from-blue-400"
                   gradientTo="to-blue-500"
-                />
+                /> */}
 
                 {/* User Summary */}
                 <div className="bg-teal-50 p-3 rounded-lg border border-teal-200 mb-4">

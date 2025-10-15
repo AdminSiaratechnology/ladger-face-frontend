@@ -69,7 +69,7 @@ const CompanySelectorModal = ({
             {companies.map((company) => (
               <CardHeader
                 onClick={() => setSelectedId(company._id)}
-                className={`bg-gradient-to-r from-teal-50 to-teal-100 pb-4 hover:from-teal-100 hover:to-teal-200 capitalize  ${
+                className={`bg-gradient-to-r from-teal-50 to-teal-100 pb-4 hover:from-teal-100 hover:to-teal-200 capitalize cursor-pointer  ${
                   selectedId === company._id ? "from-teal-100 to-teal-300" : ""
                 }`}
               >

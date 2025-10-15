@@ -131,7 +131,7 @@ export const useCompanyStore = create<CompanyStore>()(
           const res = await api.createCompany(companyData);
           console.log("Created company response:", res);
 
-          const newCompany: Company = res.data.data;
+          const newCompany: Company = res.data;
 
           set({
             companies: [...get().companies, newCompany],

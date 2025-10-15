@@ -4,6 +4,8 @@ import { useCompanyStore } from "../../../store/companyStore";
 import CustomInputBox from "./CustomInputBox";
 const SelectedCompany = () => {
   const { defaultSelected, companies } = useCompanyStore();
+  console.log(defaultSelected)
+  console.log(companies)
   const company= companies.filter((company)=>company._id === defaultSelected)
   console.log(company)
 
@@ -13,7 +15,7 @@ const SelectedCompany = () => {
         label="Company"
         placeholder="e.g., ABC Agents"
         name="agentName"
-        value={company[0].namePrint}
+        value={company[0]?.namePrint || ""}
       />
     </>
   );
