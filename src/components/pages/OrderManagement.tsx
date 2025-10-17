@@ -1,28 +1,34 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Badge } from '../ui/badge';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '../ui/table';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Badge } from "../ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '../ui/dialog';
-import { 
-  ShoppingCart, 
-  Search, 
-  Download, 
+} from "../ui/dialog";
+import {
+  ShoppingCart,
+  Search,
+  Download,
   Plus,
   MoreHorizontal,
   Eye,
@@ -42,8 +48,11 @@ import {
   Phone,
   Mail,
   Calendar,
-  DollarSign
-} from 'lucide-react';
+  DollarSign,
+  Users,
+  Building,
+  User2Icon,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,11 +60,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
-import { Progress } from '../ui/progress';
-import { Separator } from '../ui/separator';
-import HeaderGradient from '../customComponents/HeaderGradint';
-
+} from "../ui/dropdown-menu";
+import { Progress } from "../ui/progress";
+import { Separator } from "../ui/separator";
+import HeaderGradient from "../customComponents/HeaderGradint";
+import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
+import MultiStepNav from "../customComponents/MultiStepNav";
+import { useCompanyStore } from "../../../store/companyStore";
+import { useCustomerStore } from "../../../store/customerStore";
 interface OrderItem {
   id: number;
   name: string;
@@ -73,9 +85,9 @@ interface Order {
   subtotal: number;
   tax: number;
   total: number;
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
-  paymentStatus: 'pending' | 'partial' | 'paid' | 'refunded';
-  paymentMethod: 'cash' | 'card' | 'upi' | 'bank_transfer';
+  status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
+  paymentStatus: "pending" | "partial" | "paid" | "refunded";
+  paymentMethod: "cash" | "card" | "upi" | "bank_transfer";
   orderDate: string;
   deliveryDate?: string;
   address: string;
@@ -87,113 +99,157 @@ interface Order {
 
 const mockOrders: Order[] = [
   {
-    id: 'ORD-001',
-    customerName: 'John Smith',
-    customerEmail: 'john@example.com',
-    customerPhone: '+91 9876543210',
+    id: "ORD-001",
+    customerName: "John Smith",
+    customerEmail: "john@example.com",
+    customerPhone: "+91 9876543210",
     items: [
-      { id: 1, name: 'Premium Laptop', quantity: 1, unitPrice: 85000, total: 85000 },
-      { id: 2, name: 'Wireless Mouse', quantity: 2, unitPrice: 2500, total: 5000 }
+      {
+        id: 1,
+        name: "Premium Laptop",
+        quantity: 1,
+        unitPrice: 85000,
+        total: 85000,
+      },
+      {
+        id: 2,
+        name: "Wireless Mouse",
+        quantity: 2,
+        unitPrice: 2500,
+        total: 5000,
+      },
     ],
     subtotal: 90000,
     tax: 16200,
     total: 106200,
-    status: 'confirmed',
-    paymentStatus: 'paid',
-    paymentMethod: 'card',
-    orderDate: '2024-08-30',
-    deliveryDate: '2024-09-05',
-    address: '123 Business Park',
-    area: 'Mumbai',
-    pincode: '400001',
-    assignedSalesman: 'Alice Johnson',
-    trackingNumber: 'TRK123456789'
+    status: "confirmed",
+    paymentStatus: "paid",
+    paymentMethod: "card",
+    orderDate: "2024-08-30",
+    deliveryDate: "2024-09-05",
+    address: "123 Business Park",
+    area: "Mumbai",
+    pincode: "400001",
+    assignedSalesman: "Alice Johnson",
+    trackingNumber: "TRK123456789",
   },
   {
-    id: 'ORD-002',
-    customerName: 'Sarah Davis',
-    customerEmail: 'sarah@example.com',
-    customerPhone: '+91 9876543211',
+    id: "ORD-002",
+    customerName: "Sarah Davis",
+    customerEmail: "sarah@example.com",
+    customerPhone: "+91 9876543211",
     items: [
-      { id: 3, name: 'Office Chair', quantity: 5, unitPrice: 12000, total: 60000 }
+      {
+        id: 3,
+        name: "Office Chair",
+        quantity: 5,
+        unitPrice: 12000,
+        total: 60000,
+      },
     ],
     subtotal: 60000,
     tax: 7200,
     total: 67200,
-    status: 'pending',
-    paymentStatus: 'pending',
-    paymentMethod: 'bank_transfer',
-    orderDate: '2024-08-31',
-    address: '456 Corporate Tower',
-    area: 'Delhi',
-    pincode: '110001',
-    assignedSalesman: 'Bob Smith'
+    status: "pending",
+    paymentStatus: "pending",
+    paymentMethod: "bank_transfer",
+    orderDate: "2024-08-31",
+    address: "456 Corporate Tower",
+    area: "Delhi",
+    pincode: "110001",
+    assignedSalesman: "Bob Smith",
   },
   {
-    id: 'ORD-003',
-    customerName: 'Mike Wilson',
-    customerEmail: 'mike@example.com',
-    customerPhone: '+91 9876543212',
+    id: "ORD-003",
+    customerName: "Mike Wilson",
+    customerEmail: "mike@example.com",
+    customerPhone: "+91 9876543212",
     items: [
-      { id: 4, name: 'Standing Desk', quantity: 2, unitPrice: 25000, total: 50000 }
+      {
+        id: 4,
+        name: "Standing Desk",
+        quantity: 2,
+        unitPrice: 25000,
+        total: 50000,
+      },
     ],
     subtotal: 50000,
     tax: 6000,
     total: 56000,
-    status: 'shipped',
-    paymentStatus: 'paid',
-    paymentMethod: 'upi',
-    orderDate: '2024-08-29',
-    deliveryDate: '2024-09-03',
-    address: '789 Tech Hub',
-    area: 'Bangalore',
-    pincode: '560001',
-    assignedSalesman: 'Carol Davis',
-    trackingNumber: 'TRK987654321'
+    status: "shipped",
+    paymentStatus: "paid",
+    paymentMethod: "upi",
+    orderDate: "2024-08-29",
+    deliveryDate: "2024-09-03",
+    address: "789 Tech Hub",
+    area: "Bangalore",
+    pincode: "560001",
+    assignedSalesman: "Carol Davis",
+    trackingNumber: "TRK987654321",
   },
   {
-    id: 'ORD-004',
-    customerName: 'Emma Brown',
-    customerEmail: 'emma@example.com',
-    customerPhone: '+91 9876543213',
+    id: "ORD-004",
+    customerName: "Emma Brown",
+    customerEmail: "emma@example.com",
+    customerPhone: "+91 9876543213",
     items: [
-      { id: 5, name: 'Monitor 27"', quantity: 3, unitPrice: 18000, total: 54000 }
+      {
+        id: 5,
+        name: 'Monitor 27"',
+        quantity: 3,
+        unitPrice: 18000,
+        total: 54000,
+      },
     ],
     subtotal: 54000,
     tax: 9720,
     total: 63720,
-    status: 'delivered',
-    paymentStatus: 'paid',
-    paymentMethod: 'upi',
-    orderDate: '2024-08-25',
-    deliveryDate: '2024-08-28',
-    address: '321 Tech Park',
-    area: 'Pune',
-    pincode: '411001',
-    assignedSalesman: 'David Lee',
-    trackingNumber: 'TRK456789123'
-  }
+    status: "delivered",
+    paymentStatus: "paid",
+    paymentMethod: "upi",
+    orderDate: "2024-08-25",
+    deliveryDate: "2024-08-28",
+    address: "321 Tech Park",
+    area: "Pune",
+    pincode: "411001",
+    assignedSalesman: "David Lee",
+    trackingNumber: "TRK456789123",
+  },
 ];
 
 export default function OrderManagement() {
+  const [open, setOpen] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("route");
+  const [selectedRoute, setSelectedRoute] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [orders] = useState<Order[]>(mockOrders);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [currentPage, setCurrentPage] = useState(1);
+  const { companies, defaultSelected } = useCompanyStore();
+  const { customers, filterCustomers, loading } = useCustomerStore();
+  const company = companies.find((c) => c._id === defaultSelected);
+  const selectedCustomer = customers.find((c) => c._id === selectedCustomerId);
   const itemsPerPage = 10;
-const navigate = useNavigate();
+  const navigate = useNavigate();
+  useEffect(() => {
+    filterCustomers("", "all", "nameAsc", 1, 100);
+  }, [filterCustomers]);
   const filteredOrders = useMemo(() => {
-    return orders.filter(order => {
-      const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-      const matchesPayment = paymentFilter === 'all' || order.paymentStatus === paymentFilter;
-      
+    return orders.filter((order) => {
+      const matchesSearch =
+        order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        statusFilter === "all" || order.status === statusFilter;
+      const matchesPayment =
+        paymentFilter === "all" || order.paymentStatus === paymentFilter;
+
       return matchesSearch && matchesStatus && matchesPayment;
     });
   }, [orders, searchTerm, statusFilter, paymentFilter]);
@@ -207,23 +263,34 @@ const navigate = useNavigate();
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      confirmed: 'bg-blue-100 text-blue-800',
-      shipped: 'bg-purple-100 text-purple-800',
-      delivered: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800'
+      pending: "bg-yellow-100 text-yellow-800",
+      confirmed: "bg-blue-100 text-blue-800",
+      shipped: "bg-purple-100 text-purple-800",
+      delivered: "bg-green-100 text-green-800",
+      cancelled: "bg-red-100 text-red-800",
     };
-    return <Badge className={styles[status as keyof typeof styles]}>{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>;
+    return (
+      <Badge className={styles[status as keyof typeof styles]}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
   const getPaymentBadge = (status: string) => {
     const styles = {
-      pending: 'text-yellow-600 border-yellow-600',
-      partial: 'text-blue-600 border-blue-600',
-      paid: 'text-green-600 border-green-600',
-      refunded: 'text-red-600 border-red-600'
+      pending: "text-yellow-600 border-yellow-600",
+      partial: "text-blue-600 border-blue-600",
+      paid: "text-green-600 border-green-600",
+      refunded: "text-red-600 border-red-600",
     };
-    return <Badge variant="outline" className={styles[status as keyof typeof styles]}>{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>;
+    return (
+      <Badge
+        variant="outline"
+        className={styles[status as keyof typeof styles]}
+      >
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
   const getOrderProgress = (status: string) => {
@@ -232,32 +299,68 @@ const navigate = useNavigate();
       confirmed: 40,
       shipped: 70,
       delivered: 100,
-      cancelled: 0
+      cancelled: 0,
     };
     return progress[status as keyof typeof progress] || 0;
   };
 
-  const stats = useMemo(() => [
-    { label: 'Total Orders', value: orders.length, color: 'text-blue-600', bgColor: 'from-blue-500 to-blue-600' },
-    { label: 'Pending', value: orders.filter(o => o.status === 'pending').length, color: 'text-yellow-600', bgColor: 'from-yellow-500 to-yellow-600' },
-    { label: 'Shipped', value: orders.filter(o => o.status === 'shipped').length, color: 'text-purple-600', bgColor: 'from-purple-500 to-purple-600' },
-    { label: 'Delivered', value: orders.filter(o => o.status === 'delivered').length, color: 'text-green-600', bgColor: 'from-green-500 to-green-600' },
-  ], [orders]);
-
+  const stats = useMemo(
+    () => [
+      {
+        label: "Total Orders",
+        value: orders.length,
+        color: "text-blue-600",
+        bgColor: "from-blue-500 to-blue-600",
+      },
+      {
+        label: "Pending",
+        value: orders.filter((o) => o.status === "pending").length,
+        color: "text-yellow-600",
+        bgColor: "from-yellow-500 to-yellow-600",
+      },
+      {
+        label: "Shipped",
+        value: orders.filter((o) => o.status === "shipped").length,
+        color: "text-purple-600",
+        bgColor: "from-purple-500 to-purple-600",
+      },
+      {
+        label: "Delivered",
+        value: orders.filter((o) => o.status === "delivered").length,
+        color: "text-green-600",
+        bgColor: "from-green-500 to-green-600",
+      },
+    ],
+    [orders]
+  );
+  const tabs = [
+    { id: "route", label: "Select Route" },
+    { id: "customer", label: "Choose Customer" },
+  ];
+  const stepIcons = {
+    route: <Users className="w-2 h-2 md:w-5 md:h-5" />,
+    customer: <Users className="w-2 h-2 md:w-5 md:h-5" />,
+  };
   const ActionsDropdown = ({ order }: { order: Order }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 hover:bg-gray-100"
+        >
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => {
-          setSelectedOrder(order);
-          setIsOrderDialogOpen(true);
-        }}>
+        <DropdownMenuItem
+          onClick={() => {
+            setSelectedOrder(order);
+            setIsOrderDialogOpen(true);
+          }}
+        >
           <Eye className="w-4 h-4 mr-2" />
           View Details
         </DropdownMenuItem>
@@ -279,51 +382,89 @@ const navigate = useNavigate();
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gradient-to-r from-teal-50 to-blue-100">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Order
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Customer
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Amount
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Payment
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Progress
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {paginatedOrders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50 transition-colors duration-200">
+              <tr
+                key={order.id}
+                className="hover:bg-gray-50 transition-colors duration-200"
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
                     <p className="font-medium text-gray-900">{order.id}</p>
                     <p className="text-sm text-gray-600">{order.orderDate}</p>
                     {order.trackingNumber && (
-                      <p className="text-xs text-teal-600">{order.trackingNumber}</p>
+                      <p className="text-xs text-teal-600">
+                        {order.trackingNumber}
+                      </p>
                     )}
                   </div>
                 </td>
                 <td className="px-6 py-4">
                   <div>
-                    <p className="font-medium text-gray-900">{order.customerName}</p>
-                    <p className="text-sm text-gray-600">{order.customerEmail}</p>
-                    <p className="text-xs text-gray-500">{order.area}, {order.pincode}</p>
+                    <p className="font-medium text-gray-900">
+                      {order.customerName}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {order.customerEmail}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {order.area}, {order.pincode}
+                    </p>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
-                    <p className="font-medium text-gray-900">₹{order.total.toLocaleString()}</p>
-                    <p className="text-sm text-gray-600">{order.items.length} items</p>
+                    <p className="font-medium text-gray-900">
+                      ₹{order.total.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {order.items.length} items
+                    </p>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(order.status)}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {getStatusBadge(order.status)}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="space-y-1">
                     {getPaymentBadge(order.paymentStatus)}
-                    <p className="text-xs text-gray-600 capitalize">{order.paymentMethod.replace('_', ' ')}</p>
+                    <p className="text-xs text-gray-600 capitalize">
+                      {order.paymentMethod.replace("_", " ")}
+                    </p>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="w-24">
-                    <Progress value={getOrderProgress(order.status)} className="h-3 bg-gray-200 [&>[role=progressbar]]:bg-green-500"  />
-                    <p className="text-xs text-gray-600 mt-1">{getOrderProgress(order.status)}%</p>
+                    <Progress
+                      value={getOrderProgress(order.status)}
+                      className="h-3 bg-gray-200 [&>[role=progressbar]]:bg-green-500"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      {getOrderProgress(order.status)}%
+                    </p>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -340,12 +481,19 @@ const navigate = useNavigate();
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
       {paginatedOrders.map((order) => (
-        <Card key={order.id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
+        <Card
+          key={order.id}
+          className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden"
+        >
           <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 pb-4">
             <div className="flex items-start justify-between">
               <div>
-                <CardTitle className="text-xl font-bold text-gray-800 mb-1">{order.id}</CardTitle>
-                <p className="text-blue-600 font-medium">{order.customerName}</p>
+                <CardTitle className="text-xl font-bold text-gray-800 mb-1">
+                  {order.id}
+                </CardTitle>
+                <p className="text-blue-600 font-medium">
+                  {order.customerName}
+                </p>
                 <p className="text-sm text-gray-600 mt-1">{order.orderDate}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -354,7 +502,7 @@ const navigate = useNavigate();
               </div>
             </div>
           </CardHeader>
-          
+
           <CardContent className="p-6 space-y-4">
             <div className="space-y-3">
               <div className="flex items-center text-sm">
@@ -369,24 +517,32 @@ const navigate = useNavigate();
 
               <div className="flex items-center text-sm">
                 <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">{order.area}, {order.pincode}</span>
+                <span className="text-gray-600">
+                  {order.area}, {order.pincode}
+                </span>
               </div>
 
               <div className="flex items-center text-sm">
                 <Package className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">{order.items.length} items</span>
+                <span className="text-gray-600">
+                  {order.items.length} items
+                </span>
               </div>
 
               <div className="flex items-center text-sm">
                 <DollarSign className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600 font-semibold">₹{order.total.toLocaleString()}</span>
+                <span className="text-gray-600 font-semibold">
+                  ₹{order.total.toLocaleString()}
+                </span>
               </div>
 
               <div className="flex items-center text-sm">
                 <CreditCard className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                 <div className="flex items-center gap-2">
                   {getPaymentBadge(order.paymentStatus)}
-                  <span className="text-xs text-gray-500 capitalize">({order.paymentMethod.replace('_', ' ')})</span>
+                  <span className="text-xs text-gray-500 capitalize">
+                    ({order.paymentMethod.replace("_", " ")})
+                  </span>
                 </div>
               </div>
 
@@ -399,8 +555,13 @@ const navigate = useNavigate();
             </div>
 
             <div className="pt-3">
-              <Progress value={getOrderProgress(order.status)} className="h-3 bg-gray-200 [&>[role=progressbar]]:bg-green-500 bg-amber-400"  />
-              <p className="text-xs text-gray-600 mt-1 text-right">{getOrderProgress(order.status)}% Complete</p>
+              <Progress
+                value={getOrderProgress(order.status)}
+                className="h-3 bg-gray-200 [&>[role=progressbar]]:bg-green-500 bg-amber-400"
+              />
+              <p className="text-xs text-gray-600 mt-1 text-right">
+                {getOrderProgress(order.status)}% Complete
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -411,13 +572,15 @@ const navigate = useNavigate();
   const PaginationControls = () => (
     <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
       <div className="text-sm text-gray-600">
-        Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredOrders.length)} of {filteredOrders.length} orders
+        Showing {(currentPage - 1) * itemsPerPage + 1} -{" "}
+        {Math.min(currentPage * itemsPerPage, filteredOrders.length)} of{" "}
+        {filteredOrders.length} orders
       </div>
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
           disabled={currentPage === 1}
           className="flex items-center gap-1"
         >
@@ -430,7 +593,9 @@ const navigate = useNavigate();
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+          onClick={() =>
+            setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+          }
           disabled={currentPage === totalPages}
           className="flex items-center gap-1"
         >
@@ -440,22 +605,45 @@ const navigate = useNavigate();
       </div>
     </div>
   );
+  const handleContinueToCustomer = () => {
+    setActiveTab("customer");
+  };
+
+  const handleFinish = () => {
+  if (!selectedCustomer) return;
+
+  navigate("/select-products", {
+    state: {
+      company,              // from your props/state
+      selectedRoute,        // from route selection
+      selectedCustomer,     // from dropdown or card selection
+      customerId: selectedCustomer._id, 
+      routeId: selectedRoute?._id || selectedRoute, // handle both object or string
+    },
+  });
+};
 
   return (
     <div className="custom-container">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-       
-        <HeaderGradient title='Order Management' subtitle='Process orders, track shipments, and manage payments'/>
+        <HeaderGradient
+          title="Order Management"
+          subtitle="Process orders, track shipments, and manage payments"
+        />
         <div className="flex items-center space-x-3">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="cursor-pointer">
             <Download className="w-4 h-4 mr-2" />
             Export Orders
           </Button>
-          <Button className="bg-gradient-to-r from-teal-600 to-blue-700 hover:from-teal-700 hover:to-blue-800" onClick={() => {
-                  // resetForm();
-                  navigate('/orders')
-                }} >
+          <Button
+            className="bg-gradient-to-r from-teal-600 to-blue-700 hover:from-teal-700 hover:to-blue-800 cursor-pointer"
+            onClick={() => {
+              // resetForm();
+              // navigate("/orders");
+              setOpen(true);
+            }}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Create Order
           </Button>
@@ -465,11 +653,16 @@ const navigate = useNavigate();
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => (
-          <Card key={index} className={`bg-gradient-to-br ${stat.bgColor} text-white border-0 shadow-lg`}>
+          <Card
+            key={index}
+            className={`bg-gradient-to-br ${stat.bgColor} text-white border-0 shadow-lg`}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-white/80 text-sm font-medium">{stat.label}</p>
+                  <p className="text-white/80 text-sm font-medium">
+                    {stat.label}
+                  </p>
                   <p className="text-3xl font-bold">{stat.value}</p>
                 </div>
                 <ShoppingCart className="w-8 h-8 text-white/70" />
@@ -515,13 +708,15 @@ const navigate = useNavigate();
               <option value="paid">Paid</option>
               <option value="refunded">Refunded</option>
             </select>
-            {(searchTerm || statusFilter !== 'all' || paymentFilter !== 'all') && (
+            {(searchTerm ||
+              statusFilter !== "all" ||
+              paymentFilter !== "all") && (
               <Button
                 variant="outline"
                 onClick={() => {
-                  setSearchTerm('');
-                  setStatusFilter('all');
-                  setPaymentFilter('all');
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                  setPaymentFilter("all");
                   setCurrentPage(1);
                 }}
               >
@@ -542,22 +737,22 @@ const navigate = useNavigate();
           </div>
           <div className="flex bg-gray-100 rounded-lg p-1 shadow-inner">
             <button
-              onClick={() => setViewMode('table')}
+              onClick={() => setViewMode("table")}
               className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'table'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                viewMode === "table"
+                  ? "bg-white text-teal-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               <TableIcon className="w-4 h-4 mr-2" />
               Table View
             </button>
             <button
-              onClick={() => setViewMode('cards')}
+              onClick={() => setViewMode("cards")}
               className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                viewMode === 'cards'
-                  ? 'bg-white text-teal-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                viewMode === "cards"
+                  ? "bg-white text-teal-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               <Grid3X3 className="w-4 h-4 mr-2" />
@@ -576,16 +771,18 @@ const navigate = useNavigate();
               No orders found
             </p>
             <p className="text-gray-400 text-sm mb-6">
-              {searchTerm || statusFilter !== 'all' || paymentFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Create your first order to get started'}
+              {searchTerm || statusFilter !== "all" || paymentFilter !== "all"
+                ? "Try adjusting your filters"
+                : "Create your first order to get started"}
             </p>
-            {(searchTerm || statusFilter !== 'all' || paymentFilter !== 'all') && (
+            {(searchTerm ||
+              statusFilter !== "all" ||
+              paymentFilter !== "all") && (
               <Button
                 onClick={() => {
-                  setSearchTerm('');
-                  setStatusFilter('all');
-                  setPaymentFilter('all');
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                  setPaymentFilter("all");
                 }}
                 variant="outline"
               >
@@ -596,7 +793,7 @@ const navigate = useNavigate();
         </Card>
       ) : (
         <>
-          {viewMode === 'table' ? <TableView /> : <CardView />}
+          {viewMode === "table" ? <TableView /> : <CardView />}
           <PaginationControls />
         </>
       )}
@@ -615,12 +812,47 @@ const navigate = useNavigate();
               {/* Order Status Progress */}
               <div className="space-y-2">
                 <h4 className="font-medium">Order Progress</h4>
-                <Progress value={getOrderProgress(selectedOrder.status)}  className="h-3 bg-gray-200 [&>[role=progressbar]]:bg-green-500"  />
+                <Progress
+                  value={getOrderProgress(selectedOrder.status)}
+                  className="h-3 bg-gray-200 [&>[role=progressbar]]:bg-green-500"
+                />
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span className={selectedOrder.status === 'pending' ? 'font-medium text-teal-600' : ''}>Pending</span>
-                  <span className={selectedOrder.status === 'confirmed' ? 'font-medium text-teal-600' : ''}>Confirmed</span>
-                  <span className={selectedOrder.status === 'shipped' ? 'font-medium text-teal-600' : ''}>Shipped</span>
-                  <span className={selectedOrder.status === 'delivered' ? 'font-medium text-teal-600' : ''}>Delivered</span>
+                  <span
+                    className={
+                      selectedOrder.status === "pending"
+                        ? "font-medium text-teal-600"
+                        : ""
+                    }
+                  >
+                    Pending
+                  </span>
+                  <span
+                    className={
+                      selectedOrder.status === "confirmed"
+                        ? "font-medium text-teal-600"
+                        : ""
+                    }
+                  >
+                    Confirmed
+                  </span>
+                  <span
+                    className={
+                      selectedOrder.status === "shipped"
+                        ? "font-medium text-teal-600"
+                        : ""
+                    }
+                  >
+                    Shipped
+                  </span>
+                  <span
+                    className={
+                      selectedOrder.status === "delivered"
+                        ? "font-medium text-teal-600"
+                        : ""
+                    }
+                  >
+                    Delivered
+                  </span>
                 </div>
               </div>
 
@@ -636,15 +868,21 @@ const navigate = useNavigate();
                   <CardContent className="space-y-3">
                     <div>
                       <p className="text-sm text-gray-600">Name</p>
-                      <p className="font-medium">{selectedOrder.customerName}</p>
+                      <p className="font-medium">
+                        {selectedOrder.customerName}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Email</p>
-                      <p className="font-medium">{selectedOrder.customerEmail}</p>
+                      <p className="font-medium">
+                        {selectedOrder.customerEmail}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Phone</p>
-                      <p className="font-medium">{selectedOrder.customerPhone}</p>
+                      <p className="font-medium">
+                        {selectedOrder.customerPhone}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -664,12 +902,18 @@ const navigate = useNavigate();
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Area & Pincode</p>
-                      <p className="font-medium">{selectedOrder.area}, {selectedOrder.pincode}</p>
+                      <p className="font-medium">
+                        {selectedOrder.area}, {selectedOrder.pincode}
+                      </p>
                     </div>
                     {selectedOrder.assignedSalesman && (
                       <div>
-                        <p className="text-sm text-gray-600">Assigned Salesman</p>
-                        <p className="font-medium">{selectedOrder.assignedSalesman}</p>
+                        <p className="text-sm text-gray-600">
+                          Assigned Salesman
+                        </p>
+                        <p className="font-medium">
+                          {selectedOrder.assignedSalesman}
+                        </p>
                       </div>
                     )}
                   </CardContent>
@@ -695,10 +939,16 @@ const navigate = useNavigate();
                       <TableBody>
                         {selectedOrder.items.map((item) => (
                           <TableRow key={item.id}>
-                            <TableCell className="font-medium">{item.name}</TableCell>
+                            <TableCell className="font-medium">
+                              {item.name}
+                            </TableCell>
                             <TableCell>{item.quantity}</TableCell>
-                            <TableCell>₹{item.unitPrice.toLocaleString()}</TableCell>
-                            <TableCell>₹{item.total.toLocaleString()}</TableCell>
+                            <TableCell>
+                              ₹{item.unitPrice.toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              ₹{item.total.toLocaleString()}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -734,11 +984,15 @@ const navigate = useNavigate();
                   <CardContent className="space-y-3">
                     <div>
                       <p className="text-sm text-gray-600">Payment Status</p>
-                      <div className="mt-1">{getPaymentBadge(selectedOrder.paymentStatus)}</div>
+                      <div className="mt-1">
+                        {getPaymentBadge(selectedOrder.paymentStatus)}
+                      </div>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Payment Method</p>
-                      <p className="font-medium capitalize">{selectedOrder.paymentMethod.replace('_', ' ')}</p>
+                      <p className="font-medium capitalize">
+                        {selectedOrder.paymentMethod.replace("_", " ")}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Order Date</p>
@@ -758,16 +1012,24 @@ const navigate = useNavigate();
                     <CardContent className="space-y-3">
                       <div>
                         <p className="text-sm text-gray-600">Tracking Number</p>
-                        <p className="font-medium">{selectedOrder.trackingNumber}</p>
+                        <p className="font-medium">
+                          {selectedOrder.trackingNumber}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Order Status</p>
-                        <div className="mt-1">{getStatusBadge(selectedOrder.status)}</div>
+                        <div className="mt-1">
+                          {getStatusBadge(selectedOrder.status)}
+                        </div>
                       </div>
                       {selectedOrder.deliveryDate && (
                         <div>
-                          <p className="text-sm text-gray-600">Expected Delivery</p>
-                          <p className="font-medium">{selectedOrder.deliveryDate}</p>
+                          <p className="text-sm text-gray-600">
+                            Expected Delivery
+                          </p>
+                          <p className="font-medium">
+                            {selectedOrder.deliveryDate}
+                          </p>
                         </div>
                       )}
                     </CardContent>
@@ -792,6 +1054,186 @@ const navigate = useNavigate();
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={open}
+        onOpenChange={(open) => {
+          setOpen(open);
+        }}
+      >
+        <DialogContent className="custom-dialog-container max-w-3xl">
+          <CustomFormDialogHeader
+            title="Start Creating Your Order"
+            subtitle="Follow the steps to set up your order"
+          />
+
+          <MultiStepNav
+            steps={tabs}
+            currentStep={activeTab}
+            onStepChange={setActiveTab}
+            stepIcons={stepIcons}
+          />
+
+          <div className="flex-1 overflow-y-auto px-2">
+            {/* -------------------- Step 1: Select Route -------------------- */}
+            {activeTab === "route" && (
+              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 space-y-4">
+                {/* <h2 className="text-lg font-semibold text-teal-600 flex items-center gap-2">
+                  <Building className="w-5 h-5" /> Select Route
+                </h2> */}
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Route Name
+                  </label>
+                  <select
+                    value={selectedRoute}
+                    onChange={(e) => setSelectedRoute(e.target.value)}
+                    className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  >
+                    <option value="">-- Select a Route --</option>
+                    <option value="Route 1">Route 1</option>
+                    <option value="Route 2">Route 2</option>
+                    <option value="Route 3">Route 3</option>
+                  </select>
+                </div>
+
+                <Button
+                  onClick={handleContinueToCustomer}
+                  className="w-full bg-teal-500 hover:bg-teal-600 text-white mt-3"
+                >
+                  Continue to Customer →
+                </Button>
+              </div>
+            )}
+
+            {/* -------------------- Step 2: Choose Customer -------------------- */}
+            {activeTab === "customer" && (
+              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 space-y-4">
+                {/* <div className="border-b border-gray-200 pb-2 mt-2">
+                  <span className="text-xl font-semibold text-teal-500">
+                    New Order
+                  </span>
+                  <h1 className="text-gray-500">{company?.namePrint}</h1>
+                </div> */}
+
+                {/* Customer Dropdown */}
+                <div className="flex flex-col gap-2">
+                  {/* <label className="text-teal-500 flex items-center gap-1">
+                    <User2Icon className="w-5 h-5" /> Select Customer
+                  </label> */}
+
+                  {loading ? (
+                    <div className="text-gray-400 text-sm">
+                      Loading customers...
+                    </div>
+                  ) : customers.length === 0 ? (
+                    <div className="text-gray-400 text-sm">
+                      No customers found.
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedCustomerId}
+                      onChange={(e) => setSelectedCustomerId(e.target.value)}
+                      className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                    >
+                      <option value="">-- Select a Customer --</option>
+                      {customers.map((c) => (
+                        <option key={c._id} value={c._id}>
+                          {c.customerName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {/* Customer Info Card */}
+                {selectedCustomer && (
+                  <div className="mt-4 border rounded-lg p-4 bg-gray-50 shadow-sm">
+                    <h2 className="text-lg font-semibold text-teal-600 mb-2">
+                      Customer Details
+                    </h2>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+                      <div>
+                        <span className="font-medium">Customer Name: </span>
+                        {selectedCustomer.customerName}
+                      </div>
+                      <div>
+                        <span className="font-medium">Short Name: </span>
+                        {selectedCustomer.shortName}
+                      </div>
+                      <div>
+                        <span className="font-medium">Email: </span>
+                        {selectedCustomer.emailAddress || "N/A"}
+                      </div>
+                      <div>
+                        <span className="font-medium">Phone: </span>
+                        {selectedCustomer.phoneNumber || "N/A"}
+                      </div>
+                      <div>
+                        <span className="font-medium">City: </span>
+                        {selectedCustomer.city}
+                      </div>
+                      <div>
+                        <span className="font-medium">State: </span>
+                        {selectedCustomer.state}
+                      </div>
+                      <div>
+                        <span className="font-medium">Country: </span>
+                        {selectedCustomer.country}
+                      </div>
+                      <div>
+                        <span className="font-medium">Territory: </span>
+                        {selectedCustomer.territory}
+                      </div>
+                      <div>
+                        <span className="font-medium">Status: </span>
+                        <span
+                          className={`${
+                            selectedCustomer.customerStatus === "active"
+                              ? "text-green-600"
+                              : "text-red-500"
+                          } font-medium`}
+                        >
+                          {selectedCustomer.customerStatus}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium">Credit Days: </span>
+                        {selectedCustomer.creditDays}
+                      </div>
+                      <div>
+                        <span className="font-medium">Credit Limit: </span>
+                        {selectedCustomer.creditLimit}
+                      </div>
+                      <div>
+                        <span className="font-medium">Discount: </span>
+                        {selectedCustomer.discount}%
+                      </div>
+                      <div className="col-span-2">
+                        <span className="font-medium">Address: </span>
+                        {selectedCustomer.addressLine1}, {selectedCustomer.city}
+                        , {selectedCustomer.state} - {selectedCustomer.zipCode}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Continue Button */}
+                {selectedCustomer && (
+                  <Button
+                    onClick={handleFinish}
+                    className="w-full bg-teal-500 hover:bg-teal-600 text-white mt-3"
+                  >
+                    Continue with Products →
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

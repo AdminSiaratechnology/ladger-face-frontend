@@ -101,7 +101,7 @@ export default function OrderPage() {
             Area Selection
           </span>
           <div className="text-sm text-gray-600 mt-1 flex items-center gap-2">
-            <LucideFileWarning className="w-4 h-4 text-yellow-600 font-bold" />
+            {/* <LucideFileWarning className="w-4 h-4 text-yellow-600 font-bold" /> */}
             <span className="text-orange-300 font-medium">
               Select Area to proceed with your order
             </span>

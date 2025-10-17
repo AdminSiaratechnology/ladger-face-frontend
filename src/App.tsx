@@ -38,6 +38,7 @@ import { Toaster } from "sonner";
 import "./index.css";
 import { useAuthStore } from "../store/authStore";
 import { checkPermission } from "./lib/utils";
+import ProductSelection from "./components/pages/ProductSelection";
 
 const Login = React.lazy(() => import("./components/pages/Login"));
 const AdminDashboard = React.lazy(
@@ -79,7 +80,9 @@ const StockCategory = React.lazy(
 const StockGroup = React.lazy(() => import("./components/pages/StockGroup"));
 const UOM = React.lazy(() => import("./components/pages/UOM"));
 const PriceList = React.lazy(() => import("./components/pages/PriceListPage"));
-const UserSelection = React.lazy(() => import("./components/pages/UserSelection"));
+const UserSelection = React.lazy(
+  () => import("./components/pages/UserSelection")
+);
 
 // Unauthorized Access Component
 function UnauthorizedAccess() {
@@ -246,7 +249,7 @@ export default function App() {
             element={
               <ProtectedRoute module="OrderManagement" subModule="Order">
                 <AppLayout>
-                  <Order />
+                  <OrderManagement />
                 </AppLayout>
               </ProtectedRoute>
             }
@@ -262,7 +265,19 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
+          <Route
+            path="/select-products"
+            element={
+              <ProtectedRoute
+                module="ProductSelection"
+                subModule="ProductSelection"
+              >
+                <AppLayout>
+                  <ProductSelection />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
           {/* Pricing */}
           <Route
             path="/pricing"
