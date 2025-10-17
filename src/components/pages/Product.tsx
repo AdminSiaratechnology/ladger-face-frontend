@@ -199,7 +199,7 @@ const ProductPage: React.FC = () => {
     { id: 3, name: "Quality Materials Co", code: "SUP003" },
     { id: 4, name: "Prime Components Corp", code: "SUP004" },
   ]);
-console.log(defaultSelected)
+  console.log(defaultSelected);
   const [formData, setFormData] = useState<ProductForm>({
     code: "",
     name: "",
@@ -287,9 +287,9 @@ console.log(defaultSelected)
       ...prev,
       [name]: value,
     }));
-     if (name === "companyId") {
-    localStorage.setItem("selectedCompanyId", value);
-  }
+    if (name === "companyId") {
+      localStorage.setItem("selectedCompanyId", value);
+    }
   };
 
   const handleTaxChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -518,7 +518,12 @@ console.log(defaultSelected)
   };
 
   const handleSubmit = (): void => {
-    console.log('Submitting form with data:', formData, 'and opening quantities:', openingQuantities);
+    console.log(
+      "Submitting form with data:",
+      formData,
+      "and opening quantities:",
+      openingQuantities
+    );
     if (!formData.code.trim()) {
       toast.error("Please enter Product Code");
       return;
@@ -631,12 +636,11 @@ console.log(defaultSelected)
 
   const getMaintainBatchStatus = (companyId: string) => {
     const company = companies?.find((c) => c._id === companyId);
-      // console.log("Selected company:", company);
+    // console.log("Selected company:", company);
     return company ? company?.maintainBatch : false;
   };
 
- const selectedCompanyId = defaultSelected;
-
+  const selectedCompanyId = defaultSelected;
 
   const stats = useMemo(
     () => ({
@@ -891,10 +895,22 @@ console.log(defaultSelected)
             onClick={() => {
               resetForm();
               setOpen(true);
+              if (defaultSelected && companies.length > 0) {
+                const selectedCompany = companies.find(
+                  (c) => c._id === defaultSelected
+                );
+                if (selectedCompany) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    companyId: selectedCompany._id,
+                  }));
+                }
+              }
+              setOpen(true);
             }}
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            <Package className="w-4 h-4 mr-2" />
+            <Package className="w-4 h-4" />
             Add Product
           </Button>
         </CheckAccess>
@@ -902,54 +918,54 @@ console.log(defaultSelected)
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-teal-100 text-sm font-medium">
                   Total Products
                 </p>
-                <p className="text-3xl font-bold">{stats?.totalProducts}</p>
+                <p className="text-2xl font-bold">{stats?.totalProducts}</p>
               </div>
-              <Package className="w-8 h-8 text-teal-200" />
+              <Package className="w-6 h-6 text-teal-200" />
             </div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-sm font-medium">
                   Active Products
                 </p>
-                <p className="text-3xl font-bold">{stats?.activeProducts}</p>
+                <p className="text-2xl font-bold">{stats?.activeProducts}</p>
               </div>
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
             </div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium">
                   Batch Managed
                 </p>
-                <p className="text-3xl font-bold">{stats?.batchProducts}</p>
+                <p className="text-2xl font-bold">{stats?.batchProducts}</p>
               </div>
-              <Tag className="w-8 h-8 text-green-200" />
+              <Tag className="w-6 h-6 text-green-200" />
             </div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm font-medium">
                   Taxable Products
                 </p>
-                <p className="text-3xl font-bold">{stats.taxableProducts}</p>
+                <p className="text-2xl font-bold">{stats.taxableProducts}</p>
               </div>
-              <FileText className="w-8 h-8 text-purple-200" />
+              <FileText className="w-6 h-6 text-purple-200" />
             </div>
           </CardContent>
         </Card>
@@ -1028,12 +1044,12 @@ console.log(defaultSelected)
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
                   icon={<Package className="w-4 h-4 text-white" />}
                   title="Product Information"
                   gradientFrom="from-pink-400"
                   gradientTo="to-pink-500"
-                />
+                /> */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Product Code"
@@ -1059,7 +1075,7 @@ console.log(defaultSelected)
                     onChange={handleChange}
                   />
                   <div className="flex flex-col gap-1">
-                   <SelectedCompany/>
+                    <SelectedCompany />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1258,12 +1274,12 @@ console.log(defaultSelected)
             )}
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
                   icon={<FileText className="w-4 h-4 text-white" />}
                   title="Tax Configuration"
                   gradientFrom="from-blue-400"
                   gradientTo="to-blue-500"
-                />
+                /> */}
                 <div className="mb-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1481,12 +1497,12 @@ console.log(defaultSelected)
             )}
             {activeTab === "opening" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
                   icon={<Star className="w-4 h-4 text-white" />}
                   title="Opening Stock Details"
                   gradientFrom="from-blue-400"
                   gradientTo="to-blue-500"
-                />
+                /> */}
                 <div className="mb-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1678,12 +1694,12 @@ console.log(defaultSelected)
             )}
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
                   icon={<Settings2 className="w-4 h-4 text-white" />}
                   title="Product Settings"
                   gradientFrom="from-cyan-400"
                   gradientTo="to-cyan-500"
-                />
+                /> */}
                 <div className="mb-6">
                   <h4 className="text-md font-semibold text-gray-800 mb-3">
                     Product Images

@@ -153,9 +153,9 @@ const createSockGroup=async(data:any)=>{
   const res=await apiClient.post("/stock-groups",data);
   return res?.data
 }
-const updateStockGroup=async({stockGroupId,stockGrroupData}:{stockGroupId:string,stockGrroupData:any})=>{
-  console.log("hihih",stockGroupId,stockGrroupData)
-  const res=await apiClient.put(`/stock-groups/${stockGroupId}`,stockGrroupData)
+const updateStockGroup=async({stockGroupId,stockGroupData}:{stockGroupId:string,stockGroupData:any})=>{
+  console.log("hihih",stockGroupId,stockGroupData)
+  const res=await apiClient.put(`/stock-groups/${stockGroupId}`,stockGroupData)
   return res?.data
 }
 const deleteStockGroup=async(stockGroupId:string)=>{

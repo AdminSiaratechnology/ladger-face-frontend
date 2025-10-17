@@ -16,6 +16,7 @@ const SelectedCompany = () => {
         placeholder="e.g., ABC Agents"
         name="agentName"
         value={company[0]?.namePrint || ""}
+        readOnly
       />
     </>
   );

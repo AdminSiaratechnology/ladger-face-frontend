@@ -27,35 +27,59 @@
 // import { useAuthStore } from '../store/authStore';
 // import { checkPermission } from './lib/utils';
 
-import React, { useState, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'sonner';
+import React, { useState, Suspense } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { Toaster } from "sonner";
 import "./index.css";
-import { useAuthStore } from '../store/authStore';
-import { checkPermission } from './lib/utils';
+import { useAuthStore } from "../store/authStore";
+import { checkPermission } from "./lib/utils";
 
-const Login = React.lazy(() => import('./components/pages/Login'));
-const AdminDashboard = React.lazy(() => import('./components/pages/AdminDashboard'));
-const UserManagement = React.lazy(() => import('./components/pages/UserManagement'));
-const InventoryManagement = React.lazy(() => import('./components/pages/InventoryManagement'));
-const OrderManagement = React.lazy(() => import('./components/pages/OrderManagement'));
-const Order = React.lazy(() => import('./components/pages/OrderPage'));
-const PriceListManagement = React.lazy(() => import('./components/pages/PriceListManagement'));
-const LocationTracking = React.lazy(() => import('./components/pages/LocationTracking'));
-const Settings = React.lazy(() => import('./components/pages/Settings'));
-const Sidebar = React.lazy(() => import('./components/Sidebar'));
-const Header = React.lazy(() => import('./components/pages/Header'));
-const Company = React.lazy(() => import('./components/pages/Company'));
-const VendorRegistration = React.lazy(() => import('./components/pages/VendorRegistration'));
-const CustomerRegistration = React.lazy(() => import('./components/pages/CustomerRegistration'));
-const Agent = React.lazy(() => import('./components/pages/Agent'));
-const Ladger = React.lazy(() => import('./components/pages/Ladger'));
-const Product = React.lazy(() => import('./components/pages/Product'));
-const Godown = React.lazy(() => import('./components/pages/Godown'));
-const StockCategory = React.lazy(() => import('./components/pages/StockCategory'));
-const StockGroup = React.lazy(() => import('./components/pages/StockGroup'));
-const UOM = React.lazy(() => import('./components/pages/UOM'));
-const PriceList = React.lazy(() => import('./components/pages/PriceListPage'));
+const Login = React.lazy(() => import("./components/pages/Login"));
+const AdminDashboard = React.lazy(
+  () => import("./components/pages/AdminDashboard")
+);
+const UserManagement = React.lazy(
+  () => import("./components/pages/UserManagement")
+);
+const InventoryManagement = React.lazy(
+  () => import("./components/pages/InventoryManagement")
+);
+const OrderManagement = React.lazy(
+  () => import("./components/pages/OrderManagement")
+);
+const Order = React.lazy(() => import("./components/pages/OrderPage"));
+const PriceListManagement = React.lazy(
+  () => import("./components/pages/PriceListManagement")
+);
+const LocationTracking = React.lazy(
+  () => import("./components/pages/LocationTracking")
+);
+const Settings = React.lazy(() => import("./components/pages/Settings"));
+const Sidebar = React.lazy(() => import("./components/Sidebar"));
+const Header = React.lazy(() => import("./components/pages/Header"));
+const Company = React.lazy(() => import("./components/pages/Company"));
+const VendorRegistration = React.lazy(
+  () => import("./components/pages/VendorRegistration")
+);
+const CustomerRegistration = React.lazy(
+  () => import("./components/pages/CustomerRegistration")
+);
+const Agent = React.lazy(() => import("./components/pages/Agent"));
+const Ladger = React.lazy(() => import("./components/pages/Ladger"));
+const Product = React.lazy(() => import("./components/pages/Product"));
+const Godown = React.lazy(() => import("./components/pages/Godown"));
+const StockCategory = React.lazy(
+  () => import("./components/pages/StockCategory")
+);
+const StockGroup = React.lazy(() => import("./components/pages/StockGroup"));
+const UOM = React.lazy(() => import("./components/pages/UOM"));
+const PriceList = React.lazy(() => import("./components/pages/PriceListPage"));
+const UserSelection = React.lazy(() => import("./components/pages/UserSelection"));
 
 // Unauthorized Access Component
 function UnauthorizedAccess() {
@@ -64,24 +88,36 @@ function UnauthorizedAccess() {
       <div className="text-center p-8 bg-white rounded-lg shadow-md">
         <div className="text-6xl text-red-500 mb-4">🚫</div>
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h1>
-        <p className="text-gray-600 mb-4">You are not authorized to access this page.</p>
-        <p className="text-sm text-gray-500">Please contact your administrator if you believe this is an error.</p>
+        <p className="text-gray-600 mb-4">
+          You are not authorized to access this page.
+        </p>
+        <p className="text-sm text-gray-500">
+          Please contact your administrator if you believe this is an error.
+        </p>
       </div>
     </div>
   );
 }
 
-function ProtectedRoute({ children, module, subModule, allowedRoles }: { 
-  children: React.ReactNode; 
+function ProtectedRoute({
+  children,
+  module,
+  subModule,
+  allowedRoles,
+}: {
+  children: React.ReactNode;
   module?: string;
   subModule?: string;
-  allowedRoles?: string[] 
+  allowedRoles?: string[];
 }) {
-  const { user, isLoading, } = useAuthStore();
-
+  const { user, isLoading } = useAuthStore();
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
 
   if (!user) {
@@ -90,7 +126,12 @@ function ProtectedRoute({ children, module, subModule, allowedRoles }: {
 
   // If specific module and subModule are provided, check permissions
   if (module && subModule) {
-    const hasPermission = checkPermission({user, module, subModule,type:"read"});
+    const hasPermission = checkPermission({
+      user,
+      module,
+      subModule,
+      type: "read",
+    });
     if (!hasPermission) {
       return <UnauthorizedAccess />;
     }
@@ -111,16 +152,14 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-indigo-50">
       {/* <Suspense fallback={<div>Loading Sidebar...</div>}> */}
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       {/* </Suspense> */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* <Suspense fallback={<div>Loading Header...</div>}> */}
-          <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         {/* </Suspense> */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 px-3 py-0">
-          <Suspense fallback={<div>Loading...</div>}>
-            {children}
-          </Suspense>
+          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
         </main>
       </div>
     </div>
@@ -133,182 +172,256 @@ export default function App() {
       <div className="min-h-screen w-screen">
         <Toaster position="top-right" richColors />
         <Routes>
-          <Route path="/login" element={
-            // <Suspense fallback={<div>Loading...</div>}>
+          <Route
+            path="/login"
+            element={
+              // <Suspense fallback={<div>Loading...</div>}>
               <Login />
-            // </Suspense>
-          } />
-          
+              // </Suspense>
+            }
+          />
+
           {/* Dashboard - accessible to all authenticated users */}
-          <Route path="/" element={
-            <ProtectedRoute allowedRoles={['admin', 'agent', 'salesman']}>
-              <AppLayout>
-                <AdminDashboard />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute allowedRoles={["admin", "agent", "salesman"]}>
+                <AppLayout>
+                  <AdminDashboard />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* User Management - admin only */}
-          <Route path="/users" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AppLayout>
-                <UserManagement />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/users"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <UserManagement />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Company - admin only */}
-          <Route path="/company" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AppLayout>
-                <Company />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/company"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <Company />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Inventory Management */}
-          <Route path="/inventory" element={
-            <ProtectedRoute module="InventoryManagement" subModule="Godown">
-              <AppLayout>
-                <InventoryManagement />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/inventory"
+            element={
+              <ProtectedRoute module="InventoryManagement" subModule="Godown">
+                <AppLayout>
+                  <InventoryManagement />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Order Management */}
-          <Route path="/order-report" element={
-            <ProtectedRoute module="OrderManagement" subModule="OrderReport">
-              <AppLayout>
-                <OrderManagement />
-              </AppLayout>
-             </ProtectedRoute>
-          } />
+          <Route
+            path="/order-report"
+            element={
+              <ProtectedRoute module="OrderManagement" subModule="OrderReport">
+                <AppLayout>
+                  <OrderManagement />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
           {/* Order Management */}
-          <Route path="/orders" element={
-            <ProtectedRoute module="OrderManagement" subModule="Order">
-              <AppLayout>
-                <Order />
-              </AppLayout>
-             </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/orders"
+            element={
+              <ProtectedRoute module="OrderManagement" subModule="Order">
+                <AppLayout>
+                  <Order />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/select-user"
+            element={
+              <ProtectedRoute module="UserSelection" subModule="UserSelection">
+                <AppLayout>
+                  <UserSelection />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Pricing */}
-          <Route path="/pricing" element={
-            <ProtectedRoute module="Pricing" subModule="PriceList">
-              <AppLayout>
-                <PriceListManagement />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/pricing"
+            element={
+              <ProtectedRoute module="Pricing" subModule="PriceList">
+                <AppLayout>
+                  <PriceListManagement />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Location Tracking - admin only */}
-          <Route path="/tracking" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AppLayout>
-                <LocationTracking />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/tracking"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <LocationTracking />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Settings - admin only */}
-          <Route path="/settings" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AppLayout>
-                <Settings />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <Settings />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Vendor Registration */}
-          <Route path="/vendor-registration" element={
-            <ProtectedRoute module="BusinessManagement" subModule="Vendor">
-              <AppLayout>
-                <VendorRegistration />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/vendor-registration"
+            element={
+              <ProtectedRoute module="BusinessManagement" subModule="Vendor">
+                <AppLayout>
+                  <VendorRegistration />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Customer Registration */}
-          <Route path="/customer-registration" element={
-            <ProtectedRoute module="BusinessManagement" subModule="CustomerRegistration">
-              <AppLayout>
-                <CustomerRegistration />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/customer-registration"
+            element={
+              <ProtectedRoute
+                module="BusinessManagement"
+                subModule="CustomerRegistration"
+              >
+                <AppLayout>
+                  <CustomerRegistration />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Ledger Registration - admin only (no specific permission in your data) */}
-          <Route path="/ladger-registration" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AppLayout>
-                <Ladger />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/ladger-registration"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <Ladger />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Product - admin only (no specific permission in your data) */}
-          <Route path="/product" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AppLayout>
-                <Product />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/product"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <Product />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Godown */}
-          <Route path="/godown" element={
-            <ProtectedRoute module="InventoryManagement" subModule="Godown">
-              <AppLayout>
-                <Godown />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/godown"
+            element={
+              <ProtectedRoute module="InventoryManagement" subModule="Godown">
+                <AppLayout>
+                  <Godown />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Stock Category - admin only (no specific permission in your data) */}
-          <Route path="/stock-category" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AppLayout>
-                <StockCategory />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/stock-category"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <StockCategory />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Stock Group - admin only (no specific permission in your data) */}
-          <Route path="/stock-group" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AppLayout>
-                <StockGroup />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/stock-group"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <StockGroup />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Price List */}
-          <Route path="/price-list" element={
-            <ProtectedRoute module="Pricing" subModule="PriceList">
-              <AppLayout>
-                <PriceList />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/price-list"
+            element={
+              <ProtectedRoute module="Pricing" subModule="PriceList">
+                <AppLayout>
+                  <PriceList />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* UOM - admin only (no specific permission in your data) */}
-          <Route path="/UOM" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AppLayout>
-                <UOM />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/UOM"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <UOM />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Agent - admin only (no specific permission in your data) */}
-          <Route path="/agent" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AppLayout>
-                <Agent />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          
+          <Route
+            path="/agent"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <Agent />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>

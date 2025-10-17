@@ -102,7 +102,7 @@ export const useGodownStore = create<GodownStore>()(
         try {
           set({ loading: true, error: null });
 
-          const res = await api.createGodown(godownData);
+          const res = await api.addGodowns(godownData);
           console.log("Created godown response:", res);
 
           const newGodown: Godown = res.data;
@@ -126,7 +126,7 @@ export const useGodownStore = create<GodownStore>()(
         try {
           set({ loading: true, error: null });
 
-          const res = await api.updateGodown(godownId, godownData);
+          const res = await api.updateGodown({id:godownId,godown:godownData});
           console.log("Updated godown response:", res);
 
           const updatedGodown: Godown = res.data.data;

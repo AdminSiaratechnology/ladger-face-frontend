@@ -95,13 +95,13 @@ try {
 }
 
     },
-    updateStockGroup:async(stockGroupId,stockGrroupData)=>{
-        console.log("updatingggg",stockGroupId,stockGrroupData)
+    updateStockGroup:async(stockGroupId,stockGroupData)=>{
+        console.log("updatingggg",stockGroupId,stockGroupData)
 
 set({loading:true})
 try {
    
-    const res=await api.updateStockGroup(stockGroupId,stockGrroupData)
+    const res=await api.updateStockGroup({stockGroupId:stockGroupId,stockGroupData:stockGroupData})
     const updatedStockGroup: StockGroup = res.data;
 
     set({
