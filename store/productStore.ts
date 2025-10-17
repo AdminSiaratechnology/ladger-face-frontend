@@ -146,7 +146,7 @@ export const useProductStore = create<ProductStore>()(
         console.log(id,product,"ppeppepepepepep")
         set({ loading: true });
         try {
-          const result = await api.updateProduct(id, product);
+          const result = await api.updateProduct({id, product});
           set({
             products: get().products.map((p) =>
               p?._id === id ? result?.data : p

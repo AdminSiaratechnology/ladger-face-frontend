@@ -29,9 +29,9 @@ import {
   Shield,
   AlertCircle,
   UserCheck,
-  Target
+  Target,
 } from "lucide-react";
-import { Country, State, City } from 'country-state-city';
+import { Country, State, City } from "country-state-city";
 import { useCompanyStore } from "../../../store/companyStore";
 import { useLedgerStore } from "../../../store/ladgerStore";
 import CustomInputBox from "../customComponents/CustomInputBox";
@@ -49,6 +49,7 @@ import TableHeader from "../customComponents/CustomTableHeader";
 import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
+import SelectedCompany from "../customComponents/SelectedCompany";
 
 // Step icons for multi-step navigation
 const stepIcons = {
@@ -56,7 +57,7 @@ const stepIcons = {
   contact: <Phone className="w-2 h-2 md:w-5 md:h-5" />,
   tax: <FileText className="w-2 h-2 md:w-5 md:h-5" />,
   bank: <Building2 className="w-2 h-2 md:w-5 md:h-5" />,
-  settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />
+  settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />,
 };
 
 // Interfaces
@@ -193,7 +194,7 @@ interface LedgerForm {
 
 const LedgerRegistration: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [editingLedger, setEditingLedger] = useState<Ledger | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");
   const [bankForm, setBankForm] = useState<Bank>({
@@ -204,19 +205,34 @@ const LedgerRegistration: React.FC = () => {
     micrNumber: "",
     swiftCode: "",
     bankName: "",
-    branch: ""
+    branch: "",
   });
-  const [viewingImage, setViewingImage] = useState<RegistrationDocument | { previewUrl: string; type: 'logo' } | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all');
-  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [viewingImage, setViewingImage] = useState<
+    RegistrationDocument | { previewUrl: string; type: "logo" } | null
+  >(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive" | "suspended"
+  >("all");
+  const [sortBy, setSortBy] = useState<
+    "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
+  >("nameAsc");
   const [filteredLedgers, setFilteredLedgers] = useState<Ledger[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { ledgers, fetchLedgers, addLedger, updateLedger, deleteLedger, filterLedgers, pagination, loading } = useLedgerStore();
-  const { companies } = useCompanyStore();
+  const {
+    ledgers,
+    fetchLedgers,
+    addLedger,
+    updateLedger,
+    deleteLedger,
+    filterLedgers,
+    pagination,
+    loading,
+  } = useLedgerStore();
+  const { companies, defaultSelected } = useCompanyStore();
 
   // Initial fetch
   useEffect(() => {
@@ -249,138 +265,162 @@ const LedgerRegistration: React.FC = () => {
   }, [searchTerm, statusFilter, sortBy, currentPage, filterLedgers]);
 
   const [formData, setFormData] = useState<LedgerForm>({
-    ledgerType: 'individual',
-    ledgerCode: '',
-    ledgerName: '',
-    shortName: '',
-    companyId: '',
-    ledgerGroup: '',
-    industryType: '',
-    territory: '',
-    ledgerStatus: 'active',
-    companySize: '',
-    contactPerson: '',
-    designation: '',
-    phoneNumber: '',
-    mobileNumber: '',
-    emailAddress: '',
-    faxNumber: '',
-    addressLine1: '',
-    addressLine2: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: 'India',
-    website: '',
-    currency: 'INR',
-    taxId: '',
-    vatNumber: '',
-    gstNumber: '',
-    panNumber: '',
-    tanNumber: '',
-    taxCategory: '',
-    taxTemplate: '',
-    withholdingTaxCategory: '',
+    ledgerType: "individual",
+    ledgerCode: "",
+    ledgerName: "",
+    shortName: "",
+    companyId: "",
+    ledgerGroup: "",
+    industryType: "",
+    territory: "",
+    ledgerStatus: "active",
+    companySize: "",
+    contactPerson: "",
+    designation: "",
+    phoneNumber: "",
+    mobileNumber: "",
+    emailAddress: "",
+    faxNumber: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "India",
+    website: "",
+    currency: "INR",
+    taxId: "",
+    vatNumber: "",
+    gstNumber: "",
+    panNumber: "",
+    tanNumber: "",
+    taxCategory: "",
+    taxTemplate: "",
+    withholdingTaxCategory: "",
     isTaxExempt: false,
     reverseCharge: false,
     isFrozenAccount: false,
     disabled: false,
-    bankName: '',
-    branchName: '',
-    accountNumber: '',
-    accountHolderName: '',
-    ifscCode: '',
-    swiftCode: '',
+    bankName: "",
+    branchName: "",
+    accountNumber: "",
+    accountHolderName: "",
+    ifscCode: "",
+    swiftCode: "",
     banks: [],
-    externalSystemId: '',
-    dataSource: 'manual',
-    ledgerPriority: 'medium',
-    leadSource: '',
-    internalNotes: '',
-    notes: '',
-    registrationDocs: []
+    externalSystemId: "",
+    dataSource: "manual",
+    ledgerPriority: "medium",
+    leadSource: "",
+    internalNotes: "",
+    notes: "",
+    registrationDocs: [],
   });
-
+  useEffect(() => {
+    if (defaultSelected && companies.length > 0) {
+      const selectedCompany = companies.find((c) => c._id === defaultSelected);
+      if (selectedCompany) {
+        setFormData((prev) => ({ ...prev, companyId: selectedCompany._id }));
+      }
+    }
+  }, [defaultSelected, companies]);
   // Country, State, City Data
   const allCountries = useMemo(() => Country.getAllCountries(), []);
   const availableStates = useMemo(() => {
-    const selectedCountry = allCountries.find(c => c.name === formData.country);
+    const selectedCountry = allCountries.find(
+      (c) => c.name === formData.country
+    );
     if (!selectedCountry) return [];
     return State.getStatesOfCountry(selectedCountry.isoCode);
   }, [formData.country, allCountries]);
   const availableCities = useMemo(() => {
-    const selectedCountry = allCountries.find(c => c.name === formData.country);
-    const selectedState = availableStates.find(s => s.name === formData.state);
+    const selectedCountry = allCountries.find(
+      (c) => c.name === formData.country
+    );
+    const selectedState = availableStates.find(
+      (s) => s.name === formData.state
+    );
     if (!selectedCountry || !selectedState) return [];
-    return City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
+    return City.getCitiesOfState(
+      selectedCountry.isoCode,
+      selectedState.isoCode
+    );
   }, [formData.country, formData.state, availableStates, allCountries]);
 
   const getCurrencyForCountry = (countryName: string): string => {
-    const country = allCountries.find(c => c.name === countryName);
+    const country = allCountries.find((c) => c.name === countryName);
     if (!country) return "INR";
     const currencyMap: Record<string, string> = {
-      'IN': 'INR',
-      'US': 'USD',
-      'GB': 'GBP',
-      'CA': 'CAD',
-      'AU': 'AUD',
-      'DE': 'EUR',
-      'FR': 'EUR',
-      'JP': 'JPY',
-      'CN': 'CNY'
+      IN: "INR",
+      US: "USD",
+      GB: "GBP",
+      CA: "CAD",
+      AU: "AUD",
+      DE: "EUR",
+      FR: "EUR",
+      JP: "JPY",
+      CN: "CNY",
     };
-    return currencyMap[country.isoCode] || country.currency || 'USD';
+    return currencyMap[country.isoCode] || country.currency || "USD";
   };
 
   // Handlers
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ): void => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const handleSelectChange = (name: keyof LedgerForm, value: string): void => {
     if (name === "country") {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
         state: "",
         city: "",
-        currency: getCurrencyForCountry(value)
+        currency: getCurrencyForCountry(value),
       }));
     } else if (name === "state") {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
-        city: ""
+        city: "",
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
 
   const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setBankForm(prev => ({
+    setBankForm((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const addBank = (): void => {
-    if (!bankForm.accountHolderName || !bankForm.accountNumber || !bankForm.bankName) {
-      toast.error("Please fill in at least Account Holder Name, Account Number, and Bank Name");
+    if (
+      !bankForm.accountHolderName ||
+      !bankForm.accountNumber ||
+      !bankForm.bankName
+    ) {
+      toast.error(
+        "Please fill in at least Account Holder Name, Account Number, and Bank Name"
+      );
       return;
     }
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      banks: [...prev.banks, { ...bankForm, id: Date.now() }]
+      banks: [...prev.banks, { ...bankForm, id: Date.now() }],
     }));
     setBankForm({
       id: Date.now(),
@@ -390,14 +430,14 @@ const LedgerRegistration: React.FC = () => {
       swiftCode: "",
       micrNumber: "",
       bankName: "",
-      branch: ""
+      branch: "",
     });
   };
 
   const removeBank = (id: number): void => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      banks: prev.banks.filter(bank => bank.id !== id)
+      banks: prev.banks.filter((bank) => bank.id !== id),
     }));
   };
 
@@ -405,26 +445,32 @@ const LedgerRegistration: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       const previewUrl = URL.createObjectURL(file);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         logoFile: file,
-        logoPreviewUrl: previewUrl
+        logoPreviewUrl: previewUrl,
       }));
     }
   };
 
   const removeLogo = (): void => {
-    if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
+    if (
+      formData.logoPreviewUrl &&
+      formData.logoPreviewUrl.startsWith("blob:")
+    ) {
       URL.revokeObjectURL(formData.logoPreviewUrl);
     }
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       logoFile: undefined,
-      logoPreviewUrl: undefined
+      logoPreviewUrl: undefined,
     }));
   };
 
-  const handleDocumentUpload = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDocumentUpload = (
+    type: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       const previewUrl = URL.createObjectURL(file);
@@ -433,32 +479,42 @@ const LedgerRegistration: React.FC = () => {
         type,
         file,
         previewUrl,
-        fileName: file.name
+        fileName: file.name,
       };
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        registrationDocs: [...prev.registrationDocs.filter(doc => doc.type !== type), newDoc]
+        registrationDocs: [
+          ...prev.registrationDocs.filter((doc) => doc.type !== type),
+          newDoc,
+        ],
       }));
     }
   };
 
   const removeDocument = (id: number) => {
-    const docToRemove = formData.registrationDocs.find(doc => doc.id === id);
-    if (docToRemove && docToRemove.previewUrl && docToRemove.previewUrl.startsWith('blob:')) {
+    const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
+    if (
+      docToRemove &&
+      docToRemove.previewUrl &&
+      docToRemove.previewUrl.startsWith("blob:")
+    ) {
       URL.revokeObjectURL(docToRemove.previewUrl);
     }
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      registrationDocs: prev.registrationDocs.filter(doc => doc.id !== id)
+      registrationDocs: prev.registrationDocs.filter((doc) => doc.id !== id),
     }));
   };
 
   const cleanupImageUrls = (): void => {
-    if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
+    if (
+      formData.logoPreviewUrl &&
+      formData.logoPreviewUrl.startsWith("blob:")
+    ) {
       URL.revokeObjectURL(formData.logoPreviewUrl);
     }
-    formData.registrationDocs.forEach(doc => {
-      if (doc.previewUrl && doc.previewUrl.startsWith('blob:')) {
+    formData.registrationDocs.forEach((doc) => {
+      if (doc.previewUrl && doc.previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(doc.previewUrl);
       }
     });
@@ -467,56 +523,56 @@ const LedgerRegistration: React.FC = () => {
   const resetForm = () => {
     cleanupImageUrls();
     setFormData({
-      ledgerType: 'individual',
-      ledgerCode: '',
-      ledgerName: '',
-      shortName: '',
-      companyId: '',
-      ledgerGroup: '',
-      industryType: '',
-      territory: '',
-      ledgerStatus: 'active',
-      companySize: '',
-      contactPerson: '',
-      designation: '',
-      phoneNumber: '',
-      mobileNumber: '',
-      emailAddress: '',
-      faxNumber: '',
-      addressLine1: '',
-      addressLine2: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      country: 'India',
-      website: '',
-      currency: 'INR',
-      taxId: '',
-      vatNumber: '',
-      gstNumber: '',
-      panNumber: '',
-      tanNumber: '',
-      taxCategory: '',
-      taxTemplate: '',
-      withholdingTaxCategory: '',
+      ledgerType: "individual",
+      ledgerCode: "",
+      ledgerName: "",
+      shortName: "",
+      companyId: "",
+      ledgerGroup: "",
+      industryType: "",
+      territory: "",
+      ledgerStatus: "active",
+      companySize: "",
+      contactPerson: "",
+      designation: "",
+      phoneNumber: "",
+      mobileNumber: "",
+      emailAddress: "",
+      faxNumber: "",
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      country: "India",
+      website: "",
+      currency: "INR",
+      taxId: "",
+      vatNumber: "",
+      gstNumber: "",
+      panNumber: "",
+      tanNumber: "",
+      taxCategory: "",
+      taxTemplate: "",
+      withholdingTaxCategory: "",
       isTaxExempt: false,
       reverseCharge: false,
       isFrozenAccount: false,
       disabled: false,
-      bankName: '',
-      branchName: '',
-      accountNumber: '',
-      accountHolderName: '',
-      ifscCode: '',
-      swiftCode: '',
+      bankName: "",
+      branchName: "",
+      accountNumber: "",
+      accountHolderName: "",
+      ifscCode: "",
+      swiftCode: "",
       banks: [],
-      externalSystemId: '',
-      dataSource: 'manual',
-      ledgerPriority: 'medium',
-      leadSource: '',
-      internalNotes: '',
-      notes: '',
-      registrationDocs: []
+      externalSystemId: "",
+      dataSource: "manual",
+      ledgerPriority: "medium",
+      leadSource: "",
+      internalNotes: "",
+      notes: "",
+      registrationDocs: [],
     });
     setEditingLedger(null);
     setActiveTab("basic");
@@ -527,10 +583,10 @@ const LedgerRegistration: React.FC = () => {
     setFormData({
       ...ledger,
       logoPreviewUrl: ledger.logo || undefined,
-      registrationDocs: ledger.registrationDocs.map(doc => ({
+      registrationDocs: ledger.registrationDocs.map((doc) => ({
         ...doc,
-        previewUrl: doc.previewUrl // Assuming previewUrl is URL or base64
-      }))
+        previewUrl: doc.previewUrl, // Assuming previewUrl is URL or base64
+      })),
     });
     setOpen(true);
   };
@@ -571,26 +627,38 @@ const LedgerRegistration: React.FC = () => {
     }
 
     const ledgerFormData = new FormData();
-    Object.keys(formData).forEach(key => {
+    Object.keys(formData).forEach((key) => {
       const value = formData[key as keyof LedgerForm];
-      if (key === 'registrationDocs' || key === 'banks' || key === 'logoFile' || key === 'logoPreviewUrl') return;
-      if (value !== null && value !== undefined && value !== '') {
+      if (
+        key === "registrationDocs" ||
+        key === "banks" ||
+        key === "logoFile" ||
+        key === "logoPreviewUrl"
+      )
+        return;
+      if (value !== null && value !== undefined && value !== "") {
         ledgerFormData.append(key, String(value));
       }
     });
     ledgerFormData.append("companyID", formData.companyId);
-    ledgerFormData.append('banks', JSON.stringify(formData.banks));
+    ledgerFormData.append("banks", JSON.stringify(formData.banks));
     if (formData.logoFile) {
-      ledgerFormData.append('logo', formData.logoFile);
+      ledgerFormData.append("logo", formData.logoFile);
     }
-    formData.registrationDocs.forEach(doc => {
-      ledgerFormData.append('registrationDocs', doc.file);
+    formData.registrationDocs.forEach((doc) => {
+      ledgerFormData.append("registrationDocs", doc.file);
     });
-    ledgerFormData.append('registrationDocTypes', JSON.stringify(formData.registrationDocs.map(doc => doc.type)));
-    ledgerFormData.append('registrationDocsCount', String(formData.registrationDocs.length));
+    ledgerFormData.append(
+      "registrationDocTypes",
+      JSON.stringify(formData.registrationDocs.map((doc) => doc.type))
+    );
+    ledgerFormData.append(
+      "registrationDocsCount",
+      String(formData.registrationDocs.length)
+    );
 
     if (editingLedger) {
-      updateLedger({ id: editingLedger._id || '', ledger: ledgerFormData });
+      updateLedger({ id: editingLedger._id || "", ledger: ledgerFormData });
     } else {
       addLedger(ledgerFormData);
     }
@@ -598,38 +666,55 @@ const LedgerRegistration: React.FC = () => {
     resetForm();
   };
 
-  const stats = useMemo(() => ({
-    totalLedgers: pagination?.total || 0,
-    activeLedgers: statusFilter === 'active' ? pagination?.total : filteredLedgers.filter(c => c.ledgerStatus === 'active').length,
-    gstRegistered: filteredLedgers.filter(c => c.gstNumber?.trim() !== "").length,
-    individualAccounts: filteredLedgers.filter(c => c.ledgerType === 'individual').length
-  }), [filteredLedgers, pagination, statusFilter]);
+  const stats = useMemo(
+    () => ({
+      totalLedgers: pagination?.total || 0,
+      activeLedgers:
+        statusFilter === "active"
+          ? pagination?.total
+          : filteredLedgers.filter((c) => c.ledgerStatus === "active").length,
+      gstRegistered: filteredLedgers.filter((c) => c.gstNumber?.trim() !== "")
+        .length,
+      individualAccounts: filteredLedgers.filter(
+        (c) => c.ledgerType === "individual"
+      ).length,
+    }),
+    [filteredLedgers, pagination, statusFilter]
+  );
 
   const tabs = [
     { id: "basic", label: "Basic Info" },
     { id: "contact", label: "Contact Details" },
     { id: "tax", label: "Tax Information" },
     { id: "bank", label: "Banking Details" },
-    { id: "settings", label: "Settings" }
+    { id: "settings", label: "Settings" },
   ];
-const headers=["Ledger","Contact","Address","Status","Actions"];
+  const headers = ["Ledger", "Contact", "Address", "Status", "Actions"];
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-         
-              <TableHeader headers={headers} />
+          <TableHeader headers={headers} />
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredLedgers.map((ledger) => (
-              <tr key={ledger._id} className="hover:bg-gray-50 transition-colors duration-200">
+              <tr
+                key={ledger._id}
+                className="hover:bg-gray-50 transition-colors duration-200"
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <UserCheck className="h-10 w-10 text-teal-600 mr-3" />
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{ledger.ledgerName}</div>
-                      <div className="text-sm text-teal-600">{ledger.ledgerCode}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {ledger.ledgerName}
+                      </div>
+                      <div className="text-sm text-teal-600">
+                        {ledger.ledgerCode}
+                      </div>
                       {ledger.shortName && (
-                        <div className="text-xs text-gray-500">Short: {ledger.shortName}</div>
+                        <div className="text-xs text-gray-500">
+                          Short: {ledger.shortName}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -638,7 +723,9 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                   <div className="text-sm text-gray-900 space-y-1">
                     <div className="flex items-center">
                       <Mail className="w-3 h-3 text-gray-400 mr-2" />
-                      <span className="truncate max-w-48">{ledger.emailAddress}</span>
+                      <span className="truncate max-w-48">
+                        {ledger.emailAddress}
+                      </span>
                     </div>
                     {ledger.mobileNumber && (
                       <div className="flex items-center">
@@ -652,21 +739,35 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                   <div className="text-sm text-gray-900 space-y-1">
                     <div className="flex items-center">
                       <MapPin className="w-3 h-3 text-gray-400 mr-2" />
-                      <span>{[ledger.city, ledger.state].filter(Boolean).join(", ")}</span>
+                      <span>
+                        {[ledger.city, ledger.state].filter(Boolean).join(", ")}
+                      </span>
                     </div>
-                    <div className="text-xs text-gray-500 truncate max-w-48">{ledger.addressLine1}</div>
+                    <div className="text-xs text-gray-500 truncate max-w-48">
+                      {ledger.addressLine1}
+                    </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={`${ledger.ledgerStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-current`}>
+                  <Badge
+                    className={`${
+                      ledger.ledgerStatus === "active"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-700"
+                    } hover:bg-current`}
+                  >
                     {ledger.ledgerStatus}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <CheckAccess module="BusinessManagement" subModule="Ledger" type="edit">
+                  <CheckAccess
+                    module="BusinessManagement"
+                    subModule="Ledger"
+                    type="edit"
+                  >
                     <ActionsDropdown
                       onEdit={() => handleEditLedger(ledger)}
-                      onDelete={() => handleDeleteLedger(ledger._id || '')}
+                      onDelete={() => handleDeleteLedger(ledger._id || "")}
                       module="BusinessManagement"
                       subModule="Ledger"
                     />
@@ -683,29 +784,50 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
       {filteredLedgers.map((ledger: Ledger) => (
-        <Card key={ledger._id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group">
+        <Card
+          key={ledger._id}
+          className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group"
+        >
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center">
                 {ledger.logo && (
-                  <img src={ledger.logo} alt="Ledger Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
+                  <img
+                    src={ledger.logo}
+                    alt="Ledger Logo"
+                    className="w-10 h-10 rounded-full mr-3 object-cover"
+                  />
                 )}
                 <div>
-                  <CardTitle className="text-xl font-bold text-gray-800 mb-1">{ledger.ledgerName}</CardTitle>
+                  <CardTitle className="text-xl font-bold text-gray-800 mb-1">
+                    {ledger.ledgerName}
+                  </CardTitle>
                   {ledger.shortName && (
-                    <p className="text-teal-600 font-medium">{ledger.shortName}</p>
+                    <p className="text-teal-600 font-medium">
+                      {ledger.shortName}
+                    </p>
                   )}
                   <p className="text-sm text-gray-500">{ledger.ledgerCode}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge className={`${ledger.ledgerStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-current`}>
+                <Badge
+                  className={`${
+                    ledger.ledgerStatus === "active"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-700"
+                  } hover:bg-current`}
+                >
                   {ledger.ledgerStatus}
                 </Badge>
-                <CheckAccess module="BusinessManagement" subModule="Ledger" type="edit">
+                <CheckAccess
+                  module="BusinessManagement"
+                  subModule="Ledger"
+                  type="edit"
+                >
                   <ActionsDropdown
                     onEdit={() => handleEditLedger(ledger)}
-                    onDelete={() => handleDeleteLedger(ledger._id || '')}
+                    onDelete={() => handleDeleteLedger(ledger._id || "")}
                     module="BusinessManagement"
                     subModule="Ledger"
                   />
@@ -724,7 +846,11 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
               {(ledger.city || ledger.state || ledger.zipCode) && (
                 <div className="flex items-center text-sm">
                   <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">{[ledger.city, ledger.state, ledger.zipCode].filter(Boolean).join(", ")}</span>
+                  <span className="text-gray-600">
+                    {[ledger.city, ledger.state, ledger.zipCode]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </span>
                 </div>
               )}
               {ledger.mobileNumber && (
@@ -735,27 +861,40 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
               )}
               <div className="flex items-center text-sm">
                 <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600 truncate">{ledger.emailAddress}</span>
+                <span className="text-gray-600 truncate">
+                  {ledger.emailAddress}
+                </span>
               </div>
               {ledger.website && (
                 <div className="flex items-center text-sm">
                   <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-teal-600 truncate">{ledger.website}</span>
+                  <span className="text-teal-600 truncate">
+                    {ledger.website}
+                  </span>
                 </div>
               )}
             </div>
             {ledger.banks.length > 0 && (
               <div className="pt-3 border-t border-gray-100">
-                <p className="text-xs font-medium text-gray-500 mb-2">Bank Accounts</p>
+                <p className="text-xs font-medium text-gray-500 mb-2">
+                  Bank Accounts
+                </p>
                 <div className="space-y-2">
                   {ledger.banks.slice(0, 2).map((bank) => (
-                    <div key={bank.id} className="text-xs bg-gray-100 p-2 rounded">
+                    <div
+                      key={bank.id}
+                      className="text-xs bg-gray-100 p-2 rounded"
+                    >
                       <p className="font-medium truncate">{bank.bankName}</p>
-                      <p className="text-gray-600 truncate">A/C: ••••{bank.accountNumber.slice(-4)}</p>
+                      <p className="text-gray-600 truncate">
+                        A/C: ••••{bank.accountNumber.slice(-4)}
+                      </p>
                     </div>
                   ))}
                   {ledger.banks.length > 2 && (
-                    <p className="text-xs text-gray-500">+{ledger.banks.length - 2} more</p>
+                    <p className="text-xs text-gray-500">
+                      +{ledger.banks.length - 2} more
+                    </p>
                   )}
                 </div>
               </div>
@@ -764,14 +903,22 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
               <div className="pt-3 border-t border-gray-100 space-y-2">
                 {ledger.gstNumber && (
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">GST</span>
-                    <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">{ledger.gstNumber}</span>
+                    <span className="text-xs font-medium text-gray-500">
+                      GST
+                    </span>
+                    <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
+                      {ledger.gstNumber}
+                    </span>
                   </div>
                 )}
                 {ledger.panNumber && (
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">PAN</span>
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">{ledger.panNumber}</span>
+                    <span className="text-xs font-medium text-gray-500">
+                      PAN
+                    </span>
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
+                      {ledger.panNumber}
+                    </span>
                   </div>
                 )}
               </div>
@@ -779,7 +926,9 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
             <div className="pt-3 border-t border-gray-100">
               <div className="flex items-center text-sm">
                 <FileText className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">Created: {new Date(ledger.createdAt).toLocaleDateString()}</span>
+                <span className="text-gray-600">
+                  Created: {new Date(ledger.createdAt).toLocaleDateString()}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -788,21 +937,38 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
     </div>
   );
 
-
-
   return (
     <div className="custom-container">
       <div className="flex justify-between items-center mb-8">
-        <HeaderGradient title="Ledger Management" subtitle="Manage your ledger information and registrations" />
-        <CheckAccess module="BusinessManagement" subModule="Ledger" type="create">
-          <Button 
+        <HeaderGradient
+          title="Ledger Management"
+          subtitle="Manage your ledger information and registrations"
+        />
+        <CheckAccess
+          module="BusinessManagement"
+          subModule="Ledger"
+          type="create"
+        >
+          <Button
             onClick={() => {
               resetForm();
               setOpen(true);
-            }} 
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+              if (defaultSelected && companies.length > 0) {
+                const selectedCompany = companies.find(
+                  (c) => c._id === defaultSelected
+                );
+                if (selectedCompany) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    companyId: selectedCompany._id,
+                  }));
+                }
+              }
+              setOpen(true);
+            }}
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            <UserCheck className="w-4 h-4 mr-2" />
+            <UserCheck className="w-4 h-4" />
             Add Ledger
           </Button>
         </CheckAccess>
@@ -810,46 +976,54 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-teal-100 text-sm font-medium">Total Ledgers</p>
-                <p className="text-3xl font-bold">{stats.totalLedgers}</p>
+                <p className="text-teal-100 text-sm font-medium">
+                  Total Ledgers
+                </p>
+                <p className="text-2xl font-bold">{stats.totalLedgers}</p>
               </div>
-              <UserCheck className="w-8 h-8 text-teal-200" />
+              <UserCheck className="w-6 h-6 text-teal-200" />
             </div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">Active Ledgers</p>
-                <p className="text-3xl font-bold">{stats.activeLedgers}</p>
+                <p className="text-blue-100 text-sm font-medium">
+                  Active Ledgers
+                </p>
+                <p className="text-2xl font-bold">{stats.activeLedgers}</p>
               </div>
               <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
             </div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">GST Registered</p>
-                <p className="text-3xl font-bold">{stats.gstRegistered}</p>
+                <p className="text-green-100 text-sm font-medium">
+                  GST Registered
+                </p>
+                <p className="text-2xl font-bold">{stats.gstRegistered}</p>
               </div>
-              <FileText className="w-8 h-8 text-green-200" />
+              <FileText className="w-6 h-6 text-green-200" />
             </div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Individual Accounts</p>
-                <p className="text-3xl font-bold">{stats.individualAccounts}</p>
+                <p className="text-purple-100 text-sm font-medium">
+                  Individual Accounts
+                </p>
+                <p className="text-2xl font-bold">{stats.individualAccounts}</p>
               </div>
-              <Target className="w-8 h-8 text-purple-200" />
+              <Target className="w-6 h-6 text-purple-200" />
             </div>
           </CardContent>
         </Card>
@@ -863,74 +1037,79 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
         sortBy={sortBy}
         setSortBy={setSortBy}
         onClearFilters={() => {
-          setSearchTerm('');
-          setStatusFilter('all');
-          setSortBy('nameAsc');
+          setSearchTerm("");
+          setStatusFilter("all");
+          setSortBy("nameAsc");
           setCurrentPage(1);
         }}
       />
       {loading && <TableViewSkeleton />}
 
-    <ViewModeToggle 
-              viewMode={viewMode} 
-              setViewMode={setViewMode} 
-              totalItems={pagination?.total} 
-            />
-
+      <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={pagination?.total}
+      />
 
       {pagination.total === 0 ? (
         <EmptyStateCard
-      icon={UserCheck}
-      title="No ledgers registered yet"
-      description="Create your first ledger to get started"
-      buttonLabel="Add Your First Ledger"
-      module="BusinessManagement"
-      subModule="Ledger"
-      type="create"
-      onButtonClick={() => setOpen(true)}
-    />
+          icon={UserCheck}
+          title="No ledgers registered yet"
+          description="Create your first ledger to get started"
+          buttonLabel="Add Your First Ledger"
+          module="BusinessManagement"
+          subModule="Ledger"
+          type="create"
+          onButtonClick={() => setOpen(true)}
+        />
       ) : (
         <>
-          {viewMode === 'table' ? <TableView /> : <CardView />}
-               <PaginationControls
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        pagination={pagination}
-        itemName="ledgers"
-      />
+          {viewMode === "table" ? <TableView /> : <CardView />}
+          <PaginationControls
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            pagination={pagination}
+            itemName="ledgers"
+          />
         </>
       )}
 
-      <Dialog open={open} onOpenChange={(isOpen) => {
-        setOpen(isOpen);
-        if (!isOpen) {
-          resetForm();
-        }
-      }}>
+      <Dialog
+        open={open}
+        onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            resetForm();
+          }
+        }}
+      >
         <DialogContent className="custom-dialog-container">
           <CustomFormDialogHeader
             title={editingLedger ? "Edit Ledger" : "Add New Ledger"}
-            subtitle={editingLedger ? "Update the ledger details" : "Complete ledger registration information"}
+            subtitle={
+              editingLedger
+                ? "Update the ledger details"
+                : "Complete ledger registration information"
+            }
           />
-          
-          <MultiStepNav 
-            steps={tabs} 
-            currentStep={activeTab} 
-            onStepChange={setActiveTab} 
+
+          <MultiStepNav
+            steps={tabs}
+            currentStep={activeTab}
+            onStepChange={setActiveTab}
             stepIcons={stepIcons}
           />
 
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-               
-                    <SectionHeader
+                {/* <SectionHeader
         icon={<Users className="w-4 h-4 text-white" />}
         title="Ledger Details"
         gradientFrom="from-pink-400"
         gradientTo="to-pink-500"
-      />  
-                
+      />   */}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -938,7 +1117,9 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                     </label>
                     <select
                       value={formData.ledgerType}
-                      onChange={(e) => handleSelectChange("ledgerType", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("ledgerType", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="individual">Individual</option>
@@ -947,7 +1128,8 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                       <option value="trust">Trust</option>
                     </select>
                   </div>
-                  
+                  <SelectedCompany />
+                  {/*                   
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Company <span className="text-red-500">*</span>
@@ -964,7 +1146,7 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -987,10 +1169,14 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Ledger Group</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Ledger Group
+                    </label>
                     <select
                       value={formData.ledgerGroup}
-                      onChange={(e) => handleSelectChange("ledgerGroup", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("ledgerGroup", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Ledger Group</option>
@@ -1000,12 +1186,16 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                       <option value="cash">Cash</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Industry Type</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Industry Type
+                    </label>
                     <select
                       value={formData.industryType}
-                      onChange={(e) => handleSelectChange("industryType", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("industryType", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Industry Type</option>
@@ -1015,12 +1205,16 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                       <option value="technology">Technology</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Territory</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Territory
+                    </label>
                     <select
                       value={formData.territory}
-                      onChange={(e) => handleSelectChange("territory", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("territory", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Territory</option>
@@ -1034,10 +1228,14 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Ledger Status</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Ledger Status
+                    </label>
                     <select
                       value={formData.ledgerStatus}
-                      onChange={(e) => handleSelectChange("ledgerStatus", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("ledgerStatus", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="active">Active</option>
@@ -1045,12 +1243,16 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                       <option value="suspended">Suspended</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Company Size</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Company Size
+                    </label>
                     <select
                       value={formData.companySize}
-                      onChange={(e) => handleSelectChange("companySize", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("companySize", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Company Size</option>
@@ -1060,12 +1262,16 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                       <option value="enterprise">Enterprise (1000+)</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Currency</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Currency
+                    </label>
                     <select
                       value={formData.currency}
-                      onChange={(e) => handleSelectChange("currency", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("currency", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="USD">USD - US Dollar</option>
@@ -1089,18 +1295,18 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
             {activeTab === "contact" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                {/* <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center shadow-lg">
                     <Phone className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-800">Contact Information</h3>
-                </div>
-                <SectionHeader
+                </div> */}
+                {/* <SectionHeader
                   icon={<Phone className="w-4 h-4 text-white" />}
                   title="Contact Information"
                   gradientFrom="from-green-400"
                   gradientTo="to-green-500"
-                />
+                /> */}
 
                 <div className="grid grid-cols-1 gap-6">
                   <CustomInputBox
@@ -1166,44 +1372,62 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                   />
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Country</label>
+                      <label className="text-sm font-semibold text-gray-700">
+                        Country
+                      </label>
                       <select
                         value={formData.country}
-                        onChange={(e) => handleSelectChange("country", e.target.value)}
+                        onChange={(e) =>
+                          handleSelectChange("country", e.target.value)
+                        }
                         className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                       >
-                        {allCountries.map(country => (
-                          <option key={country.isoCode} value={country.name}>{country.name}</option>
+                        {allCountries.map((country) => (
+                          <option key={country.isoCode} value={country.name}>
+                            {country.name}
+                          </option>
                         ))}
                       </select>
                     </div>
-                    
+
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">State</label>
+                      <label className="text-sm font-semibold text-gray-700">
+                        State
+                      </label>
                       <select
                         value={formData.state}
-                        onChange={(e) => handleSelectChange("state", e.target.value)}
+                        onChange={(e) =>
+                          handleSelectChange("state", e.target.value)
+                        }
                         className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                         disabled={availableStates.length === 0}
                       >
                         <option value="">Select State</option>
-                        {availableStates.map(state => (
-                          <option key={state.isoCode} value={state.name}>{state.name}</option>
+                        {availableStates.map((state) => (
+                          <option key={state.isoCode} value={state.name}>
+                            {state.name}
+                          </option>
                         ))}
                       </select>
                     </div>
-                    
+
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">City</label>
+                      <label className="text-sm font-semibold text-gray-700">
+                        City
+                      </label>
                       <select
                         value={formData.city}
-                        onChange={(e) => handleSelectChange("city", e.target.value)}
+                        onChange={(e) =>
+                          handleSelectChange("city", e.target.value)
+                        }
                         className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                         disabled={availableCities.length === 0}
                       >
                         <option value="">Select City</option>
-                        {availableCities.map(city => (
-                          <option key={city.name} value={city.name}>{city.name}</option>
+                        {availableCities.map((city) => (
+                          <option key={city.name} value={city.name}>
+                            {city.name}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -1236,12 +1460,12 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
         icon={<FileText className="w-4 h-4 text-white" />}
         title="Tax Details"
         gradientFrom="from-yellow-400"
         gradientTo="to-yellow-500"
-      />
+      /> */}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
@@ -1288,10 +1512,14 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Tax Category</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Tax Category
+                    </label>
                     <select
                       value={formData.taxCategory}
-                      onChange={(e) => handleSelectChange("taxCategory", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("taxCategory", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Tax Category</option>
@@ -1301,12 +1529,16 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                       <option value="out_of_scope">Out of Scope</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Tax Template</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Tax Template
+                    </label>
                     <select
                       value={formData.taxTemplate}
-                      onChange={(e) => handleSelectChange("taxTemplate", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("taxTemplate", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Tax Template</option>
@@ -1316,17 +1548,26 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                       <option value="cgst_sgst_18">CGST+SGST 18%</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Withholding Tax Category</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Withholding Tax Category
+                    </label>
                     <select
                       value={formData.withholdingTaxCategory}
-                      onChange={(e) => handleSelectChange("withholdingTaxCategory", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange(
+                          "withholdingTaxCategory",
+                          e.target.value
+                        )
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select WHT Category</option>
                       <option value="tds_contractor">TDS - Contractor</option>
-                      <option value="tds_professional">TDS - Professional</option>
+                      <option value="tds_professional">
+                        TDS - Professional
+                      </option>
                       <option value="tds_commission">TDS - Commission</option>
                     </select>
                   </div>
@@ -1343,12 +1584,12 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
             {activeTab === "bank" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-               <SectionHeader
+                {/* <SectionHeader
         icon={<Building2 className="w-4 h-4 text-white" />}
         title="Bank Details"
         gradientFrom="from-purple-400"
         gradientTo="to-purple-500"
-      />
+      /> */}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                   <CustomInputBox
@@ -1403,8 +1644,8 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                     value={bankForm.branch}
                     onChange={handleBankChange}
                   />
-                  <Button 
-                    onClick={addBank} 
+                  <Button
+                    onClick={addBank}
                     className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
                   >
                     <Plus className="w-5 h-5 mr-2" /> Add Bank
@@ -1414,15 +1655,21 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                 {formData.banks.length > 0 && (
                   <div className="space-y-3">
                     <h4 className="font-medium text-teal-700">Added Banks:</h4>
-                    {formData.banks.map(bank => (
-                      <div key={bank.id} className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center">
+                    {formData.banks.map((bank) => (
+                      <div
+                        key={bank.id}
+                        className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center"
+                      >
                         <div>
                           <p className="font-medium">{bank.bankName}</p>
-                          <p className="text-sm text-gray-600">{bank.accountHolderName} ••••{bank.accountNumber.slice(-4)}</p>
+                          <p className="text-sm text-gray-600">
+                            {bank.accountHolderName} ••••
+                            {bank.accountNumber.slice(-4)}
+                          </p>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => removeBank(bank.id)}
                           className="text-red-500 hover:text-red-700 hover:bg-red-50"
                         >
@@ -1444,15 +1691,17 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <SectionHeader
+                {/* <SectionHeader
         icon={<Settings2 className="w-4 h-4 text-white" />}
         title="Settings "
         gradientFrom="from-cyan-400"
         gradientTo="to-cyan-500"
-      />
+      /> */}
 
                 <div className="mb-8">
-                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">Ledger Logo</h4>
+                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">
+                    Ledger Logo
+                  </h4>
                   <div className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner">
                     <input
                       type="file"
@@ -1469,7 +1718,9 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                       <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 hover:bg-blue-200 transition-colors">
                         <Upload className="w-8 h-8" />
                       </div>
-                      <p className="text-sm font-medium text-gray-600">Upload Logo</p>
+                      <p className="text-sm font-medium text-gray-600">
+                        Upload Logo
+                      </p>
                     </label>
                     {formData.logoPreviewUrl && (
                       <div className="mt-4 relative">
@@ -1477,7 +1728,12 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                           src={formData.logoPreviewUrl}
                           alt="Ledger Logo"
                           className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 shadow-md cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setViewingImage({ previewUrl: formData.logoPreviewUrl, type: 'logo' })}
+                          onClick={() =>
+                            setViewingImage({
+                              previewUrl: formData.logoPreviewUrl,
+                              type: "logo",
+                            })
+                          }
                         />
                         <Button
                           variant="destructive"
@@ -1493,11 +1749,18 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                 </div>
 
                 <div className="mb-8">
-                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">Registration Documents</h4>
+                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">
+                    Registration Documents
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {['TAX', 'VAT', 'GST', 'PAN', 'TAN'].map(docType => (
-                      <div key={docType} className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative">
-                        <p className="text-sm font-semibold text-gray-700 mb-3">{docType} Document</p>
+                    {["TAX", "VAT", "GST", "PAN", "TAN"].map((docType) => (
+                      <div
+                        key={docType}
+                        className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
+                      >
+                        <p className="text-sm font-semibold text-gray-700 mb-3">
+                          {docType} Document
+                        </p>
                         <input
                           type="file"
                           id={`${docType.toLowerCase()}-doc`}
@@ -1512,24 +1775,49 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                           <Upload className="w-6 h-6 text-blue-500" />
                           <p className="text-sm text-gray-600">Upload</p>
                         </label>
-                        {formData.registrationDocs.find(doc => doc.type === docType) && (
+                        {formData.registrationDocs.find(
+                          (doc) => doc.type === docType
+                        ) && (
                           <div className="mt-4 w-full">
                             <p className="text-xs text-gray-500 truncate mb-2">
-                              {formData.registrationDocs.find(doc => doc.type === docType)?.fileName}
+                              {
+                                formData.registrationDocs.find(
+                                  (doc) => doc.type === docType
+                                )?.fileName
+                              }
                             </p>
-                            {formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl && docType !== 'PDF' && (
-                              <img
-                                src={formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl}
-                                alt={`${docType} document`}
-                                className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
-                                onClick={() => setViewingImage(formData.registrationDocs.find(doc => doc.type === docType)!)}
-                              />
-                            )}
+                            {formData.registrationDocs.find(
+                              (doc) => doc.type === docType
+                            )?.previewUrl &&
+                              docType !== "PDF" && (
+                                <img
+                                  src={
+                                    formData.registrationDocs.find(
+                                      (doc) => doc.type === docType
+                                    )?.previewUrl
+                                  }
+                                  alt={`${docType} document`}
+                                  className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
+                                  onClick={() =>
+                                    setViewingImage(
+                                      formData.registrationDocs.find(
+                                        (doc) => doc.type === docType
+                                      )!
+                                    )
+                                  }
+                                />
+                              )}
                             <Button
                               variant="destructive"
                               size="icon"
                               className="absolute top-2 right-2 w-6 h-6 rounded-full"
-                              onClick={() => removeDocument(formData.registrationDocs.find(doc => doc.type === docType)!.id)}
+                              onClick={() =>
+                                removeDocument(
+                                  formData.registrationDocs.find(
+                                    (doc) => doc.type === docType
+                                  )!.id
+                                )
+                              }
                             >
                               <X className="w-4 h-4" />
                             </Button>
@@ -1542,10 +1830,14 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Ledger Priority</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Ledger Priority
+                    </label>
                     <select
                       value={formData.ledgerPriority}
-                      onChange={(e) => handleSelectChange("ledgerPriority", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("ledgerPriority", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="low">Low Priority</option>
@@ -1554,12 +1846,16 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                       <option value="vip">VIP</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Lead Source</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Lead Source
+                    </label>
                     <select
                       value={formData.leadSource}
-                      onChange={(e) => handleSelectChange("leadSource", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("leadSource", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Lead Source</option>
@@ -1616,7 +1912,9 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                 </div>
 
                 <div className="mb-6">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Internal Notes</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">
+                    Internal Notes
+                  </p>
                   <textarea
                     placeholder="Add any additional notes about the ledger..."
                     name="internalNotes"
@@ -1632,7 +1930,8 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
                   totalSteps={5}
                   onPrevious={() => setActiveTab("bank")}
                   onSubmit={handleSubmit}
-                  submitLabel={editingLedger ? 'Update Ledger' : 'Save Ledger'}
+                  submitLabel={editingLedger ? "Update Ledger" : "Save Ledger"}
+                  isLastStep={true}
                 />
               </div>
             )}
@@ -1640,7 +1939,10 @@ const headers=["Ledger","Contact","Address","Status","Actions"];
         </DialogContent>
       </Dialog>
 
-     <ImagePreviewDialog viewingImage={viewingImage} onClose={() => setViewingImage(null)} />
+      <ImagePreviewDialog
+        viewingImage={viewingImage}
+        onClose={() => setViewingImage(null)}
+      />
     </div>
   );
 };

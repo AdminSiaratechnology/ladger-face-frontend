@@ -4,10 +4,23 @@ import { Dialog, DialogContent } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
-import { Calculator, Building2, FileText, Star, Zap, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Search, Settings2 } from "lucide-react";
+import {
+  Calculator,
+  Building2,
+  FileText,
+  Star,
+  Zap,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Settings2,
+} from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
-import {useUOMStore} from "../../../store/uomStore";
-import {useCompanyStore} from "../../../store/companyStore"
+import { useUOMStore } from "../../../store/uomStore";
+import { useCompanyStore } from "../../../store/companyStore";
 import { UQC_LIST } from "../../lib/UQC_List";
 import { formatSimpleDate } from "../../lib/formatDates";
 import HeaderGradient from "../customComponents/HeaderGradint";
@@ -20,16 +33,17 @@ import PaginationControls from "../customComponents/CustomPaginationControls";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
 import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 import CustomStepNavigation from "../customComponents/CustomStepNavigation";
-import  MultiStepNav  from "../customComponents/MultiStepNav"; // Assuming shared component
+import MultiStepNav from "../customComponents/MultiStepNav"; // Assuming shared component
 import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
+import SelectedCompany from "../customComponents/SelectedCompany";
 
 // Unit interface
 interface Unit {
   _id: string;
   name: string;
-  type: 'simple' | 'compound';
-  status: 'active' | 'inactive';
+  type: "simple" | "compound";
+  status: "active" | "inactive";
   // Simple unit fields
   symbol?: string;
   decimalPlaces?: number;
@@ -45,8 +59,8 @@ interface Unit {
 // Form interface
 interface UnitForm {
   name: string;
-  type: 'simple' | 'compound';
-  status: 'active' | 'inactive';
+  type: "simple" | "compound";
+  status: "active" | "inactive";
   symbol: string;
   decimalPlaces: number;
   firstUnit: string;
@@ -58,18 +72,32 @@ interface UnitForm {
 
 const UnitManagement: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+  const [sortBy, setSortBy] = useState<
+    "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
+  >("nameAsc");
   const [filteredUnits, setFilteredUnits] = useState<Unit[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10;
-  
-  const { fetchUnits, units, addUnit, updateUnit, deleteUnit, filterUnits, pagination, loading, error } = useUOMStore();
-  const { companies } = useCompanyStore();
+
+  const {
+    fetchUnits,
+    units,
+    addUnit,
+    updateUnit,
+    deleteUnit,
+    filterUnits,
+    pagination,
+    loading,
+    error,
+  } = useUOMStore();
+  const { companies, defaultSelected } = useCompanyStore();
 
   useEffect(() => {
     fetchUnits(currentPage, limit);
@@ -90,42 +118,45 @@ const UnitManagement: React.FC = () => {
   }, [searchTerm, statusFilter, sortBy, currentPage, filterUnits]);
 
   const [formData, setFormData] = useState<UnitForm>({
-    name: '',
-    type: 'simple',
-    status: 'active',
-    symbol: '',
+    name: "",
+    type: "simple",
+    status: "active",
+    symbol: "",
     decimalPlaces: 2,
-    firstUnit: '',
+    firstUnit: "",
     conversion: 1,
-    secondUnit: '',
-    companyId: companies[0]?._id || '',
-    UQC: ''
+    secondUnit: "",
+    companyId: "",
+    UQC: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ): void => {
     const { name, value, type: inputType } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: inputType === 'number' ? (value === '' ? 0 : Number(value)) : value
+      [name]:
+        inputType === "number" ? (value === "" ? 0 : Number(value)) : value,
     }));
   };
 
   const handleSelectChange = (name: keyof UnitForm, value: string): void => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      type: 'simple',
-      status: 'active',
-      symbol: '',
+      name: "",
+      type: "simple",
+      status: "active",
+      symbol: "",
       decimalPlaces: 2,
-      firstUnit: '',
+      firstUnit: "",
       conversion: 1,
-      secondUnit: '',
-      companyId: companies[0]?._id || '',
-      UQC: ''
+      secondUnit: "",
+      companyId: "",
+      UQC: "",
     });
     setEditingUnit(null);
     setActiveTab("basic");
@@ -137,13 +168,13 @@ const UnitManagement: React.FC = () => {
       name: unit.name,
       type: unit.type,
       status: unit.status,
-      symbol: unit.symbol || '',
+      symbol: unit.symbol || "",
       decimalPlaces: unit.decimalPlaces || 2,
-      firstUnit: unit.firstUnit || '',
+      firstUnit: unit.firstUnit || "",
       conversion: unit.conversion || 1,
-      secondUnit: unit.secondUnit || '',
+      secondUnit: unit.secondUnit || "",
       companyId: unit.companyId,
-      UQC: unit.UQC || ''
+      UQC: unit.UQC || "",
     });
     setOpen(true);
   };
@@ -162,7 +193,7 @@ const UnitManagement: React.FC = () => {
       return;
     }
 
-    if (formData.type === 'simple') {
+    if (formData.type === "simple") {
       if (!formData.symbol.trim()) {
         toast.error("Please enter Symbol for Simple unit");
         return;
@@ -173,7 +204,9 @@ const UnitManagement: React.FC = () => {
       }
     } else {
       if (!formData.firstUnit || !formData.secondUnit) {
-        toast.error("Please select both First and Second Units for Compound unit");
+        toast.error(
+          "Please select both First and Second Units for Compound unit"
+        );
         return;
       }
       if (formData.firstUnit === formData.secondUnit) {
@@ -191,19 +224,21 @@ const UnitManagement: React.FC = () => {
       type: formData.type,
       status: formData.status,
       companyId: formData.companyId,
-      ...(formData.type === 'simple' ? {
-        symbol: formData.symbol,
-        decimalPlaces: formData.decimalPlaces,
-        UQC: formData.UQC
-      } : {
-        firstUnit: formData.firstUnit,
-        conversion: formData.conversion,
-        secondUnit: formData.secondUnit
-      })
+      ...(formData.type === "simple"
+        ? {
+            symbol: formData.symbol,
+            decimalPlaces: formData.decimalPlaces,
+            UQC: formData.UQC,
+          }
+        : {
+            firstUnit: formData.firstUnit,
+            conversion: formData.conversion,
+            secondUnit: formData.secondUnit,
+          }),
     };
 
     if (editingUnit) {
-      updateUnit({unitId: editingUnit._id, data: submitData});
+      updateUnit({ unitId: editingUnit._id, data: submitData });
     } else {
       addUnit(submitData);
     }
@@ -212,25 +247,34 @@ const UnitManagement: React.FC = () => {
   };
 
   // Get simple units for compound dropdowns
-  const simpleUnits = useMemo(() => units.filter(u => u.type === 'simple'), [units]);
+  const simpleUnits = useMemo(
+    () => units.filter((u) => u.type === "simple"),
+    [units]
+  );
 
-  const stats = useMemo(() => ({
-    totalUnits: pagination?.total || 0,
-    simpleUnits: filteredUnits.filter(u => u.type === 'simple').length,
-    compoundUnits: filteredUnits.filter(u => u.type === 'compound').length,
-    activeUnits: statusFilter === 'active' ? pagination?.total || 0 : filteredUnits.filter(u => u.status === 'active').length
-  }), [filteredUnits, pagination, statusFilter]);
+  const stats = useMemo(
+    () => ({
+      totalUnits: pagination?.total || 0,
+      simpleUnits: filteredUnits.filter((u) => u.type === "simple").length,
+      compoundUnits: filteredUnits.filter((u) => u.type === "compound").length,
+      activeUnits:
+        statusFilter === "active"
+          ? pagination?.total || 0
+          : filteredUnits.filter((u) => u.status === "active").length,
+    }),
+    [filteredUnits, pagination, statusFilter]
+  );
 
   const tabs = [
     { id: "basic", label: "Basic Info" },
     { id: "details", label: "Unit Details" },
-    { id: "settings", label: "Settings" }
+    { id: "settings", label: "Settings" },
   ];
 
   const stepIcons = {
     basic: <FileText className="w-2 h-2 md:w-5 md:h-5" />,
     details: <Calculator className="w-2 h-2 md:w-5 md:h-5" />,
-    settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />
+    settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />,
   };
 
   // Table View Component
@@ -238,31 +282,53 @@ const UnitManagement: React.FC = () => {
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <TableHeader headers={["Unit Name", "Type", "Details", "Status", "Created Date", "Actions"]} />
+          <TableHeader
+            headers={[
+              "Unit Name",
+              "Type",
+              "Details",
+              "Status",
+              "Created Date",
+              "Actions",
+            ]}
+          />
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredUnits.map((unit) => (
-              <tr key={unit._id} className="hover:bg-gray-50 transition-colors duration-200">
+              <tr
+                key={unit._id}
+                className="hover:bg-gray-50 transition-colors duration-200"
+              >
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {unit.name}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={`${
-                    unit.type === 'simple' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
-                  }`}>
+                  <Badge
+                    className={`${
+                      unit.type === "simple"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-purple-100 text-purple-800"
+                    }`}
+                  >
                     {unit.type}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
-                  {unit.type === 'simple' ? (
-                    `${unit.symbol || 'N/A'} (${unit.decimalPlaces || 0} decimals)`
-                  ) : (
-                    `${unit.conversion || 1} ${unit.firstUnit || 'N/A'} = 1 ${unit.secondUnit || 'N/A'}`
-                  )}
+                  {unit.type === "simple"
+                    ? `${unit.symbol || "N/A"} (${
+                        unit.decimalPlaces || 0
+                      } decimals)`
+                    : `${unit.conversion || 1} ${unit.firstUnit || "N/A"} = 1 ${
+                        unit.secondUnit || "N/A"
+                      }`}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={`${
-                    unit.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
+                  <Badge
+                    className={`${
+                      unit.status === "active"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
                     {unit.status}
                   </Badge>
                 </td>
@@ -289,23 +355,36 @@ const UnitManagement: React.FC = () => {
   const CardView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredUnits.map((unit) => (
-        <Card key={unit._id} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+        <Card
+          key={unit._id}
+          className="overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+        >
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100">
             <div className="flex justify-between items-start">
               <CardTitle className="text-lg">{unit.name}</CardTitle>
-              <Badge className={`${
-                unit.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-              }`}>
+              <Badge
+                className={`${
+                  unit.status === "active"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
                 {unit.status}
               </Badge>
             </div>
-            <Badge className={`mt-2 ${unit.type === 'simple' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
+            <Badge
+              className={`mt-2 ${
+                unit.type === "simple"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-purple-100 text-purple-800"
+              }`}
+            >
               {unit.type}
             </Badge>
           </CardHeader>
           <CardContent className="p-4">
             <div className="space-y-2 text-sm">
-              {unit.type === 'simple' ? (
+              {unit.type === "simple" ? (
                 <>
                   {unit.symbol && (
                     <div className="flex items-center">
@@ -370,16 +449,33 @@ const UnitManagement: React.FC = () => {
   return (
     <div className="custom-container">
       <div className="flex justify-between items-center mb-8">
-        <HeaderGradient 
+        <HeaderGradient
           title="Unit of Measurement"
           subtitle="Manage your unit measurements and conversions"
         />
-        <CheckAccess module="InventoryManagement" subModule="unit" type="create">
-          <Button 
-            onClick={() => setOpen(true)}
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+        <CheckAccess
+          module="InventoryManagement"
+          subModule="unit"
+          type="create"
+        >
+          <Button
+            onClick={() => {
+              setOpen(true);
+              if (defaultSelected && companies.length > 0) {
+                const selectedCompany = companies.find(
+                  (c) => c._id === defaultSelected
+                );
+                if (selectedCompany) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    companyId: selectedCompany._id,
+                  }));
+                }
+              }
+            }}
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            <Calculator className="w-4 h-4 mr-2" />
+            <Calculator className="w-4 h-4 " />
             Add Unit
           </Button>
         </CheckAccess>
@@ -387,47 +483,53 @@ const UnitManagement: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-sm font-medium">Total Units</p>
-                <p className="text-3xl font-bold">{stats.totalUnits}</p>
+                <p className="text-2xl font-bold">{stats.totalUnits}</p>
               </div>
-              <Calculator className="w-8 h-8 text-blue-200" />
+              <Calculator className="w-6 h-6 text-blue-200" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Simple Units</p>
-                <p className="text-3xl font-bold">{stats.simpleUnits}</p>
+                <p className="text-green-100 text-sm font-medium">
+                  Simple Units
+                </p>
+                <p className="text-2xl font-bold">{stats.simpleUnits}</p>
               </div>
-              <Star className="w-8 h-8 text-green-200" />
+              <Star className="w-6 h-6 text-green-200" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Compound Units</p>
-                <p className="text-3xl font-bold">{stats.compoundUnits}</p>
+                <p className="text-purple-100 text-sm font-medium">
+                  Compound Units
+                </p>
+                <p className="text-2xl font-bold">{stats.compoundUnits}</p>
               </div>
-              <Zap className="w-8 h-8 text-purple-200" />
+              <Zap className="w-6 h-6 text-purple-200" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-teal-100 text-sm font-medium">Active Units</p>
-                <p className="text-3xl font-bold">{stats.activeUnits}</p>
+                <p className="text-teal-100 text-sm font-medium">
+                  Active Units
+                </p>
+                <p className="text-2xl font-bold">{stats.activeUnits}</p>
               </div>
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
             </div>
@@ -443,34 +545,34 @@ const UnitManagement: React.FC = () => {
         sortBy={sortBy}
         setSortBy={setSortBy}
         onClearFilters={() => {
-          setSearchTerm('');
-          setStatusFilter('all');
-          setSortBy('nameAsc');
+          setSearchTerm("");
+          setStatusFilter("all");
+          setSortBy("nameAsc");
           setCurrentPage(1);
         }}
       />
-      {loading && <TableViewSkeleton/>}
+      {loading && <TableViewSkeleton />}
 
-      <ViewModeToggle 
-        viewMode={viewMode} 
-        setViewMode={setViewMode} 
-        totalItems={pagination?.total} 
+      <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={pagination?.total}
       />
 
       {pagination?.total === 0 ? (
-      <EmptyStateCard
-      icon={Calculator}
-      title="No units registered yet"
-      description="Create your first unit to get started"
-      buttonLabel="Add Your First Unit"
-      module="InventoryManagement"
-      subModule="unit"
-      type="create"
-      onButtonClick={() => setOpen(true)}
-    />
+        <EmptyStateCard
+          icon={Calculator}
+          title="No units registered yet"
+          description="Create your first unit to get started"
+          buttonLabel="Add Your First Unit"
+          module="InventoryManagement"
+          subModule="unit"
+          type="create"
+          onButtonClick={() => setOpen(true)}
+        />
       ) : (
         <>
-          {viewMode === 'table' ? <TableView /> : <CardView />}
+          {viewMode === "table" ? <TableView /> : <CardView />}
           <PaginationControls
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
@@ -480,35 +582,41 @@ const UnitManagement: React.FC = () => {
         </>
       )}
 
-      <Dialog open={open} onOpenChange={(isOpen) => {
-        setOpen(isOpen);
-        if (!isOpen) {
-          resetForm();
-        }
-      }}>
-        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl">
+      <Dialog
+        open={open}
+        onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            resetForm();
+          }
+        }}
+      >
+        <DialogContent className="custom-dialog-container">
           <CustomFormDialogHeader
-            title={editingUnit ? 'Edit Unit' : 'Add New Unit'}
-            subtitle={editingUnit ? 'Update the unit details' : 'Create a new unit measurement with specific properties'}
+            title={editingUnit ? "Edit Unit" : "Add New Unit"}
+            subtitle={
+              editingUnit
+                ? "Update the unit details"
+                : "Create a new unit measurement with specific properties"
+            }
           />
-          
-          <MultiStepNav 
-            steps={tabs} 
-            currentStep={activeTab} 
-            onStepChange={setActiveTab} 
+
+          <MultiStepNav
+            steps={tabs}
+            currentStep={activeTab}
+            onStepChange={setActiveTab}
             stepIcons={stepIcons}
           />
 
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
         icon={<FileText className="w-4 h-4 text-white" />}
         title="Basic Information"
         gradientFrom="from-pink-400"
         gradientTo="to-pink-500"
-      />
-
+      /> */}
                 <CustomInputBox
                   label="Unit Name "
                   placeholder="e.g., Meter"
@@ -518,13 +626,17 @@ const UnitManagement: React.FC = () => {
                   required={true}
                 />
 
-                <div className="mt-6 flex flex-col gap-1">
+                <SelectedCompany/>
+
+                {/* <div className="mt-6 flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">
                     Company <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.companyId}
-                    onChange={(e) => handleSelectChange("companyId", e.target.value)}
+                    onChange={(e) =>
+                      handleSelectChange("companyId", e.target.value)
+                    }
                     className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                   >
                     <option value="">Select Company</option>
@@ -534,7 +646,7 @@ const UnitManagement: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                </div>
+                </div> */}
 
                 <div className="mt-6 flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">
@@ -561,14 +673,13 @@ const UnitManagement: React.FC = () => {
 
             {activeTab === "details" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
         icon={<Calculator className="w-4 h-4 text-white" />}
         title="Unit Details"
         gradientFrom="from-green-400"
         gradientTo="to-green-500"
-      />
-
-                {formData.type === 'simple' ? (
+      /> */}
+                {formData.type === "simple" ? (
                   <>
                     <CustomInputBox
                       label="Symbol *"
@@ -587,10 +698,14 @@ const UnitManagement: React.FC = () => {
                       onChange={handleChange}
                     />
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">UQC</label>
+                      <label className="text-sm font-semibold text-gray-700">
+                        UQC
+                      </label>
                       <select
                         value={formData.UQC}
-                        onChange={(e) => handleSelectChange("UQC", e.target.value)}
+                        onChange={(e) =>
+                          handleSelectChange("UQC", e.target.value)
+                        }
                         className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                       >
                         <option value="">Select UQC</option>
@@ -605,10 +720,14 @@ const UnitManagement: React.FC = () => {
                 ) : (
                   <>
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">First Unit *</label>
+                      <label className="text-sm font-semibold text-gray-700">
+                        First Unit *
+                      </label>
                       <select
                         value={formData.firstUnit}
-                        onChange={(e) => handleSelectChange("firstUnit", e.target.value)}
+                        onChange={(e) =>
+                          handleSelectChange("firstUnit", e.target.value)
+                        }
                         className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                       >
                         <option value="">Select First Unit</option>
@@ -629,18 +748,24 @@ const UnitManagement: React.FC = () => {
                       required={true}
                     />
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Second Unit *</label>
+                      <label className="text-sm font-semibold text-gray-700">
+                        Second Unit *
+                      </label>
                       <select
                         value={formData.secondUnit}
-                        onChange={(e) => handleSelectChange("secondUnit", e.target.value)}
+                        onChange={(e) =>
+                          handleSelectChange("secondUnit", e.target.value)
+                        }
                         className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                       >
                         <option value="">Select Second Unit</option>
-                        {simpleUnits.filter(u => u.name !== formData.firstUnit).map((unit) => (
-                          <option key={unit._id} value={unit.name}>
-                            {unit.name} {unit.symbol && `(${unit.symbol})`}
-                          </option>
-                        ))}
+                        {simpleUnits
+                          .filter((u) => u.name !== formData.firstUnit)
+                          .map((unit) => (
+                            <option key={unit._id} value={unit.name}>
+                              {unit.name} {unit.symbol && `(${unit.symbol})`}
+                            </option>
+                          ))}
                       </select>
                     </div>
                   </>
@@ -657,19 +782,21 @@ const UnitManagement: React.FC = () => {
 
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
                   icon={<Settings2 className="w-4 h-4 text-white" />}
                   title="Settings"
                   gradientFrom="from-blue-400"
                   gradientTo="to-blue-500"
-                />
-      
-                
+                /> */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">Status</label>
+                  <label className="text-sm font-semibold text-gray-700">
+                    Status
+                  </label>
                   <select
                     value={formData.status}
-                    onChange={(e) => handleSelectChange("status", e.target.value)}
+                    onChange={(e) =>
+                      handleSelectChange("status", e.target.value)
+                    }
                     className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                   >
                     <option value="active">Active</option>
@@ -682,7 +809,7 @@ const UnitManagement: React.FC = () => {
                   totalSteps={3}
                   onPrevious={() => setActiveTab("details")}
                   onSubmit={handleSubmit}
-                  submitLabel={editingUnit ? 'Update Unit' : 'Save Unit'}
+                  submitLabel={editingUnit ? "Update Unit" : "Save Unit"}
                   isLastStep={true}
                 />
               </div>

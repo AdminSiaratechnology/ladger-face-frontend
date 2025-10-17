@@ -884,10 +884,10 @@ const CompanyPage: React.FC = () => {
                   resetForm();
                   setOpen(true);
                 }}
-                className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-3 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
+                className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
               >
                 Add Company
-                <Building2 className="w-4 h-4 mr-2" />
+                <Building2 className="w-4 h-4" />
               </Button>
             </CheckAccess>
             <Button
@@ -1042,12 +1042,12 @@ const CompanyPage: React.FC = () => {
             <div className="flex-1 overflow-y-auto">
               {activeTab === "basic" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <SectionHeader
+                  {/* <SectionHeader
                     icon={<Users className="w-4 h-4 text-white" />}
                     title="Company Information"
                     gradientFrom="from-blue-400"
                     gradientTo="to-blue-500"
-                  />
+                  /> */}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <CustomInputBox
@@ -1197,12 +1197,12 @@ const CompanyPage: React.FC = () => {
 
               {activeTab === "contact" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <SectionHeader
+                  {/* <SectionHeader
                     icon={<Users className="w-4 h-4 text-white" />}
                     title="Contact Details"
                     gradientFrom="from-green-400"
                     gradientTo="to-green-500"
-                  />
+                  /> */}
 
                   <div className="grid grid-cols-1 gap-6">
                     <CustomInputBox
@@ -1255,12 +1255,12 @@ const CompanyPage: React.FC = () => {
 
               {activeTab === "registration" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <SectionHeader
+                  {/* <SectionHeader
                     icon={<Users className="w-4 h-4 text-white" />}
                     title="Registration Details"
                     gradientFrom="from-yellow-400"
                     gradientTo="to-yellow-500"
-                  />
+                  /> */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <CustomInputBox
                       label="GST Number"
@@ -1315,12 +1315,12 @@ const CompanyPage: React.FC = () => {
 
               {activeTab === "bank" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <SectionHeader
+                  {/* <SectionHeader
                     icon={<Building2 className="w-4 h-4 text-white" />}
                     title="Banking Details"
                     gradientFrom="from-blue-400"
                     gradientTo="to-blue-500"
-                  />
+                  /> */}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                     <CustomInputBox
@@ -1425,12 +1425,12 @@ const CompanyPage: React.FC = () => {
 
               {activeTab === "branding" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <SectionHeader
+                  {/* <SectionHeader
                     icon={<ImageIcon className="w-4 h-4 text-white" />}
                     title="Branding & Documents"
                     gradientFrom="from-purple-400"
                     gradientTo="to-purple-500"
-                  />
+                  /> */}
 
                   <div className="mb-8">
                     <h4 className="font-semibold text-gray-800 mb-4 text-lg">
@@ -1572,12 +1572,12 @@ const CompanyPage: React.FC = () => {
 
               {activeTab === "settings" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <SectionHeader
+                  {/* <SectionHeader
                     icon={<Settings2 className="w-4 h-4 text-white" />}
                     title="Settings"
                     gradientFrom="from-cyan-400"
                     gradientTo="to-cyan-500"
-                  />
+                  /> */}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div className="flex flex-col gap-1">

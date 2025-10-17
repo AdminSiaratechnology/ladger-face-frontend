@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -184,7 +185,7 @@ export default function OrderManagement() {
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
+const navigate = useNavigate();
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
       const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -451,7 +452,10 @@ export default function OrderManagement() {
             <Download className="w-4 h-4 mr-2" />
             Export Orders
           </Button>
-          <Button className="bg-gradient-to-r from-teal-600 to-blue-700 hover:from-teal-700 hover:to-blue-800">
+          <Button className="bg-gradient-to-r from-teal-600 to-blue-700 hover:from-teal-700 hover:to-blue-800" onClick={() => {
+                  // resetForm();
+                  navigate('/orders')
+                }} >
             <Plus className="w-4 h-4 mr-2" />
             Create Order
           </Button>

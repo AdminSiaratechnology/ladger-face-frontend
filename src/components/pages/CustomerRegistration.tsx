@@ -5,18 +5,18 @@ import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
-import { 
-  Users, 
-  Building2, 
-  FileText, 
-  Settings2, 
-  Star, 
-  Edit, 
-  Trash2, 
-  MoreHorizontal, 
-  Eye, 
-  Table, 
-  Grid3X3, 
+import {
+  Users,
+  Building2,
+  FileText,
+  Settings2,
+  Star,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+  Eye,
+  Table,
+  Grid3X3,
   Layers,
   Package,
   Tag,
@@ -32,10 +32,10 @@ import {
   Image as ImageIcon,
   Search,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
-import { Country, State, City } from 'country-state-city';
+import { Country, State, City } from "country-state-city";
 import { useCustomerStore } from "../../../store/customerStore"; // Assuming a store similar to productStore
 import { useCompanyStore } from "../../../store/companyStore";
 import HeaderGradient from "../customComponents/HeaderGradint";
@@ -43,7 +43,7 @@ import FilterBar from "../customComponents/FilterBar";
 import { CheckAccess } from "../customComponents/CheckAccess";
 import ActionsDropdown from "../customComponents/ActionsDropdown";
 import { TableViewSkeleton } from "../customComponents/TableViewSkeleton";
-import MultiStepNav  from "../customComponents/MultiStepNav"; // Assuming it's exported from vendor or a shared file
+import MultiStepNav from "../customComponents/MultiStepNav"; // Assuming it's exported from vendor or a shared file
 import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 import CustomStepNavigation from "../customComponents/CustomStepNavigation";
 import TableHeader from "../customComponents/CustomTableHeader";
@@ -52,6 +52,7 @@ import ViewModeToggle from "../customComponents/ViewModeToggle";
 import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
+import SelectedCompany from "../customComponents/SelectedCompany";
 
 // Interfaces (adapted from provided Customer interface)
 interface Bank {
@@ -79,7 +80,7 @@ interface Customer {
   customerType: string;
   customerCode: string;
   code: string;
-  companyId:string;
+  companyId: string;
   customerName: string;
   shortName: string;
   customerGroup: string;
@@ -157,7 +158,7 @@ interface CustomerForm {
   customerType: string;
   customerCode: string;
   code: string;
-  companyId:string;
+  companyId: string;
   customerName: string;
   shortName: string;
   customerGroup: string;
@@ -229,11 +230,18 @@ interface CustomerForm {
   notes: string;
   registrationDocs: RegistrationDocument[];
 }
-const stepIcons = { basic: <Users className="w-2 h-2 md:w-5 md:h-5 " />, contact: <Phone className="w-2 h-2 md:w-5 md:h-5 " />, financialSettings: <CreditCard className="w-2 h-2 md:w-5 md:h-5 " />, tax: <FileText className="w-2 h-2 md:w-5 md:h-5 " />, bank: <Building2 className="w-2 h-2 md:w-5 md:h-5 " />, settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5 " /> };
+const stepIcons = {
+  basic: <Users className="w-2 h-2 md:w-5 md:h-5 " />,
+  contact: <Phone className="w-2 h-2 md:w-5 md:h-5 " />,
+  financialSettings: <CreditCard className="w-2 h-2 md:w-5 md:h-5 " />,
+  tax: <FileText className="w-2 h-2 md:w-5 md:h-5 " />,
+  bank: <Building2 className="w-2 h-2 md:w-5 md:h-5 " />,
+  settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5 " />,
+};
 
 const CustomerRegistrationPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");
   const [bankForm, setBankForm] = useState<Bank>({
@@ -244,183 +252,225 @@ const CustomerRegistrationPage: React.FC = () => {
     micrNumber: "",
     swiftCode: "",
     bankName: "",
-    branch: ""
+    branch: "",
   });
-  const [viewingImage, setViewingImage] = useState<RegistrationDocument | {previewUrl: string, type: 'logo'} | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended' | 'prospect'>('all');
-  const [sortBy, setSortBy] = useState<'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc'>('nameAsc');
+  const [viewingImage, setViewingImage] = useState<
+    RegistrationDocument | { previewUrl: string; type: "logo" } | null
+  >(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive" | "suspended" | "prospect"
+  >("all");
+  const [sortBy, setSortBy] = useState<
+    "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
+  >("nameAsc");
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
-  
-  const { fetchCustomers, addCustomer, updateCustomer, deleteCustomer, customers, filterCustomers, pagination, loading, error } = useCustomerStore(); // Assuming store exists
-  const { companies } = useCompanyStore();
+
+  const {
+    fetchCustomers,
+    addCustomer,
+    updateCustomer,
+    deleteCustomer,
+    customers,
+    filterCustomers,
+    pagination,
+    loading,
+    error,
+  } = useCustomerStore(); // Assuming store exists
+  const { defaultSelected, companies } = useCompanyStore();
   const getCompanyName = (companyId: string) => {
-    const company = companies.find(c => c._id === companyId);
-    return company ? company.namePrint : 'Unknown Company';
+    const company = companies.find((c) => c._id === companyId);
+    return company ? company.namePrint : "Unknown Company";
   };
-    const [formData, setFormData] = useState<CustomerForm>({
-    customerType: 'individual',
-    customerCode: '',
+  const [formData, setFormData] = useState<CustomerForm>({
+    customerType: "individual",
+    customerCode: "",
     code: "",
-    companyId:"",
-    customerName: '',
-    shortName: '',
-    customerGroup: '',
-    industryType: '',
-    territory: '',
-    salesPerson: '',
-    customerStatus: 'active',
-    companySize: '',
-    contactPerson: '',
-    designation: '',
-    phoneNumber: '',
-    mobileNumber: '',
-    emailAddress: '',
-    faxNumber: '',
-    addressLine1: '',
-    addressLine2: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: 'India',
-    website: '',
-    currency: 'INR',
-    priceList: '',
-    paymentTerms: '',
-    creditLimit: '',
-    creditDays: '',
-    discount: '',
-    agent: '',
+    companyId: "",
+    customerName: "",
+    shortName: "",
+    customerGroup: "",
+    industryType: "",
+    territory: "",
+    salesPerson: "",
+    customerStatus: "active",
+    companySize: "",
+    contactPerson: "",
+    designation: "",
+    phoneNumber: "",
+    mobileNumber: "",
+    emailAddress: "",
+    faxNumber: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "India",
+    website: "",
+    currency: "INR",
+    priceList: "",
+    paymentTerms: "",
+    creditLimit: "",
+    creditDays: "",
+    discount: "",
+    agent: "",
     isFrozenAccount: false,
     disabled: false,
     allowZeroValuation: false,
-    taxId: '',
-    vatNumber: '',
-    gstNumber: '',
-    panNumber: '',
-    tanNumber: '',
-    taxCategory: '',
-    taxTemplate: '',
-    withholdingTaxCategory: '',
-    msmeRegistration: '',
+    taxId: "",
+    vatNumber: "",
+    gstNumber: "",
+    panNumber: "",
+    tanNumber: "",
+    taxCategory: "",
+    taxTemplate: "",
+    withholdingTaxCategory: "",
+    msmeRegistration: "",
     isTaxExempt: false,
     reverseCharge: false,
     exportCustomer: false,
-    bankName: '',
-    branchName: '',
-    accountNumber: '',
-    accountHolderName: '',
-    ifscCode: '',
-    swiftCode: '',
-    preferredPaymentMethod: '',
+    bankName: "",
+    branchName: "",
+    accountNumber: "",
+    accountHolderName: "",
+    ifscCode: "",
+    swiftCode: "",
+    preferredPaymentMethod: "",
     acceptedPaymentMethods: [],
-    creditCardDetails: '',
-    paymentInstructions: '',
-    approvalWorkflow: '',
-    creditLimitApprover: '',
-    documentRequired: '',
-    externalSystemId: '',
-    crmIntegration: '',
-    dataSource: 'manual',
-    customerPriority: 'medium',
-    leadSource: '',
-    internalNotes: '',
+    creditCardDetails: "",
+    paymentInstructions: "",
+    approvalWorkflow: "",
+    creditLimitApprover: "",
+    documentRequired: "",
+    externalSystemId: "",
+    crmIntegration: "",
+    dataSource: "manual",
+    customerPriority: "medium",
+    leadSource: "",
+    internalNotes: "",
     allowPartialShipments: false,
     allowBackOrders: false,
     autoInvoice: false,
     banks: [],
-    notes: '',
+    notes: "",
     registrationDocs: [],
   });
+  useEffect(() => {
+    if (defaultSelected && companies.length > 0) {
+      const selectedCompany = companies.find((c) => c._id === defaultSelected);
+      if (selectedCompany) {
+        setFormData((prev) => ({ ...prev, companyId: selectedCompany._id }));
+      }
+    }
+  }, [defaultSelected, companies]);
 
   const allCountries = useMemo(() => Country.getAllCountries(), []);
 
   const availableStates = useMemo(() => {
-    const selectedCountry = allCountries.find(c => c.name === formData.country);
+    const selectedCountry = allCountries.find(
+      (c) => c.name === formData.country
+    );
     if (!selectedCountry) return [];
     return State.getStatesOfCountry(selectedCountry.isoCode);
   }, [formData.country, allCountries]);
 
   const availableCities = useMemo(() => {
-    const selectedCountry = allCountries.find(c => c.name === formData.country);
-    const selectedState = availableStates.find(s => s.name === formData.state);
+    const selectedCountry = allCountries.find(
+      (c) => c.name === formData.country
+    );
+    const selectedState = availableStates.find(
+      (s) => s.name === formData.state
+    );
     if (!selectedCountry || !selectedState) return [];
-    return City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
+    return City.getCitiesOfState(
+      selectedCountry.isoCode,
+      selectedState.isoCode
+    );
   }, [formData.country, formData.state, availableStates, allCountries]);
 
   const getCurrencyForCountry = (countryName: string): string => {
-    const country = allCountries.find(c => c.name === countryName);
+    const country = allCountries.find((c) => c.name === countryName);
     if (!country) return "INR";
-    
+
     const currencyMap: Record<string, string> = {
-      'IN': 'INR',
-      'US': 'USD',
-      'GB': 'GBP',
-      'CA': 'CAD',
-      'AU': 'AUD',
-      'DE': 'EUR',
-      'FR': 'EUR',
-      'JP': 'JPY',
-      'CN': 'CNY'
+      IN: "INR",
+      US: "USD",
+      GB: "GBP",
+      CA: "CAD",
+      AU: "AUD",
+      DE: "EUR",
+      FR: "EUR",
+      JP: "JPY",
+      CN: "CNY",
     };
-    
-    return currencyMap[country.isoCode] || country.currency || 'USD';
+
+    return currencyMap[country.isoCode] || country.currency || "USD";
   };
 
-
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ): void => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleSelectChange = (name: keyof CustomerForm, value: string): void => {
+  const handleSelectChange = (
+    name: keyof CustomerForm,
+    value: string
+  ): void => {
     if (name === "country") {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
         state: "",
         city: "",
-        currency: getCurrencyForCountry(value)
+        currency: getCurrencyForCountry(value),
       }));
     } else if (name === "state") {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
-        city: ""
+        city: "",
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
 
   const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setBankForm(prev => ({
+    setBankForm((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const addBank = (): void => {
-    if (!bankForm.accountHolderName || !bankForm.accountNumber || !bankForm.bankName) {
-      toast.error("Please fill in at least Account Holder Name, Account Number, and Bank Name");
+    if (
+      !bankForm.accountHolderName ||
+      !bankForm.accountNumber ||
+      !bankForm.bankName
+    ) {
+      toast.error(
+        "Please fill in at least Account Holder Name, Account Number, and Bank Name"
+      );
       return;
     }
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      banks: [...prev.banks, { ...bankForm, id: Date.now() }]
+      banks: [...prev.banks, { ...bankForm, id: Date.now() }],
     }));
 
     setBankForm({
@@ -431,14 +481,14 @@ const CustomerRegistrationPage: React.FC = () => {
       swiftCode: "",
       micrNumber: "",
       bankName: "",
-      branch: ""
+      branch: "",
     });
   };
 
   const removeBank = (id: number): void => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      banks: prev.banks.filter(bank => bank.id !== id)
+      banks: prev.banks.filter((bank) => bank.id !== id),
     }));
   };
 
@@ -446,66 +496,82 @@ const CustomerRegistrationPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       const previewUrl = URL.createObjectURL(file);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         logoFile: file,
-        logoPreviewUrl: previewUrl
+        logoPreviewUrl: previewUrl,
       }));
     }
   };
 
   const removeLogo = (): void => {
-    if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
+    if (
+      formData.logoPreviewUrl &&
+      formData.logoPreviewUrl.startsWith("blob:")
+    ) {
       URL.revokeObjectURL(formData.logoPreviewUrl);
     }
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       logoFile: undefined,
-      logoPreviewUrl: undefined
+      logoPreviewUrl: undefined,
     }));
   };
 
-  const handleDocumentUpload = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDocumentUpload = (
+    type: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       const previewUrl = URL.createObjectURL(file);
-      
+
       const newDoc: RegistrationDocument = {
         id: Date.now(),
         type,
         file,
         previewUrl,
-        fileName: file.name
+        fileName: file.name,
       };
-      
-      setFormData(prev => ({
+
+      setFormData((prev) => ({
         ...prev,
-        registrationDocs: [...prev.registrationDocs.filter(doc => doc.type !== type), newDoc]
+        registrationDocs: [
+          ...prev.registrationDocs.filter((doc) => doc.type !== type),
+          newDoc,
+        ],
       }));
     }
   };
 
   const removeDocument = (id: number) => {
-    const docToRemove = formData.registrationDocs.find(doc => doc.id === id);
-    if (docToRemove && docToRemove.previewUrl && docToRemove.previewUrl.startsWith('blob:')) {
+    const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
+    if (
+      docToRemove &&
+      docToRemove.previewUrl &&
+      docToRemove.previewUrl.startsWith("blob:")
+    ) {
       URL.revokeObjectURL(docToRemove.previewUrl);
     }
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
-      registrationDocs: prev.registrationDocs.filter(doc => doc.id !== id)
+      registrationDocs: prev.registrationDocs.filter((doc) => doc.id !== id),
     }));
   };
 
   const cleanupImageUrls = (): void => {
     // Clean up logo
-    if (formData.logoPreviewUrl && formData.logoPreviewUrl.startsWith('blob:')) {
+    if (
+      formData.logoPreviewUrl &&
+      formData.logoPreviewUrl.startsWith("blob:")
+    ) {
       URL.revokeObjectURL(formData.logoPreviewUrl);
     }
-    
+
     // Clean up documents
-    formData.registrationDocs.forEach(doc => {
-      if (doc.previewUrl && doc.previewUrl.startsWith('blob:')) {
+    formData.registrationDocs.forEach((doc) => {
+      if (doc.previewUrl && doc.previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(doc.previewUrl);
       }
     });
@@ -513,79 +579,79 @@ const CustomerRegistrationPage: React.FC = () => {
 
   const resetForm = () => {
     cleanupImageUrls();
-    
+
     setFormData({
-      customerType: 'individual',
-      customerCode: '',
+      customerType: "individual",
+      customerCode: "",
       code: "",
-      companyId:"",
-      customerName: '',
-      shortName: '',
-      customerGroup: '',
-      industryType: '',
-      territory: '',
-      salesPerson: '',
-      customerStatus: 'active',
-      companySize: '',
-      contactPerson: '',
-      designation: '',
-      phoneNumber: '',
-      mobileNumber: '',
-      emailAddress: '',
-      faxNumber: '',
-      addressLine1: '',
-      addressLine2: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      country: 'India',
-      website: '',
-      currency: 'INR',
-      priceList: '',
-      paymentTerms: '',
-      creditLimit: '',
-      creditDays: '',
-      discount: '',
-      agent: '',
+      companyId: "",
+      customerName: "",
+      shortName: "",
+      customerGroup: "",
+      industryType: "",
+      territory: "",
+      salesPerson: "",
+      customerStatus: "active",
+      companySize: "",
+      contactPerson: "",
+      designation: "",
+      phoneNumber: "",
+      mobileNumber: "",
+      emailAddress: "",
+      faxNumber: "",
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      country: "India",
+      website: "",
+      currency: "INR",
+      priceList: "",
+      paymentTerms: "",
+      creditLimit: "",
+      creditDays: "",
+      discount: "",
+      agent: "",
       isFrozenAccount: false,
       disabled: false,
       allowZeroValuation: false,
-      taxId: '',
-      vatNumber: '',
-      gstNumber: '',
-      panNumber: '',
-      tanNumber: '',
-      taxCategory: '',
-      taxTemplate: '',
-      withholdingTaxCategory: '',
-      msmeRegistration: '',
+      taxId: "",
+      vatNumber: "",
+      gstNumber: "",
+      panNumber: "",
+      tanNumber: "",
+      taxCategory: "",
+      taxTemplate: "",
+      withholdingTaxCategory: "",
+      msmeRegistration: "",
       isTaxExempt: false,
       reverseCharge: false,
       exportCustomer: false,
-      bankName: '',
-      branchName: '',
-      accountNumber: '',
-      accountHolderName: '',
-      ifscCode: '',
-      swiftCode: '',
-      preferredPaymentMethod: '',
+      bankName: "",
+      branchName: "",
+      accountNumber: "",
+      accountHolderName: "",
+      ifscCode: "",
+      swiftCode: "",
+      preferredPaymentMethod: "",
       acceptedPaymentMethods: [],
-      creditCardDetails: '',
-      paymentInstructions: '',
-      approvalWorkflow: '',
-      creditLimitApprover: '',
-      documentRequired: '',
-      externalSystemId: '',
-      crmIntegration: '',
-      dataSource: 'manual',
-      customerPriority: 'medium',
-      leadSource: '',
-      internalNotes: '',
+      creditCardDetails: "",
+      paymentInstructions: "",
+      approvalWorkflow: "",
+      creditLimitApprover: "",
+      documentRequired: "",
+      externalSystemId: "",
+      crmIntegration: "",
+      dataSource: "manual",
+      customerPriority: "medium",
+      leadSource: "",
+      internalNotes: "",
       allowPartialShipments: false,
       allowBackOrders: false,
       autoInvoice: false,
       banks: [],
-      notes: '',
+      notes: "",
       registrationDocs: [],
     });
     setEditingCustomer(null);
@@ -597,10 +663,10 @@ const CustomerRegistrationPage: React.FC = () => {
     setFormData({
       ...customer,
       logoPreviewUrl: customer.logo || undefined,
-      registrationDocs: customer.registrationDocs.map(doc => ({
+      registrationDocs: customer.registrationDocs.map((doc) => ({
         ...doc,
-        previewUrl: doc.file // Assuming file is URL or base64, adjust if needed
-      }))
+        previewUrl: doc.file, // Assuming file is URL or base64, adjust if needed
+      })),
     });
     setOpen(true);
   };
@@ -610,6 +676,8 @@ const CustomerRegistrationPage: React.FC = () => {
   };
 
   const handleSubmit = (): void => {
+    console.log(formData);
+
     if (!formData.customerName.trim()) {
       toast.error("Please enter Customer Name");
       return;
@@ -641,35 +709,53 @@ const CustomerRegistrationPage: React.FC = () => {
     }
 
     const customerFormData = new FormData();
-    
-    Object.keys(formData).forEach(key => {
+
+    Object.keys(formData).forEach((key) => {
       const value = formData[key as keyof CustomerForm];
-      
-      if (key === 'registrationDocs' || key === 'banks' || key === 'logoFile' || key === 'logoPreviewUrl' || key === 'acceptedPaymentMethods') {
+
+      if (
+        key === "registrationDocs" ||
+        key === "banks" ||
+        key === "logoFile" ||
+        key === "logoPreviewUrl" ||
+        key === "acceptedPaymentMethods"
+      ) {
         return;
       }
-      
-      if (value !== null && value !== undefined && value !== '') {
+
+      if (value !== null && value !== undefined && value !== "") {
         customerFormData.append(key, String(value));
       }
     });
-    customerFormData.append("companyID",formData.companyId)
-    
-    customerFormData.append('banks', JSON.stringify(formData.banks));
-    customerFormData.append('acceptedPaymentMethods', JSON.stringify(formData.acceptedPaymentMethods || []));
-    
+    customerFormData.append("companyID", formData.companyId);
+
+    customerFormData.append("banks", JSON.stringify(formData.banks));
+    customerFormData.append(
+      "acceptedPaymentMethods",
+      JSON.stringify(formData.acceptedPaymentMethods || [])
+    );
+
     if (formData.logoFile) {
-      customerFormData.append('logo', formData.logoFile);
+      customerFormData.append("logo", formData.logoFile);
     }
-    
+
     formData.registrationDocs.forEach((doc) => {
-      customerFormData.append('registrationDocs', doc.file);
+      customerFormData.append("registrationDocs", doc.file);
     });
-    customerFormData.append('registrationDocTypes', JSON.stringify(formData.registrationDocs.map(doc => doc.type)));
-    customerFormData.append('registrationDocsCount', String(formData.registrationDocs.length));
+    customerFormData.append(
+      "registrationDocTypes",
+      JSON.stringify(formData.registrationDocs.map((doc) => doc.type))
+    );
+    customerFormData.append(
+      "registrationDocsCount",
+      String(formData.registrationDocs.length)
+    );
 
     if (editingCustomer) {
-      updateCustomer({ id: editingCustomer._id || '', customer: customerFormData });
+      updateCustomer({
+        id: editingCustomer._id || "",
+        customer: customerFormData,
+      });
     } else {
       addCustomer(customerFormData);
     }
@@ -677,12 +763,23 @@ const CustomerRegistrationPage: React.FC = () => {
     // resetForm();
   };
 
-  const stats = useMemo(() => ({
-    totalCustomers: pagination?.total,
-    gstRegistered: filteredCustomers?.filter(c => c.gstNumber?.trim() !== "").length,
-    msmeRegistered: filteredCustomers?.filter(c => c.msmeRegistration?.trim() !== "").length,
-    activeCustomers: statusFilter === 'active' ? pagination?.total : filteredCustomers?.filter(c => c.customerStatus === 'active').length
-  }), [filteredCustomers, pagination, statusFilter]);
+  const stats = useMemo(
+    () => ({
+      totalCustomers: pagination?.total,
+      gstRegistered: filteredCustomers?.filter(
+        (c) => c.gstNumber?.trim() !== ""
+      ).length,
+      msmeRegistered: filteredCustomers?.filter(
+        (c) => c.msmeRegistration?.trim() !== ""
+      ).length,
+      activeCustomers:
+        statusFilter === "active"
+          ? pagination?.total
+          : filteredCustomers?.filter((c) => c.customerStatus === "active")
+              .length,
+    }),
+    [filteredCustomers, pagination, statusFilter]
+  );
 
   const tabs = [
     { id: "basic", label: "Basic Info" },
@@ -690,7 +787,7 @@ const CustomerRegistrationPage: React.FC = () => {
     { id: "financialSettings", label: "Financial Settings" },
     { id: "tax", label: "Tax Information" },
     { id: "bank", label: "Banking Details" },
-    { id: "settings", label: "Settings" }
+    { id: "settings", label: "Settings" },
   ];
 
   // Initial fetch
@@ -724,25 +821,30 @@ const CustomerRegistrationPage: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  
- const headers = ['Customer', 'Contact', 'Address', 'Status', 'Actions'];
+  const headers = ["Customer", "Contact", "Address", "Status", "Actions"];
   // Table View Component
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-       
-           <TableHeader headers={headers} />
+          <TableHeader headers={headers} />
 
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredCustomers.map((customer) => (
-              <tr key={customer._id} className="hover:bg-gray-50 transition-colors duration-200">
+              <tr
+                key={customer._id}
+                className="hover:bg-gray-50 transition-colors duration-200"
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{customer.customerName}</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {customer.customerName}
+                    </div>
                     <div className="text-sm text-gray-500">{customer.code}</div>
                     {customer.shortName && (
-                      <div className="text-sm text-gray-500">Short: {customer.shortName}</div>
+                      <div className="text-sm text-gray-500">
+                        Short: {customer.shortName}
+                      </div>
                     )}
                   </div>
                 </td>
@@ -754,25 +856,30 @@ const CustomerRegistrationPage: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {[customer.city, customer.state, customer.country].filter(Boolean).join(", ")}
+                    {[customer.city, customer.state, customer.country]
+                      .filter(Boolean)
+                      .join(", ")}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={`${
-                    customer.customerStatus === 'active' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-gray-100 text-gray-700'
-                  } hover:bg-green-100`}>
+                  <Badge
+                    className={`${
+                      customer.customerStatus === "active"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-700"
+                    } hover:bg-green-100`}
+                  >
                     {customer.customerStatus}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {/* <ActionsDropdown customer={customer} /> */}
-                              <ActionsDropdown
-  onEdit={() =>  handleEditCustomer(customer)}
-  onDelete={() =>handleDeleteCustomer(customer._id || '')}
-  module="BusinessManagement" subModule="CustomerRegistration"
-/>
+                  <ActionsDropdown
+                    onEdit={() => handleEditCustomer(customer)}
+                    onDelete={() => handleDeleteCustomer(customer._id || "")}
+                    module="BusinessManagement"
+                    subModule="CustomerRegistration"
+                  />
                 </td>
               </tr>
             ))}
@@ -786,98 +893,130 @@ const CustomerRegistrationPage: React.FC = () => {
   const CardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
       {filteredCustomers.map((customer: Customer) => (
-        <Card key={customer._id} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden">
+        <Card
+          key={customer._id}
+          className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden"
+        >
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center">
                 {customer.logo && (
-                  <img src={customer.logo} alt="Customer Logo" className="w-10 h-10 rounded-full mr-3 object-cover" />
+                  <img
+                    src={customer.logo}
+                    alt="Customer Logo"
+                    className="w-10 h-10 rounded-full mr-3 object-cover"
+                  />
                 )}
                 <div>
                   <CardTitle className="text-xl font-bold text-gray-800 mb-1">
                     {customer.customerName}
                   </CardTitle>
                   {customer.shortName && (
-                    <p className="text-teal-600 font-medium">{customer.shortName}</p>
+                    <p className="text-teal-600 font-medium">
+                      {customer.shortName}
+                    </p>
                   )}
                   <p className="text-sm text-gray-500">{customer.code}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge className={`${customer.customerStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} hover:bg-green-100`}>
+                <Badge
+                  className={`${
+                    customer.customerStatus === "active"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-700"
+                  } hover:bg-green-100`}
+                >
                   {customer.customerStatus}
                 </Badge>
                 {/* <ActionsDropdown customer={customer} /> */}
-                             <ActionsDropdown
-  onEdit={() =>  handleEditCustomer(customer)}
-  onDelete={() =>handleDeleteCustomer(customer._id || '')}
-  module="BusinessManagement" subModule="CustomerRegistration"
-/>
+                <ActionsDropdown
+                  onEdit={() => handleEditCustomer(customer)}
+                  onDelete={() => handleDeleteCustomer(customer._id || "")}
+                  module="BusinessManagement"
+                  subModule="CustomerRegistration"
+                />
               </div>
             </div>
           </CardHeader>
-          
+
           <CardContent className="p-6 space-y-4">
             <div className="space-y-3">
               {customer.contactPerson && (
                 <div className="flex items-center text-sm">
                   <Users className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">{customer.contactPerson}</span>
+                  <span className="text-gray-600">
+                    {customer.contactPerson}
+                  </span>
                 </div>
               )}
-              
+
               {(customer.city || customer.state || customer.zipCode) && (
                 <div className="flex items-center text-sm">
                   <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                   <span className="text-gray-600">
-                    {[customer.city, customer.state, customer.zipCode].filter(Boolean).join(", ")}
+                    {[customer.city, customer.state, customer.zipCode]
+                      .filter(Boolean)
+                      .join(", ")}
                   </span>
                 </div>
               )}
-              
+
               {customer.mobileNumber && (
                 <div className="flex items-center text-sm">
                   <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                   <span className="text-gray-600">{customer.mobileNumber}</span>
                 </div>
               )}
-              
+
               <div className="flex items-center text-sm">
                 <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600 truncate">{customer.emailAddress}</span>
+                <span className="text-gray-600 truncate">
+                  {customer.emailAddress}
+                </span>
               </div>
-              
+
               {customer.website && (
                 <div className="flex items-center text-sm">
                   <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-teal-600 truncate">{customer.website}</span>
+                  <span className="text-teal-600 truncate">
+                    {customer.website}
+                  </span>
                 </div>
               )}
             </div>
 
-            {(customer.gstNumber || customer.msmeRegistration || customer.panNumber) && (
+            {(customer.gstNumber ||
+              customer.msmeRegistration ||
+              customer.panNumber) && (
               <div className="pt-3 border-t border-gray-100 space-y-2">
                 {customer.gstNumber && (
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">GST</span>
+                    <span className="text-xs font-medium text-gray-500">
+                      GST
+                    </span>
                     <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
                       {customer.gstNumber}
                     </span>
                   </div>
                 )}
-                
+
                 {customer.msmeRegistration && (
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">MSME</span>
+                    <span className="text-xs font-medium text-gray-500">
+                      MSME
+                    </span>
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-mono">
                       {customer.msmeRegistration}
                     </span>
                   </div>
                 )}
-                
+
                 {customer.panNumber && (
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">PAN</span>
+                    <span className="text-xs font-medium text-gray-500">
+                      PAN
+                    </span>
                     <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
                       {customer.panNumber}
                     </span>
@@ -888,16 +1027,25 @@ const CustomerRegistrationPage: React.FC = () => {
 
             {customer.banks.length > 0 && (
               <div className="pt-3 border-t border-gray-100">
-                <p className="text-xs font-medium text-gray-500 mb-2">Bank Accounts</p>
+                <p className="text-xs font-medium text-gray-500 mb-2">
+                  Bank Accounts
+                </p>
                 <div className="space-y-2">
-                  {customer.banks.slice(0, 2).map(bank => (
-                    <div key={bank.id} className="text-xs bg-gray-100 p-2 rounded">
+                  {customer.banks.slice(0, 2).map((bank) => (
+                    <div
+                      key={bank.id}
+                      className="text-xs bg-gray-100 p-2 rounded"
+                    >
                       <p className="font-medium truncate">{bank.bankName}</p>
-                      <p className="text-gray-600 truncate">A/C: ••••{bank.accountNumber.slice(-4)}</p>
+                      <p className="text-gray-600 truncate">
+                        A/C: ••••{bank.accountNumber.slice(-4)}
+                      </p>
                     </div>
                   ))}
                   {customer.banks.length > 2 && (
-                    <p className="text-xs text-gray-500">+{customer.banks.length - 2} more</p>
+                    <p className="text-xs text-gray-500">
+                      +{customer.banks.length - 2} more
+                    </p>
                   )}
                 </div>
               </div>
@@ -915,7 +1063,6 @@ const CustomerRegistrationPage: React.FC = () => {
     </div>
   );
 
-
   // FilterBar component
   const FilterBar = ({
     searchTerm,
@@ -924,7 +1071,7 @@ const CustomerRegistrationPage: React.FC = () => {
     setStatusFilter,
     sortBy,
     setSortBy,
-    onClearFilters
+    onClearFilters,
   }: {
     searchTerm: string;
     setSearchTerm: (value: string) => void;
@@ -945,7 +1092,12 @@ const CustomerRegistrationPage: React.FC = () => {
             className="pl-10 pr-4 py-2 w-full md:w-64 border-gray-300 focus:border-teal-500 active:!ring-2 active:!ring-teal-500 !outline-0 focus:!border-none"
           />
         </div>
-        <button className=" bg-black text-white px-2 rounded-sm  font-bold text-sm" onClick={onClearFilters}>Clear Fitler</button>
+        <button
+          className=" bg-black text-white px-2 rounded-sm  font-bold text-sm"
+          onClick={onClearFilters}
+        >
+          Clear Fitler
+        </button>
       </div>
       <select
         value={statusFilter}
@@ -975,69 +1127,90 @@ const CustomerRegistrationPage: React.FC = () => {
     <div className="custom-container">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        
-        <HeaderGradient title="Customer Management"
-        subtitle="Manage your customer information and registrations"/>
-        <CheckAccess  module="BusinessManagement" subModule="CustomerRegistration" type="create">
-
-       
-        <Button 
-          onClick={() => {
-            resetForm();
-            setOpen(true);
-          }} 
-          className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+        <HeaderGradient
+          title="Customer Management"
+          subtitle="Manage your customer information and registrations"
+        />
+        <CheckAccess
+          module="BusinessManagement"
+          subModule="CustomerRegistration"
+          type="create"
         >
-          <Users className="w-4 h-4 mr-2" />
-          Add Customer
-        </Button>
-         </CheckAccess>
+          <Button
+            onClick={() => {
+              resetForm();
+              setOpen(true);
+              if (defaultSelected && companies.length > 0) {
+                const selectedCompany = companies.find(
+                  (c) => c._id === defaultSelected
+                );
+                if (selectedCompany) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    companyId: selectedCompany._id,
+                  }));
+                }
+              }
+              setOpen(true);
+            }}
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <Users className="w-4 h-4" />
+            Add Customer
+          </Button>
+        </CheckAccess>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-teal-100 text-sm font-medium">Total Customers</p>
-                <p className="text-3xl font-bold">{stats.totalCustomers}</p>
+                <p className="text-teal-100 text-sm font-medium">
+                  Total Customers
+                </p>
+                <p className="text-2xl font-bold">{stats.totalCustomers}</p>
               </div>
-              <Users className="w-8 h-8 text-teal-200" />
+              <Users className="w-6 h-6 text-teal-200" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">GST Registered</p>
-                <p className="text-3xl font-bold">{stats.gstRegistered}</p>
+                <p className="text-blue-100 text-sm font-medium">
+                  GST Registered
+                </p>
+                <p className="text-2xl font-bold">{stats.gstRegistered}</p>
               </div>
-              <FileText className="w-8 h-8 text-blue-200" />
+              <FileText className="w-6 h-6 text-blue-200" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">MSME Registered</p>
-                <p className="text-3xl font-bold">{stats.msmeRegistered}</p>
+                <p className="text-green-100 text-sm font-medium">
+                  MSME Registered
+                </p>
+                <p className="text-2xl font-bold">{stats.msmeRegistered}</p>
               </div>
-              <Star className="w-8 h-8 text-green-200" />
+              <Star className="w-6 h-6 text-green-200" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm font-medium">Active</p>
-                <p className="text-3xl font-bold">{stats.activeCustomers}</p>
+                <p className="text-2xl font-bold">{stats.activeCustomers}</p>
               </div>
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
             </div>
@@ -1053,52 +1226,54 @@ const CustomerRegistrationPage: React.FC = () => {
         sortBy={sortBy}
         setSortBy={setSortBy}
         onClearFilters={() => {
-          setSearchTerm('');
-          setStatusFilter('all');
-          setSortBy('nameAsc');
+          setSearchTerm("");
+          setStatusFilter("all");
+          setSortBy("nameAsc");
           setCurrentPage(1);
         }}
       />
-      {loading && <TableViewSkeleton/>}
+      {loading && <TableViewSkeleton />}
 
- 
-       <ViewModeToggle 
-              viewMode={viewMode} 
-              setViewMode={setViewMode} 
-              totalItems={pagination?.total} 
-            />
+      <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={pagination?.total}
+      />
 
       {pagination?.total === 0 ? (
-      <EmptyStateCard
-      icon={Users}
-      title="No customers registered yet"
-      description="Create your first customer to get started"
-      buttonLabel="Add Your First Customer"
-      module="BusinessManagement"
-      subModule="CustomerRegistration"
-      type="create"
-      onButtonClick={() => setOpen(true)}
-    />
+        <EmptyStateCard
+          icon={Users}
+          title="No customers registered yet"
+          description="Create your first customer to get started"
+          buttonLabel="Add Your First Customer"
+          module="BusinessManagement"
+          subModule="CustomerRegistration"
+          type="create"
+          onButtonClick={() => setOpen(true)}
+        />
       ) : (
         <>
-          {viewMode === 'table' ? <TableView /> : <CardView />}
-         
-               <PaginationControls
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        pagination={pagination}
-        itemName="Customers"
-      />
+          {viewMode === "table" ? <TableView /> : <CardView />}
+
+          <PaginationControls
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            pagination={pagination}
+            itemName="Customers"
+          />
         </>
       )}
 
       {/* Modal Form */}
-      <Dialog open={open} onOpenChange={(isOpen) => {
-        setOpen(isOpen);
-        if (!isOpen) {
-          resetForm();
-        }
-      }}>
+      <Dialog
+        open={open}
+        onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            resetForm();
+          }
+        }}
+      >
         <DialogContent className="custom-dialog-container">
           <CustomFormDialogHeader
             title={editingCustomer ? "Edit Customer" : "Add New Customer"}
@@ -1108,25 +1283,24 @@ const CustomerRegistrationPage: React.FC = () => {
                 : "Complete customer registration information"
             }
           />
-          
-          <MultiStepNav 
-            steps={tabs} 
-            currentStep={activeTab} 
-            onStepChange={setActiveTab} 
+
+          <MultiStepNav
+            steps={tabs}
+            currentStep={activeTab}
+            onStepChange={setActiveTab}
             stepIcons={stepIcons}
           />
 
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <SectionHeader
+                {/* <SectionHeader
                   icon={<Users className="w-4 h-4 text-white" />}
                   title="Customer Details"
                   gradientFrom="from-blue-400"
                   gradientTo="to-blue-500"
-                />
-      
-                
+                /> */}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1134,7 +1308,9 @@ const CustomerRegistrationPage: React.FC = () => {
                     </label>
                     <select
                       value={formData.customerType}
-                      onChange={(e) => handleSelectChange("customerType", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("customerType", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="individual">Individual</option>
@@ -1143,14 +1319,16 @@ const CustomerRegistrationPage: React.FC = () => {
                       <option value="trust">Trust</option>
                     </select>
                   </div>
-                  
-                  <div className="flex flex-col gap-1">
+                  <SelectedCompany />
+                  {/* <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Company <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={formData.companyId}
-                      onChange={(e) => handleSelectChange("companyId", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("companyId", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Company</option>
@@ -1160,7 +1338,7 @@ const CustomerRegistrationPage: React.FC = () => {
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1183,10 +1361,14 @@ const CustomerRegistrationPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Customer Group</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Customer Group
+                    </label>
                     <select
                       value={formData.customerGroup}
-                      onChange={(e) => handleSelectChange("customerGroup", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("customerGroup", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Customer Group</option>
@@ -1196,12 +1378,16 @@ const CustomerRegistrationPage: React.FC = () => {
                       <option value="corporate">Corporate</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Industry Type</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Industry Type
+                    </label>
                     <select
                       value={formData.industryType}
-                      onChange={(e) => handleSelectChange("industryType", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("industryType", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Industry Type</option>
@@ -1211,12 +1397,16 @@ const CustomerRegistrationPage: React.FC = () => {
                       <option value="technology">Technology</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Territory</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Territory
+                    </label>
                     <select
                       value={formData.territory}
-                      onChange={(e) => handleSelectChange("territory", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("territory", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Territory</option>
@@ -1230,10 +1420,14 @@ const CustomerRegistrationPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Sales Person</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Sales Person
+                    </label>
                     <select
                       value={formData.salesPerson}
-                      onChange={(e) => handleSelectChange("salesPerson", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("salesPerson", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Sales Person</option>
@@ -1242,12 +1436,16 @@ const CustomerRegistrationPage: React.FC = () => {
                       <option value="mike">Mike Johnson</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Customer Status</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Customer Status
+                    </label>
                     <select
                       value={formData.customerStatus}
-                      onChange={(e) => handleSelectChange("customerStatus", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("customerStatus", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="active">Active</option>
@@ -1256,12 +1454,16 @@ const CustomerRegistrationPage: React.FC = () => {
                       <option value="prospect">Prospect</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Company Size</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Company Size
+                    </label>
                     <select
                       value={formData.companySize}
-                      onChange={(e) => handleSelectChange("companySize", e.target.value)}
+                      onChange={(e) =>
+                        handleSelectChange("companySize", e.target.value)
+                      }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Company Size</option>
@@ -1274,29 +1476,28 @@ const CustomerRegistrationPage: React.FC = () => {
                 </div>
 
                 <CustomStepNavigation
-  currentStep={1}
-  totalSteps={6}
-  showPrevious={false}
-  onNext={() => setActiveTab("contact")}
-/>
-
+                  currentStep={1}
+                  totalSteps={6}
+                  showPrevious={false}
+                  onNext={() => setActiveTab("contact")}
+                />
               </div>
             )}
-               {activeTab === "contact" && (
+            {activeTab === "contact" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                
+                {/*                 
                     <SectionHeader
         icon={<Phone className="w-4 h-4 text-white" />}
         title="Contact Information"
         gradientFrom="from-green-400"
         gradientTo="to-green-500"
-      />  
+      />   */}
 
-              <div className="grid grid-cols-1 gap-6">
-                <CustomInputBox
-                  label="Contact Person *"
-                  placeholder="e.g., John Doe"
-                  name="contactPerson"
+                <div className="grid grid-cols-1 gap-6">
+                  <CustomInputBox
+                    label="Contact Person *"
+                    placeholder="e.g., John Doe"
+                    name="contactPerson"
                     value={formData.contactPerson}
                     onChange={handleChange}
                     required={true}
@@ -1356,44 +1557,62 @@ const CustomerRegistrationPage: React.FC = () => {
                   />
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Country</label>
+                      <label className="text-sm font-semibold text-gray-700">
+                        Country
+                      </label>
                       <select
                         value={formData.country}
-                        onChange={(e) => handleSelectChange("country", e.target.value)}
+                        onChange={(e) =>
+                          handleSelectChange("country", e.target.value)
+                        }
                         className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                       >
-                        {allCountries.map(country => (
-                          <option key={country.isoCode} value={country.name}>{country.name}</option>
+                        {allCountries.map((country) => (
+                          <option key={country.isoCode} value={country.name}>
+                            {country.name}
+                          </option>
                         ))}
                       </select>
                     </div>
-                    
+
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">State</label>
+                      <label className="text-sm font-semibold text-gray-700">
+                        State
+                      </label>
                       <select
                         value={formData.state}
-                        onChange={(e) => handleSelectChange("state", e.target.value)}
+                        onChange={(e) =>
+                          handleSelectChange("state", e.target.value)
+                        }
                         className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                         disabled={availableStates.length === 0}
                       >
                         <option value="">Select State</option>
-                        {availableStates.map(state => (
-                          <option key={state.isoCode} value={state.name}>{state.name}</option>
+                        {availableStates.map((state) => (
+                          <option key={state.isoCode} value={state.name}>
+                            {state.name}
+                          </option>
                         ))}
                       </select>
                     </div>
-                    
+
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">City</label>
+                      <label className="text-sm font-semibold text-gray-700">
+                        City
+                      </label>
                       <select
                         value={formData.city}
-                        onChange={(e) => handleSelectChange("city", e.target.value)}
+                        onChange={(e) =>
+                          handleSelectChange("city", e.target.value)
+                        }
                         className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                         disabled={availableCities.length === 0}
                       >
                         <option value="">Select City</option>
-                        {availableCities.map(city => (
-                          <option key={city.name} value={city.name}>{city.name}</option>
+                        {availableCities.map((city) => (
+                          <option key={city.name} value={city.name}>
+                            {city.name}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -1415,399 +1634,451 @@ const CustomerRegistrationPage: React.FC = () => {
                     onChange={handleChange}
                   />
                 </div>
-                
+
                 <CustomStepNavigation
-  currentStep={2}
-  totalSteps={6}
-  onPrevious={() => setActiveTab("basic")}
-  onNext={() => setActiveTab("financialSettings")}
-/>
+                  currentStep={2}
+                  totalSteps={6}
+                  onPrevious={() => setActiveTab("basic")}
+                  onNext={() => setActiveTab("financialSettings")}
+                />
               </div>
             )}
 
-              {activeTab === "financialSettings" && (
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  
-                  <SectionHeader
+            {activeTab === "financialSettings" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                {/* <SectionHeader
         icon={<CreditCard className="w-4 h-4 text-white" />}
         title="Financial Settings"
         gradientFrom="from-blue-400"
         gradientTo="to-blue-500"
-      />  
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Currency</label>
-                      <select
-                        value={formData.currency}
-                        onChange={(e) => handleSelectChange("currency", e.target.value)}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="USD">USD - US Dollar</option>
-                        <option value="EUR">EUR - Euro</option>
-                        <option value="GBP">GBP - British Pound</option>
-                        <option value="INR">INR - Indian Rupee</option>
-                        <option value="CAD">CAD - Canadian Dollar</option>
-                        <option value="AUD">AUD - Australian Dollar</option>
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Price List</label>
-                      <select
-                        value={formData.priceList}
-                        onChange={(e) => handleSelectChange("priceList", e.target.value)}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="">Select Price List</option>
-                        <option value="standard">Standard Pricing</option>
-                        <option value="wholesale">Wholesale Pricing</option>
-                        <option value="vip">VIP Pricing</option>
-                        <option value="promotional">Promotional Pricing</option>
-                      </select>
-                    </div>
-                  </div>
+      />   */}
 
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <CustomInputBox
-                      label="Credit Limit"
-                      placeholder="e.g., 10000"
-                      name="creditLimit"
-                      value={formData.creditLimit}
-                      onChange={handleChange}
-                      type="number"
-                    />
-                    <CustomInputBox
-                      label="Credit Days"
-                      placeholder="e.g., 30"
-                      name="creditDays"
-                      value={formData.creditDays}
-                      onChange={handleChange}
-                      type="number"
-                    />
-                    <CustomInputBox
-                      label="Discount %"
-                      placeholder="e.g., 5"
-                      name="discount"
-                      value={formData.discount}
-                      onChange={handleChange}
-                      type="number"
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Currency
+                    </label>
+                    <select
+                      value={formData.currency}
+                      onChange={(e) =>
+                        handleSelectChange("currency", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="USD">USD - US Dollar</option>
+                      <option value="EUR">EUR - Euro</option>
+                      <option value="GBP">GBP - British Pound</option>
+                      <option value="INR">INR - Indian Rupee</option>
+                      <option value="CAD">CAD - Canadian Dollar</option>
+                      <option value="AUD">AUD - Australian Dollar</option>
+                    </select>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Payment Terms</label>
-                      <select
-                        value={formData.paymentTerms}
-                        onChange={(e) => handleSelectChange("paymentTerms", e.target.value)}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="">Select Payment Terms</option>
-                        <option value="net_30">Net 30</option>
-                        <option value="net_60">Net 60</option>
-                        <option value="immediate">Immediate</option>
-                        <option value="advance">Advance Payment</option>
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Agent</label>
-                      <select
-                        value={formData.agent}
-                        onChange={(e) => handleSelectChange("agent", e.target.value)}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="">Select Agent</option>
-                        <option value="sales">Sales Department</option>
-                        <option value="marketing">Marketing Department</option>
-                        <option value="operations">Operations</option>
-                      </select>
-                    </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Price List
+                    </label>
+                    <select
+                      value={formData.priceList}
+                      onChange={(e) =>
+                        handleSelectChange("priceList", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Price List</option>
+                      <option value="standard">Standard Pricing</option>
+                      <option value="wholesale">Wholesale Pricing</option>
+                      <option value="vip">VIP Pricing</option>
+                      <option value="promotional">Promotional Pricing</option>
+                    </select>
                   </div>
-                  
-                  <CustomStepNavigation
-  currentStep={3}
-  totalSteps={6}
-  onPrevious={() => setActiveTab("contact")}
-  onNext={() => setActiveTab("tax")}
-/>
                 </div>
-              )}
 
-              {activeTab === "tax" && (
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <SectionHeader
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <CustomInputBox
+                    label="Credit Limit"
+                    placeholder="e.g., 10000"
+                    name="creditLimit"
+                    value={formData.creditLimit}
+                    onChange={handleChange}
+                    type="number"
+                  />
+                  <CustomInputBox
+                    label="Credit Days"
+                    placeholder="e.g., 30"
+                    name="creditDays"
+                    value={formData.creditDays}
+                    onChange={handleChange}
+                    type="number"
+                  />
+                  <CustomInputBox
+                    label="Discount %"
+                    placeholder="e.g., 5"
+                    name="discount"
+                    value={formData.discount}
+                    onChange={handleChange}
+                    type="number"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Payment Terms
+                    </label>
+                    <select
+                      value={formData.paymentTerms}
+                      onChange={(e) =>
+                        handleSelectChange("paymentTerms", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Payment Terms</option>
+                      <option value="net_30">Net 30</option>
+                      <option value="net_60">Net 60</option>
+                      <option value="immediate">Immediate</option>
+                      <option value="advance">Advance Payment</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Agent
+                    </label>
+                    <select
+                      value={formData.agent}
+                      onChange={(e) =>
+                        handleSelectChange("agent", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Agent</option>
+                      <option value="sales">Sales Department</option>
+                      <option value="marketing">Marketing Department</option>
+                      <option value="operations">Operations</option>
+                    </select>
+                  </div>
+                </div>
+
+                <CustomStepNavigation
+                  currentStep={3}
+                  totalSteps={6}
+                  onPrevious={() => setActiveTab("contact")}
+                  onNext={() => setActiveTab("tax")}
+                />
+              </div>
+            )}
+
+            {activeTab === "tax" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                {/* <SectionHeader
                     icon={<FileText className="w-4 h-4 text-white" />}
                     title="Tax Information"
                     gradientFrom="from-yellow-400"
                     gradientTo="to-yellow-500"
+                  /> */}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <CustomInputBox
+                    label="Tax ID/Registration Number"
+                    placeholder="e.g., 1234567890"
+                    name="taxId"
+                    value={formData.taxId}
+                    onChange={handleChange}
+                    maxLength={15}
                   />
-      
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <CustomInputBox
-                      label="Tax ID/Registration Number"
-                      placeholder="e.g., 1234567890"
-                      name="taxId"
-                      value={formData.taxId}
-                      onChange={handleChange}
-                      maxLength={15}
-                    />
-                    <CustomInputBox
-                      label="VAT Number"
-                      placeholder="e.g., VAT123456"
-                      name="vatNumber"
-                      value={formData.vatNumber}
-                      onChange={handleChange}
-                      maxLength={15}
-                    />
-                    <CustomInputBox
-                      label="GST Number"
-                      placeholder="e.g., 22AAAAA0000A1Z5"
-                      name="gstNumber"
-                      value={formData.gstNumber}
-                      onChange={handleChange}
-                      maxLength={15}
-                    />
-                    <CustomInputBox
-                      label="PAN Number"
-                      placeholder="e.g., ABCDE1234F"
-                      name="panNumber"
-                      value={formData.panNumber}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
-                    <CustomInputBox
-                      label="TAN Number"
-                      placeholder="e.g., ABCD12345E"
-                      name="tanNumber"
-                      value={formData.tanNumber}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
-                    <CustomInputBox
-                      label="MSME Number"
-                      placeholder="e.g., UDYAM-XX-00-0000000"
-                      name="msmeRegistration"
-                      value={formData.msmeRegistration}
-                      onChange={handleChange}
-                      maxLength={20}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Tax Category</label>
-                      <select
-                        value={formData.taxCategory}
-                        onChange={(e) => handleSelectChange("taxCategory", e.target.value)}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="">Select Tax Category</option>
-                        <option value="taxable">Taxable</option>
-                        <option value="exempt">Tax Exempt</option>
-                        <option value="zero_rated">Zero Rated</option>
-                        <option value="out_of_scope">Out of Scope</option>
-                      </select>
-                    </div>
-                    
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Tax Template</label>
-                      <select
-                        value={formData.taxTemplate}
-                        onChange={(e) => handleSelectChange("taxTemplate", e.target.value)}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="">Select Tax Template</option>
-                        <option value="standard_tax">Standard Tax</option>
-                        <option value="zero_tax">Zero Tax</option>
-                        <option value="igst_18">IGST 18%</option>
-                        <option value="cgst_sgst_18">CGST+SGST 18%</option>
-                      </select>
-                    </div>
-                    
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Withholding Tax Category</label>
-                      <select
-                        value={formData.withholdingTaxCategory}
-                        onChange={(e) => handleSelectChange("withholdingTaxCategory", e.target.value)}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="">Select WHT Category</option>
-                        <option value="tds_contractor">TDS - Contractor</option>
-                        <option value="tds_professional">TDS - Professional</option>
-                        <option value="tds_commission">TDS - Commission</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <CustomStepNavigation
-  currentStep={4}
-  totalSteps={6}
-  onPrevious={() => setActiveTab("financialSettings")}
-  onNext={() => setActiveTab("bank")}
-/>
+                  <CustomInputBox
+                    label="VAT Number"
+                    placeholder="e.g., VAT123456"
+                    name="vatNumber"
+                    value={formData.vatNumber}
+                    onChange={handleChange}
+                    maxLength={15}
+                  />
+                  <CustomInputBox
+                    label="GST Number"
+                    placeholder="e.g., 22AAAAA0000A1Z5"
+                    name="gstNumber"
+                    value={formData.gstNumber}
+                    onChange={handleChange}
+                    maxLength={15}
+                  />
+                  <CustomInputBox
+                    label="PAN Number"
+                    placeholder="e.g., ABCDE1234F"
+                    name="panNumber"
+                    value={formData.panNumber}
+                    onChange={handleChange}
+                    maxLength={10}
+                  />
+                  <CustomInputBox
+                    label="TAN Number"
+                    placeholder="e.g., ABCD12345E"
+                    name="tanNumber"
+                    value={formData.tanNumber}
+                    onChange={handleChange}
+                    maxLength={10}
+                  />
+                  <CustomInputBox
+                    label="MSME Number"
+                    placeholder="e.g., UDYAM-XX-00-0000000"
+                    name="msmeRegistration"
+                    value={formData.msmeRegistration}
+                    onChange={handleChange}
+                    maxLength={20}
+                  />
                 </div>
-              )}
 
-              {activeTab === "bank" && (
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-               
-                      <SectionHeader
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Tax Category
+                    </label>
+                    <select
+                      value={formData.taxCategory}
+                      onChange={(e) =>
+                        handleSelectChange("taxCategory", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Tax Category</option>
+                      <option value="taxable">Taxable</option>
+                      <option value="exempt">Tax Exempt</option>
+                      <option value="zero_rated">Zero Rated</option>
+                      <option value="out_of_scope">Out of Scope</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Tax Template
+                    </label>
+                    <select
+                      value={formData.taxTemplate}
+                      onChange={(e) =>
+                        handleSelectChange("taxTemplate", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Tax Template</option>
+                      <option value="standard_tax">Standard Tax</option>
+                      <option value="zero_tax">Zero Tax</option>
+                      <option value="igst_18">IGST 18%</option>
+                      <option value="cgst_sgst_18">CGST+SGST 18%</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Withholding Tax Category
+                    </label>
+                    <select
+                      value={formData.withholdingTaxCategory}
+                      onChange={(e) =>
+                        handleSelectChange(
+                          "withholdingTaxCategory",
+                          e.target.value
+                        )
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select WHT Category</option>
+                      <option value="tds_contractor">TDS - Contractor</option>
+                      <option value="tds_professional">
+                        TDS - Professional
+                      </option>
+                      <option value="tds_commission">TDS - Commission</option>
+                    </select>
+                  </div>
+                </div>
+
+                <CustomStepNavigation
+                  currentStep={4}
+                  totalSteps={6}
+                  onPrevious={() => setActiveTab("financialSettings")}
+                  onNext={() => setActiveTab("bank")}
+                />
+              </div>
+            )}
+
+            {activeTab === "bank" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                {/* <SectionHeader
         icon={<Building2 className="w-4 h-4 text-white" />}
         title="Add Bank Information"
         gradientFrom="from-purple-400"
         gradientTo="to-purple-500"
-      />
+      /> */}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
-                    <CustomInputBox
-                      label="Account Holder Name *"
-                      placeholder="e.g., John Doe"
-                      name="accountHolderName"
-                      value={bankForm.accountHolderName}
-                      onChange={handleBankChange}
-                      required={true}
-                    />
-                    <CustomInputBox
-                      label="Account Number *"
-                      placeholder="e.g., 123456789012"
-                      name="accountNumber"
-                      value={bankForm.accountNumber}
-                      onChange={handleBankChange}
-                      required={true}
-                    />
-                    <CustomInputBox
-                      label="IFSC Code"
-                      placeholder="e.g., SBIN0001234"
-                      name="ifscCode"
-                      value={bankForm.ifscCode}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      label="SWIFT Code"
-                      placeholder="e.g., SBININBBXXX"
-                      name="swiftCode"
-                      value={bankForm.swiftCode}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      label="MICR Number"
-                      placeholder="e.g., 110002001"
-                      name="micrNumber"
-                      value={bankForm.micrNumber}
-                      onChange={handleBankChange}
-                    />
-                    <CustomInputBox
-                      label="Bank Name *"
-                      placeholder="e.g., State Bank of India"
-                      name="bankName"
-                      value={bankForm.bankName}
-                      onChange={handleBankChange}
-                      required={true}
-                    />
-                    <CustomInputBox
-                      label="Branch"
-                      placeholder="e.g., Main Branch"
-                      name="branch"
-                      value={bankForm.branch}
-                      onChange={handleBankChange}
-                    />
-                    <Button 
-                      onClick={addBank} 
-                      className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
-                    >
-                      <Plus className="w-5 h-5 mr-2" /> Add Bank
-                    </Button>
-                  </div>
-
-                  {/* Bank List */}
-                  {formData.banks.length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-teal-700">Added Banks:</h4>
-                      {formData.banks.map(bank => (
-                        <div key={bank.id} className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">{bank.bankName}</p>
-                            <p className="text-sm text-gray-600">{bank.accountHolderName} ••••{bank.accountNumber.slice(-4)}</p>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => removeBank(bank.id)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <CustomStepNavigation
-  currentStep={5}
-  totalSteps={6}
-  onPrevious={() => setActiveTab("tax")}
-  onNext={() => setActiveTab("settings")}
-/>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
+                  <CustomInputBox
+                    label="Account Holder Name *"
+                    placeholder="e.g., John Doe"
+                    name="accountHolderName"
+                    value={bankForm.accountHolderName}
+                    onChange={handleBankChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Account Number *"
+                    placeholder="e.g., 123456789012"
+                    name="accountNumber"
+                    value={bankForm.accountNumber}
+                    onChange={handleBankChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="IFSC Code"
+                    placeholder="e.g., SBIN0001234"
+                    name="ifscCode"
+                    value={bankForm.ifscCode}
+                    onChange={handleBankChange}
+                  />
+                  <CustomInputBox
+                    label="SWIFT Code"
+                    placeholder="e.g., SBININBBXXX"
+                    name="swiftCode"
+                    value={bankForm.swiftCode}
+                    onChange={handleBankChange}
+                  />
+                  <CustomInputBox
+                    label="MICR Number"
+                    placeholder="e.g., 110002001"
+                    name="micrNumber"
+                    value={bankForm.micrNumber}
+                    onChange={handleBankChange}
+                  />
+                  <CustomInputBox
+                    label="Bank Name *"
+                    placeholder="e.g., State Bank of India"
+                    name="bankName"
+                    value={bankForm.bankName}
+                    onChange={handleBankChange}
+                    required={true}
+                  />
+                  <CustomInputBox
+                    label="Branch"
+                    placeholder="e.g., Main Branch"
+                    name="branch"
+                    value={bankForm.branch}
+                    onChange={handleBankChange}
+                  />
+                  <Button
+                    onClick={addBank}
+                    className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <Plus className="w-5 h-5 mr-2" /> Add Bank
+                  </Button>
                 </div>
-              )}
 
-              {activeTab === "settings" && (
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  
-                      <SectionHeader
+                {/* Bank List */}
+                {formData.banks.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-teal-700">Added Banks:</h4>
+                    {formData.banks.map((bank) => (
+                      <div
+                        key={bank.id}
+                        className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center"
+                      >
+                        <div>
+                          <p className="font-medium">{bank.bankName}</p>
+                          <p className="text-sm text-gray-600">
+                            {bank.accountHolderName} ••••
+                            {bank.accountNumber.slice(-4)}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeBank(bank.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <CustomStepNavigation
+                  currentStep={5}
+                  totalSteps={6}
+                  onPrevious={() => setActiveTab("tax")}
+                  onNext={() => setActiveTab("settings")}
+                />
+              </div>
+            )}
+
+            {activeTab === "settings" && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                {/* <SectionHeader
         icon={<Settings2 className="w-4 h-4 text-white" />}
         title="Additional Settings"
         gradientFrom="from-cyan-400"
         gradientTo="to-cyan-500"
-      />
+      /> */}
 
-                  <div className="mb-8">
-                    <h4 className="font-semibold text-gray-800 mb-4 text-lg">Customer Logo</h4>
-                    <div className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner">
-                      <input
-                        type="file"
-                        id="logo"
-                        className="hidden"
-                        onChange={handleLogoUpload}
-                        accept="image/*"
-                      />
-                      <label
-                        htmlFor="logo"
-                        className="cursor-pointer flex flex-col items-center gap-3"
-                      >
-                        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 hover:bg-blue-200 transition-colors">
-                          <Upload className="w-8 h-8" />
-                        </div>
-                        <p className="text-sm font-medium text-gray-600">Upload Logo</p>
-                      </label>
-                      {formData.logoPreviewUrl && (
-                        <div className="mt-4 relative">
-                          <img
-                            src={formData.logoPreviewUrl}
-                            alt="Customer Logo"
-                            className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 shadow-md cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => setViewingImage({previewUrl: formData.logoPreviewUrl, type: 'logo'})}
-                          />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
-                            onClick={removeLogo}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                <div className="mb-8">
+                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">
+                    Customer Logo
+                  </h4>
+                  <div className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner">
+                    <input
+                      type="file"
+                      id="logo"
+                      className="hidden"
+                      onChange={handleLogoUpload}
+                      accept="image/*"
+                    />
+                    <label
+                      htmlFor="logo"
+                      className="cursor-pointer flex flex-col items-center gap-3"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 hover:bg-blue-200 transition-colors">
+                        <Upload className="w-8 h-8" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">
+                        Upload Logo
+                      </p>
+                    </label>
+                    {formData.logoPreviewUrl && (
+                      <div className="mt-4 relative">
+                        <img
+                          src={formData.logoPreviewUrl}
+                          alt="Customer Logo"
+                          className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() =>
+                            setViewingImage({
+                              previewUrl: formData.logoPreviewUrl,
+                              type: "logo",
+                            })
+                          }
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
+                          onClick={removeLogo}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
+                </div>
 
-                  <div className="mb-8">
-                    <h4 className="font-semibold text-gray-800 mb-4 text-lg">Registration Documents</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {['TAX', 'VAT', 'GST', 'PAN', 'TAN', 'MSME'].map(docType => (
-                        <div key={docType} className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative">
-                          <p className="text-sm font-semibold text-gray-700 mb-3">{docType} Document</p>
+                <div className="mb-8">
+                  <h4 className="font-semibold text-gray-800 mb-4 text-lg">
+                    Registration Documents
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {["TAX", "VAT", "GST", "PAN", "TAN", "MSME"].map(
+                      (docType) => (
+                        <div
+                          key={docType}
+                          className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
+                        >
+                          <p className="text-sm font-semibold text-gray-700 mb-3">
+                            {docType} Document
+                          </p>
                           <input
                             type="file"
                             id={`${docType.toLowerCase()}-doc`}
@@ -1822,141 +2093,182 @@ const CustomerRegistrationPage: React.FC = () => {
                             <Upload className="w-6 h-6 text-blue-500" />
                             <p className="text-sm text-gray-600">Upload</p>
                           </label>
-                          {formData.registrationDocs.find(doc => doc.type === docType) && (
+                          {formData.registrationDocs.find(
+                            (doc) => doc.type === docType
+                          ) && (
                             <div className="mt-4 w-full">
                               <p className="text-xs text-gray-500 truncate mb-2">
-                                {formData.registrationDocs.find(doc => doc.type === docType)?.fileName}
+                                {
+                                  formData.registrationDocs.find(
+                                    (doc) => doc.type === docType
+                                  )?.fileName
+                                }
                               </p>
-                              {formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl && docType !== 'PDF' && (
-                                <img
-                                  src={formData.registrationDocs.find(doc => doc.type === docType)?.previewUrl}
-                                  alt={`${docType} document`}
-                                  className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
-                                  onClick={() => setViewingImage(formData.registrationDocs.find(doc => doc.type === docType)!)}
-                                />
-                              )}
+                              {formData.registrationDocs.find(
+                                (doc) => doc.type === docType
+                              )?.previewUrl &&
+                                docType !== "PDF" && (
+                                  <img
+                                    src={
+                                      formData.registrationDocs.find(
+                                        (doc) => doc.type === docType
+                                      )?.previewUrl
+                                    }
+                                    alt={`${docType} document`}
+                                    className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
+                                    onClick={() =>
+                                      setViewingImage(
+                                        formData.registrationDocs.find(
+                                          (doc) => doc.type === docType
+                                        )!
+                                      )
+                                    }
+                                  />
+                                )}
                               <Button
                                 variant="destructive"
                                 size="icon"
                                 className="absolute top-2 right-2 w-6 h-6 rounded-full"
-                                onClick={() => removeDocument(formData.registrationDocs.find(doc => doc.type === docType)!.id)}
+                                onClick={() =>
+                                  removeDocument(
+                                    formData.registrationDocs.find(
+                                      (doc) => doc.type === docType
+                                    )!.id
+                                  )
+                                }
                               >
                                 <X className="w-4 h-4" />
                               </Button>
                             </div>
                           )}
                         </div>
-                      ))}
-                    </div>
+                      )
+                    )}
                   </div>
-
-                  {/* Advanced Settings */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Customer Priority</label>
-                      <select
-                        value={formData.customerPriority}
-                        onChange={(e) => handleSelectChange("customerPriority", e.target.value)}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="low">Low Priority</option>
-                        <option value="medium">Medium Priority</option>
-                        <option value="high">High Priority</option>
-                        <option value="vip">VIP</option>
-                      </select>
-                    </div>
-                    
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">Lead Source</label>
-                      <select
-                        value={formData.leadSource}
-                        onChange={(e) => handleSelectChange("leadSource", e.target.value)}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="">Select Lead Source</option>
-                        <option value="website">Website</option>
-                        <option value="referral">Referral</option>
-                        <option value="advertising">Advertising</option>
-                        <option value="social_media">Social Media</option>
-                        <option value="cold_call">Cold Call</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Checkboxes */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="isFrozenAccount"
-                        checked={formData.isFrozenAccount}
-                        onChange={handleChange}
-                        className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
-                      />
-                      Frozen Account
-                    </label>
-                    <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="disabled"
-                        checked={formData.disabled}
-                        onChange={handleChange}
-                        className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
-                      />
-                      Disabled
-                    </label>
-                    <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="allowZeroValuation"
-                        checked={formData.allowZeroValuation}
-                        onChange={handleChange}
-                        className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
-                      />
-                      Allow Zero Valuation
-                    </label>
-                    <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="isTaxExempt"
-                        checked={formData.isTaxExempt}
-                        onChange={handleChange}
-                        className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
-                      />
-                      Tax Exempt
-                    </label>
-                  </div>
-
-                  {/* Notes */}
-                  <div className="mb-6">
-                    <p className="text-sm font-semibold text-gray-700 mb-2">Internal Notes</p>
-                    <textarea
-                      placeholder="Add any additional notes about the customer..."
-                      name="internalNotes"
-                      value={formData.internalNotes}
-                      onChange={handleChange}
-                      rows={4}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
-                    />
-                  </div>
-
-                  <CustomStepNavigation
-  currentStep={6}
-  totalSteps={6}
-  onPrevious={() => setActiveTab("bank")}
-  onSubmit={handleSubmit}
-  submitLabel={editingCustomer ? 'Update Customer' : 'Save Customer'}
-  isLastStep={true}
-/>
                 </div>
-              )}
-            </div>
+
+                {/* Advanced Settings */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Customer Priority
+                    </label>
+                    <select
+                      value={formData.customerPriority}
+                      onChange={(e) =>
+                        handleSelectChange("customerPriority", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="low">Low Priority</option>
+                      <option value="medium">Medium Priority</option>
+                      <option value="high">High Priority</option>
+                      <option value="vip">VIP</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Lead Source
+                    </label>
+                    <select
+                      value={formData.leadSource}
+                      onChange={(e) =>
+                        handleSelectChange("leadSource", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Lead Source</option>
+                      <option value="website">Website</option>
+                      <option value="referral">Referral</option>
+                      <option value="advertising">Advertising</option>
+                      <option value="social_media">Social Media</option>
+                      <option value="cold_call">Cold Call</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Checkboxes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="isFrozenAccount"
+                      checked={formData.isFrozenAccount}
+                      onChange={handleChange}
+                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
+                    />
+                    Frozen Account
+                  </label>
+                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="disabled"
+                      checked={formData.disabled}
+                      onChange={handleChange}
+                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
+                    />
+                    Disabled
+                  </label>
+                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="allowZeroValuation"
+                      checked={formData.allowZeroValuation}
+                      onChange={handleChange}
+                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
+                    />
+                    Allow Zero Valuation
+                  </label>
+                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="isTaxExempt"
+                      checked={formData.isTaxExempt}
+                      onChange={handleChange}
+                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
+                    />
+                    Tax Exempt
+                  </label>
+                </div>
+
+                {/* Notes */}
+                <div className="mb-6">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">
+                    Internal Notes
+                  </p>
+                  <textarea
+                    placeholder="Add any additional notes about the customer..."
+                    name="internalNotes"
+                    value={formData.internalNotes}
+                    onChange={handleChange}
+                    rows={4}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
+                  />
+                </div>
+
+                <CustomStepNavigation
+                  currentStep={6}
+                  totalSteps={6}
+                  onPrevious={() => setActiveTab("bank")}
+                  onSubmit={handleSubmit}
+                  submitLabel={
+                    editingCustomer ? "Update Customer" : "Save Customer"
+                  }
+                  isLastStep={true}
+                />
+              </div>
+            )}
+          </div>
           {/* </div> */}
         </DialogContent>
       </Dialog>
 
       {/* Image viewing modal */}
-     <ImagePreviewDialog viewingImage={viewingImage} onClose={() => setViewingImage(null)} />
+      <ImagePreviewDialog
+        viewingImage={viewingImage}
+        onClose={() => setViewingImage(null)}
+      />
     </div>
   );
 };

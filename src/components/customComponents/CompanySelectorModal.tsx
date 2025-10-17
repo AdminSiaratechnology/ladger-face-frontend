@@ -62,6 +62,7 @@ const CompanySelectorModal = ({
             icon={<Building2 className="w-4 h-4" />}
             gradientFrom="from-teal-500"
             gradientTo="to-teal-300"
+            showCompany={false}
           />
         </DialogHeader>
         <ScrollArea className="max-h-[400px] mt-4">

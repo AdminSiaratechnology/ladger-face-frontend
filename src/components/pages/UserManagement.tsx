@@ -127,14 +127,14 @@ interface User {
   allPermissions: boolean;
   parent: string;
   createdBy: string;
-  clientAgent: string;
+  clientID: string;
   company?: string;
   access: Access[];
   phone?: string;
   area?: string;
   pincode?: string;
   status?: "active" | "inactive";
-  lastLogin?: string;
+  lastLogin?: string | null;
   createdAt?: string;
 }
 
@@ -147,7 +147,7 @@ interface UserForm {
   allPermissions: boolean;
   parent: string;
   createdBy?: string;
-  clientAgent: string;
+  clientID: string;
   company?: string;
   access: Access[];
   phone: string;
@@ -383,7 +383,7 @@ export const UserManagement: React.FC = () => {
     allPermissions: false,
     parent: "",
     createdBy: "",
-    clientAgent: "",
+    clientID: "",
     company: "",
     access: [],
     phone: "",
@@ -513,7 +513,7 @@ export const UserManagement: React.FC = () => {
       allPermissions: false,
       parent: "",
       createdBy: "",
-      clientAgent: "",
+      clientID: "",
       company: "",
       access: companies.map((company) => ({
         company: company._id,
@@ -638,11 +638,11 @@ export const UserManagement: React.FC = () => {
       ...form,
       id: editingUser?._id || Date.now().toString(),
       status: editingUser?.status || "active",
-      lastLogin: editingUser?.lastLogin || "Never",
+      lastLogin: editingUser?.lastLogin || null,
       createdAt: editingUser?.createdAt || new Date().toISOString(),
       createdBy: form.createdBy || "current_user_id", // Replace with actual user ID
       parent: form.parent || "",
-      clientAgent: form.clientAgent || "",
+      clientID: form.clientID || "",
       company: form.company || "",
     };
 
@@ -654,9 +654,9 @@ export const UserManagement: React.FC = () => {
       toast.success("User created successfully");
     }
 
-    resetForm();
-    setOpen(false);
-    setActiveTab("basic");
+    // resetForm();
+    // setOpen(false);
+    // setActiveTab("basic");
   };
 
   const handleEditUser = (user: User) => {
@@ -822,74 +822,74 @@ export const UserManagement: React.FC = () => {
         <CheckAccess module="UserManagement" subModule="User" type="create">
           <Button
             onClick={() => setOpen(true)}
-            className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-4 sm:px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+            className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-2 sm:px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            <UserPlus className="w-4 h-4 mr-2" />
+            <UserPlus className="w-4 h-4 " />
             Add User
           </Button>
         </CheckAccess>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-4">
         <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-teal-100 text-sm font-medium">Total Users</p>
-                <p className="text-3xl font-bold">{stats.totalUsers}</p>
+                <p className="text-2xl font-bold">{stats.totalUsers}</p>
               </div>
-              <Users className="w-8 h-8 text-teal-200" />
+              <Users className="w-6 h-6 text-teal-200" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-sm font-medium">
                   Active Users
                 </p>
-                <p className="text-3xl font-bold">{stats.activeUsers}</p>
+                <p className="text-2xl font-bold">{stats.activeUsers}</p>
               </div>
-              <UserCheck className="w-8 h-8 text-blue-200" />
+              <UserCheck className="w-6 h-6 text-blue-200" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-red-100 text-sm font-medium">Admins</p>
-                <p className="text-3xl font-bold">{stats.adminUsers}</p>
+                <p className="text-2xl font-bold">{stats.adminUsers}</p>
               </div>
-              <Shield className="w-8 h-8 text-red-200" />
+              <Shield className="w-6 h-6 text-red-200" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium">Sales</p>
-                <p className="text-3xl font-bold">{stats.salesUsers}</p>
+                <p className="text-2xl font-bold">{stats.salesUsers}</p>
               </div>
-              <Building2 className="w-8 h-8 text-green-200" />
+              <Building2 className="w-6 h-6 text-green-200" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm font-medium">Agents</p>
-                <p className="text-3xl font-bold">{stats.agentUsers}</p>
+                <p className="text-2xl font-bold">{stats.agentUsers}</p>
               </div>
-              <Key className="w-8 h-8 text-purple-200" />
+              <Key className="w-6 h-6 text-purple-200" />
             </div>
           </CardContent>
         </Card>
@@ -1459,7 +1459,7 @@ export const UserManagement: React.FC = () => {
                           Add company access to configure permissions
                         </p>
                         <Button
-                          onClick={addCompanyAccess}
+                          // onClick={addCompanyAccess}
                           variant="outline"
                           className="flex items-center border-gray-300 hover:bg-gray-100 text-sm py-1"
                         >
