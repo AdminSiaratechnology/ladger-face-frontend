@@ -267,7 +267,7 @@ const CustomerRegistrationPage: React.FC = () => {
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
-
+console.log(filteredCustomers,"dsdhhkfh")
   const {
     fetchCustomers,
     addCustomer,
@@ -806,6 +806,8 @@ const CustomerRegistrationPage: React.FC = () => {
       filterCustomers(searchTerm, statusFilter, sortBy, currentPage, limit)
         .then((result) => {
           setFilteredCustomers(result);
+        console.log(result)
+
         })
         .catch((err) => {
           console.error("Error filtering customers:", err);
