@@ -23,16 +23,16 @@ const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({ viewingImage, o
 
   return (
     <Dialog open={!!viewingImage} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="w-fit min-w-[90vw] bg-transparent">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="text-white">{title}</DialogTitle>
         </DialogHeader>
 
         <div className="flex justify-center">
           <img
             src={viewingImage.previewUrl}
             alt={viewingImage.type}
-            className="max-w-full max-h-96 object-contain rounded-lg"
+            className="max-w-full max-h-96 object-contain rounded-lg "
           />
         </div>
       </DialogContent>
