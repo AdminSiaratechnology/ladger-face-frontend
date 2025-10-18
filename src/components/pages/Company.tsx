@@ -59,7 +59,7 @@ interface Bank {
   branch: string;
 }
 
-// Company interface (unchanged)
+// Company interface (updated with new fields)
 interface Company {
   id: number;
   _id?: string;
@@ -68,6 +68,7 @@ interface Company {
   address1: string;
   address2: string;
   address3: string;
+  code: string;
   city: string;
   pincode: string;
   state: string;
@@ -76,53 +77,60 @@ interface Company {
   mobile: string;
   fax: string;
   email: string;
-  website: string;
-  gstNumber: string;
-  panNumber: string;
-  tanNumber: string;
-  msmeNumber: string;
-  udyamNumber: string;
+  website?: string;
+  gstNumber?: string;
+  panNumber?: string;
+  tanNumber?: string;
+  vatNumber?: string;
+  msmeNumber?: string;
+  udyamNumber?: string;
   defaultCurrency: string;
   banks: Bank[];
   logo: string | null;
   notes: string;
+  bookStartingDate?: string;
+  financialDate?: string;
   createdAt: string;
   registrationDocs: RegistrationDocument[];
   status: "active" | "inactive";
 }
 
-// Form interface (unchanged)
+// Form interface (updated with new fields)
 interface CompanyForm {
   namePrint: string;
   nameStreet: string;
   address1: string;
   address2: string;
   address3: string;
+  code: string;
   city: string;
   pincode: string;
   state: string;
   country: string;
   telephone: string;
   mobile: string;
-  fax: string;
+  fax?: string;
   email: string;
-  website: string;
-  gstNumber: string;
-  panNumber: string;
-  tanNumber: string;
-  msmeNumber: string;
-  udyamNumber: string;
+  website?: string;
+  gstNumber?: string;
+  panNumber?: string;
+  tanNumber?: string;
+  vatNumber?: string;
+  msmeNumber?: string;
+  udyamNumber?: string;
   defaultCurrency: string;
   banks: Bank[];
   logoFile?: File; // For logo upload
   logoPreviewUrl?: string;
   notes: string;
+  bookStartingDate?: string;
+  financialDate?: string;
   registrationDocs: RegistrationDocument[];
   status: "active" | "inactive";
-  maintainGodown?: Boolean;
-  maintainBatch?: Boolean;
-  closingQuantityOrder?: Boolean;
-  negativeOrder?: Boolean;
+  maintainGodown?: boolean;
+  maintainBatch?: boolean;
+  closingQuantityOrder?: boolean;
+  negativeOrder?: boolean;
 }
 
 // Registration document interface (unchanged)
@@ -135,12 +143,12 @@ interface RegistrationDocument {
 }
 
 const stepIcons = {
-  basic: <Building2 className="w-2 h-2 md:w-5 md:h-5 " />,
-  contact: <Phone className="w-2 h-2 md:w-5 md:h-5 " />,
-  registration: <FileText className="w-2 h-2 md:w-5 md:h-5 " />,
-  bank: <CreditCard className="w-2 h-2 md:w-5 md:h-5 " />,
-  branding: <ImageIcon className="w-2 h-2 md:w-5 md:h-5 " />,
-  settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5 " />,
+  basic: <Building2 className="w-2 h-2 md:w-5 md:h-5" />,
+  contact: <Phone className="w-2 h-2 md:w-5 md:h-5" />,
+  registration: <FileText className="w-2 h-2 md:w-5 md:h-5" />,
+  bank: <CreditCard className="w-2 h-2 md:w-5 md:h-5" />,
+  branding: <ImageIcon className="w-2 h-2 md:w-5 md:h-5" />,
+  settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />,
 };
 
 const CompanyPage: React.FC = () => {
@@ -158,16 +166,13 @@ const CompanyPage: React.FC = () => {
     bankName: "",
     branch: "",
   });
+  const [editingBankId, setEditingBankId] = useState<number | null>(null);
   const [viewingImage, setViewingImage] = useState<
     RegistrationDocument | { previewUrl: string; type: "logo" } | null
   >(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "inactive"
-  >("all");
-  const [sortBy, setSortBy] = useState<
-    "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
-  >("nameAsc");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [sortBy, setSortBy] = useState<"nameAsc" | "nameDesc" | "dateAsc" | "dateDesc">("nameAsc");
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
@@ -194,6 +199,7 @@ const CompanyPage: React.FC = () => {
     address1: "",
     address2: "",
     address3: "",
+    code: "",
     city: "",
     pincode: "",
     state: "",
@@ -206,11 +212,14 @@ const CompanyPage: React.FC = () => {
     gstNumber: "",
     panNumber: "",
     tanNumber: "",
+    vatNumber: "",
     msmeNumber: "",
     udyamNumber: "",
     defaultCurrency: "INR",
     banks: [],
     notes: "",
+    bookStartingDate: "",
+    financialDate: "",
     registrationDocs: [],
     status: "active",
     maintainGodown: false,
@@ -311,7 +320,7 @@ const CompanyPage: React.FC = () => {
     }));
   };
 
-  const addBank = (): void => {
+  const addOrUpdateBank = (): void => {
     if (
       !bankForm.accountHolderName ||
       !bankForm.accountNumber ||
@@ -323,11 +332,25 @@ const CompanyPage: React.FC = () => {
       return;
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      banks: [...prev.banks, { ...bankForm, id: Date.now() }],
-    }));
+    if (editingBankId !== null) {
+      // Update existing bank
+      setFormData((prev) => ({
+        ...prev,
+        banks: prev.banks.map((bank) =>
+          bank.id === editingBankId ? { ...bankForm, id: editingBankId } : bank
+        ),
+      }));
+      toast.success("Bank updated successfully");
+    } else {
+      // Add new bank
+      setFormData((prev) => ({
+        ...prev,
+        banks: [...prev.banks, { ...bankForm, id: Date.now() }],
+      }));
+      toast.success("Bank added successfully");
+    }
 
+    // Reset form
     setBankForm({
       id: Date.now(),
       accountHolderName: "",
@@ -338,6 +361,12 @@ const CompanyPage: React.FC = () => {
       bankName: "",
       branch: "",
     });
+    setEditingBankId(null);
+  };
+
+  const editBank = (bank: Bank): void => {
+    setBankForm(bank);
+    setEditingBankId(bank.id);
   };
 
   const removeBank = (id: number): void => {
@@ -345,6 +374,20 @@ const CompanyPage: React.FC = () => {
       ...prev,
       banks: prev.banks.filter((bank) => bank.id !== id),
     }));
+    if (editingBankId === id) {
+      setEditingBankId(null);
+      // Reset bankForm if editing the removed one
+      setBankForm({
+        id: Date.now(),
+        accountHolderName: "",
+        accountNumber: "",
+        ifscCode: "",
+        swiftCode: "",
+        micrNumber: "",
+        bankName: "",
+        branch: "",
+      });
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -441,6 +484,7 @@ const CompanyPage: React.FC = () => {
       address1: "",
       address2: "",
       address3: "",
+      code: "",
       city: "",
       pincode: "",
       state: "",
@@ -453,11 +497,14 @@ const CompanyPage: React.FC = () => {
       gstNumber: "",
       panNumber: "",
       tanNumber: "",
+      vatNumber: "",
       msmeNumber: "",
       udyamNumber: "",
       defaultCurrency: "INR",
       banks: [],
       notes: "",
+      bookStartingDate: "",
+      financialDate: "",
       registrationDocs: [],
       status: "active",
       maintainGodown: false,
@@ -467,6 +514,17 @@ const CompanyPage: React.FC = () => {
     });
     setEditingCompany(null);
     setActiveTab("basic");
+    setEditingBankId(null);
+    setBankForm({
+      id: Date.now(),
+      accountHolderName: "",
+      accountNumber: "",
+      ifscCode: "",
+      swiftCode: "",
+      micrNumber: "",
+      bankName: "",
+      branch: "",
+    });
   };
 
   const handleEditCompany = (company: Company): void => {
@@ -559,6 +617,8 @@ const CompanyPage: React.FC = () => {
     } else {
       addCompany(companyFormData);
     }
+    setOpen(false);
+    resetForm();
   };
 
   const stats = useMemo(
@@ -624,12 +684,13 @@ const CompanyPage: React.FC = () => {
   const formatSimpleDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
-  const headers = ["Company", "Contact", "Address", "Status", "Actions"];
+  const headers = ["Company", "Contact", "GST/VAT", "Status", "Actions"];
   const setDefaultCompany = useCompanyStore((state) => state.setDefaultCompany);
   const handleSelect = (company) => {
     setDefaultCompany(company._id);
     setShowCompanyPopup(false);
   };
+
   // Table View Component
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -643,41 +704,82 @@ const CompanyPage: React.FC = () => {
                 key={company._id}
                 className="hover:bg-gray-50 transition-colors duration-200"
               >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">
-                      {company.namePrint}
+                <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-2">
+                    <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {company.nameStreet}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                        {company.namePrint}
+                      </div>
+                      {company.code && (
+                        <div className="text-xs text-gray-500 truncate">
+                          {company.code}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">
-                    <div>Email: {company.email}</div>
-                    <div>Phone: {company.mobile}</div>
+                <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4">
+                  <div className="text-xs sm:text-sm text-gray-900 space-y-0.5">
+                    <div className="flex items-center space-x-1">
+                      <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                      <span className="truncate">{company.email}</span>
+                    </div>
+                    {company.mobile && (
+                      <div className="flex items-center space-x-1">
+                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                        <span className="truncate">{company.mobile}</span>
+                      </div>
+                    )}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {[company.city, company.state, company.country]
-                      .filter(Boolean)
-                      .join(", ")}
+                <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
+                  <div className="text-xs sm:text-sm text-gray-900 space-y-0.5">
+                    {company.country === "India" ? (
+                      company.gstNumber ? (
+                        <div className="flex items-center space-x-1">
+                          <span className="truncate">GST:</span>
+                          <span className="bg-blue-100 text-teal-700 px-1 py-0.5 rounded font-mono truncate">
+                            {company.gstNumber}
+                          </span>
+                        </div>
+                      ) : null
+                    ) : (
+                      <>
+                        {company.vatNumber && (
+                          <div className="flex items-center space-x-1">
+                            <span className="truncate">VAT:</span>
+                            <span className="bg-blue-100 text-teal-700 px-1 py-0.5 rounded font-mono truncate">
+                              {company.vatNumber}
+                            </span>
+                          </div>
+                        )}
+                        {company.tanNumber && (
+                          <div className="flex items-center space-x-1">
+                            <span className="truncate">TAN:</span>
+                            <span className="bg-blue-100 text-teal-700 px-1 py-0.5 rounded font-mono truncate">
+                              {company.tanNumber}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
                   <Badge
                     className={`${
                       company.status === "active"
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-700"
-                    } hover:bg-green-100`}
+                    } hover:bg-green-100 text-xs px-2 py-1`}
                   >
                     {company.status}
                   </Badge>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-right">
                   <ActionsDropdown
                     onEdit={() => handleEditCompany(company)}
                     onDelete={() => handleDeleteCompany(company._id || "")}
@@ -695,40 +797,40 @@ const CompanyPage: React.FC = () => {
 
   // Card View Component
   const CardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
       {filteredCompanies.map((company: Company) => (
         <Card
           key={company._id}
-          className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden"
+          className="bg-white border-0 shadow-md hover:shadow-lg transition-all duration-300 rounded-2xl overflow-hidden h-full flex flex-col gap-0"
         >
-          <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center">
-                {company.logo && (
-                  <img
-                    src={company.logo}
-                    alt="Company Logo"
-                    className="w-10 h-10 rounded-full mr-3 object-cover"
-                  />
-                )}
-                <div>
-                  <CardTitle className="text-xl font-bold text-gray-800 mb-1">
+          <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center flex-1 min-w-0">
+                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                  {
+                    company.logo ?<img className="w-4 h-4 sm:w-5 sm:h-5" src={company.logo}/>:
+                    <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  }
+                 
+                </div>
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-sm sm:text-lg font-bold text-gray-800 truncate w-40">
                     {company.namePrint}
                   </CardTitle>
-                  {company.nameStreet && (
-                    <p className="text-teal-600 font-medium">
-                      {company.nameStreet}
+                  {company.code && (
+                    <p className="text-xs text-teal-600 font-medium truncate">
+                      {company.code}
                     </p>
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-1">
                 <Badge
                   className={`${
                     company.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-700"
-                  } hover:bg-green-100`}
+                      ? "bg-green-100 text-green-700 border-green-200"
+                      : "bg-gray-100 text-gray-700 border-gray-200"
+                  } text-xs px-1.5 sm:px-2 py-0.5`}
                 >
                   {company.status}
                 </Badge>
@@ -742,19 +844,12 @@ const CompanyPage: React.FC = () => {
             </div>
           </CardHeader>
 
-          <CardContent className="p-6 space-y-4">
-            <div className="space-y-3">
-              {company.nameStreet && (
-                <div className="flex items-center text-sm">
-                  <Users className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">{company.nameStreet}</span>
-                </div>
-              )}
-
+          <CardContent className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3">
+            <div className="space-y-1 sm:space-y-2">
               {(company.city || company.state || company.pincode) && (
-                <div className="flex items-center text-sm">
-                  <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">
+                <div className="flex items-center text-xs sm:text-sm">
+                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1.5 sm:mr-2 flex-shrink-0" />
+                  <span className="text-gray-600 truncate flex-1">
                     {[company.city, company.state, company.pincode]
                       .filter(Boolean)
                       .join(", ")}
@@ -763,94 +858,65 @@ const CompanyPage: React.FC = () => {
               )}
 
               {company.mobile && (
-                <div className="flex items-center text-sm">
-                  <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">{company.mobile}</span>
+                <div className="flex items-center text-xs sm:text-sm">
+                  <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1.5 sm:mr-2 flex-shrink-0" />
+                  <span className="text-gray-600 truncate flex-1">{company.mobile}</span>
                 </div>
               )}
 
-              <div className="flex items-center text-sm">
-                <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600 truncate">{company.email}</span>
+              <div className="flex items-center text-xs sm:text-sm">
+                <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1.5 sm:mr-2 flex-shrink-0" />
+                <span className="text-gray-600 truncate flex-1">{company.email}</span>
               </div>
-
-              {company.website && (
-                <div className="flex items-center text-sm">
-                  <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-teal-600 truncate">
-                    {company.website}
-                  </span>
-                </div>
-              )}
             </div>
 
-            {(company.gstNumber || company.msmeNumber || company.panNumber) && (
-              <div className="pt-3 border-t border-gray-100 space-y-2">
-                {company.gstNumber && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">
-                      GST
-                    </span>
-                    <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
-                      {company.gstNumber}
-                    </span>
-                  </div>
-                )}
-
-                {company.msmeNumber && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">
-                      MSME
-                    </span>
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-mono">
-                      {company.msmeNumber}
-                    </span>
-                  </div>
-                )}
-
-                {company.panNumber && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">
-                      PAN
-                    </span>
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
-                      {company.panNumber}
-                    </span>
-                  </div>
+            {(company.gstNumber || company.vatNumber || company.tanNumber) && (
+              <div className="pt-1.5 sm:pt-2 border-t border-gray-100 space-y-0.5 sm:space-y-1">
+                {company.country === "India" ? (
+                  <>
+                    {company.gstNumber && (
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-medium text-gray-500 truncate">GST</span>
+                        <span className="bg-blue-100 text-teal-700 px-1.5 py-0.5 rounded font-mono truncate flex-1 text-right ml-1 sm:ml-2">
+                          {company.gstNumber}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {company.vatNumber && (
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-medium text-gray-500 truncate">VAT</span>
+                        <span className="bg-blue-100 text-teal-700 px-1.5 py-0.5 rounded font-mono truncate flex-1 text-right ml-1 sm:ml-2">
+                          {company.vatNumber}
+                        </span>
+                      </div>
+                    )}
+                    {company.tanNumber && (
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-medium text-gray-500 truncate">TAN</span>
+                        <span className="bg-blue-100 text-teal-700 px-1.5 py-0.5 rounded font-mono truncate flex-1 text-right ml-1 sm:ml-2">
+                          {company.tanNumber}
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
 
-            {company.banks.length > 0 && (
-              <div className="pt-3 border-t border-gray-100">
-                <p className="text-xs font-medium text-gray-500 mb-2">
-                  Bank Accounts
-                </p>
-                <div className="space-y-2">
-                  {company.banks.slice(0, 2).map((bank) => (
-                    <div
-                      key={bank.id}
-                      className="text-xs bg-gray-100 p-2 rounded"
-                    >
-                      <p className="font-medium truncate">{bank.bankName}</p>
-                      <p className="text-gray-600 truncate">
-                        A/C: ••••{bank.accountNumber.slice(-4)}
-                      </p>
-                    </div>
-                  ))}
-                  {company.banks.length > 2 && (
-                    <p className="text-xs text-gray-500">
-                      +{company.banks.length - 2} more
-                    </p>
-                  )}
+            <div className="pt-1.5 sm:pt-2 border-t border-gray-100 mt-auto">
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <div className="flex items-center">
+                  <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1.5 sm:mr-2" />
+                  <span className="text-gray-600">{company.defaultCurrency}</span>
                 </div>
-              </div>
-            )}
-
-            <div className="pt-3 border-t border-gray-100">
-              <div className="flex items-center text-sm">
-                <CreditCard className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">{company.defaultCurrency}</span>
+                {company.banks.length > 0 && (
+                  <div className="flex items-center text-xs text-gray-500">
+                    <span>{company.banks.length} Bank{company.banks.length > 1 ? 's' : ''}</span>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -866,7 +932,7 @@ const CompanyPage: React.FC = () => {
 
   return (
     <>
-      <div className=" custom-container">
+      <div className="custom-container">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <HeaderGradient
@@ -896,16 +962,6 @@ const CompanyPage: React.FC = () => {
             >
               Integration PDF <ArrowBigDownDash />
             </Button>
-            {/* {companies.length > 0 && (
-              <Button
-                onClick={() => {
-                  setShowCompanyPopup(true);
-                }}
-                className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-3 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
-              >
-                Switch Company
-              </Button>
-            )} */}
           </div>
         </div>
 
@@ -1042,13 +1098,6 @@ const CompanyPage: React.FC = () => {
             <div className="flex-1 overflow-y-auto">
               {activeTab === "basic" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  {/* <SectionHeader
-                    icon={<Users className="w-4 h-4 text-white" />}
-                    title="Company Information"
-                    gradientFrom="from-blue-400"
-                    gradientTo="to-blue-500"
-                  /> */}
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <CustomInputBox
                       label="Company Name (Street)"
@@ -1186,6 +1235,14 @@ const CompanyPage: React.FC = () => {
                     </div>
                   </div>
 
+                  <CustomInputBox
+                    label="Code"
+                    placeholder="e.g., ABC001"
+                    name="code"
+                    value={formData.code}
+                    onChange={handleChange}
+                  />
+
                   <CustomStepNavigation
                     currentStep={1}
                     totalSteps={6}
@@ -1197,13 +1254,6 @@ const CompanyPage: React.FC = () => {
 
               {activeTab === "contact" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  {/* <SectionHeader
-                    icon={<Users className="w-4 h-4 text-white" />}
-                    title="Contact Details"
-                    gradientFrom="from-green-400"
-                    gradientTo="to-green-500"
-                  /> */}
-
                   <div className="grid grid-cols-1 gap-6">
                     <CustomInputBox
                       label="Telephone"
@@ -1255,53 +1305,78 @@ const CompanyPage: React.FC = () => {
 
               {activeTab === "registration" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  {/* <SectionHeader
-                    icon={<Users className="w-4 h-4 text-white" />}
-                    title="Registration Details"
-                    gradientFrom="from-yellow-400"
-                    gradientTo="to-yellow-500"
-                  /> */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <CustomInputBox
-                      label="GST Number"
-                      placeholder="e.g., 22AAAAA0000A1Z5"
-                      name="gstNumber"
-                      value={formData.gstNumber}
-                      onChange={handleChange}
-                      maxLength={15}
-                    />
-                    <CustomInputBox
-                      label="PAN Number"
-                      placeholder="e.g., ABCDE1234F"
-                      name="panNumber"
-                      value={formData.panNumber}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
-                    <CustomInputBox
-                      label="TAN Number"
-                      placeholder="e.g., ABCD12345E"
-                      name="tanNumber"
-                      value={formData.tanNumber}
-                      onChange={handleChange}
-                      maxLength={10}
-                    />
-                    <CustomInputBox
-                      label="MSME Number"
-                      placeholder="e.g., UDYAM-XX-00-0000000"
-                      name="msmeNumber"
-                      value={formData.msmeNumber}
-                      onChange={handleChange}
-                      maxLength={20}
-                    />
-                    <CustomInputBox
-                      label="Udyam Number"
-                      placeholder="e.g., UDYAM-XX-00-0000000"
-                      name="udyamNumber"
-                      value={formData.udyamNumber}
-                      onChange={handleChange}
-                      maxLength={20}
-                    />
+                    {formData.country === "India" ? (
+                      <>
+                        <CustomInputBox
+                          label="GST Number"
+                          placeholder="e.g., 22AAAAA0000A1Z5"
+                          name="gstNumber"
+                          value={formData.gstNumber}
+                          onChange={handleChange}
+                          maxLength={15}
+                        />
+                        <CustomInputBox
+                          label="PAN Number"
+                          placeholder="e.g., ABCDE1234F"
+                          name="panNumber"
+                          value={formData.panNumber}
+                          onChange={handleChange}
+                          maxLength={10}
+                        />
+                        <CustomInputBox
+                          label="MSME Number"
+                          placeholder="e.g., UDYAM-XX-00-0000000"
+                          name="msmeNumber"
+                          value={formData.msmeNumber}
+                          onChange={handleChange}
+                          maxLength={20}
+                        />
+                        <CustomInputBox
+                          label="Udyam Number"
+                          placeholder="e.g., UDYAM-XX-00-0000000"
+                          name="udyamNumber"
+                          value={formData.udyamNumber}
+                          onChange={handleChange}
+                          maxLength={20}
+                        />
+                           <CustomInputBox
+                          label="VAT Number"
+                          placeholder="e.g., ABCD12345E"
+                          name="vatNumber"
+                          value={formData.vatNumber}
+                          onChange={handleChange}
+                          maxLength={10}
+                        />
+                        <CustomInputBox
+                          label="TAN Number"
+                          placeholder="e.g., ABCD12345E"
+                          name="tanNumber"
+                          value={formData.tanNumber}
+                          onChange={handleChange}
+                          maxLength={10}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <CustomInputBox
+                          label="VAT Number"
+                          placeholder="e.g., ABCD12345E"
+                          name="vatNumber"
+                          value={formData.vatNumber}
+                          onChange={handleChange}
+                          maxLength={10}
+                        />
+                        <CustomInputBox
+                          label="TAN Number"
+                          placeholder="e.g., ABCD12345E"
+                          name="tanNumber"
+                          value={formData.tanNumber}
+                          onChange={handleChange}
+                          maxLength={10}
+                        />
+                      </>
+                    )}
                   </div>
 
                   <CustomStepNavigation
@@ -1315,13 +1390,6 @@ const CompanyPage: React.FC = () => {
 
               {activeTab === "bank" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  {/* <SectionHeader
-                    icon={<Building2 className="w-4 h-4 text-white" />}
-                    title="Banking Details"
-                    gradientFrom="from-blue-400"
-                    gradientTo="to-blue-500"
-                  /> */}
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                     <CustomInputBox
                       label="Account Holder Name *"
@@ -1376,10 +1444,11 @@ const CompanyPage: React.FC = () => {
                       onChange={handleBankChange}
                     />
                     <Button
-                      onClick={addBank}
+                      onClick={addOrUpdateBank}
                       className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
                     >
-                      <Plus className="w-5 h-5 mr-2" /> Add Bank
+                      <Plus className="w-5 h-5 mr-2" />
+                      {editingBankId !== null ? "Update Bank" : "Add Bank"}
                     </Button>
                   </div>
 
@@ -1392,23 +1461,31 @@ const CompanyPage: React.FC = () => {
                       {formData.banks.map((bank) => (
                         <div
                           key={bank.id}
-                          className="p-3 bg-white rounded-lg border border-teal-200 flex justify-between items-center"
+                          className="flex justify-between items-center p-3 bg-white rounded-lg border border-teal-200"
                         >
                           <div>
                             <p className="font-medium">{bank.bankName}</p>
                             <p className="text-sm text-gray-600">
-                              {bank.accountHolderName} ••••
-                              {bank.accountNumber.slice(-4)}
+                              {bank.accountHolderName} - {bank.accountNumber.slice(-4)}
                             </p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeBank(bank.id)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => editBank(bank)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeBank(bank.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1425,13 +1502,6 @@ const CompanyPage: React.FC = () => {
 
               {activeTab === "branding" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  {/* <SectionHeader
-                    icon={<ImageIcon className="w-4 h-4 text-white" />}
-                    title="Branding & Documents"
-                    gradientFrom="from-purple-400"
-                    gradientTo="to-purple-500"
-                  /> */}
-
                   <div className="mb-8">
                     <h4 className="font-semibold text-gray-800 mb-4 text-lg">
                       Company Logo
@@ -1572,13 +1642,6 @@ const CompanyPage: React.FC = () => {
 
               {activeTab === "settings" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  {/* <SectionHeader
-                    icon={<Settings2 className="w-4 h-4 text-white" />}
-                    title="Settings"
-                    gradientFrom="from-cyan-400"
-                    gradientTo="to-cyan-500"
-                  /> */}
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-semibold text-gray-700">
@@ -1594,6 +1657,30 @@ const CompanyPage: React.FC = () => {
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                       </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Book Starting Date
+                      </label>
+                      <input
+                        type="date"
+                        name="bookStartingDate"
+                        value={formData.bookStartingDate}
+                        onChange={handleChange}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Financial Date
+                      </label>
+                      <input
+                        type="date"
+                        name="financialDate"
+                        value={formData.financialDate}
+                        onChange={handleChange}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      />
                     </div>
                   </div>
                   <div className="flex flex-wrap justify-between border px-2 py-2 mb-6">
@@ -1618,7 +1705,7 @@ const CompanyPage: React.FC = () => {
                       checked={formData.maintainBatch}
                     />
                     <CheckboxWithLabel
-                      title=" Closing Quantity Order"
+                      title="Closing Quantity Order"
                       onChange={(e) =>
                         handleCheckSelectChange(
                           "closingQuantityOrder",

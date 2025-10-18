@@ -256,6 +256,11 @@ const AgentRegistrationPage: React.FC = () => {
   } = useAgentStore(); // Assuming the store is implemented
   const { companies, defaultSelected } = useCompanyStore();
 
+  // Sync filteredAgents with agents from store
+  useEffect(() => {
+    setFilteredAgents(agents);
+  }, [agents]);
+
   // Initial fetch
   useEffect(() => {
     fetchAgents(currentPage, limit);
@@ -642,20 +647,35 @@ const AgentRegistrationPage: React.FC = () => {
     setOpen(true);
   };
 
-  const handleDeleteAgent = (id: string): void => {
-    deleteAgent(id);
+  const handleDeleteAgent = async (id: string): Promise<void> => {
+    if (!window.confirm("Are you sure you want to delete this agent?")) {
+      return;
+    }
+
+    const willGoBack = filteredAgents.length === 1 && currentPage > 1;
+    if (willGoBack) {
+      setCurrentPage((prev) => prev - 1);
+    }
+
+    try {
+      await deleteAgent(id);
+      toast.success("Agent deleted successfully");
+    } catch (error) {
+      console.error("Error deleting agent:", error);
+      toast.error("Failed to delete agent");
+      // Revert page if needed
+      if (willGoBack) {
+        setCurrentPage(currentPage);
+      }
+    }
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async (): Promise<void> => {
     console.log(formData);
     if (!formData.agentName.trim()) {
       toast.error("Please enter Agent Name");
       return;
     }
-    // if (!formData.companyId) {
-    //   toast.error("Please select Company");
-    //   return;
-    // }
     if (!formData.contactPerson.trim()) {
       toast.error("Please enter Contact Person");
       return;
@@ -714,13 +734,21 @@ const AgentRegistrationPage: React.FC = () => {
       String(formData.registrationDocs.length)
     );
 
-    if (editingAgent) {
-      updateAgent({ id: editingAgent._id || "", agent: agentFormData });
-    } else {
-      addAgent(agentFormData);
+    try {
+      if (editingAgent) {
+        await updateAgent({ id: editingAgent._id || "", agent: agentFormData });
+        toast.success("Agent updated successfully");
+      } else {
+        await addAgent(agentFormData);
+        toast.success("Agent added successfully");
+        setCurrentPage(1);
+      }
+      setOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error saving agent:", error);
+      toast.error(editingAgent ? "Failed to update agent" : "Failed to add agent");
     }
-    setOpen(false);
-    resetForm();
   };
 
   const stats = useMemo(
@@ -729,10 +757,7 @@ const AgentRegistrationPage: React.FC = () => {
       gstRegistered:
         filteredAgents.filter((c) => c.gstNumber?.trim() !== "").length || 0,
       activeAgents:
-        statusFilter === "active"
-          ? pagination?.total
-          : filteredAgents.filter((c) => c.agentStatus === "active").length ||
-            0,
+        filteredAgents.filter((c) => c.agentStatus === "active").length || 0,
       topPerformers:
         filteredAgents.filter((c) => c.performanceRating >= 4).length || 0,
     }),
@@ -1022,7 +1047,6 @@ const AgentRegistrationPage: React.FC = () => {
           <Button
             onClick={() => {
               resetForm();
-              setOpen(true);
               if (defaultSelected && companies.length > 0) {
                 const selectedCompany = companies.find(
                   (c) => c._id === defaultSelected
@@ -1173,13 +1197,6 @@ const AgentRegistrationPage: React.FC = () => {
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Users className="w-4 h-4 text-white" />}
-        title="Agent Information"
-        gradientFrom="from-pink-400"
-        gradientTo="to-pink-500"
-      />   */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1199,23 +1216,6 @@ const AgentRegistrationPage: React.FC = () => {
                     </select>
                   </div>
                   <SelectedCompany />
-                  {/* <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Company <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.companyId}
-                      onChange={(e) => handleSelectChange("companyId", e.target.value)}
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Company</option>
-                      {companies.map((company) => (
-                        <option key={company._id} value={company._id}>
-                          {company.namePrint}
-                        </option>
-                      ))}
-                    </select>
-                  </div> */}
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1363,13 +1363,6 @@ const AgentRegistrationPage: React.FC = () => {
 
             {activeTab === "contact" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Phone className="w-4 h-4 text-white" />}
-        title="Contact Details"
-        gradientFrom="from-green-400"
-        gradientTo="to-green-500"
-      /> */}
-
                 <div className="grid grid-cols-1 gap-6">
                   <CustomInputBox
                     label="Contact Person"
@@ -1522,12 +1515,6 @@ const AgentRegistrationPage: React.FC = () => {
 
             {activeTab === "commission" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<CreditCard className="w-4 h-4 text-white" />}
-        title="Commission Information"
-        gradientFrom="from-blue-400"
-        gradientTo="to-blue-500"
-      />   */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1611,13 +1598,6 @@ const AgentRegistrationPage: React.FC = () => {
 
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<FileText className="w-4 h-4 text-white" />}
-        title="Tax Information"
-        gradientFrom="from-yellow-400"
-        gradientTo="to-yellow-500"
-      /> */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Tax ID/Registration Number"
@@ -1735,13 +1715,6 @@ const AgentRegistrationPage: React.FC = () => {
 
             {activeTab === "bank" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Building2 className="w-4 h-4 text-white" />}
-        title="Bank Information"
-        gradientFrom="from-purple-400"
-        gradientTo="to-purple-500"
-      /> */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                   <CustomInputBox
                     label="Account Holder Name *"
@@ -1842,13 +1815,6 @@ const AgentRegistrationPage: React.FC = () => {
 
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Settings2 className="w-4 h-4 text-white" />}
-        title="Settings "
-        gradientFrom="from-cyan-400"
-        gradientTo="to-cyan-500"
-      /> */}
-
                 <div className="mb-8">
                   <h4 className="font-semibold text-gray-800 mb-4 text-lg">
                     Agent Logo
