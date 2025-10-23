@@ -1058,6 +1058,10 @@ const CompanyPage: React.FC = () => {
         ) : (
           <>
             {viewMode === "table" ? <TableView /> : <CardView />}
+            <p>
+              
+            
+              </p>
             <PaginationControls
               currentPage={currentPage}
               setCurrentPage={setCurrentPage}

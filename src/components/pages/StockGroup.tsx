@@ -530,7 +530,11 @@ const StockGroupRegistration: React.FC = () => {
                   onChange={handleChange}
                   label="Group Name"
                 />
-                <SelectedCompany />
+                              <SelectedCompany
+  editing={editingStockGroup}
+  handleSelectChange={handleSelectChange}
+  companyId={formData.companyId}
+/>
                 {/* <div className="flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">
                     Company <span className="text-red-500">*</span>

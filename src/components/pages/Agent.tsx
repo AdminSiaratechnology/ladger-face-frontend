@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogContent} from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
@@ -10,12 +10,7 @@ import {
   FileText,
   Settings2,
   Star,
-  Edit,
-  Trash2,
-  MoreHorizontal,
-  Eye,
-  Table,
-  Grid3X3,
+
   Phone,
   Mail,
   MapPin,
@@ -47,7 +42,7 @@ import MultiStepNav from "../customComponents/MultiStepNav";
 import PaginationControls from "../customComponents/CustomPaginationControls";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
 import TableHeader from "../customComponents/CustomTableHeader";
-import SectionHeader from "../customComponents/SectionHeader";
+
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
@@ -263,7 +258,7 @@ const AgentRegistrationPage: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchAgents(currentPage, limit);
+    fetchAgents(currentPage, limit,defaultSelected);
   }, [fetchAgents, currentPage]);
 
   // Reset page to 1 when filters change
@@ -274,7 +269,7 @@ const AgentRegistrationPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterAgents(searchTerm, statusFilter, sortBy, currentPage, limit)
+      filterAgents(searchTerm, statusFilter, sortBy, currentPage, limit,defaultSelected)
         .then((result) => {
           setFilteredAgents(result);
         })
@@ -352,7 +347,8 @@ const AgentRegistrationPage: React.FC = () => {
     activeContracts: 0,
   });
   useEffect(() => {
-    if (defaultSelected && companies.length > 0) {
+
+    if (defaultSelected && companies.length > 0 && editingAgent) {
       console.log(defaultSelected);
       const selectedCompany = companies.find((c) => c._id === defaultSelected);
       if (selectedCompany) {
@@ -1215,7 +1211,23 @@ const AgentRegistrationPage: React.FC = () => {
                       <option value="broker">Broker</option>
                     </select>
                   </div>
-                  <SelectedCompany />
+                    <CustomInputBox
+                    label="Agent Name"
+                    placeholder="e.g., ABC Agents"
+                    name="agentName"
+                    value={formData.agentName}
+                    onChange={handleChange}
+                    required={true}
+                  />
+                  <SelectedCompany
+  editing={editingAgent}
+  handleSelectChange={handleSelectChange}
+  companyId={formData.companyId}
+/>
+
+
+                  
+
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
