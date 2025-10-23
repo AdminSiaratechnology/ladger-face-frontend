@@ -45,11 +45,11 @@ const CustomFormDialogHeader: React.FC<CustomFormDialogHeaderProps> = ({
           <div className="pr-6">
             <div className="hidden sm:flex items-center gap-2 from-teal-50 to-emerald-50 px-3 py-2  group shadow-sm transition-all duration-200">
               <div className="flex flex-col min-w-0 flex-1">
-                <span className="font-semibold text-sm text-black truncate">
+                <span className="font-semibold text-sm text-white truncate">
                   {company[0]?.namePrint || "No Company"}
                 </span>
                 <div
-                  className="flex items-center gap-1 text-xs text-black font-mono hover:text-teal-700 transition-colors cursor-copy"
+                  className="flex items-center gap-1 text-xs text-white font-mono hover:text-gray-200 transition-colors cursor-copy whitespace-nowrap"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (company[0]?.code) {
