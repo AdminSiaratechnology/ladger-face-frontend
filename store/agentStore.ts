@@ -169,7 +169,7 @@ interface AgentStore {
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchAgents: (page?: number, limit?: number) => Promise<void>;
+  fetchAgents: (page?: number, limit?: number,companyId?:number |string ) => Promise<void>;
   addAgent: (agent: FormData) => Promise<void>;
   updateAgent: (params: { id: string; agent: FormData }) => Promise<void>;
   deleteAgent: (id: string) => Promise<void>;
@@ -178,7 +178,8 @@ interface AgentStore {
     statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'probation',
     sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
     page?: number,
-    limit?: number
+    limit?: number,
+    companyId?:number | string,
   ) => Promise<Agent[]>;
 }
 
@@ -196,12 +197,13 @@ export const useAgentStore = create<AgentStore>()(
       error: false,
       errorMessage: null,
 
-      fetchAgents: async (page = 1, limit = 10) => {
+      fetchAgents: async (page = 1, limit = 10,companyId) => {
         set({ loading: true, error: false });
         try {
           const queryParams = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
+            companyId:companyId?.toLocaleString()
           });
 
           const result = await api.fetchAgents({ queryParams: queryParams.toString() }); // Adjust api call
@@ -286,7 +288,8 @@ export const useAgentStore = create<AgentStore>()(
         statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'probation',
         sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
         page = 1,
-        limit = 10
+        limit = 10,
+        companyId:string
       ) => {
         try {
           set({ loading: true, error: false });
@@ -298,6 +301,7 @@ export const useAgentStore = create<AgentStore>()(
             sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
             page: page.toString(),
             limit: limit.toString(),
+            companyId:companyId?.toLocaleString(),
           });
 
           const result = await api.fetchAgents({ queryParams: queryParams.toString() }); // Adjust api call

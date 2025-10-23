@@ -1128,7 +1128,11 @@ const LedgerRegistration: React.FC = () => {
                       <option value="trust">Trust</option>
                     </select>
                   </div>
-                  <SelectedCompany />
+                                <SelectedCompany
+  editing={editingLedger}
+  handleSelectChange={handleSelectChange}
+  companyId={formData.companyId}
+/>
                   {/*                   
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">

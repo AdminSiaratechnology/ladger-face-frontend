@@ -1075,7 +1075,11 @@ const ProductPage: React.FC = () => {
                     onChange={handleChange}
                   />
                   <div className="flex flex-col gap-1">
-                    <SelectedCompany />
+                                   <SelectedCompany
+  editing={editingProduct}
+  handleSelectChange={handleSelectChange}
+  companyId={formData.companyId}
+/>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">

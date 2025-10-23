@@ -626,7 +626,11 @@ const UnitManagement: React.FC = () => {
                   required={true}
                 />
 
-                <SelectedCompany/>
+                              <SelectedCompany
+  editing={editingUnit}
+  handleSelectChange={handleSelectChange}
+  companyId={formData.companyId}
+/>
 
                 {/* <div className="mt-6 flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">

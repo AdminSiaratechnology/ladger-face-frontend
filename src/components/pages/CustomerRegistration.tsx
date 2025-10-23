@@ -1321,7 +1321,11 @@ console.log(filteredCustomers,"dsdhhkfh")
                       <option value="trust">Trust</option>
                     </select>
                   </div>
-                  <SelectedCompany />
+                                <SelectedCompany
+  editing={editingCustomer}
+  handleSelectChange={handleSelectChange}
+  companyId={formData.companyId}
+/>
                   {/* <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Company <span className="text-red-500">*</span>

@@ -1209,7 +1209,11 @@ export const UserManagement: React.FC = () => {
                 ))}
               </select>
             </div> */}
-                  <SelectedCompany />
+                               <SelectedCompany
+  editing={editUser}
+  handleSelectChange={handleSelectChange}
+  companyId={form.company}
+/>
                 </div>
 
                 <CustomStepNavigation
