@@ -39,6 +39,7 @@ import "./index.css";
 import { useAuthStore } from "../store/authStore";
 import { checkPermission } from "./lib/utils";
 import ProductSelection from "./components/pages/ProductSelection";
+import CheckoutPage from "./components/pages/CheckoutPage";
 
 const Login = React.lazy(() => import("./components/pages/Login"));
 const AdminDashboard = React.lazy(
@@ -250,6 +251,16 @@ export default function App() {
               <ProtectedRoute module="OrderManagement" subModule="Order">
                 <AppLayout>
                   <OrderManagement />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute module="OrderManagement" subModule="Order">
+                <AppLayout>
+                  <CheckoutPage />
                 </AppLayout>
               </ProtectedRoute>
             }

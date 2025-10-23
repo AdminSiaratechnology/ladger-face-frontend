@@ -68,6 +68,7 @@ import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 import MultiStepNav from "../customComponents/MultiStepNav";
 import { useCompanyStore } from "../../../store/companyStore";
 import { useCustomerStore } from "../../../store/customerStore";
+import CustomerDropdown from "../customComponents/CustomerSelector";
 interface OrderItem {
   id: number;
   name: string;
@@ -610,18 +611,18 @@ export default function OrderManagement() {
   };
 
   const handleFinish = () => {
-  if (!selectedCustomer) return;
+    if (!selectedCustomer) return;
 
-  navigate("/select-products", {
-    state: {
-      company,              // from your props/state
-      selectedRoute,        // from route selection
-      selectedCustomer,     // from dropdown or card selection
-      customerId: selectedCustomer._id, 
-      routeId: selectedRoute?._id || selectedRoute, // handle both object or string
-    },
-  });
-};
+    navigate("/select-products", {
+      state: {
+        company, // from your props/state
+        selectedRoute, // from route selection
+        selectedCustomer, // from dropdown or card selection
+        customerId: selectedCustomer._id,
+        routeId: selectedRoute?._id || selectedRoute, // handle both object or string
+      },
+    });
+  };
 
   return (
     <div className="custom-container">
@@ -1077,162 +1078,127 @@ export default function OrderManagement() {
           />
 
           <div className="flex-1 overflow-y-auto px-2">
-            {/* -------------------- Step 1: Select Route -------------------- */}
-            {activeTab === "route" && (
-              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 space-y-4">
-                {/* <h2 className="text-lg font-semibold text-teal-600 flex items-center gap-2">
-                  <Building className="w-5 h-5" /> Select Route
-                </h2> */}
-
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Route Name
-                  </label>
-                  <select
-                    value={selectedRoute}
-                    onChange={(e) => setSelectedRoute(e.target.value)}
-                    className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
-                  >
-                    <option value="">-- Select a Route --</option>
-                    <option value="Route 1">Route 1</option>
-                    <option value="Route 2">Route 2</option>
-                    <option value="Route 3">Route 3</option>
-                  </select>
-                </div>
-
-                <Button
-                  onClick={handleContinueToCustomer}
-                  className="w-full bg-teal-500 hover:bg-teal-600 text-white mt-3"
+            <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 space-y-6">
+              {/* -------------------- Step 1: Select Route -------------------- */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Route Name
+                </label>
+                <select
+                  value={selectedRoute}
+                  onChange={(e) => setSelectedRoute(e.target.value)}
+                  className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
                 >
-                  Continue to Customer →
-                </Button>
+                  <option value="">-- Select a Route --</option>
+                  <option value="Route 1">Route 1</option>
+                  <option value="Route 2">Route 2</option>
+                  <option value="Route 3">Route 3</option>
+                </select>
               </div>
-            )}
 
-            {/* -------------------- Step 2: Choose Customer -------------------- */}
-            {activeTab === "customer" && (
-              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 space-y-4">
-                {/* <div className="border-b border-gray-200 pb-2 mt-2">
-                  <span className="text-xl font-semibold text-teal-500">
-                    New Order
-                  </span>
-                  <h1 className="text-gray-500">{company?.namePrint}</h1>
-                </div> */}
+              {/* -------------------- Step 2: Select Customer -------------------- */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Customer
+                </label>
 
-                {/* Customer Dropdown */}
-                <div className="flex flex-col gap-2">
-                  {/* <label className="text-teal-500 flex items-center gap-1">
-                    <User2Icon className="w-5 h-5" /> Select Customer
-                  </label> */}
+                <CustomerDropdown
+                  selectedCustomerId={selectedCustomerId}
+                  setSelectedCustomerId={setSelectedCustomerId}
+                />
+              </div>
 
-                  {loading ? (
-                    <div className="text-gray-400 text-sm">
-                      Loading customers...
+              {/* -------------------- Customer Info Card -------------------- */}
+              {selectedCustomer && (
+                <div className="mt-4 border rounded-lg p-4 bg-gray-50 shadow-sm">
+                  <h2 className="text-lg font-semibold text-teal-600 mb-2">
+                    Customer Details
+                  </h2>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+                    <div>
+                      <span className="font-medium">Customer Name: </span>
+                      {selectedCustomer.customerName}
                     </div>
-                  ) : customers.length === 0 ? (
-                    <div className="text-gray-400 text-sm">
-                      No customers found.
+                    <div>
+                      <span className="font-medium">Short Name: </span>
+                      {selectedCustomer.shortName}
                     </div>
-                  ) : (
-                    <select
-                      value={selectedCustomerId}
-                      onChange={(e) => setSelectedCustomerId(e.target.value)}
-                      className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
-                    >
-                      <option value="">-- Select a Customer --</option>
-                      {customers.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.customerName}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                {/* Customer Info Card */}
-                {selectedCustomer && (
-                  <div className="mt-4 border rounded-lg p-4 bg-gray-50 shadow-sm">
-                    <h2 className="text-lg font-semibold text-teal-600 mb-2">
-                      Customer Details
-                    </h2>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
-                      <div>
-                        <span className="font-medium">Customer Name: </span>
-                        {selectedCustomer.customerName}
-                      </div>
-                      <div>
-                        <span className="font-medium">Short Name: </span>
-                        {selectedCustomer.shortName}
-                      </div>
-                      <div>
-                        <span className="font-medium">Email: </span>
-                        {selectedCustomer.emailAddress || "N/A"}
-                      </div>
-                      <div>
-                        <span className="font-medium">Phone: </span>
-                        {selectedCustomer.phoneNumber || "N/A"}
-                      </div>
-                      <div>
-                        <span className="font-medium">City: </span>
-                        {selectedCustomer.city}
-                      </div>
-                      <div>
-                        <span className="font-medium">State: </span>
-                        {selectedCustomer.state}
-                      </div>
-                      <div>
-                        <span className="font-medium">Country: </span>
-                        {selectedCustomer.country}
-                      </div>
-                      <div>
-                        <span className="font-medium">Territory: </span>
-                        {selectedCustomer.territory}
-                      </div>
-                      <div>
-                        <span className="font-medium">Status: </span>
-                        <span
-                          className={`${
-                            selectedCustomer.customerStatus === "active"
-                              ? "text-green-600"
-                              : "text-red-500"
-                          } font-medium`}
-                        >
-                          {selectedCustomer.customerStatus}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Credit Days: </span>
-                        {selectedCustomer.creditDays}
-                      </div>
-                      <div>
-                        <span className="font-medium">Credit Limit: </span>
-                        {selectedCustomer.creditLimit}
-                      </div>
-                      <div>
-                        <span className="font-medium">Discount: </span>
-                        {selectedCustomer.discount}%
-                      </div>
-                      <div className="col-span-2">
-                        <span className="font-medium">Address: </span>
-                        {selectedCustomer.addressLine1}, {selectedCustomer.city}
-                        , {selectedCustomer.state} - {selectedCustomer.zipCode}
-                      </div>
+                    <div>
+                      <span className="font-medium">Email: </span>
+                      {selectedCustomer.emailAddress || "N/A"}
+                    </div>
+                    <div>
+                      <span className="font-medium">Phone: </span>
+                      {selectedCustomer.phoneNumber || "N/A"}
+                    </div>
+                    <div>
+                      <span className="font-medium">City: </span>
+                      {selectedCustomer.city}
+                    </div>
+                    <div>
+                      <span className="font-medium">State: </span>
+                      {selectedCustomer.state}
+                    </div>
+                    <div>
+                      <span className="font-medium">Country: </span>
+                      {selectedCustomer.country}
+                    </div>
+                    <div>
+                      <span className="font-medium">Territory: </span>
+                      {selectedCustomer.territory}
+                    </div>
+                    <div>
+                      <span className="font-medium">Status: </span>
+                      <span
+                        className={`${
+                          selectedCustomer.customerStatus === "active"
+                            ? "text-green-600"
+                            : "text-red-500"
+                        } font-medium`}
+                      >
+                        {selectedCustomer.customerStatus}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Credit Days: </span>
+                      {selectedCustomer.creditDays}
+                    </div>
+                    <div>
+                      <span className="font-medium">Credit Limit: </span>
+                      {selectedCustomer.creditLimit}
+                    </div>
+                    <div>
+                      <span className="font-medium">Discount: </span>
+                      {selectedCustomer.discount}%
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-medium">Address: </span>
+                      <p>
+                    {[
+                      selectedCustomer.addressLine1,
+                      selectedCustomer.city,
+                      selectedCustomer.state && `(${selectedCustomer.state})`,
+                      selectedCustomer.zipCode &&
+                        ` ${selectedCustomer.zipCode}`,
+                    ]
+                      .filter(Boolean) 
+                      .join(", ")}
+                  </p>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Continue Button */}
-                {selectedCustomer && (
-                  <Button
-                    onClick={handleFinish}
-                    className="w-full bg-teal-500 hover:bg-teal-600 text-white mt-3"
-                  >
-                    Continue with Products →
-                  </Button>
-                )}
-              </div>
-            )}
+              {/* -------------------- Continue Button -------------------- */}
+              <Button
+                onClick={handleFinish}
+                className="w-full bg-teal-500 hover:bg-teal-600 text-white mt-3 cursor-pointer"
+                disabled={!selectedCustomer}
+              >
+                Continue with Products →
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

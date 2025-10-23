@@ -1,7 +1,7 @@
 // Updated useCustomerStore with pagination and filter support
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import api from "../src/api/api"; 
+import api from "../src/api/api";
 interface Bank {
   id: number;
   accountHolderName: string;
@@ -183,7 +183,6 @@ interface CustomerForm {
   registrationDocs: RegistrationDocument[];
 }
 
-
 interface CustomerStore {
   customers: Customer[];
   pagination: Pagination;
@@ -196,13 +195,12 @@ interface CustomerStore {
   deleteCustomer: (id: string) => Promise<void>;
   filterCustomers: (
     searchTerm: string,
-    statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'prospect',
-    sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    statusFilter: "all" | "active" | "inactive" | "suspended" | "prospect",
+    sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
     page?: number,
     limit?: number
   ) => Promise<Customer[]>;
 }
-
 
 export const useCustomerStore = create<CustomerStore>()(
   persist(
@@ -212,14 +210,13 @@ export const useCustomerStore = create<CustomerStore>()(
         total: 0,
         page: 1,
         limit: 10,
-        totalPages: 0
+        totalPages: 0,
       },
       loading: false,
       error: false,
       errorMessage: null,
 
-     
-      fetchCustomers: async (page = 1, limit = 10) => {
+      fetchCustomers: async (page = 1, limit = 10, search = "") => {
         set({ loading: true, error: false });
         try {
           const queryParams = new URLSearchParams({
@@ -227,13 +224,18 @@ export const useCustomerStore = create<CustomerStore>()(
             limit: limit.toString(),
           });
 
-          const result = await api.fetchCustomers({ queryParams: queryParams.toString() }); // Adjust api call
+          // if (search.trim()) {
+          //   queryParams.append("search", search.trim());
+          // }
+          const result = await api.fetchCustomers({
+            queryParams: queryParams.toString(),
+          }); // Adjust api call
           set({
             customers: result?.data?.customers || [],
             pagination: result?.data?.pagination,
             loading: false,
           });
-          console.log(result?.data?.customers,"result?.data?")
+          console.log(result?.data?.customers, "result?.data?");
         } catch (error: any) {
           set({
             loading: false,
@@ -244,7 +246,6 @@ export const useCustomerStore = create<CustomerStore>()(
         }
       },
 
-    
       addCustomer: async (customer) => {
         set({ loading: true });
         try {
@@ -264,17 +265,15 @@ export const useCustomerStore = create<CustomerStore>()(
         }
       },
 
- 
       updateCustomer: async ({ id, customer }) => {
         set({ loading: true });
         try {
           const result = await api.updateCustomer(id, customer);
-         
-          set({
-            customers: get().customers.map((c) =>{
 
-           console.log(id,result,c,"idresult")
-            return   c?.["_id"] == id ? result?.data : c
+          set({
+            customers: get().customers.map((c) => {
+              console.log(id, result, c, "idresult");
+              return c?.["_id"] == id ? result?.data : c;
             }),
             loading: false,
           });
@@ -288,7 +287,6 @@ export const useCustomerStore = create<CustomerStore>()(
         }
       },
 
-  
       deleteCustomer: async (id) => {
         set({ loading: true });
         try {
@@ -309,8 +307,8 @@ export const useCustomerStore = create<CustomerStore>()(
 
       filterCustomers: async (
         searchTerm: string,
-        statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'prospect',
-        sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+        statusFilter: "all" | "active" | "inactive" | "suspended" | "prospect",
+        sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
         page = 1,
         limit = 10
       ) => {
@@ -319,14 +317,16 @@ export const useCustomerStore = create<CustomerStore>()(
 
           const queryParams = new URLSearchParams({
             search: searchTerm,
-            status: statusFilter !== 'all' ? statusFilter : '',
-            sortBy: sortBy.includes('name') ? 'customerName' : 'createdAt',
-            sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
+            status: statusFilter !== "all" ? statusFilter : "",
+            sortBy: sortBy.includes("name") ? "customerName" : "createdAt",
+            sortOrder: sortBy.includes("Desc") ? "desc" : "asc",
             page: page.toString(),
             limit: limit.toString(),
           });
 
-          const result = await api.fetchCustomers({ queryParams: queryParams.toString() }); // Adjust api call
+          const result = await api.fetchCustomers({
+            queryParams: queryParams.toString(),
+          }); // Adjust api call
           console.log("Filter result for customers:", result);
 
           set({

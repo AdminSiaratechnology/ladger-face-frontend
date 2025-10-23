@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useProductStore } from "../../../store/productStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
@@ -11,6 +11,122 @@ const safeName = (value: any) => {
   return value;
 };
 
+// Product Card Component with Image Carousel
+const ProductCard = ({ product, images, inCart, onAddToCart, onIncrease, onDecrease }: any) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  return (
+    <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
+      {/* Image Carousel */}
+      <div className="h-32 bg-gray-100 relative group">
+        <img
+          src={images[currentImageIndex]}
+          alt={`${product.name} - Image ${currentImageIndex + 1}`}
+          className="object-cover h-full w-full"
+          loading="lazy"
+        />
+        
+        {/* Navigation Arrows - Show on hover if multiple images */}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={prevImage}
+              className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={nextImage}
+              className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Next image"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            
+            {/* Image Indicators */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+              {images.map((_: any, idx: number) => (
+                <div
+                  key={idx}
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${
+                    idx === currentImageIndex ? 'bg-white w-4' : 'bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 📦 Product Details */}
+      <div className="p-2 flex-1 flex flex-col">
+        <h3 className="font-semibold text-gray-800 text-sm truncate">
+          {product.name}
+        </h3>
+        <p className="text-gray-500 text-xs">
+          Code: {product.code || "N/A"}
+        </p>
+        <p className="text-gray-600 text-xs">
+          Unit: {safeName(product.unit)}
+        </p>
+        <p className="text-gray-600 text-xs">
+          Stock Group: {safeName(product.stockGroup)}
+        </p>
+        <p className="text-gray-600 text-xs">
+          Stock Category: {safeName(product.stockCategory)}
+        </p>
+
+        {product?.minimumRate !== undefined && (
+          <p className="text-teal-700 font-medium mt-2 text-sm">
+            ₹{Number(product.minimumRate).toLocaleString()}
+          </p>
+        )}
+
+        {/* Cart Controls */}
+        <div className="mt-auto pt-3">
+          {inCart ? (
+            <div className="flex items-center justify-between gap-3 py-2 bg-teal-50 border rounded-md">
+              <button
+                onClick={() => onDecrease(product._id)}
+                className=" text-gray-800 font-bold px-3  rounded"
+              >
+                –
+              </button>
+              <span className="font-semibold text-gray-700">
+                {inCart.quantity}
+              </span>
+              <button
+                onClick={() => onIncrease(product._id)}
+                className=" text-gray-800 font-bold px-3 rounded"
+              >
+                +
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onAddToCart(product)}
+              className="w-full bg-teal-500 hover:bg-teal-600 text-white px-3 py-2 rounded-md font-medium transition-all cursor-pointer"
+            >
+              Add to Cart
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ProductSelection = () => {
   const location = useLocation();
   const { selectedCustomer, selectedRoute, company } = location.state || {};
@@ -19,6 +135,7 @@ const ProductSelection = () => {
   const [cart, setCart] = useState<any[]>([]);
   const [showReview, setShowReview] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const navigate = useNavigate();
 
   // 🔹 Fetch products on mount & when page changes
   useEffect(() => {
@@ -57,6 +174,11 @@ const ProductSelection = () => {
     (sum, item) => sum + (item.minimumRate || 0) * item.quantity,
     0
   );
+
+  const handleContinue = () => {
+    navigate("/checkout", { state: { cart, selectedCustomer, selectedRoute, company, totalAmount } });
+  };
+
   const PaginationControls = () => (
     <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm border">
       <div className="text-sm text-gray-600">
@@ -119,12 +241,6 @@ const ProductSelection = () => {
         </div>
       </div>
 
-      {/* Customer Info */}
-      {/* <div className="text-sm text-gray-600 mb-4">
-        <span className="font-medium">Customer:</span> {selectedUser?.name} (
-        {selectedUser?.email})
-      </div> */}
-
       {/* Main Layout: Products + Review Drawer */}
       <div className="flex relative transition-all duration-500 shadow-sm p-2 gap-8">
         {/* 🧩 Product Section */}
@@ -133,87 +249,29 @@ const ProductSelection = () => {
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           className="transition-all pr-4"
         >
-          {/* <h2 className="text-lg font-semibold text-gray-700 mb-3">
-            Select Products
-          </h2> */}
-
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             {products.map((product) => {
               const inCart = cart.find((item) => item._id === product._id);
-              const imageUrl =
-                product.images && product.images.length > 0
-                  ? product.images[0]?.fileUrl
-                  : "https://via.placeholder.com/150?text=No+Image"; 
+              
+              // Use real images if available, otherwise use demo images
+              const productImages = product.images && product.images.length > 0
+                ? product.images
+                : [
+                    "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop",
+                    "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&h=300&fit=crop",
+                    "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=300&h=300&fit=crop"
+                  ];
 
               return (
-                <div
+                <ProductCard 
                   key={product._id}
-                  className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col"
-                >
-                  <div className="h-32 bg-gray-100 flex items-center justify-center overflow-hidden">
-                    <img
-                      src={imageUrl}
-                      alt={product.name}
-                      className="object-contain h-full w-full"
-                      loading="lazy"
-                    />
-                  </div>
-
-                  {/* 📦 Product Details */}
-                  <div className="p-2 flex-1 flex flex-col">
-                    <h3 className="font-semibold text-gray-800 text-sm truncate">
-                      {product.name}
-                    </h3>
-                    <p className="text-gray-500 text-xs">
-                      Code: {product.code || "N/A"}
-                    </p>
-                    <p className="text-gray-600 text-xs">
-                      Unit: {safeName(product.unit)}
-                    </p>
-                    <p className="text-gray-600 text-xs">
-                      Stock Group: {safeName(product.stockGroup)}
-                    </p>
-                    <p className="text-gray-600 text-xs">
-                      Stock Category: {safeName(product.stockCategory)}
-                    </p>
-
-                    {product?.minimumRate !== undefined && (
-                      <p className="text-teal-700 font-medium mt-2 text-sm">
-                        ₹{Number(product.minimumRate).toLocaleString()}
-                      </p>
-                    )}
-
-                    {/* Cart Controls */}
-                    <div className="mt-auto pt-3">
-                      {inCart ? (
-                        <div className="flex items-center justify-between gap-3 py-2 bg-teal-50 border rounded-md">
-                          <button
-                            onClick={() => handleDecrease(product._id)}
-                            className=" text-gray-800 font-bold px-3  rounded"
-                          >
-                            –
-                          </button>
-                          <span className="font-semibold text-gray-700">
-                            {inCart.quantity}
-                          </span>
-                          <button
-                            onClick={() => handleIncrease(product._id)}
-                            className=" text-gray-800 font-bold px-3 rounded"
-                          >
-                            +
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleAddToCart(product)}
-                          className="w-full bg-teal-500 hover:bg-teal-600 text-white px-3 py-2 rounded-md font-medium transition-all cursor-pointer"
-                        >
-                          Add to Cart
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  product={product}
+                  images={productImages}
+                  inCart={inCart}
+                  onAddToCart={handleAddToCart}
+                  onIncrease={handleIncrease}
+                  onDecrease={handleDecrease}
+                />
               );
             })}
           </div>
@@ -230,13 +288,17 @@ const ProductSelection = () => {
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
             >
-              <div className="flex justify-between items-center border-b pb-2">
+              <div className="relative border-b pb-2">
                 <h2 className="text-lg font-semibold text-gray-800">
                   Review Order
                 </h2>
+
                 <button
                   onClick={() => setShowReview(false)}
-                  className="w-5 h-5 flex items-center justify-center text-gray-500 hover:text-white border border-gray-400 rounded-full cursor-pointer text-base hover:bg-teal-500 transition-all duration-150"
+                  className="absolute top-0 right-0 -mt-1 -mr-1 w-4 h-4 flex items-center justify-center 
+             text-gray-500 hover:text-white border border-gray-300 rounded-full cursor-pointer 
+             text-[10px] leading-none hover:bg-teal-500 transition-all duration-150 shadow-sm"
+                  aria-label="Close"
                 >
                   ✕
                 </button>
@@ -271,7 +333,6 @@ const ProductSelection = () => {
                         +
                       </button>
                     </div>
-                    {/* <div className="text-xs">Quantity: {item.quantity}</div> */}
                   </div>
                 ))}
               </div>
@@ -282,7 +343,7 @@ const ProductSelection = () => {
                   <span>₹{totalAmount.toFixed(2)}</span>
                 </div>
 
-                <button className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white py-3 rounded-lg font-semibold shadow-sm">
+                <button className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white py-3 rounded-lg font-semibold shadow-sm" onClick={handleContinue}>
                   Continue →
                 </button>
               </div>
@@ -349,7 +410,7 @@ const ProductSelection = () => {
                   <span>₹{totalAmount.toFixed(2)}</span>
                 </div>
 
-                <button className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white py-3 rounded-lg font-semibold shadow-sm">
+                <button className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white py-3 rounded-lg font-semibold shadow-sm" onClick={handleContinue}>
                   Continue →
                 </button>
               </div>
@@ -361,4 +422,4 @@ const ProductSelection = () => {
   );
 };
 
-export default ProductSelection;
+export default ProductSelection;                                                                                                              
