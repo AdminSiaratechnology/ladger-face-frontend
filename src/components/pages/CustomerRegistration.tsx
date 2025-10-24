@@ -756,8 +756,8 @@ const CustomerRegistrationPage: React.FC = () => {
     } else {
       addCustomer(customerFormData);
     }
-    // setOpen(false);
-    // resetForm();
+    setOpen(false);
+    resetForm();
   };
 
   const stats = useMemo(
@@ -1464,8 +1464,6 @@ const CustomerRegistrationPage: React.FC = () => {
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
-                      <option value="suspended">Suspended</option>
-                      <option value="prospect">Prospect</option>
                     </select>
                   </div>
 
