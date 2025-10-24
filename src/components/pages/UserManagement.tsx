@@ -190,7 +190,7 @@ export const UserManagement: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchUsers(currentPage, limit);
+    fetchUsers(currentPage, limit, defaultSelected);
   }, [fetchUsers, currentPage]);
 
   // Reset page to 1 when filters change
@@ -207,7 +207,8 @@ export const UserManagement: React.FC = () => {
         statusFilter,
         "nameAsc",
         currentPage,
-        limit
+        limit,
+        defaultSelected
       )
         .then((result) => {
           setFilteredUsers(result);
@@ -221,7 +222,7 @@ export const UserManagement: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, roleFilter, statusFilter, currentPage, filterUsers]);
+  }, [searchTerm, roleFilter, statusFilter, currentPage, filterUsers, defaultSelected  ]);
 
   // Roles and Sub-roles (unchanged)
   const roles = ["Salesman", "Customer", "Admin"];
@@ -1043,11 +1044,11 @@ export const UserManagement: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Switch
+                          {/* <Switch
                             checked={user.status === "active"}
                             onCheckedChange={() => handleToggleStatus(user.id)}
                             className="data-[state=checked]:bg-green-500"
-                          />
+                          /> */}
                           <Badge
                             variant={
                               user.status === "active" ? "default" : "secondary"

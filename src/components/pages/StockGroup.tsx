@@ -94,8 +94,8 @@ const StockGroupRegistration: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchStockGroup(currentPage, limit);
-  }, [fetchStockGroup, currentPage]);
+    fetchStockGroup(currentPage, limit,defaultSelected);
+  }, [fetchStockGroup, currentPage,defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -105,7 +105,7 @@ const StockGroupRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterStockGroups(searchTerm, statusFilter, sortBy, currentPage, limit)
+      filterStockGroups(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
         .then((result) => {
           setFilteredStockGroups(result);
         })
@@ -117,7 +117,7 @@ const StockGroupRegistration: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterStockGroups]);
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterStockGroups, defaultSelected]);
 
   const [formData, setFormData] = useState<StockGroupForm>({
     name: "",
@@ -530,11 +530,7 @@ const StockGroupRegistration: React.FC = () => {
                   onChange={handleChange}
                   label="Group Name"
                 />
-                              <SelectedCompany
-  editing={editingStockGroup}
-  handleSelectChange={handleSelectChange}
-  companyId={formData.companyId}
-/>
+                              <SelectedCompany/>
                 {/* <div className="flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">
                     Company <span className="text-red-500">*</span>

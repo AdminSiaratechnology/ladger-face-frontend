@@ -4,6 +4,7 @@ import { useProductStore } from "../../../store/productStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { Button } from "../ui/button";
+import { useCompanyStore } from "../../../store/companyStore";
 
 const safeName = (value: any) => {
   if (!value) return "-";
@@ -12,7 +13,14 @@ const safeName = (value: any) => {
 };
 
 // Product Card Component with Image Carousel
-const ProductCard = ({ product, images, inCart, onAddToCart, onIncrease, onDecrease }: any) => {
+const ProductCard = ({
+  product,
+  images,
+  inCart,
+  onAddToCart,
+  onIncrease,
+  onDecrease,
+}: any) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const nextImage = (e: React.MouseEvent) => {
@@ -35,7 +43,7 @@ const ProductCard = ({ product, images, inCart, onAddToCart, onIncrease, onDecre
           className="object-cover h-full w-full"
           loading="lazy"
         />
-        
+
         {/* Navigation Arrows - Show on hover if multiple images */}
         {images.length > 1 && (
           <>
@@ -53,14 +61,14 @@ const ProductCard = ({ product, images, inCart, onAddToCart, onIncrease, onDecre
             >
               <ChevronRight className="w-4 h-4" />
             </button>
-            
+
             {/* Image Indicators */}
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
               {images.map((_: any, idx: number) => (
                 <div
                   key={idx}
                   className={`w-1.5 h-1.5 rounded-full transition-all ${
-                    idx === currentImageIndex ? 'bg-white w-4' : 'bg-white/50'
+                    idx === currentImageIndex ? "bg-white w-4" : "bg-white/50"
                   }`}
                 />
               ))}
@@ -74,12 +82,8 @@ const ProductCard = ({ product, images, inCart, onAddToCart, onIncrease, onDecre
         <h3 className="font-semibold text-gray-800 text-sm truncate">
           {product.name}
         </h3>
-        <p className="text-gray-500 text-xs">
-          Code: {product.code || "N/A"}
-        </p>
-        <p className="text-gray-600 text-xs">
-          Unit: {safeName(product.unit)}
-        </p>
+        <p className="text-gray-500 text-xs">Code: {product.code || "N/A"}</p>
+        <p className="text-gray-600 text-xs">Unit: {safeName(product.unit)}</p>
         <p className="text-gray-600 text-xs">
           Stock Group: {safeName(product.stockGroup)}
         </p>
@@ -130,17 +134,19 @@ const ProductCard = ({ product, images, inCart, onAddToCart, onIncrease, onDecre
 const ProductSelection = () => {
   const location = useLocation();
   const { selectedCustomer, selectedRoute, company } = location.state || {};
-
-  const { fetchProducts, products, pagination } = useProductStore();
+  const { defaultSelected } = useCompanyStore();
+  const { fetchProducts, filterProducts, products, pagination } =
+    useProductStore();
   const [cart, setCart] = useState<any[]>([]);
   const [showReview, setShowReview] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
   // 🔹 Fetch products on mount & when page changes
   useEffect(() => {
-    fetchProducts(currentPage, pagination.limit || 10);
-  }, [fetchProducts, currentPage]);
+    fetchProducts(currentPage, pagination.limit || 10, defaultSelected);
+  }, [fetchProducts, currentPage, pagination.limit, defaultSelected]);
 
   // 🔹 Add product to cart
   const handleAddToCart = (product: any) => {
@@ -148,7 +154,28 @@ const ProductSelection = () => {
     setCart(newCart);
     setShowReview(true); // open drawer
   };
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (searchTerm.trim()) {
+        filterProducts(
+          searchTerm,
+          "all",
+          "nameAsc",
+          currentPage,
+          10,
+          defaultSelected
+        );
+      } else {
+        fetchProducts(currentPage, 10, defaultSelected);
+      }
+    }, 500);
 
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm, currentPage, defaultSelected]);
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
   // 🔹 Increase quantity
   const handleIncrease = (productId: string) => {
     setCart(
@@ -176,7 +203,9 @@ const ProductSelection = () => {
   );
 
   const handleContinue = () => {
-    navigate("/checkout", { state: { cart, selectedCustomer, selectedRoute, company, totalAmount } });
+    navigate("/checkout", {
+      state: { cart, selectedCustomer, selectedRoute, company, totalAmount },
+    });
   };
 
   const PaginationControls = () => (
@@ -227,18 +256,28 @@ const ProductSelection = () => {
       <div className=" border-gray-200 pb-2 flex items-center justify-between">
         <div className="text-xl text-gray-600">
           <span className="text-xl font-semibold text-teal-500">New Order</span>
-          <h1 className="text-gray-500">
-            {company?.namePrint} . {selectedRoute}
+          <h1 className="text-teal-900 font-bold">
+            {selectedCustomer?.customerName} . {selectedRoute}
           </h1>
         </div>
-        <div className="relative">
-          <ShoppingCart className="w-7 h-7 text-teal-500" />
+        <div className="relative" onClick={() => setShowReview(true)}>
+          <ShoppingCart className="w-7 h-7 text-teal-500 cursor-pointer" />
           {cart.length > 0 && (
             <span className="absolute -top-2 -right-2 bg-teal-900 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-sm">
               {cart.reduce((sum, item) => sum + item.quantity, 0)}
             </span>
           )}
         </div>
+      </div>
+      {/* 🔍 Search Bar */}
+      <div className="flex w-full mb-4 mt-2">
+        <input
+          type="text"
+          placeholder="Search products..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+          className="w-full sm:w-1/2 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
       </div>
 
       {/* Main Layout: Products + Review Drawer */}
@@ -252,18 +291,19 @@ const ProductSelection = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             {products.map((product) => {
               const inCart = cart.find((item) => item._id === product._id);
-              
+
               // Use real images if available, otherwise use demo images
-              const productImages = product.images && product.images.length > 0
-                ? product.images
-                : [
-                    "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop",
-                    "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&h=300&fit=crop",
-                    "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=300&h=300&fit=crop"
-                  ];
+              const productImages =
+                product.images && product.images.length > 0
+                  ? product.images
+                  : [
+                      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop",
+                      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&h=300&fit=crop",
+                      "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=300&h=300&fit=crop",
+                    ];
 
               return (
-                <ProductCard 
+                <ProductCard
                   key={product._id}
                   product={product}
                   images={productImages}
@@ -343,7 +383,10 @@ const ProductSelection = () => {
                   <span>₹{totalAmount.toFixed(2)}</span>
                 </div>
 
-                <button className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white py-3 rounded-lg font-semibold shadow-sm" onClick={handleContinue}>
+                <button
+                  className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white py-3 rounded-lg font-semibold shadow-sm"
+                  onClick={handleContinue}
+                >
                   Continue →
                 </button>
               </div>
@@ -410,7 +453,10 @@ const ProductSelection = () => {
                   <span>₹{totalAmount.toFixed(2)}</span>
                 </div>
 
-                <button className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white py-3 rounded-lg font-semibold shadow-sm" onClick={handleContinue}>
+                <button
+                  className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white py-3 rounded-lg font-semibold shadow-sm cursor-pointer"
+                  onClick={handleContinue}
+                >
                   Continue →
                 </button>
               </div>
@@ -422,4 +468,4 @@ const ProductSelection = () => {
   );
 };
 
-export default ProductSelection;                                                                                                              
+export default ProductSelection;

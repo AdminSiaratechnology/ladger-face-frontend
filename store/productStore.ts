@@ -69,7 +69,7 @@ interface ProductStore {
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchProducts: (page?: number, limit?: number) => Promise<void>;
+  fetchProducts: (page?: number, limit?: number, companyId?:number |string ) => Promise<void>;
   addProduct: (product: FormData) => Promise<void>;
   updateProduct: (params: { id: string; product: FormData }) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -77,6 +77,7 @@ interface ProductStore {
     searchTerm: string,
     statusFilter: 'all' | 'Active' | 'Inactive',
     sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    companyId?:number | string,
     page?: number,
     limit?: number
   ) => Promise<Product[]>;
@@ -97,15 +98,16 @@ export const useProductStore = create<ProductStore>()(
       errorMessage: null,
 
       // ✅ Fetch products with pagination
-      fetchProducts: async (page = 1, limit = 10) => {
+      fetchProducts: async (page = 1, limit = 10, companyId) => {
         set({ loading: true, error: false });
         try {
           const queryParams = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
           });
+          const id = companyId?.toLocaleString();
 
-          const result = await api.fetchProducts({ queryParams: queryParams.toString() }); // Adjust api call
+          const result = await api.fetchProducts({companyId:id}, { queryParams: queryParams.toString() }); // Adjust api call
           set({
             products: result?.data?.items || [],
             pagination: result?.data?.pagination,
@@ -187,7 +189,8 @@ export const useProductStore = create<ProductStore>()(
         statusFilter: 'all' | 'Active' | 'Inactive',
         sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
         page = 1,
-        limit = 10
+        limit = 10,
+        companyId:string
       ) => {
         try {
           set({ loading: true, error: false });
@@ -199,9 +202,10 @@ export const useProductStore = create<ProductStore>()(
             sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
             page: page.toString(),
             limit: limit.toString(),
+            companyId:companyId?.toLocaleString(),
           });
 
-          const result = await api.fetchProducts({ queryParams: queryParams.toString() }); // Adjust api call
+          const result = await api.fetchProducts({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
           console.log("Filter result for products:", result);
 
           set({

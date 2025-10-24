@@ -100,8 +100,8 @@ const UnitManagement: React.FC = () => {
   const { companies, defaultSelected } = useCompanyStore();
 
   useEffect(() => {
-    fetchUnits(currentPage, limit);
-  }, [fetchUnits, currentPage]);
+    fetchUnits(currentPage, limit, defaultSelected);
+  }, [fetchUnits, currentPage, defaultSelected]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -109,13 +109,13 @@ const UnitManagement: React.FC = () => {
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterUnits(searchTerm, statusFilter, sortBy, currentPage, limit)
+      filterUnits(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
         .then(setFilteredUnits)
         .catch(console.error);
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterUnits]);
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterUnits, defaultSelected]);
 
   const [formData, setFormData] = useState<UnitForm>({
     name: "",
@@ -265,11 +265,7 @@ const UnitManagement: React.FC = () => {
     [filteredUnits, pagination, statusFilter]
   );
 
-  const tabs = [
-    { id: "basic", label: "Basic Info" },
-    { id: "details", label: "Unit Details" },
-    { id: "settings", label: "Settings" },
-  ];
+  const tabs = [{ id: "basic", label: "Basic Info" }];
 
   const stepIcons = {
     basic: <FileText className="w-2 h-2 md:w-5 md:h-5" />,
@@ -601,38 +597,20 @@ const UnitManagement: React.FC = () => {
             }
           />
 
-          <MultiStepNav
-            steps={tabs}
-            currentStep={activeTab}
-            onStepChange={setActiveTab}
-            stepIcons={stepIcons}
-          />
-
-          <div className="flex-1 overflow-y-auto">
-            {activeTab === "basic" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<FileText className="w-4 h-4 text-white" />}
-        title="Basic Information"
-        gradientFrom="from-pink-400"
-        gradientTo="to-pink-500"
-      /> */}
-                <CustomInputBox
-                  label="Unit Name "
-                  placeholder="e.g., Meter"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required={true}
-                />
-
-                              <SelectedCompany
-  editing={editingUnit}
-  handleSelectChange={handleSelectChange}
-  companyId={formData.companyId}
-/>
-
-                {/* <div className="mt-6 flex flex-col gap-1">
+          <div className="space-y-6 py-4">
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+              <CustomInputBox
+                label="Unit Name "
+                placeholder="e.g., Meter"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required={true}
+              />
+              <div className="mt-6">
+                <SelectedCompany />
+              </div>
+              {/* <div className="mt-6 flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">
                     Company <span className="text-red-500">*</span>
                   </label>
@@ -652,47 +630,32 @@ const UnitManagement: React.FC = () => {
                   </select>
                 </div> */}
 
-                <div className="mt-6 flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Unit Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) => handleSelectChange("type", e.target.value)}
-                    className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                  >
-                    <option value="simple">Simple</option>
-                    <option value="compound">Compound</option>
-                  </select>
-                </div>
-
-                <CustomStepNavigation
-                  currentStep={1}
-                  totalSteps={3}
-                  showPrevious={false}
-                  onNext={() => setActiveTab("details")}
-                />
+              <div className="mt-6 flex flex-col gap-1">
+                <label className="text-sm font-semibold text-gray-700">
+                  Unit Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.type}
+                  onChange={(e) => handleSelectChange("type", e.target.value)}
+                  className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                >
+                  <option value="simple">Simple</option>
+                  <option value="compound">Compound</option>
+                </select>
               </div>
-            )}
-
-            {activeTab === "details" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Calculator className="w-4 h-4 text-white" />}
-        title="Unit Details"
-        gradientFrom="from-green-400"
-        gradientTo="to-green-500"
-      /> */}
-                {formData.type === "simple" ? (
-                  <>
+              {formData.type === "simple" ? (
+                <>
+                  <div className="mt-6">
                     <CustomInputBox
-                      label="Symbol *"
+                      label="Symbol "
                       placeholder="e.g., m"
                       name="symbol"
                       value={formData.symbol}
                       onChange={handleChange}
                       required={true}
                     />
+                  </div>
+                  <div className="mt-6">
                     <CustomInputBox
                       label="Decimal Places"
                       placeholder="e.g., 2"
@@ -701,123 +664,102 @@ const UnitManagement: React.FC = () => {
                       value={formData.decimalPlaces}
                       onChange={handleChange}
                     />
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">
-                        UQC
-                      </label>
-                      <select
-                        value={formData.UQC}
-                        onChange={(e) =>
-                          handleSelectChange("UQC", e.target.value)
-                        }
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="">Select UQC</option>
-                        {UQC_LIST.map((uqc) => (
-                          <option key={uqc.code} value={uqc.code}>
-                            {uqc.description} ({uqc.code})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">
-                        First Unit *
-                      </label>
-                      <select
-                        value={formData.firstUnit}
-                        onChange={(e) =>
-                          handleSelectChange("firstUnit", e.target.value)
-                        }
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="">Select First Unit</option>
-                        {simpleUnits.map((unit) => (
+                  </div>
+                  <div className="flex flex-col gap-1 mt-6">
+                    <label className="text-sm font-semibold text-gray-700">
+                      UQC
+                    </label>
+                    <select
+                      value={formData.UQC}
+                      onChange={(e) =>
+                        handleSelectChange("UQC", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select UQC</option>
+                      {UQC_LIST.map((uqc) => (
+                        <option key={uqc.code} value={uqc.code}>
+                          {uqc.description} ({uqc.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      First Unit *
+                    </label>
+                    <select
+                      value={formData.firstUnit}
+                      onChange={(e) =>
+                        handleSelectChange("firstUnit", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select First Unit</option>
+                      {simpleUnits.map((unit) => (
+                        <option key={unit._id} value={unit.name}>
+                          {unit.name} {unit.symbol && `(${unit.symbol})`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <CustomInputBox
+                    label="Conversion *"
+                    placeholder="e.g., 1000"
+                    name="conversion"
+                    type="number"
+                    value={formData.conversion}
+                    onChange={handleChange}
+                    required={true}
+                  />
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Second Unit *
+                    </label>
+                    <select
+                      value={formData.secondUnit}
+                      onChange={(e) =>
+                        handleSelectChange("secondUnit", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Second Unit</option>
+                      {simpleUnits
+                        .filter((u) => u.name !== formData.firstUnit)
+                        .map((unit) => (
                           <option key={unit._id} value={unit.name}>
                             {unit.name} {unit.symbol && `(${unit.symbol})`}
                           </option>
                         ))}
-                      </select>
-                    </div>
-                    <CustomInputBox
-                      label="Conversion *"
-                      placeholder="e.g., 1000"
-                      name="conversion"
-                      type="number"
-                      value={formData.conversion}
-                      onChange={handleChange}
-                      required={true}
-                    />
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">
-                        Second Unit *
-                      </label>
-                      <select
-                        value={formData.secondUnit}
-                        onChange={(e) =>
-                          handleSelectChange("secondUnit", e.target.value)
-                        }
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="">Select Second Unit</option>
-                        {simpleUnits
-                          .filter((u) => u.name !== formData.firstUnit)
-                          .map((unit) => (
-                            <option key={unit._id} value={unit.name}>
-                              {unit.name} {unit.symbol && `(${unit.symbol})`}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                <CustomStepNavigation
-                  currentStep={2}
-                  totalSteps={3}
-                  onPrevious={() => setActiveTab("basic")}
-                  onNext={() => setActiveTab("settings")}
-                />
+                    </select>
+                  </div>
+                </>
+              )}
+              <div className="flex flex-col gap-1 mt-6">
+                <label className="text-sm font-semibold text-gray-700">
+                  Status
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => handleSelectChange("status", e.target.value)}
+                  className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
               </div>
-            )}
-
-            {activeTab === "settings" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-                  icon={<Settings2 className="w-4 h-4 text-white" />}
-                  title="Settings"
-                  gradientFrom="from-blue-400"
-                  gradientTo="to-blue-500"
-                /> */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Status
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) =>
-                      handleSelectChange("status", e.target.value)
-                    }
-                    className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-
-                <CustomStepNavigation
-                  currentStep={3}
-                  totalSteps={3}
-                  onPrevious={() => setActiveTab("details")}
-                  onSubmit={handleSubmit}
-                  submitLabel={editingUnit ? "Update Unit" : "Save Unit"}
-                  isLastStep={true}
-                />
-              </div>
-            )}
+              <div className="flex justify-end mt-6">
+                              <Button
+                                onClick={handleSubmit}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
+                              >
+                                {editingUnit ? "Update Unit" : "Save Unit"}
+                              </Button>
+                            </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

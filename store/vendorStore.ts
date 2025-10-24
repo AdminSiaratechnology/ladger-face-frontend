@@ -190,7 +190,7 @@ interface VendorStore {
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchVendors: (page?: number, limit?: number) => Promise<void>;
+  fetchVendors: (page?: number, limit?: number, companyId?: number | string) => Promise<void>;
   addVendor: (vendor: FormData) => Promise<void>;
   updateVendor: (params: { id: string; vendor: FormData }) => Promise<void>;
   deleteVendor: (id: string) => Promise<void>;
@@ -198,6 +198,7 @@ interface VendorStore {
     searchTerm: string,
     statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'prospect',
     sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    companyId?: number | string,
     page?: number,
     limit?: number
   ) => Promise<Vendor[]>;
@@ -218,15 +219,15 @@ export const useVendorStore = create<VendorStore>()(
       error: false,
       errorMessage: null,
 
-      fetchVendors: async (page = 1, limit = 10) => {
+      fetchVendors: async (page = 1, limit = 10, companyId) => {
         set({ loading: true, error: false });
         try {
           const queryParams = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
           });
-
-          const result = await api.fetchVendors({ queryParams: queryParams.toString() }); // Adjust api call
+          const id = companyId?.toLocaleString();
+          const result = await api.fetchVendors({companyId:id}, { queryParams: queryParams.toString() }); // Adjust api call
           set({
             vendors: result?.data?.vendors || [],
             pagination: result?.data?.pagination,
@@ -308,7 +309,8 @@ export const useVendorStore = create<VendorStore>()(
         statusFilter: 'all' | 'active' | 'inactive' | 'suspended' | 'prospect',
         sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
         page = 1,
-        limit = 10
+        limit = 10,
+        companyId
       ) => {
         try {
           set({ loading: true, error: false });
@@ -322,7 +324,7 @@ export const useVendorStore = create<VendorStore>()(
             limit: limit.toString(),
           });
 
-          const result = await api.fetchVendors({ queryParams: queryParams.toString() }); // Adjust api call
+          const result = await api.fetchVendors({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
           console.log("Filter result for vendors:", result);
 
           set({

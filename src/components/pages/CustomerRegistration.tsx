@@ -267,7 +267,7 @@ const CustomerRegistrationPage: React.FC = () => {
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
-console.log(filteredCustomers,"dsdhhkfh")
+  console.log(filteredCustomers, "dsdhhkfh");
   const {
     fetchCustomers,
     addCustomer,
@@ -792,8 +792,8 @@ console.log(filteredCustomers,"dsdhhkfh")
 
   // Initial fetch
   useEffect(() => {
-    fetchCustomers(currentPage, limit);
-  }, [fetchCustomers, currentPage]);
+    fetchCustomers(currentPage, limit, defaultSelected);
+  }, [fetchCustomers, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -803,11 +803,10 @@ console.log(filteredCustomers,"dsdhhkfh")
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterCustomers(searchTerm, statusFilter, sortBy, currentPage, limit)
+      filterCustomers(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
         .then((result) => {
           setFilteredCustomers(result);
-        console.log(result)
-
+          console.log(result);
         })
         .catch((err) => {
           console.error("Error filtering customers:", err);
@@ -817,7 +816,7 @@ console.log(filteredCustomers,"dsdhhkfh")
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterCustomers]);
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterCustomers, limit, defaultSelected]);
 
   const formatSimpleDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -1321,11 +1320,7 @@ console.log(filteredCustomers,"dsdhhkfh")
                       <option value="trust">Trust</option>
                     </select>
                   </div>
-                                <SelectedCompany
-  editing={editingCustomer}
-  handleSelectChange={handleSelectChange}
-  companyId={formData.companyId}
-/>
+                  <SelectedCompany/>
                   {/* <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Company <span className="text-red-500">*</span>
@@ -1775,13 +1770,6 @@ console.log(filteredCustomers,"dsdhhkfh")
 
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-                    icon={<FileText className="w-4 h-4 text-white" />}
-                    title="Tax Information"
-                    gradientFrom="from-yellow-400"
-                    gradientTo="to-yellow-500"
-                  /> */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Tax ID/Registration Number"
@@ -1799,102 +1787,68 @@ console.log(filteredCustomers,"dsdhhkfh")
                     onChange={handleChange}
                     maxLength={15}
                   />
-                  <CustomInputBox
-                    label="GST Number"
-                    placeholder="e.g., 22AAAAA0000A1Z5"
-                    name="gstNumber"
-                    value={formData.gstNumber}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                  <CustomInputBox
-                    label="PAN Number"
-                    placeholder="e.g., ABCDE1234F"
-                    name="panNumber"
-                    value={formData.panNumber}
-                    onChange={handleChange}
-                    maxLength={10}
-                  />
-                  <CustomInputBox
-                    label="TAN Number"
-                    placeholder="e.g., ABCD12345E"
-                    name="tanNumber"
-                    value={formData.tanNumber}
-                    onChange={handleChange}
-                    maxLength={10}
-                  />
-                  <CustomInputBox
-                    label="MSME Number"
-                    placeholder="e.g., UDYAM-XX-00-0000000"
-                    name="msmeRegistration"
-                    value={formData.msmeRegistration}
-                    onChange={handleChange}
-                    maxLength={20}
-                  />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Tax Category
-                    </label>
-                    <select
-                      value={formData.taxCategory}
-                      onChange={(e) =>
-                        handleSelectChange("taxCategory", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Tax Category</option>
-                      <option value="taxable">Taxable</option>
-                      <option value="exempt">Tax Exempt</option>
-                      <option value="zero_rated">Zero Rated</option>
-                      <option value="out_of_scope">Out of Scope</option>
-                    </select>
-                  </div>
+                {/* Show extra fields only if country is India */}
+                {formData.country?.toLowerCase() === "india" && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <CustomInputBox
+                        label="GST Number"
+                        placeholder="e.g., 22AAAAA0000A1Z5"
+                        name="gstNumber"
+                        value={formData.gstNumber}
+                        onChange={handleChange}
+                        maxLength={15}
+                      />
+                      <CustomInputBox
+                        label="PAN Number"
+                        placeholder="e.g., ABCDE1234F"
+                        name="panNumber"
+                        value={formData.panNumber}
+                        onChange={handleChange}
+                        maxLength={10}
+                      />
+                      <CustomInputBox
+                        label="TAN Number"
+                        placeholder="e.g., ABCD12345E"
+                        name="tanNumber"
+                        value={formData.tanNumber}
+                        onChange={handleChange}
+                        maxLength={10}
+                      />
+                      <CustomInputBox
+                        label="MSME Number"
+                        placeholder="e.g., UDYAM-XX-00-0000000"
+                        name="msmeRegistration"
+                        value={formData.msmeRegistration}
+                        onChange={handleChange}
+                        maxLength={20}
+                      />
+                    </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Tax Template
-                    </label>
-                    <select
-                      value={formData.taxTemplate}
-                      onChange={(e) =>
-                        handleSelectChange("taxTemplate", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Tax Template</option>
-                      <option value="standard_tax">Standard Tax</option>
-                      <option value="zero_tax">Zero Tax</option>
-                      <option value="igst_18">IGST 18%</option>
-                      <option value="cgst_sgst_18">CGST+SGST 18%</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Withholding Tax Category
-                    </label>
-                    <select
-                      value={formData.withholdingTaxCategory}
-                      onChange={(e) =>
-                        handleSelectChange(
-                          "withholdingTaxCategory",
-                          e.target.value
-                        )
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select WHT Category</option>
-                      <option value="tds_contractor">TDS - Contractor</option>
-                      <option value="tds_professional">
-                        TDS - Professional
-                      </option>
-                      <option value="tds_commission">TDS - Commission</option>
-                    </select>
-                  </div>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-gray-700">
+                          Tax Category
+                        </label>
+                        <select
+                          value={formData.taxCategory}
+                          onChange={(e) =>
+                            handleSelectChange("taxCategory", e.target.value)
+                          }
+                          className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                        >
+                          <option value="">Select Tax Category</option>
+                          <option value="taxable">Taxable</option>
+                          <option value="exempt">Tax Exempt</option>
+                          <option value="zero_rated">Zero Rated</option>
+                          <option value="out_of_scope">Out of Scope</option>
+                        </select>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <CustomStepNavigation
                   currentStep={4}

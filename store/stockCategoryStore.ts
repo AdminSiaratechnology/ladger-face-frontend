@@ -29,7 +29,7 @@ interface StockCategoryStore {
   error: boolean;
   errormessage: null | string;
 
-  fetchStockCategory: (page?: number, limit?: number) => Promise<void>;
+  fetchStockCategory: (page?: number, limit?: number, companyId?:number | string) => Promise<void>;
   addStockCategory: (data: StockCategory) => Promise<void>;
   updateStockCategory: (params: { stockCategoryId: string; data: StockCategory }) => Promise<void>;
   deleteStockCategory: (stockCategoryId: string) => Promise<void>;
@@ -37,6 +37,7 @@ interface StockCategoryStore {
     searchTerm: string,
     statusFilter: 'all' | 'active' | 'inactive',
     sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    companyId?:number | string,
     page?: number,
     limit?: number
   ) => Promise<StockCategory[]>;
@@ -64,8 +65,8 @@ export const useStockCategory = create<StockCategoryStore>()(
             page: page.toString(),
             limit: limit.toString(),
           });
-
-          const result = await api.getStockCategory({ queryParams: queryParams.toString() }); // Adjust api call
+          const id = companyId?.toLocaleString();
+          const result = await api.getStockCategory({companyId:id}, { queryParams: queryParams.toString() }); // Adjust api call
           if (result?.statusCode === 200) {
             set({ stockCategories: result.data?.categories, pagination: result.data.pagination, loading: false });
           }
@@ -124,7 +125,8 @@ export const useStockCategory = create<StockCategoryStore>()(
         statusFilter: 'all' | 'active' | 'inactive',
         sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
         page = 1,
-        limit = 10
+        limit = 10,
+        companyId
       ) => {
         try {
           set({ loading: true, error: false });
@@ -138,7 +140,7 @@ export const useStockCategory = create<StockCategoryStore>()(
             limit: limit.toString(),
           });
 
-          const result = await api.getStockCategory({ queryParams: queryParams.toString() }); // Adjust api call
+          const result = await api.getStockCategory({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
           console.log("Filter result:", result);
 
           set({

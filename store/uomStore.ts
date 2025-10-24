@@ -34,7 +34,7 @@ interface UnitStore {
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchUnits: (page?: number, limit?: number) => Promise<void>;
+  fetchUnits: (page?: number, limit?: number, companyId?:number | string) => Promise<void>;
   addUnit: (unit: Unit) => Promise<void>;
   updateUnit: (params: { unitId: string; data: Unit }) => Promise<void>;
   deleteUnit: (id: string) => Promise<void>;
@@ -42,6 +42,7 @@ interface UnitStore {
     searchTerm: string,
     statusFilter: 'all' | 'active' | 'inactive',
     sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    companyId?:number | string,
     page?: number,
     limit?: number
   ) => Promise<Unit[]>;
@@ -63,7 +64,7 @@ export const useUOMStore = create<UnitStore>()(
       errorMessage: null,
 
       // Fetch all UOM
-      fetchUnits: async (page = 1, limit = 10) => {
+      fetchUnits: async (page = 1, limit = 10, companyId) => {
         console.log("Fetching units page:", page, "limit:", limit);
         set({ loading: true, error: false });
         try {
@@ -71,8 +72,8 @@ export const useUOMStore = create<UnitStore>()(
             page: page.toString(),
             limit: limit.toString(),
           });
-
-          const result = await api.fetchUOM({ queryParams: queryParams.toString() }); // Adjust api call
+          const id  = companyId?.toLocaleString();
+          const result = await api.fetchUOM({companyId:id}, { queryParams: queryParams.toString() }); // Adjust api call
           set({
             units: result?.data.units || [],
             pagination: result?.data.pagination,
@@ -156,7 +157,8 @@ export const useUOMStore = create<UnitStore>()(
         statusFilter: 'all' | 'active' | 'inactive',
         sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
         page = 1,
-        limit = 10
+        limit = 10,
+        companyId
       ) => {
         try {
           set({ loading: true, error: false });
@@ -170,7 +172,7 @@ export const useUOMStore = create<UnitStore>()(
             limit: limit.toString(),
           });
 
-          const result = await api.fetchUOM({ queryParams: queryParams.toString() }); // Adjust api call
+          const result = await api.fetchUOM({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
           console.log("Filter result for units:", result);
 
           set({
