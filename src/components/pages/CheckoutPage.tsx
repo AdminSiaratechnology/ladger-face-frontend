@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
+import { Edit2 } from "lucide-react";
+import CustomInputBox from "../customComponents/CustomInputBox";
 
 export default function CheckoutPage() {
   const location = useLocation();
@@ -12,9 +14,39 @@ export default function CheckoutPage() {
     company,
     totalAmount = 0,
   } = location.state || {};
-  const [formData, setFormData] = useState({});
 
+  // State for delivery address editing
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState({
+    name: selectedCustomer?.customerName || "",
+    addressLine1: selectedCustomer?.addressLine1 || "",
+    city: selectedCustomer?.city || "",
+    state: selectedCustomer?.state || "",
+    zipCode: selectedCustomer?.zipCode || "",
+    phone: selectedCustomer?.phone || "",
+  });
+
+  // State for payment method
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState("Cash on Delivery");
+
+  // Handle form changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDeliveryAddress({ ...deliveryAddress, [e.target.name]: e.target.value });
+  };
+
+  // Place order
   const handlePayment = () => {
+    const orderData = {
+      cart,
+      customer: selectedCustomer,
+      deliveryAddress,
+      totalAmount: totalAmount + 50,
+      paymentMethod: selectedPaymentMethod,
+    };
+
+    // TODO: send orderData to your API
+    console.log("Order Data:", orderData);
     alert("Order placed successfully!");
     navigate("/orders");
   };
@@ -25,18 +57,18 @@ export default function CheckoutPage() {
       <div className="flex items-center gap-3 border-b pb-3 mb-4">
         <div>
           <h1 className="text-2xl font-semibold text-teal-600">New Order</h1>
-          <p className="text-gray-600 text-sm">
-            {company?.namePrint} • {selectedRoute}
-          </p>
+         <h1 className="text-teal-900 font-bold">
+  {selectedCustomer?.customerName}
+  {selectedRoute && ` • ${selectedRoute}`}
+</h1>
+
         </div>
       </div>
 
       <div className="space-y-6">
         {/* Order Items */}
         <div className="border rounded-lg p-4">
-          <h2 className="font-semibold text-lg text-gray-700 ">
-            Order Items
-          </h2>
+          <h2 className="font-semibold text-lg text-gray-700">Order Items</h2>
           <div className="divide-y">
             {cart.map((item) => (
               <div
@@ -59,30 +91,99 @@ export default function CheckoutPage() {
 
         {/* Delivery Details */}
         <div className="border rounded-lg p-4 bg-gray-50">
-          <h2 className="font-semibold text-lg text-gray-700 mb-2">
-            Delivery Details
-          </h2>
-          {selectedCustomer ? (
-            <div className="space-y-1 text-sm text-gray-700">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="font-semibold text-lg text-gray-700">
+              Delivery Details
+            </h2>
+            {!isEditingAddress && (
+              <button
+                onClick={() => setIsEditingAddress(true)}
+                className="text-sm text-teal-600 hover:underline"
+              >
+                <Edit2 className="w-4 h-4 cursor-pointer" />
+              </button>
+            )}
+          </div>
+
+          {!isEditingAddress ? (
+            <div className="text-sm text-gray-700">
               <p className="font-medium text-gray-800">
-                {selectedCustomer.customerName}
+                {deliveryAddress.name}
               </p>
               <p>
                 {[
-                  selectedCustomer.addressLine1,
-                  selectedCustomer.city,
-                  selectedCustomer.state,
-                  selectedCustomer.zipCode,
+                  deliveryAddress.addressLine1,
+                  deliveryAddress.city,
+                  deliveryAddress.state,
+                  deliveryAddress.zipCode,
                 ]
                   .filter(Boolean)
                   .join(", ")}
               </p>
-              <p>📞 {selectedCustomer.phone || "N/A"}</p>
+              <p>📞 {deliveryAddress.phone || "N/A"}</p>
             </div>
           ) : (
-            <p className="text-sm text-gray-500 italic">
-              No customer selected
-            </p>
+            <>
+              <div className="grid grid-cols-2 gap-3 text-sm text-gray-700">
+                <CustomInputBox
+                  label="Name"
+                  name="name"
+                  placeholder="Name"
+                  value={deliveryAddress.name}
+                  onChange={handleChange}
+                />
+                <CustomInputBox
+                  label="Address Line 1"
+                  name="addressLine1"
+                  placeholder="Address Line 1"
+                  value={deliveryAddress.addressLine1}
+                  onChange={handleChange}
+                />
+                <CustomInputBox
+                  label="City"
+                  name="city"
+                  placeholder="City"
+                  value={deliveryAddress.city}
+                  onChange={handleChange}
+                />
+                <CustomInputBox
+                  label="State"
+                  name="state"
+                  placeholder="State"
+                  value={deliveryAddress.state}
+                  onChange={handleChange}
+                />
+                <CustomInputBox
+                  label="ZIP Code"
+                  name="zipCode"
+                  placeholder="ZIP Code"
+                  value={deliveryAddress.zipCode}
+                  onChange={handleChange}
+                />
+                <CustomInputBox
+                  label="Phone"
+                  name="phone"
+                  placeholder="Phone"
+                  value={deliveryAddress.phone}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={() => setIsEditingAddress(false)}
+                  className="px-3 py-1 text-sm border rounded hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => setIsEditingAddress(false)}
+                  className="px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-600"
+                >
+                  Save
+                </button>
+              </div>
+            </>
           )}
         </div>
 
@@ -114,7 +215,11 @@ export default function CheckoutPage() {
           {/* Payment Method */}
           <div className="mt-4">
             <h3 className="font-semibold text-gray-700 mb-1">Payment Method</h3>
-            <select className="w-full border rounded-md px-3 py-2 text-sm">
+            <select
+              value={selectedPaymentMethod}
+              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+              className="w-full border rounded-md px-3 py-2 text-sm"
+            >
               <option>Cash on Delivery</option>
               <option>Credit / Debit Card</option>
               <option>UPI / Wallet</option>

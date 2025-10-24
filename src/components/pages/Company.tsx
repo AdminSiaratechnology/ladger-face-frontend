@@ -171,9 +171,13 @@ const CompanyPage: React.FC = () => {
     RegistrationDocument | { previewUrl: string; type: "logo" } | null
   >(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
-  const [sortBy, setSortBy] = useState<"nameAsc" | "nameDesc" | "dateAsc" | "dateDesc">("nameAsc");
-  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+  const [sortBy, setSortBy] = useState<
+    "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
+  >("dateDesc");
+  // const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
@@ -620,6 +624,31 @@ const CompanyPage: React.FC = () => {
     setOpen(false);
     resetForm();
   };
+  const filteredCompanies = useMemo(() => {
+    return companies
+      .filter((c) =>
+        statusFilter === "all" ? true : c.status === statusFilter
+      )
+      .filter((c) =>
+        searchTerm
+          ? c.namePrint.toLowerCase().includes(searchTerm.toLowerCase())
+          : true
+      )
+      .sort((a, b) => {
+        if (sortBy === "nameAsc") return a.namePrint.localeCompare(b.namePrint);
+        if (sortBy === "nameDesc")
+          return b.namePrint.localeCompare(a.namePrint);
+        if (sortBy === "dateAsc")
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        if (sortBy === "dateDesc")
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        return 0;
+      });
+  }, [companies, searchTerm, statusFilter, sortBy]);
 
   const stats = useMemo(
     () => ({
@@ -658,33 +687,33 @@ const CompanyPage: React.FC = () => {
   }, [searchTerm, statusFilter, sortBy]);
 
   // Filtering with debounce
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      filterCompanies(
-        searchTerm,
-        statusFilter,
-        sortBy,
-        "68c1503077fd742fa21575df",
-        currentPage,
-        limit
-      )
-        .then((result) => {
-          setFilteredCompanies(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering companies:", err);
-        });
-    }, 500); // 500ms debounce time
+  // useEffect(() => {
+  //   const handler = setTimeout(() => {
+  //     filterCompanies(
+  //       searchTerm,
+  //       statusFilter,
+  //       sortBy,
+  //       "68c1503077fd742fa21575df",
+  //       currentPage,
+  //       limit
+  //     )
+  //       .then((result) => {
+  //         setFilteredCompanies(result);
+  //       })
+  //       .catch((err) => {
+  //         console.error("Error filtering companies:", err);
+  //       });
+  //   }, 500); // 500ms debounce time
 
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterCompanies]);
+  //   return () => {
+  //     clearTimeout(handler);
+  //   };
+  // }, [searchTerm, statusFilter, sortBy, currentPage, filterCompanies,]);
 
   const formatSimpleDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
-  const headers = ["Company", "Contact", "GST/VAT", "Status", "Actions"];
+  const headers = ["Company", "Contact", "Registration", "Status", "Actions"];
   const setDefaultCompany = useCompanyStore((state) => state.setDefaultCompany);
   const handleSelect = (company) => {
     setDefaultCompany(company._id);
@@ -772,9 +801,9 @@ const CompanyPage: React.FC = () => {
                   <Badge
                     className={`${
                       company.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-700"
-                    } hover:bg-green-100 text-xs px-2 py-1`}
+                        ? "bg-green-200 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    } hover:bg-green-100 text-xs py-1 px-3 capitalize`}
                   >
                     {company.status}
                   </Badge>
@@ -796,88 +825,109 @@ const CompanyPage: React.FC = () => {
   );
 
   // Card View Component
-  const CardView = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-      {filteredCompanies.map((company: Company) => (
-        <Card
-          key={company._id}
-          className="bg-white border-0 shadow-md hover:shadow-lg transition-all duration-300 rounded-2xl overflow-hidden h-full flex flex-col gap-0"
-        >
-          <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center flex-1 min-w-0">
-                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
-                  {
-                    company.logo ?<img className="w-4 h-4 sm:w-5 sm:h-5" src={company.logo}/>:
-                    <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                  }
-                 
-                </div>
-                <div className="min-w-0 flex-1">
-                  <CardTitle className="text-sm sm:text-lg font-bold text-gray-800 truncate w-40">
-                    {company.namePrint}
-                  </CardTitle>
-                  {company.code && (
-                    <p className="text-xs text-teal-600 font-medium truncate">
-                      {company.code}
-                    </p>
-                  )}
-                </div>
+const CardView = () => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+    {filteredCompanies.map((company) => (
+      <Card
+        key={company._id}
+        className="group bg-white border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden h-full flex flex-col hover:border-teal-200 hover:-translate-y-1"
+      >
+        <CardHeader className="px-3 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+          <div className="flex items-start justify-between gap-2">
+            {/* Company name section with flex constraints */}
+            <div className="flex items-center flex-1 min-w-0 max-w-[60%]">
+              <div
+                className={`flex-shrink-0 w-8 h-8 flex items-center justify-center mr-2 rounded-lg ${
+                  !company.logo
+                    ? "bg-gradient-to-br from-teal-300 to-teal-500 shadow-sm"
+                    : "bg-white border border-gray-200"
+                }`}
+              >
+                {company.logo ? (
+                  <img
+                    className="w-4 h-4 object-contain"
+                    src={company.logo}
+                    alt={`${company.namePrint} logo`}
+                  />
+                ) : (
+                  <Building2 className="w-4 h-4 text-white" />
+                )}
               </div>
-              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-1">
-                <Badge
-                  className={`${
-                    company.status === "active"
-                      ? "bg-green-100 text-green-700 border-green-200"
-                      : "bg-gray-100 text-gray-700 border-gray-200"
-                  } text-xs px-1.5 sm:px-2 py-0.5`}
-                >
-                  {company.status}
-                </Badge>
-                <ActionsDropdown
-                  onEdit={() => handleEditCompany(company)}
-                  onDelete={() => handleDeleteCompany(company._id || "")}
-                  module="BusinessManagement"
-                  subModule="Company"
-                />
-              </div>
-            </div>
-          </CardHeader>
 
-          <CardContent className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3">
-            <div className="space-y-1 sm:space-y-2">
-              {(company.city || company.state || company.pincode) && (
-                <div className="flex items-center text-xs sm:text-sm">
-                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1.5 sm:mr-2 flex-shrink-0" />
-                  <span className="text-gray-600 truncate flex-1">
-                    {[company.city, company.state, company.pincode]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                </div>
-              )}
-
-              {company.mobile && (
-                <div className="flex items-center text-xs sm:text-sm">
-                  <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1.5 sm:mr-2 flex-shrink-0" />
-                  <span className="text-gray-600 truncate flex-1">{company.mobile}</span>
-                </div>
-              )}
-
-              <div className="flex items-center text-xs sm:text-sm">
-                <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1.5 sm:mr-2 flex-shrink-0" />
-                <span className="text-gray-600 truncate flex-1">{company.email}</span>
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-sm font-semibold text-gray-900 truncate">
+                  {company.namePrint}
+                </CardTitle>
+                {company.code && (
+                  <p className="text-[10px] text-teal-600 font-medium truncate">
+                    {company.code}
+                  </p>
+                )}
               </div>
             </div>
 
-            {(company.gstNumber || company.vatNumber || company.tanNumber) && (
-              <div className="pt-1.5 sm:pt-2 border-t border-gray-100 space-y-0.5 sm:space-y-1">
+            {/* Status and actions - ensured to always be visible */}
+            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+              <Badge
+                variant="outline"
+                className={`text-[10px] py-0.5 px-2 capitalize border-0 whitespace-nowrap ${
+                  company.status === "active"
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-rose-50 text-rose-700"
+                }`}
+              >
+                {company.status}
+              </Badge>
+              <ActionsDropdown
+                onEdit={() => handleEditCompany(company)}
+                onDelete={() => handleDeleteCompany(company._id || "")}
+                module="BusinessManagement"
+                subModule="Company"
+              />
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="px-3 flex-1 flex flex-col gap-2">
+          <div className="space-y-1">
+            {(company.city || company.state || company.pincode) && (
+              <div className="flex items-start text-sm">
+                <MapPin className="w-4 h-4 text-teal-500 mr-2 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-700 leading-relaxed text-xs">
+                  {[company.city, company.state, company.pincode]
+                    .filter(Boolean)
+                    .join(", ")}
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-start text-sm">
+              <Mail className="w-4 h-4 text-gray-800 mr-2 mt-0.5 flex-shrink-0" />
+              <span className="text-gray-700 break-words leading-relaxed text-xs">
+                {company.email}
+              </span>
+            </div>
+            {company.mobile && (
+              <div className="flex items-center text-sm">
+                <Phone className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" />
+                <span className="text-gray-700 text-xs">
+                  {company.mobile}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {(company.gstNumber || company.vatNumber || company.tanNumber) && (
+            <div className="pt-2 border-t border-gray-100">
+              <div className="space-y-1.5">
                 {company.country === "India" ? (
                   <>
                     {company.gstNumber && (
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium text-gray-500 truncate">GST</span>
-                        <span className="bg-blue-100 text-teal-700 px-1.5 py-0.5 rounded font-mono truncate flex-1 text-right ml-1 sm:ml-2">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+                          GSTIN
+                        </span>
+                        <span className="bg-teal-50 text-teal-800 px-2 py-1 rounded font-mono text-xs border border-teal-100">
                           {company.gstNumber}
                         </span>
                       </div>
@@ -886,17 +936,21 @@ const CompanyPage: React.FC = () => {
                 ) : (
                   <>
                     {company.vatNumber && (
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium text-gray-500 truncate">VAT</span>
-                        <span className="bg-blue-100 text-teal-700 px-1.5 py-0.5 rounded font-mono truncate flex-1 text-right ml-1 sm:ml-2">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+                          VAT
+                        </span>
+                        <span className="bg-blue-50 text-blue-800 px-2 py-1 rounded font-mono text-xs border border-blue-100">
                           {company.vatNumber}
                         </span>
                       </div>
                     )}
                     {company.tanNumber && (
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium text-gray-500 truncate">TAN</span>
-                        <span className="bg-blue-100 text-teal-700 px-1.5 py-0.5 rounded font-mono truncate flex-1 text-right ml-1 sm:ml-2">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+                          TAN
+                        </span>
+                        <span className="bg-indigo-50 text-indigo-800 px-2 py-1 rounded font-mono text-xs border border-indigo-100">
                           {company.tanNumber}
                         </span>
                       </div>
@@ -904,26 +958,32 @@ const CompanyPage: React.FC = () => {
                   </>
                 )}
               </div>
-            )}
-
-            <div className="pt-1.5 sm:pt-2 border-t border-gray-100 mt-auto">
-              <div className="flex items-center justify-between text-xs sm:text-sm">
-                <div className="flex items-center">
-                  <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1.5 sm:mr-2" />
-                  <span className="text-gray-600">{company.defaultCurrency}</span>
-                </div>
-                {company.banks.length > 0 && (
-                  <div className="flex items-center text-xs text-gray-500">
-                    <span>{company.banks.length} Bank{company.banks.length > 1 ? 's' : ''}</span>
-                  </div>
-                )}
-              </div>
             </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
+          )}
+
+          <div className="pt-2 border-t border-gray-100 mt-auto">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center">
+                <CreditCard className="w-3 h-3 text-gray-500 mr-1.5" />
+                <span className="text-gray-700 font-medium text-xs">
+                  {company.defaultCurrency}
+                </span>
+              </div>
+              {company.banks.length > 0 && (
+                <div className="flex items-center text-[10px] text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
+                  <span className="font-medium">
+                    {company.banks.length} Bank
+                    {company.banks.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+);
 
   const downloadPDF = async () => {
     const res = await api.downloadCompanyPDF();
@@ -1032,7 +1092,7 @@ const CompanyPage: React.FC = () => {
           onClearFilters={() => {
             setSearchTerm("");
             setStatusFilter("all");
-            setSortBy("nameAsc");
+            setSortBy("dateDesc");
             setCurrentPage(1);
           }}
         />
@@ -1058,10 +1118,7 @@ const CompanyPage: React.FC = () => {
         ) : (
           <>
             {viewMode === "table" ? <TableView /> : <CardView />}
-            <p>
-              
-            
-              </p>
+            <p></p>
             <PaginationControls
               currentPage={currentPage}
               setCurrentPage={setCurrentPage}
@@ -1260,17 +1317,17 @@ const CompanyPage: React.FC = () => {
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                   <div className="grid grid-cols-1 gap-6">
                     <CustomInputBox
-                      label="Telephone"
-                      placeholder="e.g., +1-234-567-8900"
-                      name="telephone"
-                      value={formData.telephone}
-                      onChange={handleChange}
-                    />
-                    <CustomInputBox
                       label="Mobile Number"
                       placeholder="e.g., +1-234-567-8900"
                       name="mobile"
                       value={formData.mobile}
+                      onChange={handleChange}
+                    />
+                    <CustomInputBox
+                      label="Telephone"
+                      placeholder="e.g., +1-234-567-8900"
+                      name="telephone"
+                      value={formData.telephone}
                       onChange={handleChange}
                     />
                     <CustomInputBox
@@ -1344,7 +1401,7 @@ const CompanyPage: React.FC = () => {
                           onChange={handleChange}
                           maxLength={20}
                         />
-                           <CustomInputBox
+                        <CustomInputBox
                           label="VAT Number"
                           placeholder="e.g., ABCD12345E"
                           name="vatNumber"
@@ -1470,7 +1527,8 @@ const CompanyPage: React.FC = () => {
                           <div>
                             <p className="font-medium">{bank.bankName}</p>
                             <p className="text-sm text-gray-600">
-                              {bank.accountHolderName} - {bank.accountNumber.slice(-4)}
+                              {bank.accountHolderName} -{" "}
+                              {bank.accountNumber.slice(-4)}
                             </p>
                           </div>
                           <div className="flex gap-2">

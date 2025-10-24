@@ -37,7 +37,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const { defaultSelected, companies } = useCompanyStore();
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
-  
+
   // Ref for the logout dropdown container
   const logoutDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -141,23 +141,25 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   setShowCompanyPopup(true);
                 }}
               >
-                <div className="flex flex-col min-w-0 ">
-                  <span className="font-semibold text-sm text-teal-800 truncate max-w-[250px] group-hover:text-teal-900 transition-colors">
+                <div className="flex flex-col min-w-0">
+                  <span className="flex items-center font-semibold text-sm text-teal-800 truncate max-w-[250px] group-hover:text-teal-900 transition-colors">
                     {company[0]?.namePrint || "No Company"}
+                    {/* Solid triangle using Tailwind */}
+                    <span className="ml-2 w-1 h-1 border-t-[8px] border-t-teal-600 border-x-[6px] border-x-transparent inline-block"></span>{" "}
                   </span>
                   <span
-                    className="text-[10px] text-teal-600 font-mono hover:text-teal-700 transition-colors cursor-copy"
+                    className="text-[10px] text-teal-600 font-mono hover:text-teal-700 transition-colors cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (company[0]?.code) {
                         navigator.clipboard
                           .writeText(company[0].code)
-                          .then(() => {
-                            toast.success("Company ID copied to clipboard");
-                          })
-                          .catch(() => {
-                            toast.error("Failed to copy Company ID");
-                          });
+                          .then(() =>
+                            toast.success("Company ID copied to clipboard")
+                          )
+                          .catch(() =>
+                            toast.error("Failed to copy Company ID")
+                          );
                       }
                     }}
                     title="Click to copy Company ID"
