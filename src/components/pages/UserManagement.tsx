@@ -655,8 +655,8 @@ export const UserManagement: React.FC = () => {
       toast.success("User created successfully");
     }
 
-    // resetForm();
-    // setOpen(false);
+    resetForm();
+    setOpen(false);
     // setActiveTab("basic");
   };
 
