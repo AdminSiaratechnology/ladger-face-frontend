@@ -231,7 +231,7 @@ const deleteProduct = async (id: number) => {
 };
 
 // Fetch all customers
-const fetchCustomers = async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
+const fetchCustomers =  async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
   const res = await apiClient.get(`/agent/customers/${companyId}?${queryParams}}`);
   // console.log(res, "fetchCustomers response");
   return res.data;

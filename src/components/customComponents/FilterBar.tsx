@@ -22,7 +22,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
   setSortBy,
   onClearFilters,
 }) => {
-  const hasActiveFilters = searchTerm || statusFilter !== "all" || sortBy !== "nameAsc";
+  const hasActiveFilters = searchTerm || statusFilter !== "all" || sortBy !== "dateDesc";
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-sm mb-3">

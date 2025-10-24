@@ -256,18 +256,21 @@ const ProductSelection = () => {
       <div className=" border-gray-200 pb-2 flex items-center justify-between">
         <div className="text-xl text-gray-600">
           <span className="text-xl font-semibold text-teal-500">New Order</span>
-          <h1 className="text-teal-900 font-bold">
-            {selectedCustomer?.customerName} . {selectedRoute}
-          </h1>
+        <h1 className="text-teal-900 font-bold">
+  {selectedCustomer?.customerName}
+  {selectedRoute && ` • ${selectedRoute}`}
+</h1>
+
         </div>
-        <div className="relative" onClick={() => setShowReview(true)}>
-          <ShoppingCart className="w-7 h-7 text-teal-500 cursor-pointer" />
-          {cart.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-teal-900 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-sm">
-              {cart.reduce((sum, item) => sum + item.quantity, 0)}
-            </span>
-          )}
-        </div>
+      <div className="relative" onClick={() => setShowReview(true)}>
+  <ShoppingCart className="w-7 h-7 text-teal-500 cursor-pointer" />
+  {cart.length > 0 && (
+    <span className="absolute -top-2 -right-2 bg-teal-900 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+      {cart.reduce((sum, item) => sum + item.quantity, 0)}
+    </span>
+  )}
+</div>
+
       </div>
       {/* 🔍 Search Bar */}
       <div className="flex w-full mb-4 mt-2">

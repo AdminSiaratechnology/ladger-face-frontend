@@ -244,6 +244,7 @@ const CustomerRegistrationPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");
+  const [editingBankId, setEditingBankId] = useState<number | null>(null);
   const [bankForm, setBankForm] = useState<Bank>({
     id: Date.now(),
     accountHolderName: "",
@@ -259,7 +260,7 @@ const CustomerRegistrationPage: React.FC = () => {
   >(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "inactive" | "suspended" | "prospect"
+    "all" | "active" | "inactive"
   >("all");
   const [sortBy, setSortBy] = useState<
     "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
@@ -280,10 +281,7 @@ const CustomerRegistrationPage: React.FC = () => {
     error,
   } = useCustomerStore(); // Assuming store exists
   const { defaultSelected, companies } = useCompanyStore();
-  const getCompanyName = (companyId: string) => {
-    const company = companies.find((c) => c._id === companyId);
-    return company ? company.namePrint : "Unknown Company";
-  };
+  console.log(defaultSelected);
   const [formData, setFormData] = useState<CustomerForm>({
     customerType: "individual",
     customerCode: "",
@@ -484,7 +482,10 @@ const CustomerRegistrationPage: React.FC = () => {
       branch: "",
     });
   };
-
+  const editBank = (bank: Bank): void => {
+    setBankForm(bank);
+    setEditingBankId(bank.id);
+  };
   const removeBank = (id: number): void => {
     setFormData((prev) => ({
       ...prev,
@@ -682,10 +683,6 @@ const CustomerRegistrationPage: React.FC = () => {
       toast.error("Please enter Customer Name");
       return;
     }
-    if (!formData.companyId) {
-      toast.error("Please select Company");
-      return;
-    }
     if (!formData.contactPerson.trim()) {
       toast.error("Please enter Contact Person");
       return;
@@ -792,6 +789,7 @@ const CustomerRegistrationPage: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
+    console.log(defaultSelected);
     fetchCustomers(currentPage, limit, defaultSelected);
   }, [fetchCustomers, currentPage, defaultSelected]);
 
@@ -803,7 +801,14 @@ const CustomerRegistrationPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterCustomers(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
+      filterCustomers(
+        searchTerm,
+        statusFilter,
+        sortBy,
+        currentPage,
+        limit,
+        defaultSelected
+      )
         .then((result) => {
           setFilteredCustomers(result);
           console.log(result);
@@ -816,7 +821,15 @@ const CustomerRegistrationPage: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterCustomers, limit, defaultSelected]);
+  }, [
+    searchTerm,
+    statusFilter,
+    sortBy,
+    currentPage,
+    filterCustomers,
+    limit,
+    defaultSelected,
+  ]);
 
   const formatSimpleDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -1320,7 +1333,7 @@ const CustomerRegistrationPage: React.FC = () => {
                       <option value="trust">Trust</option>
                     </select>
                   </div>
-                  <SelectedCompany/>
+                  <SelectedCompany />
                   {/* <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Company <span className="text-red-500">*</span>
@@ -1722,24 +1735,13 @@ const CustomerRegistrationPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Payment Terms
-                    </label>
-                    <select
-                      value={formData.paymentTerms}
-                      onChange={(e) =>
-                        handleSelectChange("paymentTerms", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Payment Terms</option>
-                      <option value="net_30">Net 30</option>
-                      <option value="net_60">Net 60</option>
-                      <option value="immediate">Immediate</option>
-                      <option value="advance">Advance Payment</option>
-                    </select>
-                  </div>
+                  <CustomInputBox
+                    label="Payment Terms"
+                    placeholder="e.g., 30 days"
+                    name="paymentTerms"
+                    value={formData.paymentTerms}
+                    onChange={handleChange}
+                  />
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Agent
@@ -1861,13 +1863,6 @@ const CustomerRegistrationPage: React.FC = () => {
 
             {activeTab === "bank" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Building2 className="w-4 h-4 text-white" />}
-        title="Add Bank Information"
-        gradientFrom="from-purple-400"
-        gradientTo="to-purple-500"
-      /> */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                   <CustomInputBox
                     label="Account Holder Name *"
@@ -1945,14 +1940,23 @@ const CustomerRegistrationPage: React.FC = () => {
                             {bank.accountNumber.slice(-4)}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeBank(bank.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => editBank(bank)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeBank(bank.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1969,13 +1973,6 @@ const CustomerRegistrationPage: React.FC = () => {
 
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Settings2 className="w-4 h-4 text-white" />}
-        title="Additional Settings"
-        gradientFrom="from-cyan-400"
-        gradientTo="to-cyan-500"
-      /> */}
-
                 <div className="mb-8">
                   <h4 className="font-semibold text-gray-800 mb-4 text-lg">
                     Customer Logo
@@ -2030,7 +2027,7 @@ const CustomerRegistrationPage: React.FC = () => {
                     Registration Documents
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {["TAX", "VAT", "GST", "PAN", "TAN", "MSME"].map(
+                    {["GST", "VAT", "MSME", "PAN", "TAN", "Other"].map(
                       (docType) => (
                         <div
                           key={docType}

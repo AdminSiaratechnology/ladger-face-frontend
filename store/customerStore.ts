@@ -189,8 +189,12 @@ interface CustomerStore {
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-    companyId?:number | string,
-  fetchCustomers: (page?: number, limit?: number,companyId?: number | string ) => Promise<void>;
+  companyId?: number | string;
+  fetchCustomers: (
+    page?: number,
+    limit?: number,
+    companyId?: number | string
+  ) => Promise<void>;
   addCustomer: (customer: FormData) => Promise<void>;
   updateCustomer: (params: { id: string; customer: FormData }) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
@@ -200,7 +204,7 @@ interface CustomerStore {
     sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
     page?: number,
     limit?: number,
-    companyId?:number | string,
+    companyId?: number | string
   ) => Promise<Customer[]>;
 }
 
@@ -218,23 +222,21 @@ export const useCustomerStore = create<CustomerStore>()(
       error: false,
       errorMessage: null,
 
-      fetchCustomers: async (page = 1, limit = 10, search = "", companyId) => {
+      fetchCustomers: async (page = 1, limit = 10, companyId?:string|number) => {
+        console.log("first, ", companyId);
         set({ loading: true, error: false });
         try {
           const queryParams = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
           });
-
-          if (search.trim()) {
-            queryParams.append("search", search.trim());
-          }
           const id = companyId?.toLocaleString();
           const result = await api.fetchCustomers(
-            {companyId:id},
+            { companyId: id },
             {
-            queryParams: queryParams.toString(),
-          }); // Adjust api call
+              queryParams: queryParams.toString(),
+            }
+          ); // Adjust api call
           set({
             customers: result?.data?.customers || [],
             pagination: result?.data?.pagination,
@@ -316,7 +318,7 @@ export const useCustomerStore = create<CustomerStore>()(
         sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
         page = 1,
         limit = 10,
-        companyId?:string
+        companyId?: string
       ) => {
         try {
           set({ loading: true, error: false });
@@ -330,9 +332,12 @@ export const useCustomerStore = create<CustomerStore>()(
             limit: limit.toString(),
           });
 
-          const result = await api.fetchCustomers( {companyId}, {
-            queryParams: queryParams.toString(),
-          }); // Adjust api call
+          const result = await api.fetchCustomers(
+            { companyId },
+            {
+              queryParams: queryParams.toString(),
+            }
+          ); // Adjust api call
           console.log("Filter result for customers:", result);
 
           set({
