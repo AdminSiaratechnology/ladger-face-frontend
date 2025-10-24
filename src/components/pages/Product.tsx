@@ -48,6 +48,7 @@ import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
+import { useVendorStore } from "../../../store/vendorStore";
 
 // Interfaces
 interface Unit {
@@ -191,7 +192,7 @@ const ProductPage: React.FC = () => {
     pagination,
     loading,
   } = useProductStore();
-
+  const { vendors } = useVendorStore();
   const [country] = useState<string>("india");
   const [suppliers] = useState<Supplier[]>([
     { id: 1, name: "Tech Suppliers Inc", code: "SUP001" },
@@ -240,18 +241,19 @@ const ProductPage: React.FC = () => {
   }, [defaultSelected, companies]);
   // Initial fetch
   useEffect(() => {
-    fetchProducts(currentPage, limit);
+    fetchProducts(currentPage, limit, defaultSelected);
   }, [fetchProducts, currentPage]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, sortBy]);
+  console.log(products, "products");
 
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterProducts(searchTerm, statusFilter, sortBy, currentPage, limit)
+      filterProducts(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
         .then((result) => {
           setFilteredProducts(result);
         })
@@ -263,7 +265,7 @@ const ProductPage: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterProducts]);
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterProducts, defaultSelected]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -1075,11 +1077,7 @@ const ProductPage: React.FC = () => {
                     onChange={handleChange}
                   />
                   <div className="flex flex-col gap-1">
-                                   <SelectedCompany
-  editing={editingProduct}
-  handleSelectChange={handleSelectChange}
-  companyId={formData.companyId}
-/>
+                    <SelectedCompany />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1095,7 +1093,7 @@ const ProductPage: React.FC = () => {
                       <option value="">Select Stock Group</option>
                       {stockGroups.map((group) => (
                         <option key={group._id} value={group._id}>
-                          {group.name} ({group.code})
+                          {group.name}
                         </option>
                       ))}
                     </select>
@@ -1125,10 +1123,17 @@ const ProductPage: React.FC = () => {
                     </label>
                     <select
                       value={formData.unit}
-                      onChange={(e) =>
-                        handleSelectChange("unit", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      onChange={(e) => {
+                        const selectedValue = e.target.value;
+                        if (selectedValue === formData.alternateUnit) {
+                          alert("Unit and Alternate Unit cannot be the same.");
+                          return;
+                        }
+                        handleSelectChange("unit", selectedValue);
+                      }}
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg 
+               focus:border-blue-500 focus:ring-4 focus:ring-blue-100 
+               focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Unit</option>
                       {units.map((unit) => (
@@ -1138,16 +1143,26 @@ const ProductPage: React.FC = () => {
                       ))}
                     </select>
                   </div>
+
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Alternate Unit
                     </label>
                     <select
                       value={formData.alternateUnit}
-                      onChange={(e) =>
-                        handleSelectChange("alternateUnit", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      onChange={(e) => {
+                        const selectedValue = e.target.value;
+                        if (selectedValue === formData.unit) {
+                          toast.error(
+                            "Alternate Unit and Unit cannot be the same."
+                          );
+                          return;
+                        }
+                        handleSelectChange("alternateUnit", selectedValue);
+                      }}
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg 
+               focus:border-blue-500 focus:ring-4 focus:ring-blue-100 
+               focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Alternate Unit</option>
                       {units.map((unit) => (
@@ -1157,6 +1172,7 @@ const ProductPage: React.FC = () => {
                       ))}
                     </select>
                   </div>
+
                   <CustomInputBox
                     label="Minimum Quantity"
                     placeholder="e.g., 100"
@@ -1178,9 +1194,9 @@ const ProductPage: React.FC = () => {
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Default Supplier</option>
-                      {suppliers.map((supplier) => (
-                        <option key={supplier.id} value={supplier.name}>
-                          {supplier.name} ({supplier.code})
+                      {vendors.map((supplier) => (
+                        <option key={supplier.id} value={supplier.vendorName}>
+                          {supplier.vendorName}
                         </option>
                       ))}
                     </select>
@@ -1219,7 +1235,7 @@ const ProductPage: React.FC = () => {
                       <option value="">Select Default Godown</option>
                       {godowns.map((godown) => (
                         <option key={godown._id} value={godown._id}>
-                          {godown.name} ({godown.code})
+                          {godown.name}
                         </option>
                       ))}
                     </select>
@@ -1236,8 +1252,8 @@ const ProductPage: React.FC = () => {
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Product Type</option>
-                      <option value="select">Select</option>
-                      <option value="godown">Godown</option>
+                      <option value="select">Goods</option>
+                      <option value="godown">Services</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
@@ -1559,11 +1575,12 @@ const ProductPage: React.FC = () => {
                             Godown
                           </th>
                         )}
-                        {getMaintainBatchStatus(selectedCompanyId || "") && (
-                          <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">
-                            Batch
-                          </th>
-                        )}
+                        {getMaintainBatchStatus(selectedCompanyId || "") &&
+                          formData.batch && (
+                            <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">
+                              Batch
+                            </th>
+                          )}
                         <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">
                           Quantity
                         </th>
@@ -1604,23 +1621,26 @@ const ProductPage: React.FC = () => {
                               </select>
                             </td>
                           )}
-                          {getMaintainBatchStatus(selectedCompanyId || "") && (
-                            <td className="p-2 border border-teal-200">
-                              <input
-                                type="text"
-                                value={item.batch}
-                                onChange={(e) =>
-                                  handleOpeningQuantityChange(
-                                    item.id,
-                                    "batch",
-                                    e.target.value
-                                  )
-                                }
-                                className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                                placeholder="Enter batch number"
-                              />
-                            </td>
-                          )}
+                          {getMaintainBatchStatus(selectedCompanyId || "") &&
+                            formData.batch && (
+                              <td className="p-2 border border-teal-200">
+                                <input
+                                  type="text"
+                                  value={item.batch || ""}
+                                  onChange={(e) =>
+                                    handleOpeningQuantityChange(
+                                      item.id,
+                                      "batch",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="Enter batch number"
+                                  className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg 
+                 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 
+                 focus:outline-none bg-white transition-all"
+                                />
+                              </td>
+                            )}
                           <td className="p-2 border border-teal-200">
                             <input
                               type="number"

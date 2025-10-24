@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "../ui/button";
-import { Dialog, DialogContent} from "../ui/dialog";
+import { Dialog, DialogContent } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
@@ -10,7 +10,6 @@ import {
   FileText,
   Settings2,
   Star,
-
   Phone,
   Mail,
   MapPin,
@@ -258,7 +257,7 @@ const AgentRegistrationPage: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchAgents(currentPage, limit,defaultSelected);
+    fetchAgents(currentPage, limit, defaultSelected);
   }, [fetchAgents, currentPage]);
 
   // Reset page to 1 when filters change
@@ -269,7 +268,14 @@ const AgentRegistrationPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterAgents(searchTerm, statusFilter, sortBy, currentPage, limit,defaultSelected)
+      filterAgents(
+        searchTerm,
+        statusFilter,
+        sortBy,
+        currentPage,
+        limit,
+        defaultSelected
+      )
         .then((result) => {
           setFilteredAgents(result);
         })
@@ -347,16 +353,25 @@ const AgentRegistrationPage: React.FC = () => {
     activeContracts: 0,
   });
   useEffect(() => {
-
-    if (defaultSelected && companies.length > 0 && editingAgent) {
-      console.log(defaultSelected);
+    if (defaultSelected && companies.length > 0) {
       const selectedCompany = companies.find((c) => c._id === defaultSelected);
+      console.log(selectedCompany);
       if (selectedCompany) {
-        setFormData((prev) => ({ ...prev, companyId: selectedCompany._id }));
-        console.log(formData.companyId);
+        // 🧩 Derive the currency from the company's country
+        const derivedCurrency = getCurrencyForCountry(selectedCompany.country);
+
+        setFormData((prev) => ({
+          ...prev,
+          companyId: selectedCompany._id,
+          country: selectedCompany.country || prev.country,
+          state: selectedCompany.state || prev.state,
+          city: selectedCompany.city || prev.city,
+          currency: derivedCurrency,
+        }));
       }
     }
-  }, [defaultSelected, companies]);
+  }, [defaultSelected]);
+  console.log(formData);
   const allCountries = useMemo(() => Country.getAllCountries(), []);
 
   const availableStates = useMemo(() => {
@@ -399,6 +414,15 @@ const AgentRegistrationPage: React.FC = () => {
 
     return currencyMap[country.isoCode] || country.currency || "USD";
   };
+  useEffect(() => {
+    if (formData.country) {
+      const derivedCurrency = getCurrencyForCountry(formData.country);
+      setFormData((prev) => ({
+        ...prev,
+        currency: derivedCurrency,
+      }));
+    }
+  }, [formData.country]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -743,7 +767,9 @@ const AgentRegistrationPage: React.FC = () => {
       resetForm();
     } catch (error) {
       console.error("Error saving agent:", error);
-      toast.error(editingAgent ? "Failed to update agent" : "Failed to add agent");
+      toast.error(
+        editingAgent ? "Failed to update agent" : "Failed to add agent"
+      );
     }
   };
 
@@ -1051,6 +1077,9 @@ const AgentRegistrationPage: React.FC = () => {
                   setFormData((prev) => ({
                     ...prev,
                     companyId: selectedCompany._id,
+                    country: selectedCompany.country,
+                    currency: selectedCompany.defaultCurrency,
+                    state: selectedCompany.state,
                   }));
                 }
               }
@@ -1211,26 +1240,6 @@ const AgentRegistrationPage: React.FC = () => {
                       <option value="broker">Broker</option>
                     </select>
                   </div>
-                    <CustomInputBox
-                    label="Agent Name"
-                    placeholder="e.g., ABC Agents"
-                    name="agentName"
-                    value={formData.agentName}
-                    onChange={handleChange}
-                    required={true}
-                  />
-                  <SelectedCompany
-  editing={editingAgent}
-  handleSelectChange={handleSelectChange}
-  companyId={formData.companyId}
-/>
-
-
-                  
-
-                </div>
-
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Agent Name"
                     placeholder="e.g., ABC Agents"
@@ -1239,6 +1248,7 @@ const AgentRegistrationPage: React.FC = () => {
                     onChange={handleChange}
                     required={true}
                   />
+                  <SelectedCompany />
                   <CustomInputBox
                     label="Short Name"
                     placeholder="e.g., ABC"
@@ -1246,65 +1256,6 @@ const AgentRegistrationPage: React.FC = () => {
                     value={formData.shortName}
                     onChange={handleChange}
                   />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Agent Category
-                    </label>
-                    <select
-                      value={formData.agentCategory}
-                      onChange={(e) =>
-                        handleSelectChange("agentCategory", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Agent Category</option>
-                      <option value="sales">Sales Agent</option>
-                      <option value="procurement">Procurement Agent</option>
-                      <option value="broker">Broker</option>
-                      <option value="independent">Independent Agent</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Specialty
-                    </label>
-                    <select
-                      value={formData.specialty}
-                      onChange={(e) =>
-                        handleSelectChange("specialty", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Specialty</option>
-                      <option value="technology">Technology</option>
-                      <option value="manufacturing">Manufacturing</option>
-                      <option value="healthcare">Healthcare</option>
-                      <option value="realestate">Real Estate</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Territory
-                    </label>
-                    <select
-                      value={formData.territory}
-                      onChange={(e) =>
-                        handleSelectChange("territory", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Territory</option>
-                      <option value="north">North</option>
-                      <option value="south">South</option>
-                      <option value="east">East</option>
-                      <option value="west">West</option>
-                    </select>
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
@@ -1363,7 +1314,45 @@ const AgentRegistrationPage: React.FC = () => {
                     </select>
                   </div>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Agent Category
+                    </label>
+                    <select
+                      value={formData.agentCategory}
+                      onChange={(e) =>
+                        handleSelectChange("agentCategory", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Agent Category</option>
+                      <option value="sales">Sales Agent</option>
+                      <option value="procurement">Procurement Agent</option>
+                      <option value="broker">Broker</option>
+                      <option value="independent">Independent Agent</option>
+                    </select>
+                  </div>
 
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Territory
+                    </label>
+                    <select
+                      value={formData.territory}
+                      onChange={(e) =>
+                        handleSelectChange("territory", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Territory</option>
+                      <option value="north">North</option>
+                      <option value="south">South</option>
+                      <option value="east">East</option>
+                      <option value="west">West</option>
+                    </select>
+                  </div>
+                </div>
                 <CustomStepNavigation
                   currentStep={1}
                   totalSteps={6}
@@ -1442,40 +1431,24 @@ const AgentRegistrationPage: React.FC = () => {
                       <label className="text-sm font-semibold text-gray-700">
                         Country
                       </label>
-                      <select
-                        value={formData.country}
-                        onChange={(e) =>
-                          handleSelectChange("country", e.target.value)
-                        }
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        {allCountries.map((country) => (
-                          <option key={country.isoCode} value={country.name}>
-                            {country.name}
-                          </option>
-                        ))}
-                      </select>
+                      <input
+                        type="text"
+                        value={formData.country || ""}
+                        disabled
+                        className="h-11 px-4 py-2 border-2 border-gray-200 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                      />
                     </div>
 
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-semibold text-gray-700">
                         State
                       </label>
-                      <select
-                        value={formData.state}
-                        onChange={(e) =>
-                          handleSelectChange("state", e.target.value)
-                        }
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                        disabled={availableStates.length === 0}
-                      >
-                        <option value="">Select State</option>
-                        {availableStates.map((state) => (
-                          <option key={state.isoCode} value={state.name}>
-                            {state.name}
-                          </option>
-                        ))}
-                      </select>
+                      <input
+                        type="text"
+                        value={formData.state || ""}
+                        disabled
+                        className="h-11 px-4 py-2 border-2 border-gray-200 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                      />
                     </div>
 
                     <div className="flex flex-col gap-1">
@@ -1524,7 +1497,6 @@ const AgentRegistrationPage: React.FC = () => {
                 />
               </div>
             )}
-
             {activeTab === "commission" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1532,21 +1504,14 @@ const AgentRegistrationPage: React.FC = () => {
                     <label className="text-sm font-semibold text-gray-700">
                       Currency
                     </label>
-                    <select
-                      value={formData.currency}
-                      onChange={(e) =>
-                        handleSelectChange("currency", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="USD">USD - US Dollar</option>
-                      <option value="EUR">EUR - Euro</option>
-                      <option value="GBP">GBP - British Pound</option>
-                      <option value="INR">INR - Indian Rupee</option>
-                      <option value="CAD">CAD - Canadian Dollar</option>
-                      <option value="AUD">AUD - Australian Dollar</option>
-                    </select>
+                    <input
+                      type="text"
+                      value={formData.currency || ""}
+                      disabled
+                      className="h-11 px-4 py-2 border-2 border-gray-200 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                    />
                   </div>
+
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Commission Structure
@@ -1566,10 +1531,12 @@ const AgentRegistrationPage: React.FC = () => {
                       <option value="tiered">Tiered Commission</option>
                       <option value="revenue_share">Revenue Share</option>
                       <option value="profit_share">Profit Share</option>
+                      <option value="none">None</option>
                     </select>
                   </div>
                 </div>
 
+                {/* Other fields — disabled if 'none' selected */}
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Commission Rate (%)"
@@ -1578,7 +1545,9 @@ const AgentRegistrationPage: React.FC = () => {
                     value={formData.commissionRate}
                     onChange={handleChange}
                     type="number"
+                    disabled={formData.commissionStructure === "none"}
                   />
+
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Payment Terms
@@ -1588,7 +1557,12 @@ const AgentRegistrationPage: React.FC = () => {
                       onChange={(e) =>
                         handleSelectChange("paymentTerms", e.target.value)
                       }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      className={`h-11 px-4 py-2 border-2 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all ${
+                        formData.commissionStructure === "none"
+                          ? "border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed"
+                          : "border-gray-300"
+                      }`}
+                      disabled={formData.commissionStructure === "none"}
                     >
                       <option value="">Select Payment Terms</option>
                       <option value="net_30">Net 30</option>
@@ -1627,99 +1601,72 @@ const AgentRegistrationPage: React.FC = () => {
                     onChange={handleChange}
                     maxLength={15}
                   />
-                  <CustomInputBox
-                    label="GST Number"
-                    placeholder="e.g., 22AAAAA0000A1Z5"
-                    name="gstNumber"
-                    value={formData.gstNumber}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                  <CustomInputBox
-                    label="PAN Number"
-                    placeholder="e.g., ABCDE1234F"
-                    name="panNumber"
-                    value={formData.panNumber}
-                    onChange={handleChange}
-                    maxLength={10}
-                  />
-                  <CustomInputBox
-                    label="TAN Number"
-                    placeholder="e.g., ABCD12345E"
-                    name="tanNumber"
-                    value={formData.tanNumber}
-                    onChange={handleChange}
-                    maxLength={10}
-                  />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Tax Category
-                    </label>
-                    <select
-                      value={formData.taxCategory}
-                      onChange={(e) =>
-                        handleSelectChange("taxCategory", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Tax Category</option>
-                      <option value="taxable">Taxable</option>
-                      <option value="exempt">Tax Exempt</option>
-                      <option value="zero_rated">Zero Rated</option>
-                      <option value="out_of_scope">Out of Scope</option>
-                    </select>
-                  </div>
+                {formData.country?.toLowerCase() === "india" && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <CustomInputBox
+                        label="GST Number"
+                        placeholder="e.g., 22AAAAA0000A1Z5"
+                        name="gstNumber"
+                        value={formData.gstNumber}
+                        onChange={handleChange}
+                        maxLength={15}
+                      />
+                      <CustomInputBox
+                        label="PAN Number"
+                        placeholder="e.g., ABCDE1234F"
+                        name="panNumber"
+                        value={formData.panNumber}
+                        onChange={handleChange}
+                        maxLength={10}
+                      />
+                      <CustomInputBox
+                        label="TAN Number"
+                        placeholder="e.g., ABCD12345E"
+                        name="tanNumber"
+                        value={formData.tanNumber}
+                        onChange={handleChange}
+                        maxLength={10}
+                      />
+                      <CustomInputBox
+                        label="MSME Number"
+                        placeholder="e.g., UDYAM-XX-00-0000000"
+                        name="msmeRegistration"
+                        value={formData.msmeRegistration}
+                        onChange={handleChange}
+                        maxLength={20}
+                      />
+                    </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Tax Template
-                    </label>
-                    <select
-                      value={formData.taxTemplate}
-                      onChange={(e) =>
-                        handleSelectChange("taxTemplate", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Tax Template</option>
-                      <option value="standard_tax">Standard Tax</option>
-                      <option value="zero_tax">Zero Tax</option>
-                      <option value="igst_18">IGST 18%</option>
-                      <option value="cgst_sgst_18">CGST+SGST 18%</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Withholding Tax Category
-                    </label>
-                    <select
-                      value={formData.withholdingTaxCategory}
-                      onChange={(e) =>
-                        handleSelectChange(
-                          "withholdingTaxCategory",
-                          e.target.value
-                        )
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select WHT Category</option>
-                      <option value="tds_contractor">TDS - Contractor</option>
-                      <option value="tds_professional">
-                        TDS - Professional
-                      </option>
-                      <option value="tds_commission">TDS - Commission</option>
-                    </select>
-                  </div>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-gray-700">
+                          Tax Category
+                        </label>
+                        <select
+                          value={formData.taxCategory}
+                          onChange={(e) =>
+                            handleSelectChange("taxCategory", e.target.value)
+                          }
+                          className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                        >
+                          <option value="">Select Tax Category</option>
+                          <option value="taxable">Taxable</option>
+                          <option value="exempt">Tax Exempt</option>
+                          <option value="zero_rated">Zero Rated</option>
+                          <option value="out_of_scope">Out of Scope</option>
+                        </select>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <CustomStepNavigation
                   currentStep={4}
                   totalSteps={6}
-                  onPrevious={() => setActiveTab("commission")}
+                  onPrevious={() => setActiveTab("financialSettings")}
                   onNext={() => setActiveTab("bank")}
                 />
               </div>
@@ -1995,7 +1942,7 @@ const AgentRegistrationPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
                     <input
                       type="checkbox"
@@ -2016,7 +1963,7 @@ const AgentRegistrationPage: React.FC = () => {
                     />
                     Reverse Charge
                   </label>
-                </div>
+                </div> */}
 
                 <div className="mb-6">
                   <p className="text-sm font-semibold text-gray-700 mb-2">

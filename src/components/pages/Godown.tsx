@@ -89,8 +89,8 @@ const GodownRegistration: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchGodowns(currentPage, limit);
-  }, [fetchGodowns, currentPage]);
+    fetchGodowns(currentPage, limit, defaultSelected);
+  }, [fetchGodowns, currentPage,defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -100,7 +100,7 @@ const GodownRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterGodowns(searchTerm, statusFilter, sortBy, currentPage, limit)
+      filterGodowns(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
         .then((result) => {
           setFilteredGodowns(result);
         })
@@ -112,7 +112,7 @@ const GodownRegistration: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterGodowns]);
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterGodowns, defaultSelected]);
 
   const [formData, setFormData] = useState<Godown>({
     id: 0,
@@ -287,8 +287,6 @@ const GodownRegistration: React.FC = () => {
   const tabs = [
     { id: "basic", label: "Basic Info" },
     { id: "location", label: "Location" },
-    { id: "management", label: "Management" },
-    { id: "settings", label: "Settings" },
   ];
 
   const headers = [
@@ -742,26 +740,28 @@ const GodownRegistration: React.FC = () => {
                         ?.filter((g) => g._id !== editingGodown?._id)
                         .map((godown) => (
                           <option key={godown._id} value={godown.code}>
-                            {godown.name} ({godown.code})
+                            {godown.name}
                           </option>
                         ))}
                     </select>
                   </div>
-                  {/* <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">Company</label>
-                    <select
-                      value={formData.company}
-                      onChange={(e) => handleSelectChange("company", e.target.value)}
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Company</option>
-                      {companies.map((company) => (
-                        <option key={company._id} value={company._id}>{company.namePrint}</option>
-                      ))}
-                    </select>
-                  </div> */}
                 </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  <CustomInputBox
+                    label="Manager Name"
+                    placeholder="e.g., John Doe"
+                    name="manager"
+                    value={formData.manager}
+                    onChange={handleChange}
+                  />
+                  <CustomInputBox
+                    label="Contact Number"
+                    placeholder="e.g., +1-234-567-8900"
+                    name="contactNumber"
+                    value={formData.contactNumber}
+                    onChange={handleChange}
+                  />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                   <CustomInputBox
                     label="Capacity (sq.ft)"
@@ -804,7 +804,7 @@ const GodownRegistration: React.FC = () => {
 
                 <CustomStepNavigation
                   currentStep={1}
-                  totalSteps={4}
+                  totalSteps={2}
                   showPrevious={false}
                   onNext={() => setActiveTab("location")}
                 />
@@ -894,110 +894,10 @@ const GodownRegistration: React.FC = () => {
 
                 <CustomStepNavigation
                   currentStep={2}
-                  totalSteps={4}
+                  totalSteps={2}
                   onPrevious={() => setActiveTab("basic")}
-                  onNext={() => setActiveTab("management")}
-                />
-              </div>
-            )}
-
-            {activeTab === "management" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Users className="w-4 h-4 text-white" />}
-        title="Management Details"
-        gradientFrom="from-green-400"
-        gradientTo="to-green-500"
-      /> */}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <CustomInputBox
-                    label="Manager Name"
-                    placeholder="e.g., John Doe"
-                    name="manager"
-                    value={formData.manager}
-                    onChange={handleChange}
-                  />
-                  <CustomInputBox
-                    label="Contact Number"
-                    placeholder="e.g., +1-234-567-8900"
-                    name="contactNumber"
-                    value={formData.contactNumber}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <CustomStepNavigation
-                  currentStep={3}
-                  totalSteps={4}
-                  onPrevious={() => setActiveTab("location")}
-                  onNext={() => setActiveTab("settings")}
-                />
-              </div>
-            )}
-
-            {activeTab === "settings" && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Settings2 className="w-4 h-4 text-white" />}
-        title="Setting"
-        gradientFrom="from-cyan-400"
-        gradientTo="to-cyan-500"
-      /> */}
-
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-gray-800 mb-2">Summary</h4>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <p>
-                      <strong>Code:</strong> {formData.code || "Not specified"}
-                    </p>
-                    <p>
-                      <strong>Name:</strong> {formData.name || "Not specified"}
-                    </p>
-                    <p>
-                      <strong>Location:</strong>{" "}
-                      {[formData.city, formData.state, formData.country]
-                        .filter(Boolean)
-                        .join(", ") || "Not specified"}
-                    </p>
-                    <p>
-                      <strong>Capacity:</strong>{" "}
-                      {formData.capacity
-                        ? `${formData.capacity} sq.ft`
-                        : "Not specified"}
-                    </p>
-                    <p>
-                      <strong>Manager:</strong>{" "}
-                      {formData.manager || "Not specified"}
-                    </p>
-                    <p>
-                      <strong>Status:</strong>{" "}
-                      {formData.status.charAt(0).toUpperCase() +
-                        formData.status.slice(1)}
-                    </p>
-                    <p>
-                      <strong>Primary:</strong>{" "}
-                      {formData.isPrimary ? "Yes" : "No"}
-                    </p>
-                    <p>
-                      <strong>Parent:</strong>{" "}
-                      {formData.parent === "primary" ? "None" : formData.parent}
-                    </p>
-                    <p>
-                      <strong>Company:</strong>{" "}
-                      {companies.find((c) => c._id === formData.company)
-                        ?.namePrint || "Not specified"}
-                    </p>
-                  </div>
-                </div>
-
-                <CustomStepNavigation
-                  currentStep={4}
-                  totalSteps={4}
-                  onPrevious={() => setActiveTab("management")}
-                  onSubmit={handleSubmit}
-                  submitLabel={editingGodown ? "Update Godown" : "Save Godown"}
                   isLastStep={true}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}

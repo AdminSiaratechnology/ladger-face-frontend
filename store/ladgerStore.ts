@@ -148,7 +148,7 @@ interface LedgerStore {
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchLedgers: (page?: number, limit?: number) => Promise<void>;
+  fetchLedgers: (page?: number, limit?: number, companyId?: number | string) => Promise<void>;
   addLedger: (ledger: FormData) => Promise<void>;
   updateLedger: (params: { id: string; ledger: FormData }) => Promise<void>;
   deleteLedger: (id: string) => Promise<void>;
@@ -156,6 +156,7 @@ interface LedgerStore {
     searchTerm: string,
     statusFilter: "all" | "active" | "inactive" | "suspended",
     sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
+    companyId?: number | string,
     page?: number,
     limit?: number
   ) => Promise<Ledger[]>;
@@ -175,7 +176,7 @@ export const useLedgerStore = create<LedgerStore>()(
       error: false,
       errorMessage: null,
 
-      fetchLedgers: async (page = 1, limit = 10) => {
+      fetchLedgers: async (page = 1, limit = 10,companyId) => {
         set({ loading: true, error: false });
         try {
           const queryParams = new URLSearchParams({
@@ -183,7 +184,7 @@ export const useLedgerStore = create<LedgerStore>()(
             limit: limit.toString(),
           });
 
-          const result = await api.fetchLedgers({ queryParams: queryParams.toString() });
+          const result = await api.fetchLedgers({companyId}, { queryParams: queryParams.toString() });
           set({
             ledgers: result?.data?.ledgers || [],
             pagination: result?.data?.pagination || {
@@ -260,7 +261,8 @@ export const useLedgerStore = create<LedgerStore>()(
         statusFilter: "all" | "active" | "inactive" | "suspended",
         sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
         page = 1,
-        limit = 10
+        limit = 10,
+        companyId
       ) => {
         try {
           set({ loading: true, error: false });
@@ -274,7 +276,7 @@ export const useLedgerStore = create<LedgerStore>()(
             limit: limit.toString(),
           });
 
-          const result = await api.fetchLedgers({ queryParams: queryParams.toString() });
+          const result = await api.fetchLedgers({companyId},{ queryParams: queryParams.toString() });
           set({
             ledgers: result?.data?.ledgers || [],
             pagination: result?.data?.pagination || {

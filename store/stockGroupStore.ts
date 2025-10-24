@@ -29,7 +29,7 @@ interface StockGroupStore{
     loading:boolean;
     error:boolean,
     errormessage:null|string,
-    fetchStockGroup:(page?: number, limit?: number)=>Promise<void>;
+    fetchStockGroup:(page?: number, limit?: number, companyId?:number | string)=>Promise<void>;
     addStockGroup:(stockGroupData:StockGroup)=>Promise<void>;
     updateStockGroup:(stockGroupId:string,stockGrroupData:StockGroup)=>Promise<void>;
     deleteStockGroup:(stockGroupId:string)=>Promise<void>;
@@ -37,6 +37,7 @@ interface StockGroupStore{
     searchTerm: string,
     statusFilter: 'all' | 'active' | 'inactive',
     sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    companyId?:number | string,
     page?: number,
     limit?: number
   ) => Promise<StockGroup[]>;
@@ -66,8 +67,8 @@ export const useStockGroup=create<StockGroupStore>()(
                limit: limit.toString(),
              });
              console.log(queryParams,"quearpaaaa")
-
-             const result=await api.getStockGroup({ queryParams: queryParams.toString() }); // Adjust if needed
+             const id = companyId?.toLocaleString();
+             const result=await api.getStockGroup({companyId:id},{ queryParams: queryParams.toString() }); // Adjust if needed
              console.log(result,"fetch result of stockgroup")
              if(result?.statusCode==200){
                 set({loading:false,stockGroups:result.data.stockGroups, pagination: result.data.pagination})
@@ -142,7 +143,8 @@ try {
         statusFilter: 'all' | 'active' | 'inactive',
         sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
         page = 1,
-        limit = 10
+        limit = 10,
+        companyId
       ) => {
         try {
           set({ loading: true, error: null });
@@ -156,7 +158,7 @@ try {
             limit: limit.toString(),
           });
 
-          const res = await api.getStockGroup({ queryParams: queryParams.toString() }); // Adjust api call
+          const res = await api.getStockGroup({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
           console.log("Database search response for stockGroups:", res);
 
           set({

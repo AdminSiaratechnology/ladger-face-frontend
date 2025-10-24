@@ -16,7 +16,10 @@ interface useUserManagementStore {
   pagination: Pagination;
   loading: boolean;
   error: string | null | boolean;
-  fetchUsers: (page?: number, limit?: number) => Promise<void>;
+  fetchUsers: (page?: number, limit?: number,
+    companyId?:number | string,
+
+  ) => Promise<void>;
   addUser: (user: any) => Promise<any>;
   editUser:(id:string,user:any)=>Promise<any>;
   deleteUser:(id:string)=>Promise<void>;
@@ -25,6 +28,7 @@ interface useUserManagementStore {
     roleFilter: 'all' | string,
     statusFilter: 'all' | 'active' | 'inactive',
     sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    companyId?:number | string,
     page?: number,
     limit?: number
   ) => Promise<any[]>;
@@ -45,7 +49,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
       error: null,
 
 
-      fetchUsers: async (page = 1, limit = 10) => {
+      fetchUsers: async (page = 1, limit = 10, companyId) => {
         set({ loading: true });
         try {
           console.log("Fetching users...");
@@ -53,8 +57,8 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             page: page.toString(),
             limit: limit.toString(),
           });
-
-          const response = await api.fetchUsers({ queryParams: queryParams.toString() }); // Adjust api call if needed
+          const id = companyId?.toLocaleString();
+          const response = await api.fetchUsers({companyId:id}, { queryParams: queryParams.toString() }); // Adjust api call if needed
           set({ users: response.data?.[0]?.users || [], pagination: response.data?.pagination, loading: false });
         } catch (error: any) {
           set({ error: error.message, loading: false });
@@ -126,7 +130,8 @@ export const useUserManagementStore = create<useUserManagementStore>()(
         statusFilter: 'all' | 'active' | 'inactive',
         sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
         page = 1,
-        limit = 10
+        limit = 10,
+        companyId: string
       ) => {
         set({ loading: true });
         try {
@@ -138,9 +143,10 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
             page: page.toString(),
             limit: limit.toString(),
+            companyId:companyId?.toLocaleString(),
           });
 
-          const response = await api.fetchUsers({ queryParams: queryParams.toString() }); // Adjust api call
+          const response = await api.fetchUsers({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
           set({ users: response.data?.users || [], pagination: response.data?.pagination, loading: false });
           console.log(response.data.users,".data?.data?.users")
           return response.data?.users || [];

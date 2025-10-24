@@ -93,8 +93,8 @@ const StockCategoryRegistration: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchStockCategory(currentPage, limit);
-  }, [fetchStockCategory, currentPage]);
+    fetchStockCategory(currentPage, limit,defaultSelected);
+  }, [fetchStockCategory, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -109,7 +109,8 @@ const StockCategoryRegistration: React.FC = () => {
         statusFilter,
         sortBy,
         currentPage,
-        limit
+        limit,
+        defaultSelected
       )
         .then((result) => {
           setFilteredStockCategories(result);
@@ -122,7 +123,7 @@ const StockCategoryRegistration: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterStockCategories]);
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterStockCategories, defaultSelected]);
 
   const [formData, setFormData] = useState<StockCategoryForm>({
     name: "",

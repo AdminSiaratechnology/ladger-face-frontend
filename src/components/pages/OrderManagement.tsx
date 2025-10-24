@@ -1116,23 +1116,25 @@ export default function OrderManagement() {
                   </h2>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
-                    <div>
-                      <span className="font-medium">Customer Name: </span>
-                      {selectedCustomer.customerName}
-                    </div>
-                    <div>
+<div className="flex flex-col gap-0.5">
+  <span className="font-medium">Contact</span>
+  <span>{selectedCustomer?.customerName || "N/A"}</span>
+  <span>{selectedCustomer?.phoneNumber || "N/A"}</span>
+</div>
+
+                    {/* <div>
                       <span className="font-medium">Short Name: </span>
                       {selectedCustomer.shortName}
                     </div>
                     <div>
                       <span className="font-medium">Email: </span>
                       {selectedCustomer.emailAddress || "N/A"}
-                    </div>
-                    <div>
+                    </div> */}
+                    {/* <div>
                       <span className="font-medium">Phone: </span>
                       {selectedCustomer.phoneNumber || "N/A"}
-                    </div>
-                    <div>
+                    </div> */}
+                    {/* <div>
                       <span className="font-medium">City: </span>
                       {selectedCustomer.city}
                     </div>
@@ -1147,8 +1149,8 @@ export default function OrderManagement() {
                     <div>
                       <span className="font-medium">Territory: </span>
                       {selectedCustomer.territory}
-                    </div>
-                    <div>
+                    </div> */}
+                    {/* <div>
                       <span className="font-medium">Status: </span>
                       <span
                         className={`${
@@ -1159,7 +1161,7 @@ export default function OrderManagement() {
                       >
                         {selectedCustomer.customerStatus}
                       </span>
-                    </div>
+                    </div> */}
                     <div>
                       <span className="font-medium">Credit Days: </span>
                       {selectedCustomer.creditDays}
@@ -1172,7 +1174,7 @@ export default function OrderManagement() {
                       <span className="font-medium">Discount: </span>
                       {selectedCustomer.discount}%
                     </div>
-                    <div className="col-span-2">
+                    {/* <div className="col-span-2">
                       <span className="font-medium">Address: </span>
                       <p>
                     {[
@@ -1185,7 +1187,7 @@ export default function OrderManagement() {
                       .filter(Boolean) 
                       .join(", ")}
                   </p>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               )}

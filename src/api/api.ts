@@ -36,9 +36,9 @@ const createUser = async (userData: any) => {
 
 //Fetch users for agent 
 
-const fetchUsers=async({queryParams}:{queryParams:string})=>{
+const fetchUsers=async({companyId}:{companyId:string},{queryParams}:{queryParams:string})=>{
   console.log("fewtching usersss ");
-  const res=await apiClient.get(`/user-management/client/allUsers?${queryParams}`)
+  const res=await apiClient.get(`/user-management/client/${companyId}?${queryParams}`)
   console.log(res,"fetched users response")
   return res.data
 }
@@ -124,10 +124,10 @@ const getProducts = async () => {
 
 
 //godowns 
-const getGodowns=async({queryParams}:{queryParams:any})=>{
+const getGodowns=async({companyId}:{companyId:string},{queryParams}:{queryParams:any})=>{
   console.log(queryParams,"quearyparmsgodiwn")
 
-  const res=await apiClient.get(`/godowns?${queryParams}`)
+  const res=await apiClient.get(`/godowns/${companyId}?${queryParams}`)
   return res?.data
 }
 const addGodowns=async(godown:any)=>{
@@ -145,8 +145,8 @@ const deleteGodown=async(id:string)=>{
 
 //stockgroup apis
 
-const getStockGroup=async({queryParams}:{queryParams:string})=>{
-  const res=await apiClient.get(`/stock-groups?${queryParams}`);
+const getStockGroup=async({companyId}:{companyId:string},{queryParams}:{queryParams:string})=>{
+  const res=await apiClient.get(`/stock-groups/${companyId}?${queryParams}`);
   return res?.data
 }
 const createSockGroup=async(data:any)=>{
@@ -166,9 +166,9 @@ const deleteStockGroup=async(stockGroupId:string)=>{
 
 //getStockCategory routes
 
-const getStockCategory = async (queryParams:string) => {
+const getStockCategory = async ({companyId}:{companyId:string},queryParams:string) => {
   console.log(queryParams,"queryParams")
-  const res = await apiClient.get("/stock-categories");
+  const res = await apiClient.get(`/stock-categories/${companyId}`);
   return res?.data;
 };
 
@@ -189,8 +189,8 @@ const deleteStockCategory = async (stockCategoryId: string) => {
 
 //getStockCategory routes
 
-const fetchUOM = async ({queryParams}:{queryParams:any}) => {
-  const res = await apiClient.get(`/units?${queryParams}`);
+const fetchUOM = async ({companyId}:{companyId:string},{queryParams}:{queryParams:any}) => {
+  const res = await apiClient.get(`/units/${companyId}?${queryParams}`);
   return res?.data;
 };
 
@@ -208,8 +208,8 @@ const deleteUOM = async (id: string) => {
   return res?.data;
 };
 
-const fetchProducts = async ({queryParams}:{queryParams:string}) => {
-  const res = await apiClient.get(`/products?${queryParams}`);
+const fetchProducts = async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
+  const res = await apiClient.get(`/products/${companyId}?${queryParams}`);
   console.log(res,"ressfetchproduct")
   return res.data;
 };
@@ -231,8 +231,8 @@ const deleteProduct = async (id: number) => {
 };
 
 // Fetch all customers
-const fetchCustomers = async ({queryParams}:{queryParams:string}) => {
-  const res = await apiClient.get(`/agent/customers?${queryParams}}`);
+const fetchCustomers = async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
+  const res = await apiClient.get(`/agent/customers/${companyId}?${queryParams}}`);
   // console.log(res, "fetchCustomers response");
   return res.data;
 };
@@ -264,8 +264,8 @@ const deleteCustomer = async (id: number | string) => {
 };
 
 // Fetch all vendors
-const fetchVendors = async ({queryParams}:{queryParams:string}) => {
-  const res = await apiClient.get(`/agent/vendors?${queryParams}`);
+const fetchVendors = async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
+  const res = await apiClient.get(`/agent/vendors/${companyId}?${queryParams}`);
   // console.log(res, "fetchVendors response");
   return res.data;
 };
@@ -297,8 +297,8 @@ const deleteVendor = async (id: number | string) => {
 };
 
 // Fetch all agents
-const fetchAgents = async ({queryParams}:{queryParams:string}) => {
-  const res = await apiClient.get(`/agent/agents?${queryParams}`);
+const fetchAgents = async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
+  const res = await apiClient.get(`/agent/agents/${companyId}?${queryParams}`);
   // console.log(res, "fetchAgents response");
   return res.data;
 };
@@ -330,8 +330,8 @@ const deleteAgent = async (id: number | string) => {
 };
 
 // Fetch all ledgers
-const fetchLedgers = async ({queryParams}:{queryParams:string}) => {
-  const res = await apiClient.get(`/agent/ledgers?${queryParams}`);
+const fetchLedgers = async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
+  const res = await apiClient.get(`/agent/ledgers/${companyId}?${queryParams}`);
   return res.data;
 };
 

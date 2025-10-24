@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { useCustomerStore } from "../../../store/customerStore";
+import { useCompanyStore } from "../../../store/companyStore";
 
 interface CustomerDropdownProps {
   selectedCustomerId: string;
@@ -12,6 +13,7 @@ export default function CustomerDropdown({
   setSelectedCustomerId,
 }: CustomerDropdownProps) {
   const { customers, fetchCustomers, pagination, loading } = useCustomerStore();
+  const { companies, defaultSelected } = useCompanyStore();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -28,8 +30,11 @@ export default function CustomerDropdown({
 
   // Initial load
   useEffect(() => {
-    fetchCustomers(1, 20, "");
-  }, []);
+    if (defaultSelected) {
+      fetchCustomers(1, 20, search, defaultSelected); // page, limit, search, companyId
+      setPage(1);
+    }
+  }, [defaultSelected, search]);
 
   // Infinite scroll
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -41,14 +46,17 @@ export default function CustomerDropdown({
     ) {
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchCustomers(nextPage, 20, search);
+      fetchCustomers(nextPage, 20, search, defaultSelected);
     }
   };
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -67,7 +75,9 @@ export default function CustomerDropdown({
         onClick={() => setIsOpen((prev) => !prev)}
         className="w-full border rounded-md px-3 py-2 flex justify-between items-center text-sm focus:ring-2 focus:ring-teal-400"
       >
-        {selectedCustomer ? selectedCustomer.customerName : "-- Select a Customer --"}
+        {selectedCustomer
+          ? selectedCustomer.customerName
+          : "-- Select a Customer --"}
         <ChevronDown className="w-4 h-4 text-gray-500" />
       </button>
 

@@ -203,10 +203,9 @@ export const useAgentStore = create<AgentStore>()(
           const queryParams = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
-            companyId:companyId?.toLocaleString()
           });
 
-          const result = await api.fetchAgents({ queryParams: queryParams.toString() }); // Adjust api call
+          const result = await api.fetchAgents({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
           set({
             agents: result?.data?.agents || [],
             pagination: result?.data?.pagination,
@@ -301,10 +300,9 @@ export const useAgentStore = create<AgentStore>()(
             sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
             page: page.toString(),
             limit: limit.toString(),
-            companyId:companyId?.toLocaleString(),
           });
 
-          const result = await api.fetchAgents({ queryParams: queryParams.toString() }); // Adjust api call
+          const result = await api.fetchAgents({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
           console.log("Filter result for agents:", result);
 
           set({

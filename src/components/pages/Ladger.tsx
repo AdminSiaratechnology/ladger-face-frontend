@@ -236,8 +236,8 @@ const LedgerRegistration: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchLedgers(currentPage, limit);
-  }, [fetchLedgers, currentPage]);
+    fetchLedgers(currentPage, limit, defaultSelected);
+  }, [fetchLedgers, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -247,7 +247,7 @@ const LedgerRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterLedgers(searchTerm, statusFilter, sortBy, currentPage, limit)
+      filterLedgers(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
         .then((result) => {
           setFilteredLedgers(result);
         })
@@ -262,7 +262,7 @@ const LedgerRegistration: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterLedgers]);
+  }, [searchTerm, statusFilter, sortBy, currentPage, filterLedgers, defaultSelected]);
 
   const [formData, setFormData] = useState<LedgerForm>({
     ledgerType: "individual",
@@ -1126,13 +1126,10 @@ const LedgerRegistration: React.FC = () => {
                       <option value="company">Company</option>
                       <option value="partnership">Partnership</option>
                       <option value="trust">Trust</option>
+                      <option value="trust">Others</option>
                     </select>
                   </div>
-                                <SelectedCompany
-  editing={editingLedger}
-  handleSelectChange={handleSelectChange}
-  companyId={formData.companyId}
-/>
+                  <SelectedCompany/>
                   {/*                   
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1464,13 +1461,6 @@ const LedgerRegistration: React.FC = () => {
 
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<FileText className="w-4 h-4 text-white" />}
-        title="Tax Details"
-        gradientFrom="from-yellow-400"
-        gradientTo="to-yellow-500"
-      /> */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Tax ID/Registration Number"
@@ -1488,99 +1478,72 @@ const LedgerRegistration: React.FC = () => {
                     onChange={handleChange}
                     maxLength={15}
                   />
-                  <CustomInputBox
-                    label="GST Number"
-                    placeholder="e.g., 22AAAAA0000A1Z5"
-                    name="gstNumber"
-                    value={formData.gstNumber}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                  <CustomInputBox
-                    label="PAN Number"
-                    placeholder="e.g., ABCDE1234F"
-                    name="panNumber"
-                    value={formData.panNumber}
-                    onChange={handleChange}
-                    maxLength={10}
-                  />
-                  <CustomInputBox
-                    label="TAN Number"
-                    placeholder="e.g., ABCD12345E"
-                    name="tanNumber"
-                    value={formData.tanNumber}
-                    onChange={handleChange}
-                    maxLength={10}
-                  />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Tax Category
-                    </label>
-                    <select
-                      value={formData.taxCategory}
-                      onChange={(e) =>
-                        handleSelectChange("taxCategory", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Tax Category</option>
-                      <option value="taxable">Taxable</option>
-                      <option value="exempt">Tax Exempt</option>
-                      <option value="zero_rated">Zero Rated</option>
-                      <option value="out_of_scope">Out of Scope</option>
-                    </select>
-                  </div>
+                {formData.country?.toLowerCase() === "india" && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <CustomInputBox
+                        label="GST Number"
+                        placeholder="e.g., 22AAAAA0000A1Z5"
+                        name="gstNumber"
+                        value={formData.gstNumber}
+                        onChange={handleChange}
+                        maxLength={15}
+                      />
+                      <CustomInputBox
+                        label="PAN Number"
+                        placeholder="e.g., ABCDE1234F"
+                        name="panNumber"
+                        value={formData.panNumber}
+                        onChange={handleChange}
+                        maxLength={10}
+                      />
+                      <CustomInputBox
+                        label="TAN Number"
+                        placeholder="e.g., ABCD12345E"
+                        name="tanNumber"
+                        value={formData.tanNumber}
+                        onChange={handleChange}
+                        maxLength={10}
+                      />
+                      <CustomInputBox
+                        label="MSME Number"
+                        placeholder="e.g., UDYAM-XX-00-0000000"
+                        name="msmeRegistration"
+                        value={formData.msmeRegistration}
+                        onChange={handleChange}
+                        maxLength={20}
+                      />
+                    </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Tax Template
-                    </label>
-                    <select
-                      value={formData.taxTemplate}
-                      onChange={(e) =>
-                        handleSelectChange("taxTemplate", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Tax Template</option>
-                      <option value="standard_tax">Standard Tax</option>
-                      <option value="zero_tax">Zero Tax</option>
-                      <option value="igst_18">IGST 18%</option>
-                      <option value="cgst_sgst_18">CGST+SGST 18%</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Withholding Tax Category
-                    </label>
-                    <select
-                      value={formData.withholdingTaxCategory}
-                      onChange={(e) =>
-                        handleSelectChange(
-                          "withholdingTaxCategory",
-                          e.target.value
-                        )
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select WHT Category</option>
-                      <option value="tds_contractor">TDS - Contractor</option>
-                      <option value="tds_professional">
-                        TDS - Professional
-                      </option>
-                      <option value="tds_commission">TDS - Commission</option>
-                    </select>
-                  </div>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-gray-700">
+                          Tax Category
+                        </label>
+                        <select
+                          value={formData.taxCategory}
+                          onChange={(e) =>
+                            handleSelectChange("taxCategory", e.target.value)
+                          }
+                          className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                        >
+                          <option value="">Select Tax Category</option>
+                          <option value="taxable">Taxable</option>
+                          <option value="exempt">Tax Exempt</option>
+                          <option value="zero_rated">Zero Rated</option>
+                          <option value="out_of_scope">Out of Scope</option>
+                        </select>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <CustomStepNavigation
-                  currentStep={3}
-                  totalSteps={5}
-                  onPrevious={() => setActiveTab("contact")}
+                  currentStep={4}
+                  totalSteps={6}
+                  onPrevious={() => setActiveTab("financialSettings")}
                   onNext={() => setActiveTab("bank")}
                 />
               </div>
@@ -1872,7 +1835,7 @@ const LedgerRegistration: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
                     <input
                       type="checkbox"
@@ -1913,7 +1876,7 @@ const LedgerRegistration: React.FC = () => {
                     />
                     Disabled
                   </label>
-                </div>
+                </div> */}
 
                 <div className="mb-6">
                   <p className="text-sm font-semibold text-gray-700 mb-2">
