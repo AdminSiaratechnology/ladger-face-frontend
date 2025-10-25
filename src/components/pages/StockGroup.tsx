@@ -94,7 +94,7 @@ const StockGroupRegistration: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchStockGroup(currentPage, limit,defaultSelected._id);
+    fetchStockGroup(currentPage, limit,defaultSelected?._id);
   }, [fetchStockGroup, currentPage,defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -105,7 +105,7 @@ const StockGroupRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterStockGroups(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected._id)
+      filterStockGroups(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
         .then((result) => {
           setFilteredStockGroups(result);
         })
@@ -128,7 +128,7 @@ const StockGroupRegistration: React.FC = () => {
   });
    useEffect(() => {
      if (defaultSelected) {
-       setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
      }
    }, [defaultSelected, companies]);
   const handleChange = (
@@ -365,7 +365,7 @@ const StockGroupRegistration: React.FC = () => {
                if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
-                  companyId: defaultSelected._id,
+                  companyId: defaultSelected?._id,
                 }));
               }
             }}

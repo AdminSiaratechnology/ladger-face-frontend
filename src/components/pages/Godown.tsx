@@ -89,7 +89,7 @@ const GodownRegistration: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchGodowns(currentPage, limit, defaultSelected._id);
+    fetchGodowns(currentPage, limit, defaultSelected?._idd);
   }, [fetchGodowns, currentPage,defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -100,7 +100,7 @@ const GodownRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterGodowns(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected._id)
+      filterGodowns(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
         .then((result) => {
           setFilteredGodowns(result);
         })
@@ -133,7 +133,7 @@ const GodownRegistration: React.FC = () => {
   });
    useEffect(() => {
      if (defaultSelected) {
-       setFormData((prev) => ({ ...prev, company: defaultSelected._id }));
+       setFormData((prev) => ({ ...prev, company: defaultSelected?._id }));
      }
    }, [defaultSelected, companies]);
   // Get all countries
@@ -541,7 +541,7 @@ const GodownRegistration: React.FC = () => {
                 if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
-                  company: defaultSelected._id,
+                  company: defaultSelected?._id,
                 }));
               }
               setOpen(true);

@@ -358,7 +358,7 @@ const CustomerRegistrationPage: React.FC = () => {
   });
   useEffect(() => {
     if (defaultSelected) {
-      setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+      setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
     }
   }, [defaultSelected, companies]);
 
@@ -787,7 +787,7 @@ const CustomerRegistrationPage: React.FC = () => {
   // Initial fetch
   useEffect(() => {
     console.log(defaultSelected);
-    fetchCustomers(currentPage, limit, defaultSelected._id);
+    fetchCustomers(currentPage, limit, defaultSelected?._id);
   }, [fetchCustomers, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -804,7 +804,7 @@ const CustomerRegistrationPage: React.FC = () => {
         sortBy,
         currentPage,
         limit,
-        defaultSelected._id
+        defaultSelected?._id
       )
         .then((result) => {
           setFilteredCustomers(result);
@@ -1154,7 +1154,7 @@ const CustomerRegistrationPage: React.FC = () => {
               if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
-                  companyId: defaultSelected._id,
+                  companyId: defaultSelected?._id,
                 }));
               }
               setOpen(true);

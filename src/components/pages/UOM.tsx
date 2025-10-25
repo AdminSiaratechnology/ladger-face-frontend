@@ -100,7 +100,7 @@ const UnitManagement: React.FC = () => {
   const { companies, defaultSelected } = useCompanyStore();
 
   useEffect(() => {
-    fetchUnits(currentPage, limit, defaultSelected._id);
+    fetchUnits(currentPage, limit, defaultSelected?._id);
   }, [fetchUnits, currentPage, defaultSelected]);
 
   useEffect(() => {
@@ -109,7 +109,7 @@ const UnitManagement: React.FC = () => {
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterUnits(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected._id)
+      filterUnits(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
         .then(setFilteredUnits)
         .catch(console.error);
     }, 500);
@@ -118,7 +118,7 @@ const UnitManagement: React.FC = () => {
   }, [searchTerm, statusFilter, sortBy, currentPage, filterUnits, defaultSelected]);
    useEffect(() => {
      if (defaultSelected) {
-       setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
      }
    }, [defaultSelected, companies]);
   const [formData, setFormData] = useState<UnitForm>({
@@ -464,7 +464,7 @@ const UnitManagement: React.FC = () => {
                if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
-                  companyId: defaultSelected._id,
+                  companyId: defaultSelected?._id,
                 }));
               }
             }}
