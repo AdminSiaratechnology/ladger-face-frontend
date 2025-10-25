@@ -93,7 +93,7 @@ const StockCategoryRegistration: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchStockCategory(currentPage, limit,defaultSelected._id);
+    fetchStockCategory(currentPage, limit,defaultSelected?._id);
   }, [fetchStockCategory, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -110,7 +110,7 @@ const StockCategoryRegistration: React.FC = () => {
         sortBy,
         currentPage,
         limit,
-        defaultSelected._id
+        defaultSelected?._id
       )
         .then((result) => {
           setFilteredStockCategories(result);
@@ -392,7 +392,7 @@ const StockCategoryRegistration: React.FC = () => {
                if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
-                  companyId: defaultSelected._id,
+                  companyId: defaultSelected?._id,
                 }));
               }
             }}

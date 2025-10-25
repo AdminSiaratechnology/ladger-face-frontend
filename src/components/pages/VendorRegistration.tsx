@@ -363,7 +363,7 @@ const VendorRegistrationPage: React.FC = () => {
   });
   useEffect(() => {
     if (defaultSelected) {
-      setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+      setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
     }
   }, [defaultSelected, companies]);
 
@@ -782,7 +782,7 @@ const VendorRegistrationPage: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchVendors(currentPage, limit, defaultSelected._id);
+    fetchVendors(currentPage, limit, defaultSelected?._id);
   }, [fetchVendors, currentPage,defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -793,7 +793,7 @@ const VendorRegistrationPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterVendors(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected._id)
+      filterVendors(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
         .then((result) => {
           setFilteredVendors(result);
         })
@@ -1070,7 +1070,7 @@ const VendorRegistrationPage: React.FC = () => {
                 if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
-                  companyId: defaultSelected._id,
+                  companyId: defaultSelected?._id,
                 }));
               }
               setOpen(true);

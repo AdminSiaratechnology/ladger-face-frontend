@@ -44,7 +44,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   console.log(defaultSelected);
   console.log(companies);
   const company = defaultSelected
-  console.log(company.namePrint);
+  // console.log(company.namePrint);
   const notifications = [
     {
       id: 1,

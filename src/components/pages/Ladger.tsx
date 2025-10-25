@@ -236,7 +236,7 @@ const LedgerRegistration: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchLedgers(currentPage, limit, defaultSelected._id);
+    fetchLedgers(currentPage, limit, defaultSelected?._idd);
   }, [fetchLedgers, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -247,7 +247,7 @@ const LedgerRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterLedgers(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected._id)
+      filterLedgers(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
         .then((result) => {
           setFilteredLedgers(result);
         })
@@ -318,7 +318,7 @@ const LedgerRegistration: React.FC = () => {
   });
    useEffect(() => {
      if (defaultSelected) {
-       setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
      }
    }, [defaultSelected, companies]);
   // Country, State, City Data
@@ -949,7 +949,7 @@ const LedgerRegistration: React.FC = () => {
               setOpen(true);
               if (defaultSelected && companies.length > 0) {
                 const selectedCompany = companies.find(
-                  (c) => c._id === defaultSelected._id
+                  (c) => c._id === defaultSelected?._id
                 );
                 if (selectedCompany) {
                   setFormData((prev) => ({

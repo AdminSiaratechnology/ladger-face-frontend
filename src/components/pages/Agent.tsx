@@ -257,7 +257,7 @@ const AgentRegistrationPage: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchAgents(currentPage, limit, defaultSelected._id);
+    fetchAgents(currentPage, limit, defaultSelected?._id);
   }, [fetchAgents, currentPage]);
 
   // Reset page to 1 when filters change
@@ -274,7 +274,7 @@ const AgentRegistrationPage: React.FC = () => {
         sortBy,
         currentPage,
         limit,
-        defaultSelected._id
+        defaultSelected?._id
       )
         .then((result) => {
           setFilteredAgents(result);
@@ -1071,7 +1071,7 @@ const AgentRegistrationPage: React.FC = () => {
                 if (defaultSelected) {
                   setFormData((prev) => ({
                     ...prev,
-                    companyId: defaultSelected._id,
+                    companyId: defaultSelected?._id,
                     country: defaultSelected.country,
                     currency: defaultSelected.defaultCurrency,
                     state: defaultSelected.state,

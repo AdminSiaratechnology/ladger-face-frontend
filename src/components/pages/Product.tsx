@@ -214,7 +214,7 @@ const ProductPage: React.FC = () => {
     defaultSupplier: "",
     minimumRate: 0,
     maximumRate: 0,
-    companyId: defaultSelected._id,
+    companyId: defaultSelected?._idd,
     defaultGodown: "",
     productType: "",
     taxConfiguration: {
@@ -233,7 +233,7 @@ const ProductPage: React.FC = () => {
   });
    useEffect(() => {
      if (defaultSelected) {
-       setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._idd }));
      }
    }, [defaultSelected, companies]);
   // Initial fetch
@@ -250,7 +250,7 @@ const ProductPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterProducts(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected._id)
+      filterProducts(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
         .then((result) => {
           setFilteredProducts(result);
         })
@@ -442,7 +442,7 @@ const ProductPage: React.FC = () => {
       defaultSupplier: "",
       minimumRate: 0,
       maximumRate: 0,
-      companyId: defaultSelected._id,
+      companyId: defaultSelected?._id,
       defaultGodown: "",
       productType: "",
       taxConfiguration: {
@@ -639,7 +639,7 @@ const ProductPage: React.FC = () => {
     return company ? company?.maintainBatch : false;
   };
 
-  const selectedCompanyId = defaultSelected._id;
+  const selectedCompanyId = defaultSelected?._id;
 
   const stats = useMemo(
     () => ({
@@ -896,7 +896,7 @@ const ProductPage: React.FC = () => {
               setOpen(true);
                useEffect(() => {
                  if (defaultSelected) {
-                   setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+                   setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
                  }
                }, [defaultSelected, companies]);
             }}
