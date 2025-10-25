@@ -94,7 +94,7 @@ const StockGroupRegistration: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchStockGroup(currentPage, limit,defaultSelected);
+    fetchStockGroup(currentPage, limit,defaultSelected._id);
   }, [fetchStockGroup, currentPage,defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -105,7 +105,7 @@ const StockGroupRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterStockGroups(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
+      filterStockGroups(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected._id)
         .then((result) => {
           setFilteredStockGroups(result);
         })
@@ -126,17 +126,11 @@ const StockGroupRegistration: React.FC = () => {
     stockGroupId: "",
     companyId: "",
   });
-  useEffect(() => {
-    console.log("defaultSelected:", defaultSelected);
-    console.log("companies:", companies);
-    if (defaultSelected && companies.length > 0) {
-      const selectedCompany = companies.find((c) => c._id === defaultSelected);
-      console.log(selectedCompany);
-      if (selectedCompany) {
-        setFormData((prev) => ({ ...prev, companyId: selectedCompany._id }));
-      }
-    }
-  }, [defaultSelected, companies]);
+   useEffect(() => {
+     if (defaultSelected) {
+       setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+     }
+   }, [defaultSelected, companies]);
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ): void => {
@@ -368,18 +362,12 @@ const StockGroupRegistration: React.FC = () => {
             onClick={() => {
               resetForm();
               setOpen(true);
-              if (defaultSelected && companies.length > 0) {
-                const selectedCompany = companies.find(
-                  (c) => c._id === defaultSelected
-                );
-                if (selectedCompany) {
-                  setFormData((prev) => ({
-                    ...prev,
-                    companyId: selectedCompany._id,
-                  }));
-                }
+               if (defaultSelected && companies.length > 0) {
+                setFormData((prev) => ({
+                  ...prev,
+                  companyId: defaultSelected._id,
+                }));
               }
-              setOpen(true);
             }}
             className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >

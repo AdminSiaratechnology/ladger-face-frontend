@@ -257,7 +257,7 @@ const AgentRegistrationPage: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchAgents(currentPage, limit, defaultSelected);
+    fetchAgents(currentPage, limit, defaultSelected._id);
   }, [fetchAgents, currentPage]);
 
   // Reset page to 1 when filters change
@@ -274,7 +274,7 @@ const AgentRegistrationPage: React.FC = () => {
         sortBy,
         currentPage,
         limit,
-        defaultSelected
+        defaultSelected._id
       )
         .then((result) => {
           setFilteredAgents(result);
@@ -354,8 +354,7 @@ const AgentRegistrationPage: React.FC = () => {
   });
   useEffect(() => {
     if (defaultSelected && companies.length > 0) {
-      const selectedCompany = companies.find((c) => c._id === defaultSelected);
-      console.log(selectedCompany);
+      const selectedCompany = defaultSelected
       if (selectedCompany) {
         // 🧩 Derive the currency from the company's country
         const derivedCurrency = getCurrencyForCountry(selectedCompany.country);
@@ -1069,20 +1068,15 @@ const AgentRegistrationPage: React.FC = () => {
           <Button
             onClick={() => {
               resetForm();
-              if (defaultSelected && companies.length > 0) {
-                const selectedCompany = companies.find(
-                  (c) => c._id === defaultSelected
-                );
-                if (selectedCompany) {
+                if (defaultSelected) {
                   setFormData((prev) => ({
                     ...prev,
-                    companyId: selectedCompany._id,
-                    country: selectedCompany.country,
-                    currency: selectedCompany.defaultCurrency,
-                    state: selectedCompany.state,
+                    companyId: defaultSelected._id,
+                    country: defaultSelected.country,
+                    currency: defaultSelected.defaultCurrency,
+                    state: defaultSelected.state,
                   }));
                 }
-              }
               setOpen(true);
             }}
             className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"

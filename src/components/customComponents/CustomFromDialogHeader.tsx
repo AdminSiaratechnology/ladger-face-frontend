@@ -21,10 +21,7 @@ const CustomFormDialogHeader: React.FC<CustomFormDialogHeaderProps> = ({
   gradientTo = "to-blue-500",
   showCompany = true,
 }) => {
-  const { defaultSelected, companies } = useCompanyStore();
-  const company = companies.filter(
-    (company) => company._id === defaultSelected
-  );
+  const { defaultSelected } = useCompanyStore();
   return (
     <DialogHeader
       className={`bg-gradient-to-r ${gradientFrom} ${gradientTo} text-white px-3 py-2 -mx-6 -mt-6 rounded-t-lg`}
@@ -46,15 +43,15 @@ const CustomFormDialogHeader: React.FC<CustomFormDialogHeaderProps> = ({
             <div className="hidden sm:flex items-center gap-2 from-teal-50 to-emerald-50 px-3 py-2  group shadow-sm transition-all duration-200">
               <div className="flex flex-col min-w-0 flex-1">
                 <span className="font-semibold text-sm text-white truncate">
-                  {company[0]?.namePrint || "No Company"}
+                  {defaultSelected.namePrint || "No Company"}
                 </span>
                 <div
                   className="flex items-center gap-1 text-xs text-white font-mono hover:text-gray-200 transition-colors cursor-copy whitespace-nowrap"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (company[0]?.code) {
+                    if (defaultSelected?.code) {
                       navigator.clipboard
-                        .writeText(company[0].code)
+                        .writeText(defaultSelected.code)
                         .then(() => {
                           toast.success("Company ID copied to clipboard");
                         })
@@ -65,7 +62,7 @@ const CustomFormDialogHeader: React.FC<CustomFormDialogHeaderProps> = ({
                   }}
                   title="Click to copy Company ID"
                 >
-                  <span>ID: {company[0]?.code || "No ID"}</span>
+                  <span>ID: {defaultSelected?.code || "No ID"}</span>
                   <svg
                     className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
                     fill="none"

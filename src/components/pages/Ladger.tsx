@@ -236,7 +236,7 @@ const LedgerRegistration: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchLedgers(currentPage, limit, defaultSelected);
+    fetchLedgers(currentPage, limit, defaultSelected._id);
   }, [fetchLedgers, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -247,7 +247,7 @@ const LedgerRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterLedgers(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
+      filterLedgers(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected._id)
         .then((result) => {
           setFilteredLedgers(result);
         })
@@ -316,14 +316,11 @@ const LedgerRegistration: React.FC = () => {
     notes: "",
     registrationDocs: [],
   });
-  useEffect(() => {
-    if (defaultSelected && companies.length > 0) {
-      const selectedCompany = companies.find((c) => c._id === defaultSelected);
-      if (selectedCompany) {
-        setFormData((prev) => ({ ...prev, companyId: selectedCompany._id }));
-      }
-    }
-  }, [defaultSelected, companies]);
+   useEffect(() => {
+     if (defaultSelected) {
+       setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+     }
+   }, [defaultSelected, companies]);
   // Country, State, City Data
   const allCountries = useMemo(() => Country.getAllCountries(), []);
   const availableStates = useMemo(() => {
@@ -600,10 +597,7 @@ const LedgerRegistration: React.FC = () => {
       toast.error("Please enter Ledger Name");
       return;
     }
-    if (!formData.companyId) {
-      toast.error("Please select Company");
-      return;
-    }
+  
     if (!formData.contactPerson.trim()) {
       toast.error("Please enter Contact Person");
       return;
@@ -955,7 +949,7 @@ const LedgerRegistration: React.FC = () => {
               setOpen(true);
               if (defaultSelected && companies.length > 0) {
                 const selectedCompany = companies.find(
-                  (c) => c._id === defaultSelected
+                  (c) => c._id === defaultSelected._id
                 );
                 if (selectedCompany) {
                   setFormData((prev) => ({

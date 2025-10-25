@@ -11,6 +11,7 @@ import CustomFormDialogHeader from "./CustomFromDialogHeader";
 import { Building2, Search } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useCompanyStore, type Company } from "../../../store/companyStore";
+import { useAuthStore } from "../../../store/authStore";
 
 interface CompanySelectorModalProps {
   open: boolean;
@@ -32,6 +33,7 @@ const CompanySelectorModal = ({
     filterCompanies,
     loading,
   } = useCompanyStore();
+  const { user } = useAuthStore();
 
   const [selectedId, setSelectedId] = useState<string | null>(
     defaultSelected || null
@@ -44,14 +46,19 @@ const CompanySelectorModal = ({
 
   // ✅ Fetch initial companies (default view)
   useEffect(() => {
+    if(user){
     filterCompanies("", statusFilter, sortBy, "68c1503077fd742fa21575df");
+    }
+    console.log("first")
   }, [filterCompanies, statusFilter, sortBy]);
 
   // ✅ Debounced search trigger
   useEffect(() => {
     const handler = setTimeout(() => {
+      if(user){
       filterCompanies(searchTerm, statusFilter, sortBy, "68c1503077fd742fa21575df")
         .catch((err) => console.error("Error filtering companies:", err));
+      }
     }, 500); // 500ms debounce
 
     return () => clearTimeout(handler);

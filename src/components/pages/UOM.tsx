@@ -100,7 +100,7 @@ const UnitManagement: React.FC = () => {
   const { companies, defaultSelected } = useCompanyStore();
 
   useEffect(() => {
-    fetchUnits(currentPage, limit, defaultSelected);
+    fetchUnits(currentPage, limit, defaultSelected._id);
   }, [fetchUnits, currentPage, defaultSelected]);
 
   useEffect(() => {
@@ -109,14 +109,18 @@ const UnitManagement: React.FC = () => {
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterUnits(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
+      filterUnits(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected._id)
         .then(setFilteredUnits)
         .catch(console.error);
     }, 500);
 
     return () => clearTimeout(handler);
   }, [searchTerm, statusFilter, sortBy, currentPage, filterUnits, defaultSelected]);
-
+   useEffect(() => {
+     if (defaultSelected) {
+       setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+     }
+   }, [defaultSelected, companies]);
   const [formData, setFormData] = useState<UnitForm>({
     name: "",
     type: "simple",
@@ -457,16 +461,11 @@ const UnitManagement: React.FC = () => {
           <Button
             onClick={() => {
               setOpen(true);
-              if (defaultSelected && companies.length > 0) {
-                const selectedCompany = companies.find(
-                  (c) => c._id === defaultSelected
-                );
-                if (selectedCompany) {
-                  setFormData((prev) => ({
-                    ...prev,
-                    companyId: selectedCompany._id,
-                  }));
-                }
+               if (defaultSelected && companies.length > 0) {
+                setFormData((prev) => ({
+                  ...prev,
+                  companyId: defaultSelected._id,
+                }));
               }
             }}
             className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"

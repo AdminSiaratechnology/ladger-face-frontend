@@ -14,23 +14,32 @@ interface MultiStepNavProps {
   currentStep: string
   onStepChange: (stepId: string) => void
   stepIcons: StepIcons
+  scrollContainerRef?: React.RefObject<HTMLDivElement>; 
 }
 
-const MultiStepNav: React.FC<MultiStepNavProps> = ({ steps, currentStep, onStepChange, stepIcons }) => {
+const MultiStepNav: React.FC<MultiStepNavProps> = ({ steps, currentStep, onStepChange, stepIcons, scrollContainerRef }) => {
   const currentIndex = steps.findIndex(step => step.id === currentStep)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
 
   // Scroll active step into view
   useEffect(() => {
-    const currentStepRef = stepRefs.current[currentIndex]
-    if (currentStepRef) {
-      currentStepRef.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center'
-      })
-    }
-  }, [currentIndex])
+  const currentStepRef = stepRefs.current[currentIndex];
+  if (currentStepRef) {
+    currentStepRef.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center'
+    });
+  }
+
+  // Scroll the provided container to top if available
+  if (scrollContainerRef?.current) {
+    scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}, [currentIndex, scrollContainerRef]);
+
 
   return (
     <div className="flex items-center justify-between bg-gradient-to-r from-cyan-50 to-blue-50 px-3 py-3 rounded-lg overflow-x-auto shadow-sm scrollbar-hide min-h-[70px]">
