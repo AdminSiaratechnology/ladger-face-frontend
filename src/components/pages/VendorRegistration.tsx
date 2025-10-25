@@ -754,8 +754,8 @@ const VendorRegistrationPage: React.FC = () => {
     } else {
       addVendor(vendorFormData);
     }
-    // setOpen(false);
-    // resetForm();
+    setOpen(false);
+    resetForm();
   };
 
   const stats = useMemo(

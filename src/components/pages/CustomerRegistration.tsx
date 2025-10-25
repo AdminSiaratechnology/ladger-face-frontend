@@ -759,8 +759,8 @@ const CustomerRegistrationPage: React.FC = () => {
     } else {
       addCustomer(customerFormData);
     }
-    // setOpen(false);
-    // resetForm();
+    setOpen(false);
+    resetForm();
   };
 
   const stats = useMemo(
