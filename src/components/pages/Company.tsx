@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 
@@ -20,6 +20,8 @@ import {
   Settings2,
   ArrowBigDownDash,
   Users,
+  Edit,
+  File,
 } from "lucide-react";
 
 import { Country, State, City } from "country-state-city";
@@ -167,6 +169,8 @@ const CompanyPage: React.FC = () => {
     branch: "",
   });
   const [editingBankId, setEditingBankId] = useState<number | null>(null);
+  const [isNamePrintManuallyEdited, setIsNamePrintManuallyEdited] =
+    useState(false);
   const [viewingImage, setViewingImage] = useState<
     RegistrationDocument | { previewUrl: string; type: "logo" } | null
   >(null);
@@ -181,6 +185,7 @@ const CompanyPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const {
     companies,
@@ -196,6 +201,8 @@ const CompanyPage: React.FC = () => {
   } = useCompanyStore();
 
   console.log("Companies from store:", companies);
+
+  const today = new Date().toISOString().split("T")[0];
 
   const [formData, setFormData] = useState<CompanyForm>({
     namePrint: "",
@@ -222,8 +229,8 @@ const CompanyPage: React.FC = () => {
     defaultCurrency: "INR",
     banks: [],
     notes: "",
-    bookStartingDate: "",
-    financialDate: "",
+    bookStartingDate: today,
+    financialDate: today,
     registrationDocs: [],
     status: "active",
     maintainGodown: false,
@@ -231,6 +238,8 @@ const CompanyPage: React.FC = () => {
     closingQuantityOrder: false,
     negativeOrder: false,
   });
+
+  console.log(formData, "jdhhhhhhhhhhh");
 
   const allCountries = useMemo(() => Country.getAllCountries(), []);
 
@@ -281,10 +290,18 @@ const CompanyPage: React.FC = () => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      };
+
+      if (name === "nameStreet" && !isNamePrintManuallyEdited) {
+        updated.namePrint = value;
+      }
+
+      return updated;
+    });
   };
 
   const handleSelectChange = (name: keyof CompanyForm, value: string): void => {
@@ -318,9 +335,17 @@ const CompanyPage: React.FC = () => {
 
   const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
+
+    let newValue = value;
+
+    // Only allow digits for the accountNumber field
+    if (name === "accountNumber") {
+      newValue = value.replace(/\D/g, ""); // remove non-numeric characters
+    }
+
     setBankForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: newValue,
     }));
   };
 
@@ -481,7 +506,7 @@ const CompanyPage: React.FC = () => {
 
   const resetForm = () => {
     cleanupImageUrls();
-
+    const today = new Date().toISOString().split("T")[0];
     setFormData({
       namePrint: "",
       nameStreet: "",
@@ -507,8 +532,8 @@ const CompanyPage: React.FC = () => {
       defaultCurrency: "INR",
       banks: [],
       notes: "",
-      bookStartingDate: "",
-      financialDate: "",
+      bookStartingDate: today,
+      financialDate: today,
       registrationDocs: [],
       status: "active",
       maintainGodown: false,
@@ -532,14 +557,25 @@ const CompanyPage: React.FC = () => {
   };
 
   const handleEditCompany = (company: Company): void => {
+    const today = new Date().toISOString().split("T")[0];
+
     setEditingCompany(company);
     setFormData({
       ...company,
       logoPreviewUrl: company.logo || undefined,
-      registrationDocs: company.registrationDocs.map((doc) => ({
-        ...doc,
-        previewUrl: doc.previewUrl, // Assuming previewUrl is URL or base64, adjust if needed
+      registrationDocs: company.registrationDocs.map((doc, index) => ({
+        id: Date.now() + index,
+        type: doc.type,
+        file: null, // No File for existing
+        fileName: doc.fileName,
+        previewUrl: doc.file, // Use URL as preview for existing images
       })),
+      bookStartingDate: company.bookStartingDate
+        ? new Date(company.bookStartingDate).toISOString().split("T")[0]
+        : today,
+      financialDate: company.financialDate
+        ? new Date(company.financialDate).toISOString().split("T")[0]
+        : today,
     });
     setOpen(true);
   };
@@ -549,6 +585,7 @@ const CompanyPage: React.FC = () => {
   };
 
   const handleSubmit = (): void => {
+    console.log("first")
     if (!formData.namePrint.trim()) {
       toast.error("Please enter Company Name (Print)");
       return;
@@ -601,17 +638,24 @@ const CompanyPage: React.FC = () => {
       companyFormData.append("logo", formData.logoFile);
     }
 
-    formData.registrationDocs.forEach((doc) => {
-      companyFormData.append("registrationDocs", doc.file);
+    // Filter only new documents (with File)
+    console.log(formData.registrationDocs,"formData.registrationDocs")
+ const newRegistrationDocs = formData.registrationDocs.filter(
+  (doc) => doc.file && doc.file instanceof Blob // works for File and Blob
+);
+
+    newRegistrationDocs.forEach((doc) => {
+      companyFormData.append("registrationDocs", doc.file!);
     });
-    companyFormData.append(
-      "registrationDocTypes",
-      JSON.stringify(formData.registrationDocs.map((doc) => doc.type))
-    );
-    companyFormData.append(
-      "registrationDocsCount",
-      String(formData.registrationDocs.length)
-    );
+
+    if (newRegistrationDocs.length > 0) {
+      companyFormData.append(
+        "registrationDocTypes",
+        JSON.stringify(newRegistrationDocs.map((doc) => doc.type))
+      );
+    }
+
+    // No need for registrationDocsCount
 
     if (editingCompany) {
       updateCompany({
@@ -664,7 +708,7 @@ const CompanyPage: React.FC = () => {
           ? pagination?.total
           : filteredCompanies?.filter((c) => c.status === "active").length,
     }),
-    [filteredCompanies, pagination, statusFilter]
+    [filteredCompanies, pagination, statusFilter, companies]
   );
 
   const tabs = [
@@ -825,165 +869,165 @@ const CompanyPage: React.FC = () => {
   );
 
   // Card View Component
-const CardView = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-    {filteredCompanies.map((company) => (
-      <Card
-        key={company._id}
-        className="group bg-white border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden h-full flex flex-col hover:border-teal-200 hover:-translate-y-1"
-      >
-        <CardHeader className="px-3 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
-          <div className="flex items-start justify-between gap-2">
-            {/* Company name section with flex constraints */}
-            <div className="flex items-center flex-1 min-w-0 max-w-[60%]">
-              <div
-                className={`flex-shrink-0 w-8 h-8 flex items-center justify-center mr-2 rounded-lg ${
-                  !company.logo
-                    ? "bg-gradient-to-br from-teal-300 to-teal-500 shadow-sm"
-                    : "bg-white border border-gray-200"
-                }`}
-              >
-                {company.logo ? (
-                  <img
-                    className="w-4 h-4 object-contain"
-                    src={company.logo}
-                    alt={`${company.namePrint} logo`}
-                  />
-                ) : (
-                  <Building2 className="w-4 h-4 text-white" />
-                )}
+  const CardView = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+      {filteredCompanies.map((company) => (
+        <Card
+          key={company._id}
+          className="group bg-white border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden h-full flex flex-col hover:border-teal-200 hover:-translate-y-1"
+        >
+          <CardHeader className="px-3 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+            <div className="flex items-start justify-between gap-2">
+              {/* Company name section with flex constraints */}
+              <div className="flex items-center flex-1 min-w-0 max-w-[60%]">
+                <div
+                  className={`flex-shrink-0 w-8 h-8 flex items-center justify-center mr-2 rounded-lg ${
+                    !company.logo
+                      ? "bg-gradient-to-br from-teal-300 to-teal-500 shadow-sm"
+                      : "bg-white border border-gray-200"
+                  }`}
+                >
+                  {company.logo ? (
+                    <img
+                      className="w-4 h-4 object-contain"
+                      src={company.logo}
+                      alt={`${company.namePrint} logo`}
+                    />
+                  ) : (
+                    <Building2 className="w-4 h-4 text-white" />
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-sm font-semibold text-gray-900 truncate">
+                    {company.namePrint}
+                  </CardTitle>
+                  {company.code && (
+                    <p className="text-[10px] text-teal-600 font-medium truncate">
+                      {company.code}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <CardTitle className="text-sm font-semibold text-gray-900 truncate">
-                  {company.namePrint}
-                </CardTitle>
-                {company.code && (
-                  <p className="text-[10px] text-teal-600 font-medium truncate">
-                    {company.code}
-                  </p>
-                )}
+              {/* Status and actions - ensured to always be visible */}
+              <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] py-0.5 px-2 capitalize border-0 whitespace-nowrap ${
+                    company.status === "active"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-rose-50 text-rose-700"
+                  }`}
+                >
+                  {company.status}
+                </Badge>
+                <ActionsDropdown
+                  onEdit={() => handleEditCompany(company)}
+                  onDelete={() => handleDeleteCompany(company._id || "")}
+                  module="BusinessManagement"
+                  subModule="Company"
+                />
               </div>
             </div>
+          </CardHeader>
 
-            {/* Status and actions - ensured to always be visible */}
-            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-              <Badge
-                variant="outline"
-                className={`text-[10px] py-0.5 px-2 capitalize border-0 whitespace-nowrap ${
-                  company.status === "active"
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-rose-50 text-rose-700"
-                }`}
-              >
-                {company.status}
-              </Badge>
-              <ActionsDropdown
-                onEdit={() => handleEditCompany(company)}
-                onDelete={() => handleDeleteCompany(company._id || "")}
-                module="BusinessManagement"
-                subModule="Company"
-              />
-            </div>
-          </div>
-        </CardHeader>
+          <CardContent className="px-3 flex-1 flex flex-col gap-2">
+            <div className="space-y-1">
+              {(company.city || company.state || company.pincode) && (
+                <div className="flex items-start text-sm">
+                  <MapPin className="w-4 h-4 text-teal-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 leading-relaxed text-xs">
+                    {[company.city, company.state, company.pincode]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </span>
+                </div>
+              )}
 
-        <CardContent className="px-3 flex-1 flex flex-col gap-2">
-          <div className="space-y-1">
-            {(company.city || company.state || company.pincode) && (
               <div className="flex items-start text-sm">
-                <MapPin className="w-4 h-4 text-teal-500 mr-2 mt-0.5 flex-shrink-0" />
-                <span className="text-gray-700 leading-relaxed text-xs">
-                  {[company.city, company.state, company.pincode]
-                    .filter(Boolean)
-                    .join(", ")}
+                <Mail className="w-4 h-4 text-gray-800 mr-2 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-700 break-words leading-relaxed text-xs">
+                  {company.email}
                 </span>
               </div>
-            )}
-
-            <div className="flex items-start text-sm">
-              <Mail className="w-4 h-4 text-gray-800 mr-2 mt-0.5 flex-shrink-0" />
-              <span className="text-gray-700 break-words leading-relaxed text-xs">
-                {company.email}
-              </span>
-            </div>
-            {company.mobile && (
-              <div className="flex items-center text-sm">
-                <Phone className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" />
-                <span className="text-gray-700 text-xs">
-                  {company.mobile}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {(company.gstNumber || company.vatNumber || company.tanNumber) && (
-            <div className="pt-2 border-t border-gray-100">
-              <div className="space-y-1.5">
-                {company.country === "India" ? (
-                  <>
-                    {company.gstNumber && (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
-                          GSTIN
-                        </span>
-                        <span className="bg-teal-50 text-teal-800 px-2 py-1 rounded font-mono text-xs border border-teal-100">
-                          {company.gstNumber}
-                        </span>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {company.vatNumber && (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
-                          VAT
-                        </span>
-                        <span className="bg-blue-50 text-blue-800 px-2 py-1 rounded font-mono text-xs border border-blue-100">
-                          {company.vatNumber}
-                        </span>
-                      </div>
-                    )}
-                    {company.tanNumber && (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
-                          TAN
-                        </span>
-                        <span className="bg-indigo-50 text-indigo-800 px-2 py-1 rounded font-mono text-xs border border-indigo-100">
-                          {company.tanNumber}
-                        </span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="pt-2 border-t border-gray-100 mt-auto">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center">
-                <CreditCard className="w-3 h-3 text-gray-500 mr-1.5" />
-                <span className="text-gray-700 font-medium text-xs">
-                  {company.defaultCurrency}
-                </span>
-              </div>
-              {company.banks.length > 0 && (
-                <div className="flex items-center text-[10px] text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
-                  <span className="font-medium">
-                    {company.banks.length} Bank
-                    {company.banks.length > 1 ? "s" : ""}
+              {company.mobile && (
+                <div className="flex items-center text-sm">
+                  <Phone className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 text-xs">
+                    {company.mobile}
                   </span>
                 </div>
               )}
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-);
+
+            {(company.gstNumber || company.vatNumber || company.tanNumber) && (
+              <div className="pt-2 border-t border-gray-100">
+                <div className="space-y-1.5">
+                  {company.country === "India" ? (
+                    <>
+                      {company.gstNumber && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+                            GSTIN
+                          </span>
+                          <span className="bg-teal-50 text-teal-800 px-2 py-1 rounded font-mono text-xs border border-teal-100">
+                            {company.gstNumber}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {company.vatNumber && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+                            VAT
+                          </span>
+                          <span className="bg-blue-50 text-blue-800 px-2 py-1 rounded font-mono text-xs border border-blue-100">
+                            {company.vatNumber}
+                          </span>
+                        </div>
+                      )}
+                      {company.tanNumber && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+                            TAN
+                          </span>
+                          <span className="bg-indigo-50 text-indigo-800 px-2 py-1 rounded font-mono text-xs border border-indigo-100">
+                            {company.tanNumber}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-gray-100 mt-auto">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center">
+                  <CreditCard className="w-3 h-3 text-gray-500 mr-1.5" />
+                  <span className="text-gray-700 font-medium text-xs">
+                    {company.defaultCurrency}
+                  </span>
+                </div>
+                {company.banks.length > 0 && (
+                  <div className="flex items-center text-[10px] text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
+                    <span className="font-medium">
+                      {company.banks.length} Bank
+                      {company.banks.length > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 
   const downloadPDF = async () => {
     const res = await api.downloadCompanyPDF();
@@ -1138,7 +1182,7 @@ const CardView = () => (
             }
           }}
         >
-          <DialogContent className="custom-dialog-container">
+          <DialogContent className="custom-dialog-container ">
             <CustomFormDialogHeader
               title={editingCompany ? "Edit Company" : "Add New Company"}
               subtitle={
@@ -1154,12 +1198,13 @@ const CardView = () => (
               currentStep={activeTab}
               onStepChange={setActiveTab}
               stepIcons={stepIcons}
+              scrollContainerRef={containerRef}
             />
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-scroll " ref={containerRef}>
               {activeTab === "basic" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                     <CustomInputBox
                       label="Company Name (Street)"
                       placeholder="e.g., ABC Corp Street Name"
@@ -1172,11 +1217,21 @@ const CardView = () => (
                       placeholder="e.g., ABC Corporation"
                       name="namePrint"
                       value={formData.namePrint}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        setIsNamePrintManuallyEdited(true);
+                        handleChange(e);
+                      }}
                       required={true}
                     />
                   </div>
-
+                  <CustomInputBox
+                    label="Code"
+                    placeholder="e.g., ABC001"
+                    name="code"
+                    value={formData.code}
+                    onChange={handleChange}
+                    readOnly
+                  />
                   <div className="mt-6 grid grid-cols-1 gap-6">
                     <CustomInputBox
                       label="Address Line 1"
@@ -1296,18 +1351,11 @@ const CardView = () => (
                     </div>
                   </div>
 
-                  <CustomInputBox
-                    label="Code"
-                    placeholder="e.g., ABC001"
-                    name="code"
-                    value={formData.code}
-                    onChange={handleChange}
-                  />
-
                   <CustomStepNavigation
                     currentStep={1}
                     totalSteps={6}
                     showPrevious={false}
+                    onSubmit={handleSubmit}
                     onNext={() => setActiveTab("contact")}
                   />
                 </div>
@@ -1359,6 +1407,7 @@ const CardView = () => (
                     currentStep={2}
                     totalSteps={6}
                     onPrevious={() => setActiveTab("basic")}
+                    onSubmit={handleSubmit}
                     onNext={() => setActiveTab("registration")}
                   />
                 </div>
@@ -1387,7 +1436,7 @@ const CardView = () => (
                         />
                         <CustomInputBox
                           label="MSME Number"
-                          placeholder="e.g., UDYAM-XX-00-0000000"
+                          placeholder="e.g., MSME-XX-00-0000000"
                           name="msmeNumber"
                           value={formData.msmeNumber}
                           onChange={handleChange}
@@ -1444,6 +1493,7 @@ const CardView = () => (
                     currentStep={3}
                     totalSteps={6}
                     onPrevious={() => setActiveTab("contact")}
+                    onSubmit={handleSubmit}
                     onNext={() => setActiveTab("bank")}
                   />
                 </div>
@@ -1558,6 +1608,7 @@ const CardView = () => (
                     totalSteps={6}
                     onPrevious={() => setActiveTab("registration")}
                     onNext={() => setActiveTab("branding")}
+                    onSubmit={handleSubmit}
                   />
                 </div>
               )}
@@ -1618,78 +1669,123 @@ const CardView = () => (
                       Registration Documents
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {["GST", "PAN", "TAN", "MSME", "UDYAM"].map((docType) => (
-                        <div
-                          key={docType}
-                          className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
-                        >
-                          <p className="text-sm font-semibold text-gray-700 mb-3">
-                            {docType} Document
-                          </p>
-                          <input
-                            type="file"
-                            id={`${docType.toLowerCase()}-doc`}
-                            className="hidden"
-                            onChange={(e) => handleDocumentUpload(docType, e)}
-                            accept="image/*,.pdf"
-                          />
-                          <label
-                            htmlFor={`${docType.toLowerCase()}-doc`}
-                            className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
+                      {["GST", "PAN", "TAN", "MSME", "UDYAM"].map((docType) => {
+                        const existingDoc = formData.registrationDocs.find(
+                          (doc) => doc.type === docType
+                        );
+
+                        return (
+                          <div
+                            key={docType}
+                            className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
                           >
-                            <Upload className="w-6 h-6 text-blue-500" />
-                            <p className="text-sm text-gray-600">Upload</p>
-                          </label>
-                          {formData.registrationDocs.find(
-                            (doc) => doc.type === docType
-                          ) && (
-                            <div className="mt-4 w-full">
-                              <p className="text-xs text-gray-500 truncate mb-2">
-                                {
-                                  formData.registrationDocs.find(
-                                    (doc) => doc.type === docType
-                                  )?.fileName
-                                }
-                              </p>
-                              {formData.registrationDocs.find(
-                                (doc) => doc.type === docType
-                              )?.previewUrl &&
-                                docType !== "PDF" && (
-                                  <img
-                                    src={
-                                      formData.registrationDocs.find(
-                                        (doc) => doc.type === docType
-                                      )?.previewUrl
-                                    }
-                                    alt={`${docType} document`}
-                                    className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
-                                    onClick={() =>
-                                      setViewingImage(
-                                        formData.registrationDocs.find(
-                                          (doc) => doc.type === docType
-                                        )!
-                                      )
-                                    }
-                                  />
-                                )}
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-2 right-2 w-6 h-6 rounded-full"
-                                onClick={() =>
-                                  removeDocument(
-                                    formData.registrationDocs.find(
-                                      (doc) => doc.type === docType
-                                    )!.id
-                                  )
-                                }
+                            <p className="text-sm font-semibold text-gray-700 mb-3">
+                              {docType} Document
+                            </p>
+                            <input
+                              type="file"
+                              id={`${docType.toLowerCase()}-doc`}
+                              className="hidden"
+                              onChange={(e) => handleDocumentUpload(docType, e)}
+                              accept="image/*,.pdf"
+                            />
+
+                            {/* Show upload button only if no document exists */}
+                            {!existingDoc && (
+                              <label
+                                htmlFor={`${docType.toLowerCase()}-doc`}
+                                className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
                               >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                                <Upload className="w-6 h-6 text-blue-500" />
+                                <p className="text-sm text-gray-600">Upload</p>
+                              </label>
+                            )}
+
+                            {/* Show document preview if document exists */}
+                            {existingDoc && (
+                              <div className="mt-4 w-full">
+                                <p className="text-xs text-gray-500 truncate mb-2 text-center">
+                                  {existingDoc.fileName}
+                                </p>
+
+                                {/* Show image preview for image files */}
+                                {existingDoc.previewUrl &&
+                                  !existingDoc.fileName
+                                    ?.toLowerCase()
+                                    .endsWith(".pdf") && (
+                                    <img
+                                      src={existingDoc.previewUrl}
+                                      alt={`${docType} document`}
+                                      className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
+                                      onClick={() =>
+                                        setViewingImage(existingDoc)
+                                      }
+                                    />
+                                  )}
+
+                                {/* Show PDF preview for PDF files */}
+                                {existingDoc.previewUrl &&
+                                  existingDoc.fileName
+                                    ?.toLowerCase()
+                                    .endsWith(".pdf") && (
+                                    <div
+                                      className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200"
+                                      onClick={() =>
+                                        window.open(
+                                          existingDoc.previewUrl,
+                                          "_blank"
+                                        )
+                                      }
+                                    >
+                                      <FileText className="w-8 h-8 text-red-500 mb-2" />
+                                      <p className="text-xs text-gray-600">
+                                        View PDF Document
+                                      </p>
+                                    </div>
+                                  )}
+
+                                {/* Show file icon for other file types */}
+                                {!existingDoc.previewUrl && (
+                                  <div className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center">
+                                    <File className="w-8 h-8 text-gray-400 mb-2" />
+                                    <p className="text-xs text-gray-600">
+                                      Document Uploaded
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Action buttons */}
+                                <div className="flex gap-2 mt-3 justify-center">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      document
+                                        .getElementById(
+                                          `${docType.toLowerCase()}-doc`
+                                        )
+                                        ?.click()
+                                    }
+                                  >
+                                    <Edit className="w-4 h-4 mr-1" />
+                                    Replace
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() =>
+                                      removeDocument(existingDoc.id)
+                                    }
+                                  >
+                                    <X className="w-4 h-4 mr-1" />
+                                    Remove
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1698,6 +1794,7 @@ const CardView = () => (
                     totalSteps={6}
                     onPrevious={() => setActiveTab("bank")}
                     onNext={() => setActiveTab("settings")}
+                    onSubmit={handleSubmit}
                   />
                 </div>
               )}

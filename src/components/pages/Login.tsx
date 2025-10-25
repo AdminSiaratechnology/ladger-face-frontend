@@ -59,6 +59,7 @@ export default function Login() {
   // }
   useEffect(() => {
     if (user) {
+      console.log(user,"userrrr");
       const fetchCompaniesAsync = async () => {
         await fetchCompanies("", 1, 10);
         setLoadCompany(true);
@@ -82,7 +83,7 @@ export default function Login() {
   console.log(companies);
   const setDefaultCompany = useCompanyStore((state) => state.setDefaultCompany);
   const handleSelect = (company) => {
-    setDefaultCompany(company._id);
+    setDefaultCompany(company);
     setShowCompanyPopup(false);
   };
   const handleEmailLogin = async (e: any) => {

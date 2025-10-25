@@ -214,7 +214,7 @@ const ProductPage: React.FC = () => {
     defaultSupplier: "",
     minimumRate: 0,
     maximumRate: 0,
-    companyId: defaultSelected,
+    companyId: defaultSelected._id,
     defaultGodown: "",
     productType: "",
     taxConfiguration: {
@@ -231,14 +231,11 @@ const ProductPage: React.FC = () => {
     remarks: "",
     status: "Active",
   });
-  useEffect(() => {
-    if (defaultSelected && companies.length > 0) {
-      const selectedCompany = companies.find((c) => c._id === defaultSelected);
-      if (selectedCompany) {
-        setFormData((prev) => ({ ...prev, companyId: selectedCompany._id }));
-      }
-    }
-  }, [defaultSelected, companies]);
+   useEffect(() => {
+     if (defaultSelected) {
+       setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+     }
+   }, [defaultSelected, companies]);
   // Initial fetch
   useEffect(() => {
     fetchProducts(currentPage, limit, defaultSelected);
@@ -253,7 +250,7 @@ const ProductPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterProducts(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
+      filterProducts(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected._id)
         .then((result) => {
           setFilteredProducts(result);
         })
@@ -445,7 +442,7 @@ const ProductPage: React.FC = () => {
       defaultSupplier: "",
       minimumRate: 0,
       maximumRate: 0,
-      companyId: defaultSelected,
+      companyId: defaultSelected._id,
       defaultGodown: "",
       productType: "",
       taxConfiguration: {
@@ -539,18 +536,18 @@ const ProductPage: React.FC = () => {
       toast.error("Please select Company");
       return;
     }
-    if (!formData.stockGroup) {
-      toast.error("Please select Stock Group");
-      return;
-    }
-    if (!formData.stockCategory) {
-      toast.error("Please select Stock Category");
-      return;
-    }
-    if (!formData.unit) {
-      toast.error("Please select Unit");
-      return;
-    }
+    // if (!formData.stockGroup) {
+    //   toast.error("Please select Stock Group");
+    //   return;
+    // }
+    // if (!formData.stockCategory) {
+    //   toast.error("Please select Stock Category");
+    //   return;
+    // }
+    // if (!formData.unit) {
+    //   toast.error("Please select Unit");
+    //   return;
+    // }
     if (formData.taxConfiguration.applicable && !isTaxValid()) {
       toast.error("CGST + SGST cannot exceed the tax percentage");
       return;
@@ -642,7 +639,7 @@ const ProductPage: React.FC = () => {
     return company ? company?.maintainBatch : false;
   };
 
-  const selectedCompanyId = defaultSelected;
+  const selectedCompanyId = defaultSelected._id;
 
   const stats = useMemo(
     () => ({
@@ -897,18 +894,11 @@ const ProductPage: React.FC = () => {
             onClick={() => {
               resetForm();
               setOpen(true);
-              if (defaultSelected && companies.length > 0) {
-                const selectedCompany = companies.find(
-                  (c) => c._id === defaultSelected
-                );
-                if (selectedCompany) {
-                  setFormData((prev) => ({
-                    ...prev,
-                    companyId: selectedCompany._id,
-                  }));
-                }
-              }
-              setOpen(true);
+               useEffect(() => {
+                 if (defaultSelected) {
+                   setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+                 }
+               }, [defaultSelected, companies]);
             }}
             className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >

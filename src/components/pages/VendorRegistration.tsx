@@ -361,14 +361,11 @@ const VendorRegistrationPage: React.FC = () => {
     notes: "",
     registrationDocs: [],
   });
-  // useEffect(() => {
-  //   if (defaultSelected && companies.length > 0) {
-  //     const selectedCompany = companies.find((c) => c._id === defaultSelected);
-  //     if (selectedCompany) {
-  //       setFormData((prev) => ({ ...prev, companyId: selectedCompany._id }));
-  //     }
-  //   }
-  // }, [defaultSelected, companies]);
+  useEffect(() => {
+    if (defaultSelected) {
+      setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
+    }
+  }, [defaultSelected, companies]);
 
   const allCountries = useMemo(() => Country.getAllCountries(), []);
 
@@ -785,7 +782,7 @@ const VendorRegistrationPage: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchVendors(currentPage, limit, defaultSelected);
+    fetchVendors(currentPage, limit, defaultSelected._id);
   }, [fetchVendors, currentPage,defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -796,7 +793,7 @@ const VendorRegistrationPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterVendors(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected)
+      filterVendors(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected._id)
         .then((result) => {
           setFilteredVendors(result);
         })
@@ -1070,16 +1067,11 @@ const VendorRegistrationPage: React.FC = () => {
             onClick={() => {
               resetForm();
               setOpen(true);
-              if (defaultSelected && companies.length > 0) {
-                const selectedCompany = companies.find(
-                  (c) => c._id === defaultSelected
-                );
-                if (selectedCompany) {
-                  setFormData((prev) => ({
-                    ...prev,
-                    companyId: selectedCompany._id,
-                  }));
-                }
+                if (defaultSelected && companies.length > 0) {
+                setFormData((prev) => ({
+                  ...prev,
+                  companyId: defaultSelected._id,
+                }));
               }
               setOpen(true);
             }}

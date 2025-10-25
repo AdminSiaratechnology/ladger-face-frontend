@@ -1,18 +1,18 @@
-import React from 'react'
-import { Button } from '../ui/button'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import React from "react";
+import { Button } from "../ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CustomStepNavigationProps {
-  currentStep: number
-  totalSteps: number
-  onNext?: () => void
-  onPrevious?: () => void
-  onSubmit?: () => void
-  isLastStep?: boolean
-  showPrevious?: boolean
-  showNext?: boolean
-  submitLabel?: string
-  editing?: boolean
+  currentStep: number;
+  totalSteps: number;
+  onNext?: () => void;
+  onPrevious?: () => void;
+  onSubmit?: () => void;
+  isLastStep?: boolean;
+  showPrevious?: boolean;
+  showNext?: boolean;
+  submitLabel?: string;
+  editing?: boolean;
 }
 
 const CustomStepNavigation: React.FC<CustomStepNavigationProps> = ({
@@ -24,7 +24,7 @@ const CustomStepNavigation: React.FC<CustomStepNavigationProps> = ({
   isLastStep = false,
   showPrevious = true,
   showNext = true,
-  submitLabel = 'Save Vendor',
+  submitLabel = "Save Vendor",
   editing = false,
 }) => {
   return (
@@ -43,38 +43,36 @@ const CustomStepNavigation: React.FC<CustomStepNavigationProps> = ({
         <div /> // Keeps layout balanced if no Previous button
       )}
 
-      {/* Step Info */}
+      {/* Step Info - Moved to the left side */}
       <div className="text-xs md:text-sm text-gray-500 flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-full">
         <span className="w-2 h-2 md:w-2.5 md:h-2.5 bg-blue-500 rounded-full animate-pulse" />
         Step {currentStep} of {totalSteps}
       </div>
 
-      {/* Next / Submit Button */}
-      {isLastStep ? (
+      {/* Next / Submit Button - Now on the right side */}
+      <div className="flex items-center gap-2">
+        {!isLastStep && showNext ? (
+          <Button
+            onClick={onNext}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
+          >
+            <span className="hidden xs:inline">Next</span>
+            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+          </Button>
+        ) : null}
+        
         <Button
           onClick={onSubmit}
           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
         >
           <span className="hidden xs:inline">
-            {editing ? 'Update Vendor' : submitLabel}
+            {editing ? "Update Vendor" : submitLabel}
           </span>
-          <span className="xs:hidden">
-            {editing ? 'Update' : 'Save'}
-          </span>
+          <span className="xs:hidden">{editing ? "Update" : "Save"}</span>
         </Button>
-      ) : showNext ? (
-        <Button
-          onClick={onNext}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
-        >
-          <span className="hidden xs:inline">Next</span>
-          <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-        </Button>
-      ) : (
-        <div /> // Keeps layout balanced if no Next button
-      )}
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default CustomStepNavigation
+export default CustomStepNavigation;

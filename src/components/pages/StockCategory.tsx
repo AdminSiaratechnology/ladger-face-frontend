@@ -93,7 +93,7 @@ const StockCategoryRegistration: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchStockCategory(currentPage, limit,defaultSelected);
+    fetchStockCategory(currentPage, limit,defaultSelected._id);
   }, [fetchStockCategory, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -110,7 +110,7 @@ const StockCategoryRegistration: React.FC = () => {
         sortBy,
         currentPage,
         limit,
-        defaultSelected
+        defaultSelected._id
       )
         .then((result) => {
           setFilteredStockCategories(result);
@@ -187,14 +187,6 @@ const StockCategoryRegistration: React.FC = () => {
   const handleSubmit = (): void => {
     if (!formData.name.trim()) {
       toast.error("Please enter Stock Category Name");
-      return;
-    }
-    if (!formData.companyId) {
-      toast.error("Please select Company");
-      return;
-    }
-    if (!formData.stockGroupId) {
-      toast.error("Please select Stock Group");
       return;
     }
 
@@ -397,18 +389,12 @@ const StockCategoryRegistration: React.FC = () => {
             onClick={() => {
               resetForm();
               setOpen(true);
-              if (defaultSelected && companies.length > 0) {
-                const selectedCompany = companies.find(
-                  (c) => c._id === defaultSelected
-                );
-                if (selectedCompany) {
-                  setFormData((prev) => ({
-                    ...prev,
-                    companyId: selectedCompany._id,
-                  }));
-                }
+               if (defaultSelected && companies.length > 0) {
+                setFormData((prev) => ({
+                  ...prev,
+                  companyId: defaultSelected._id,
+                }));
               }
-              setOpen(true);
             }}
             className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >

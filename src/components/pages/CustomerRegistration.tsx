@@ -357,11 +357,8 @@ const CustomerRegistrationPage: React.FC = () => {
     registrationDocs: [],
   });
   useEffect(() => {
-    if (defaultSelected && companies.length > 0) {
-      const selectedCompany = companies.find((c) => c._id === defaultSelected);
-      if (selectedCompany) {
-        setFormData((prev) => ({ ...prev, companyId: selectedCompany._id }));
-      }
+    if (defaultSelected) {
+      setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
     }
   }, [defaultSelected, companies]);
 
@@ -790,7 +787,7 @@ const CustomerRegistrationPage: React.FC = () => {
   // Initial fetch
   useEffect(() => {
     console.log(defaultSelected);
-    fetchCustomers(currentPage, limit, defaultSelected);
+    fetchCustomers(currentPage, limit, defaultSelected._id);
   }, [fetchCustomers, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -807,7 +804,7 @@ const CustomerRegistrationPage: React.FC = () => {
         sortBy,
         currentPage,
         limit,
-        defaultSelected
+        defaultSelected._id
       )
         .then((result) => {
           setFilteredCustomers(result);
@@ -1140,7 +1137,7 @@ const CustomerRegistrationPage: React.FC = () => {
   return (
     <div className="custom-container">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-8  sticky top-0 bg-white py-2 z-50">
         <HeaderGradient
           title="Customer Management"
           subtitle="Manage your customer information and registrations"
@@ -1155,15 +1152,10 @@ const CustomerRegistrationPage: React.FC = () => {
               resetForm();
               setOpen(true);
               if (defaultSelected && companies.length > 0) {
-                const selectedCompany = companies.find(
-                  (c) => c._id === defaultSelected
-                );
-                if (selectedCompany) {
-                  setFormData((prev) => ({
-                    ...prev,
-                    companyId: selectedCompany._id,
-                  }));
-                }
+                setFormData((prev) => ({
+                  ...prev,
+                  companyId: defaultSelected._id,
+                }));
               }
               setOpen(true);
             }}

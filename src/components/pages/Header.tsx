@@ -34,7 +34,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [isDark, setIsDark] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { user, logout } = useAuthStore();
-  const { defaultSelected, companies } = useCompanyStore();
+  const { defaultSelected, companies, resetCompanies } = useCompanyStore();
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
 
@@ -43,10 +43,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   console.log(defaultSelected);
   console.log(companies);
-  const company = companies.filter(
-    (company) => company._id === defaultSelected
-  );
-  console.log(company);
+  const company = defaultSelected
+  console.log(company.namePrint);
   const notifications = [
     {
       id: 1,
@@ -72,7 +70,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const unreadCount = notifications.filter((n) => n.unread).length;
   const setDefaultCompany = useCompanyStore((state) => state.setDefaultCompany);
   const handleSelect = (company) => {
-    setDefaultCompany(company._id);
+    setDefaultCompany(company);
     setShowCompanyPopup(false);
   };
 
@@ -117,6 +115,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
     };
   }, [showLogout]);
 
+  const handleLogout = () => {
+    setShowLogout(false);
+    logout();
+    resetCompanies();
+  }
   return (
     <>
       <header className="bg-white shadow-sm border-b border-gray-200 px-3 sm:px-4 py-1">
@@ -143,7 +146,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               >
                 <div className="flex flex-col min-w-0">
                   <span className="flex items-center font-semibold text-sm text-teal-800 truncate max-w-[250px] group-hover:text-teal-900 transition-colors">
-                    {company[0]?.namePrint || "No Company"}
+                    {company?.namePrint || "No Company"}
                     {/* Solid triangle using Tailwind */}
                     <span className="ml-2 w-1 h-1 border-t-[8px] border-t-teal-600 border-x-[6px] border-x-transparent inline-block"></span>{" "}
                   </span>
@@ -151,9 +154,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     className="text-[10px] text-teal-600 font-mono hover:text-teal-700 transition-colors cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (company[0]?.code) {
+                      if (company?.code) {
                         navigator.clipboard
-                          .writeText(company[0].code)
+                          .writeText(company.code)
                           .then(() =>
                             toast.success("Company ID copied to clipboard")
                           )
@@ -164,7 +167,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     }}
                     title="Click to copy Company ID"
                   >
-                    {company[0]?.code ? `ID: ${company[0].code}` : "No ID"}
+                    {company?.code ? `ID: ${company.code}` : "No ID"}
                   </span>
                 </div>
               </div>
@@ -299,10 +302,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 <div className="absolute top-full right-0 mt-1 w-full z-50">
                   <div className="bg-white rounded-md shadow-lg border border-gray-200 py-1 animate-in fade-in-0 zoom-in-95">
                     <button
-                      onClick={() => {
-                        logout();
-                        setShowLogout(false);
-                      }}
+                      onClick={handleLogout}
                       className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
                     >
                       <LogOut className="w-4 h-4" />

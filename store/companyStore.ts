@@ -66,7 +66,8 @@ interface CompanyStore {
   loading: boolean;
   error: string | null;
   defaultSelected: string | null;
-  setDefaultCompany: (companyId: string) => Promise<void>;
+  resetCompanies: () => Promise<void>;
+  setDefaultCompany: (companyId: Company) => Promise<void>;
   fetchCompanies: (agentId: string, page?: number, limit?: number) => Promise<void>;
   addCompany: (companyData: FormData) => Promise<void>;
   updateCompany: (params: { companyId: string; companyData: FormData }) => Promise<void>;
@@ -96,6 +97,21 @@ export const useCompanyStore = create<CompanyStore>()(
         totalPages: 0
       },
 
+      resetCompanies: async () => {
+        set({
+          companies: [],
+          loading: false,
+          error: null,
+          pagination: {
+            total: 0,
+            page: 1,
+            limit: 10,
+            totalPages: 0
+          },
+        });
+        let cm=get().companies
+        console.log(cm,"cm")
+      },
       fetchCompanies: async (agentId: string, page = 1, limit = 10) => {
         console.log("Fetching companies for agentId:", agentId, "page:", page, "limit:", limit);
         try {
@@ -232,7 +248,7 @@ export const useCompanyStore = create<CompanyStore>()(
           return [];
         }
       },
-      setDefaultCompany: async(companyId: string) =>{
+      setDefaultCompany: async(companyId: Company) =>{
       set({defaultSelected : companyId})
     }
     }),

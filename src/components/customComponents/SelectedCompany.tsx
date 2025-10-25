@@ -9,16 +9,14 @@ interface SelectedCompanyProps {
 }
 
 const SelectedCompany: React.FC<SelectedCompanyProps> = ({}) => {
-  const { defaultSelected, companies } = useCompanyStore();
+  const { defaultSelected } = useCompanyStore();
 
-  const selectedCompany =
-    companies.find((c) => c._id === defaultSelected) || null;
   return (
     <CustomInputBox
       label="Company"
       placeholder="e.g., ABC Agents"
       name="companyName"
-      value={selectedCompany?.namePrint || ""}
+      value={defaultSelected?.namePrint || ""}
       readOnly
     />
   );

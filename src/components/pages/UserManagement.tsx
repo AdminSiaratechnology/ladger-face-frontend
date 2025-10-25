@@ -190,7 +190,7 @@ export const UserManagement: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchUsers(currentPage, limit, defaultSelected);
+    fetchUsers(currentPage, limit, defaultSelected._id);
   }, [fetchUsers, currentPage]);
 
   // Reset page to 1 when filters change
@@ -208,7 +208,7 @@ export const UserManagement: React.FC = () => {
         "nameAsc",
         currentPage,
         limit,
-        defaultSelected
+        defaultSelected._id
       )
         .then((result) => {
           setFilteredUsers(result);
