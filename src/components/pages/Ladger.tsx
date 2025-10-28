@@ -219,6 +219,7 @@ const LedgerRegistration: React.FC = () => {
   >("nameAsc");
   const [filteredLedgers, setFilteredLedgers] = useState<Ledger[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const containerRef = useRef<HTMLDivElement>(null);
   const limit = 10;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -247,7 +248,14 @@ const LedgerRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterLedgers(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
+      filterLedgers(
+        searchTerm,
+        statusFilter,
+        sortBy,
+        currentPage,
+        limit,
+        defaultSelected?._id
+      )
         .then((result) => {
           setFilteredLedgers(result);
         })
@@ -262,7 +270,14 @@ const LedgerRegistration: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterLedgers, defaultSelected]);
+  }, [
+    searchTerm,
+    statusFilter,
+    sortBy,
+    currentPage,
+    filterLedgers,
+    defaultSelected,
+  ]);
 
   const [formData, setFormData] = useState<LedgerForm>({
     ledgerType: "individual",
@@ -316,11 +331,11 @@ const LedgerRegistration: React.FC = () => {
     notes: "",
     registrationDocs: [],
   });
-   useEffect(() => {
-     if (defaultSelected) {
-       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
-     }
-   }, [defaultSelected, companies]);
+  useEffect(() => {
+    if (defaultSelected) {
+      setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
+    }
+  }, [defaultSelected, companies]);
   // Country, State, City Data
   const allCountries = useMemo(() => Country.getAllCountries(), []);
   const availableStates = useMemo(() => {
@@ -597,7 +612,7 @@ const LedgerRegistration: React.FC = () => {
       toast.error("Please enter Ledger Name");
       return;
     }
-  
+
     if (!formData.contactPerson.trim()) {
       toast.error("Please enter Contact Person");
       return;
@@ -609,14 +624,6 @@ const LedgerRegistration: React.FC = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.emailAddress)) {
       toast.error("Please enter a valid email address");
-      return;
-    }
-    if (!formData.country) {
-      toast.error("Please select Country");
-      return;
-    }
-    if (!formData.zipCode.trim()) {
-      toast.error("Please enter Zip/Pincode");
       return;
     }
 
@@ -960,7 +967,7 @@ const LedgerRegistration: React.FC = () => {
               }
               setOpen(true);
             }}
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
           >
             <UserCheck className="w-4 h-4" />
             Add Ledger
@@ -1090,20 +1097,40 @@ const LedgerRegistration: React.FC = () => {
           <MultiStepNav
             steps={tabs}
             currentStep={activeTab}
-            onStepChange={setActiveTab}
+            onStepChange={(nextTab) => {
+              const stepOrder = ["basic", "contact", "tax", "bank", "settings"];
+              const currentIndex = stepOrder.indexOf(activeTab);
+              const nextIndex = stepOrder.indexOf(nextTab);
+
+              if (nextIndex < currentIndex) {
+                setActiveTab(nextTab);
+              }
+              if (activeTab === "basic") {
+                if (!formData.ledgerName) {
+                  toast.error("Please fill in the required fields.");
+                  return;
+                }
+              }
+              if (activeTab === "contact") {
+                if (!formData.contactPerson || !formData.emailAddress) {
+                  toast.error("Please fill in the required fields.");
+                  return;
+                }
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(formData.emailAddress)) {
+                  toast.error("Please enter a valid email address");
+                  return;
+                }
+              }
+              setActiveTab(nextTab);
+            }}
             stepIcons={stepIcons}
+            scrollContainerRef={containerRef}
           />
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto" ref={containerRef}>
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Users className="w-4 h-4 text-white" />}
-        title="Ledger Details"
-        gradientFrom="from-pink-400"
-        gradientTo="to-pink-500"
-      />   */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1123,25 +1150,7 @@ const LedgerRegistration: React.FC = () => {
                       <option value="trust">Others</option>
                     </select>
                   </div>
-                  <SelectedCompany/>
-                  {/*                   
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Company <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.companyId}
-                      onChange={(e) => handleSelectChange("companyId", e.target.value)}
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Company</option>
-                      {companies.map((company) => (
-                        <option key={company._id} value={company._id}>
-                          {company.namePrint}
-                        </option>
-                      ))}
-                    </select>
-                  </div> */}
+                  <SelectedCompany />
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1283,7 +1292,13 @@ const LedgerRegistration: React.FC = () => {
                   currentStep={1}
                   totalSteps={5}
                   showPrevious={false}
-                  onNext={() => setActiveTab("contact")}
+                  onNext={() => {
+                    if (!formData.ledgerName) {
+                      toast.error("Please fill Ledger name.");
+                      return;
+                    }
+                    setActiveTab("contact");
+                  }}
                 />
               </div>
             )}
@@ -1434,7 +1449,6 @@ const LedgerRegistration: React.FC = () => {
                     value={formData.zipCode}
                     onChange={handleChange}
                     maxLength={10}
-                    required={true}
                   />
                   <CustomInputBox
                     label="Website"
@@ -1448,7 +1462,20 @@ const LedgerRegistration: React.FC = () => {
                   currentStep={2}
                   totalSteps={5}
                   onPrevious={() => setActiveTab("basic")}
-                  onNext={() => setActiveTab("tax")}
+                  onNext={() => {
+                    if (!formData.contactPerson || !formData.emailAddress) {
+                      toast.error(
+                        "Please enter contact person and email address."
+                      );
+                      return;
+                    }
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(formData.emailAddress)) {
+                      toast.error("Please enter a valid email address");
+                      return;
+                    }
+                    setActiveTab("tax");
+                  }}
                 />
               </div>
             )}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -236,6 +236,8 @@ const AgentRegistrationPage: React.FC = () => {
   >("nameAsc");
   const [filteredAgents, setFilteredAgents] = useState<Agent[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const limit = 10;
 
   const {
@@ -354,7 +356,7 @@ const AgentRegistrationPage: React.FC = () => {
   });
   useEffect(() => {
     if (defaultSelected && companies.length > 0) {
-      const selectedCompany = defaultSelected
+      const selectedCompany = defaultSelected;
       if (selectedCompany) {
         // 🧩 Derive the currency from the company's country
         const derivedCurrency = getCurrencyForCountry(selectedCompany.country);
@@ -1068,18 +1070,18 @@ const AgentRegistrationPage: React.FC = () => {
           <Button
             onClick={() => {
               resetForm();
-                if (defaultSelected) {
-                  setFormData((prev) => ({
-                    ...prev,
-                    companyId: defaultSelected?._id,
-                    country: defaultSelected.country,
-                    currency: defaultSelected.defaultCurrency,
-                    state: defaultSelected.state,
-                  }));
-                }
+              if (defaultSelected) {
+                setFormData((prev) => ({
+                  ...prev,
+                  companyId: defaultSelected?._id,
+                  country: defaultSelected.country,
+                  currency: defaultSelected.defaultCurrency,
+                  state: defaultSelected.state,
+                }));
+              }
               setOpen(true);
             }}
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
           >
             <UserCheck className="w-4 h-4" />
             Add Agent
@@ -1209,11 +1211,45 @@ const AgentRegistrationPage: React.FC = () => {
           <MultiStepNav
             steps={tabs}
             currentStep={activeTab}
-            onStepChange={setActiveTab}
+            onStepChange={(nextTab) => {
+              const stepOrder = [
+                "basic",
+                "contact",
+                "commission",
+                "tax",
+                "bank",
+                "settings",
+              ];
+              const currentIndex = stepOrder.indexOf(activeTab);
+              const nextIndex = stepOrder.indexOf(nextTab);
+
+              if (nextIndex < currentIndex) {
+                setActiveTab(nextTab);
+              }
+              if (activeTab === "basic") {
+                if (!formData.agentName) {
+                  toast.error("Please fill in the required fields.");
+                  return;
+                }
+              }
+              if (activeTab === "contact") {
+                if (!formData.contactPerson || !formData.emailAddress) {
+                  toast.error("Please fill in the required fields.");
+                  return;
+                }
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(formData.emailAddress)) {
+                  toast.error("Please enter a valid email address");
+                  return;
+                }
+              }
+              setActiveTab(nextTab);
+            }}
             stepIcons={stepIcons}
+            scrollContainerRef={containerRef}
           />
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto" ref={containerRef}>
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1351,7 +1387,13 @@ const AgentRegistrationPage: React.FC = () => {
                   currentStep={1}
                   totalSteps={6}
                   showPrevious={false}
-                  onNext={() => setActiveTab("contact")}
+                  onNext={() => {
+                    if (!formData.agentName) {
+                      toast.error("Please fill agent name.");
+                      return;
+                    }
+                    setActiveTab("contact");
+                  }}
                 />
               </div>
             )}
@@ -1473,7 +1515,6 @@ const AgentRegistrationPage: React.FC = () => {
                     value={formData.zipCode}
                     onChange={handleChange}
                     maxLength={10}
-                    required={true}
                   />
                   <CustomInputBox
                     label="Website"
@@ -1487,7 +1528,20 @@ const AgentRegistrationPage: React.FC = () => {
                   currentStep={2}
                   totalSteps={6}
                   onPrevious={() => setActiveTab("basic")}
-                  onNext={() => setActiveTab("commission")}
+                  onNext={() => {
+                    if (!formData.contactPerson || !formData.emailAddress) {
+                      toast.error(
+                        "Please enter contact person and email address."
+                      );
+                      return;
+                    }
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(formData.emailAddress)) {
+                      toast.error("Please enter a valid email address");
+                      return;
+                    }
+                    setActiveTab("commission");
+                  }}
                 />
               </div>
             )}

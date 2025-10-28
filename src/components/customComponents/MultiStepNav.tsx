@@ -42,7 +42,7 @@ const MultiStepNav: React.FC<MultiStepNavProps> = ({ steps, currentStep, onStepC
 
 
   return (
-    <div className="flex items-center justify-between bg-gradient-to-r from-cyan-50 to-blue-50 px-3 py-3 rounded-lg overflow-x-auto shadow-sm scrollbar-hide min-h-[70px]">
+    <div className="flex items-center justify-between bg-gradient-to-r from-cyan-50 to-blue-50 px-3 rounded-lg overflow-x-auto shadow-sm scrollbar-hide min-h-[60px]">
       {steps.map((step, index) => (
         <React.Fragment key={step.id}>
           <div 
@@ -51,7 +51,7 @@ const MultiStepNav: React.FC<MultiStepNavProps> = ({ steps, currentStep, onStepC
           >
             <button
               onClick={() => onStepChange(step.id)}
-              className={`flex items-center justify-center w-6 h-6 rounded-full transition-all duration-300 ${
+              className={`flex items-center justify-center w-5 h-5 rounded-full transition-all duration-300 ${
                 index < currentIndex
                   ? 'bg-green-500 text-white shadow scale-105'
                   : index === currentIndex
@@ -61,7 +61,7 @@ const MultiStepNav: React.FC<MultiStepNavProps> = ({ steps, currentStep, onStepC
             >
               {index < currentIndex ? (
                 <svg 
-                  className="w-3 h-3 flex-shrink-0" 
+                  className="w-2 h-2 flex-shrink-0" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -75,7 +75,7 @@ const MultiStepNav: React.FC<MultiStepNavProps> = ({ steps, currentStep, onStepC
               )}
             </button>
             <span
-              className={`mt-1 text-xs font-medium text-center px-1 transition-colors whitespace-nowrap ${
+              className={` text-xs font-medium text-center px-1 transition-colors whitespace-nowrap ${
                 index === currentIndex
                   ? 'text-blue-600 font-semibold'
                   : index < currentIndex

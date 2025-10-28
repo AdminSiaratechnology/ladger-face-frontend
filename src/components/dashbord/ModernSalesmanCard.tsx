@@ -112,7 +112,7 @@ const SalesmanCard: React.FC = () => {
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2">
           <ScrollArea className="h-64 pr-4">
             <div className="space-y-3">
               {filteredSalesmen.slice(0, 100).map((salesman: SalesmanData, index: number) => {
