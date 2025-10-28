@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
@@ -27,6 +27,7 @@ import {
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { Switch } from "../ui/switch";
 import {
@@ -52,6 +53,7 @@ import CustomStepNavigation from "../customComponents/CustomStepNavigation";
 import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import SelectedCompany from "../customComponents/SelectedCompany";
+import { ScrollArea } from "@radix-ui/react-scroll-area";
 
 // Interfaces (unchanged from original)
 interface Company {
@@ -173,9 +175,26 @@ export const UserManagement: React.FC = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const limit = 10; // Fixed limit per page
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedCompanyData, setSelectedCompanyData] = useState<Company[]>([]);
+  const permissionTemplates = {
+    fullAccess: { create: true, read: true, update: true, delete: true },
+    readOnly: { create: false, read: true, update: false, delete: false },
+    alterOnly: { create: false, read: true, update: true, delete: false },
+    noDelete: { create: true, read: true, update: true, delete: false },
+  };
 
-  const { defaultSelected, companies } = useCompanyStore();
+  const [activeCompanyTab, setActiveCompanyTab] = useState<string | null>(null);
+  const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const limit = 10; // Fixed limit per page
+  const [selectedTemplates, setSelectedTemplates] = useState<{
+    [companyId: string]: string;
+  }>({});
+
+  const { defaultSelected, companies, filterCompanies } = useCompanyStore();
   const {
     addUser,
     fetchUsers,
@@ -222,7 +241,14 @@ export const UserManagement: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, roleFilter, statusFilter, currentPage, filterUsers, defaultSelected  ]);
+  }, [
+    searchTerm,
+    roleFilter,
+    statusFilter,
+    currentPage,
+    filterUsers,
+    defaultSelected,
+  ]);
 
   // Roles and Sub-roles (unchanged)
   const roles = ["Salesman", "Customer", "Admin"];
@@ -373,7 +399,6 @@ export const UserManagement: React.FC = () => {
       },
     },
   };
-  const company = companies.find((c) => c._id === defaultSelected);
 
   const [form, setForm] = useState<UserForm>({
     name: "",
@@ -392,26 +417,34 @@ export const UserManagement: React.FC = () => {
     pincode: "",
   });
   useEffect(() => {
-    if (defaultSelected && companies.length > 0) {
-      const selectedCompany = companies.find((c) => c._id === defaultSelected);
-      if (selectedCompany) {
-        setForm((prev) => ({ ...prev, company: selectedCompany._id }));
-      }
+    if (defaultSelected) {
+      setForm((prev) => ({ ...prev, company: defaultSelected?._id }));
     }
   }, [defaultSelected, companies]);
-  // Initialize access with all companies
-  useEffect(() => {
-    if (!isEditing) {
-      setForm((prev) => ({
-        ...prev,
-        access: companies.map((company) => ({
-          company: company._id,
-          modules: {},
-        })),
-      }));
-    }
-  }, [companies, isEditing]);
 
+  useEffect(() => {
+    setForm((prev) => {
+      // Create access entries for selected companies that don't exist yet
+      const newAccess = [...prev.access];
+
+      selectedCompanies.forEach((companyId) => {
+        const exists = newAccess.find((a) => a.company === companyId);
+        if (!exists) {
+          newAccess.push({
+            company: companyId,
+            modules: {},
+          });
+        }
+      });
+
+      // Remove access entries for unselected companies
+      const filteredAccess = newAccess.filter((a) =>
+        selectedCompanies.includes(a.company)
+      );
+
+      return { ...prev, access: filteredAccess };
+    });
+  }, [selectedCompanies]);
   // Function to set all permissions
   const setAllPermissions = (enabled: boolean) => {
     setForm((prev) => ({
@@ -440,68 +473,68 @@ export const UserManagement: React.FC = () => {
   };
 
   // Effect for role change
-  useEffect(() => {
-    if (form.role === "Admin") {
-      setAllPermissions(true);
-    } else {
-      setAllPermissions(false);
-      // Set default permissions for Salesman and Customer
-      const defaultPermissions =
-        form.role === "Salesman"
-          ? {
-              // Example defaults for Salesman
-              BusinessManagement: {
-                CustomerRegistration: {
-                  create: true,
-                  read: true,
-                  update: true,
-                  delete: false,
-                  extra: [],
-                },
-                Vendor: {
-                  create: false,
-                  read: true,
-                  update: false,
-                  delete: false,
-                  extra: [],
-                },
-                // ... other defaults
-              },
-              InventoryManagement: {
-                Product: {
-                  create: false,
-                  read: true,
-                  update: false,
-                  delete: false,
-                  extra: [],
-                },
-                // ... etc
-              },
-              // Add more as needed
-            }
-          : {
-              // Defaults for Customer - even less
-              Order: {
-                Orders: {
-                  create: false,
-                  read: true,
-                  update: false,
-                  delete: false,
-                  extra: [],
-                },
-              },
-              // ... etc
-            };
+  // useEffect(() => {
+  //   if (form.role === "Admin") {
+  //     setAllPermissions(true);
+  //   } else {
+  //     setAllPermissions(false);
+  //     // Set default permissions for Salesman and Customer
+  //     const defaultPermissions =
+  //       form.role === "Salesman"
+  //         ? {
+  //             // Example defaults for Salesman
+  //             BusinessManagement: {
+  //               CustomerRegistration: {
+  //                 create: true,
+  //                 read: true,
+  //                 update: true,
+  //                 delete: false,
+  //                 extra: [],
+  //               },
+  //               Vendor: {
+  //                 create: false,
+  //                 read: true,
+  //                 update: false,
+  //                 delete: false,
+  //                 extra: [],
+  //               },
+  //               // ... other defaults
+  //             },
+  //             InventoryManagement: {
+  //               Product: {
+  //                 create: false,
+  //                 read: true,
+  //                 update: false,
+  //                 delete: false,
+  //                 extra: [],
+  //               },
+  //               // ... etc
+  //             },
+  //             // Add more as needed
+  //           }
+  //         : {
+  //             // Defaults for Customer - even less
+  //             Order: {
+  //               Orders: {
+  //                 create: false,
+  //                 read: true,
+  //                 update: false,
+  //                 delete: false,
+  //                 extra: [],
+  //               },
+  //             },
+  //             // ... etc
+  //           };
 
-      setForm((prev) => ({
-        ...prev,
-        access: prev.access.map((access) => ({
-          ...access,
-          modules: JSON.parse(JSON.stringify(defaultPermissions)), // Deep copy
-        })),
-      }));
-    }
-  }, [form.role]);
+  //     setForm((prev) => ({
+  //       ...prev,
+  //       access: prev.access.map((access) => ({
+  //         ...access,
+  //         modules: JSON.parse(JSON.stringify(defaultPermissions)), // Deep copy
+  //       })),
+  //     }));
+  //   }
+  // }, [form.role]);
 
   // Reset form function
   const resetForm = () => {
@@ -559,6 +592,10 @@ export const UserManagement: React.FC = () => {
     permissionType: keyof Permission,
     value: boolean | string[]
   ): void => {
+    console.log(
+      `🔧 Changing permission for company ${companyId} → ${moduleName}.${subModuleName}.${permissionType} =`,
+      value
+    );
     setForm((prev) => {
       const updatedAccess = prev.access.map((a) => {
         if (a.company !== companyId) return a;
@@ -602,85 +639,109 @@ export const UserManagement: React.FC = () => {
     });
   };
 
-  const handleSubmit = (): void => {
-    if (!form.name.trim()) {
-      toast.error("Please enter a name");
-      return;
-    }
-    if (!form.email.trim()) {
-      toast.error("Please enter an email address");
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-    if (!form.pincode.trim()) {
-      toast.error("Please enter Pincode");
-      return;
-    }
-    const pinRegex = /^\d{6}$/;
-    if (!pinRegex.test(form.pincode.trim())) {
-      toast.error("Pincode must be a 6-digit number");
-      return;
-    }
+const handleSubmit = async (): Promise<void> => {
+  console.log("Form data:", form);
 
-    if (!isEditing && !form.password.trim()) {
-      toast.error("Please enter a password");
-      return;
-    }
-    if (!form.role) {
-      toast.error("Please select a role");
-      return;
-    }
+  // --- Validation ---
+  if (!form.name.trim()) {
+    toast.error("Please enter a name");
+    return;
+  }
+  if (!form.email.trim()) {
+    toast.error("Please enter an email address");
+    return;
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(form.email)) {
+    toast.error("Please enter a valid email address");
+    return;
+  }
+  if (!isEditing && !form.password.trim()) {
+    toast.error("Please enter a password");
+    return;
+  }
 
-    const userData: User = {
-      ...form,
-      id: editingUser?._id || Date.now().toString(),
-      status: editingUser?.status || "active",
-      lastLogin: editingUser?.lastLogin || null,
-      createdAt: editingUser?.createdAt || new Date().toISOString(),
-      createdBy: form.createdBy || "current_user_id", // Replace with actual user ID
-      parent: form.parent || "",
-      clientID: form.clientID || "",
-      company: form.company || "",
-    };
-
-    if (isEditing && editingUser) {
-      editUser(editingUser._id || "", userData);
-      toast.success("User updated successfully");
-    } else {
-      addUser(userData);
-      toast.success("User created successfully");
-    }
-
-    resetForm();
-    setOpen(false);
-    // setActiveTab("basic");
+  // --- Prepare data ---
+  const userData: User = {
+    ...form,
+    id: editingUser?._id || Date.now().toString(),
+    status: editingUser?.status || "active",
+    lastLogin: editingUser?.lastLogin || null,
+    createdAt: editingUser?.createdAt || new Date().toISOString(),
+    createdBy: form.createdBy || "current_user_id", // Replace with actual user ID
+    parent: form.parent || "",
+    clientID: form.clientID || "",
+    company: form.company || "",
   };
+
+  try {
+    let res;
+    if (isEditing && editingUser) {
+      res = await editUser(editingUser._id || "", userData);
+    } else {
+      res = await addUser(userData);
+    }
+    console.log(res?.statusCode,"ressssssssssssss")
+
+    if (res && res?.statusCode) {
+      toast.success(isEditing ? "User updated successfully" : "User added successfully");
+      resetForm();
+      setOpen(false);
+      setActiveTab("basic"); 
+    }
+
+  } catch (error) {
+    console.error("Error submitting user:", error);
+    toast.error("Failed to save user. Please try again.");
+  }
+};
+
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setIsEditing(true);
+    console.log("Editing user:", user);
+
+    // ✅ Preselected company IDs
+    const preselectedCompanies = user.access.map(
+      (a) => a.company._id || a.company
+    );
+
+    // ✅ Build merged access (already includes company + modules)
+    const mergedAccess = user.access.map((a) => ({
+      company: a.company._id || a.company,
+      modules: a.modules || {},
+    }));
+
+    // ✅ Build selectedCompanyData directly from user.access (already has namePrint)
+    const selectedCompanyData = user.access.map((a) => ({
+      _id: a.company._id || a.company,
+      namePrint: a.company.namePrint || "Unnamed Company",
+    }));
+
+    // ✅ Set form data
     setForm({
       name: user.name,
       email: user.email,
-      password: "", // Don't pre-fill password for security
+      password: "",
       role: user.role,
       subRole: user.subRole,
       allPermissions: user.allPermissions,
       parent: user.parent,
       clientAgent: user.clientAgent,
       company: user.company || "",
-      access:
-        user.access.length > 0
-          ? user.access
-          : companies.map((c) => ({ company: c._id, modules: {} })),
+      access: mergedAccess,
       phone: user.phone || "",
       area: user.area || "",
       pincode: user.pincode || "",
     });
+
+    // ✅ Update company selections for permission tab
+    setSelectedCompanies(preselectedCompanies);
+    setSelectedCompanyData(selectedCompanyData);
+    setActiveCompanyTab(preselectedCompanies[0] || "");
+
+    // ✅ Open modal and go to Basic tab
     setOpen(true);
     setActiveTab("basic");
   };
@@ -731,7 +792,6 @@ export const UserManagement: React.FC = () => {
   // Form tabs
   const tabs = [
     { id: "basic", label: "Basic Info" },
-    { id: "role", label: "Role & Sub-Role" },
     { id: "permissions", label: "Permissions" },
     { id: "settings", label: "Settings" },
   ];
@@ -768,7 +828,74 @@ export const UserManagement: React.FC = () => {
     );
   };
 
+  useEffect(() => {
+    filterCompanies("", "active", "nameAsc", "68c1503077fd742fa21575df");
+  }, [filterCompanies]);
+
+  // ✅ Debounced search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterCompanies(
+        searchTerm,
+        "active",
+        "nameAsc",
+        "68c1503077fd742fa21575df"
+      );
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  // ✅ Handle toggle for selecting/unselecting companies
+  const toggleCompanySelection = (companyId: string) => {
+    const existing = selectedCompanies.includes(companyId);
+    const company = companies.find((c) => c._id === companyId);
+
+    setSelectedCompanies((prev) => {
+      const updated = existing
+        ? prev.filter((id) => id !== companyId)
+        : [...prev, companyId];
+
+      // 🧭 Handle active tab switching
+      if (existing) {
+        // If removed and it was the active tab, set a new active tab or clear
+        if (activeCompanyTab === companyId) {
+          setActiveCompanyTab(updated[0] || null);
+        }
+      } else {
+        // If newly added, make it the active company tab
+        setActiveCompanyTab(companyId);
+      }
+
+      return updated;
+    });
+
+    setSelectedCompanyData((prev) => {
+      if (existing) {
+        return prev.filter((c) => c._id !== companyId);
+      } else if (company) {
+        return [...prev, company];
+      }
+      return prev;
+    });
+
+    setShowDropdown(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".company-dropdown-container")) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleCloseModal = () => {
+    setSelectedCompanies([]);
+    setSelectedCompanyData([]);
     resetForm();
     setOpen(false);
     setActiveTab("basic");
@@ -822,8 +949,16 @@ export const UserManagement: React.FC = () => {
         />
         <CheckAccess module="UserManagement" subModule="User" type="create">
           <Button
-            onClick={() => setOpen(true)}
-            className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-2 sm:px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+            onClick={() => {
+              setOpen(true);
+              if (defaultSelected && companies.length > 0) {
+                setForm((prev) => ({
+                  ...prev,
+                  company: defaultSelected?._id,
+                }));
+              }
+            }}
+            className="w-full cursor-pointer sm:w-auto bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-2 sm:px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >
             <UserPlus className="w-4 h-4 " />
             Add User
@@ -907,7 +1042,7 @@ export const UserManagement: React.FC = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 border-gray-300 focus:border-teal-500 focus:ring-teal-200 rounded-lg"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
                 spellCheck={false}
               />
@@ -978,9 +1113,6 @@ export const UserManagement: React.FC = () => {
                       Role
                     </TableHead>
                     <TableHead className="text-gray-700 font-semibold">
-                      Sub-Roles
-                    </TableHead>
-                    <TableHead className="text-gray-700 font-semibold">
                       Status
                     </TableHead>
                     <TableHead className="text-gray-700 font-semibold">
@@ -1029,19 +1161,7 @@ export const UserManagement: React.FC = () => {
                           {user.role}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {user.subRole.map((subRole, index) => (
-                            <Badge
-                              key={index}
-                              variant="outline"
-                              className="text-xs bg-blue-50 text-blue-700 border-blue-200"
-                            >
-                              {subRole}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
+
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           {/* <Switch
@@ -1065,17 +1185,34 @@ export const UserManagement: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {user?.access?.map((access, index) => (
-                            <Badge
-                              key={index}
-                              variant="outline"
-                              className="text-xs bg-purple-50 text-purple-700 border-purple-200"
-                            >
-                              {getCompanyName(access.company)}
-                            </Badge>
-                          ))}
-                        </div>
+                        {user.access && user.access.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {user.access.map((a, index) => {
+                              const company =
+                                typeof a.company === "object"
+                                  ? a.company
+                                  : {
+                                      _id: a.company,
+                                      namePrint: `Unknown (${a.company.slice(
+                                        -4
+                                      )})`,
+                                    };
+
+                              return (
+                                <span
+                                  key={company._id + index}
+                                  className="bg-teal-100 text-teal-700 px-2 py-1 rounded-full text-xs font-medium"
+                                >
+                                  {company.namePrint}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">
+                            No Access
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
                         <div className="flex items-center">
@@ -1119,21 +1256,43 @@ export const UserManagement: React.FC = () => {
           <MultiStepNav
             steps={tabs}
             currentStep={activeTab}
-            onStepChange={setActiveTab}
+            onStepChange={(nextTab) => {
+              const stepOrder = ["basic", "permissions", "settings"];
+              const currentIndex = stepOrder.indexOf(activeTab);
+              const nextIndex = stepOrder.indexOf(nextTab);
+
+              if (nextIndex < currentIndex) {
+                setActiveTab(nextTab);
+                return;
+              }
+
+              if (activeTab === "basic") {
+                if (
+                  !form.name ||
+                  !form.email ||
+                  (!isEditing && !form.password) ||
+                  !form.role
+                ) {
+                  toast.error(
+                    "Please fill in all required fields: Name, Email, Password, and Role."
+                  );
+                  return;
+                }
+              }
+
+              // (optional) You can add similar validation for later steps
+              // if (activeTab === "permissions") { ... }
+
+              setActiveTab(nextTab);
+            }}
             stepIcons={stepIcons}
+            scrollContainerRef={containerRef}
           />
 
-          <div className="flex-1 overflow-y-auto px-1">
+          <div className="flex-1 overflow-y-auto px-1" ref={containerRef}>
             {/* Basic Information Tab */}
             {activeTab === "basic" && (
               <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Users className="w-4 h-4 text-white" />}
-        title="User Information"
-        gradientFrom="from-teal-400"
-        gradientTo="to-teal-500"
-      />   */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <CustomInputBox
                     name="name"
@@ -1191,53 +1350,11 @@ export const UserManagement: React.FC = () => {
                     value={form.pincode}
                     onChange={handleChange}
                     placeholder="e.g., 400001"
-                    required={true}
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  {/* <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-gray-700">Company <span className="text-red-500">*</span></label>
-              <select
-                name="company"
-                value={form.company}
-                onChange={(e) => handleSelectChange('company', e.target.value)}
-                className="h-10 px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-100 focus:outline-none bg-white transition-all text-sm"
-              >
-                <option value="">Select a Company</option>
-                {companies.map(company => (
-                  <option key={company["_id"]} value={company["_id"]}>{company.namePrint}</option>
-                ))}
-              </select>
-            </div> */}
-                               <SelectedCompany
-  editing={editUser}
-  handleSelectChange={handleSelectChange}
-  companyId={form.company}
-/>
-                </div>
-
-                <CustomStepNavigation
-                  currentStep={1}
-                  totalSteps={4}
-                  showPrevious={false}
-                  onNext={() => setActiveTab("role")}
-                />
-              </div>
-            )}
-
-            {/* Role & Sub-Role Tab */}
-            {activeTab === "role" && (
-              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                {/* <SectionHeader
-                  icon={<Users className="w-4 h-4 text-white" />}
-                  title="Role & Sub-Role"
-                  gradientFrom="from-blue-400"
-                  gradientTo="to-blue-500"
-                /> */}
-
                 {/* Role Selection */}
-                <div className="mb-4">
+                <div className="mb-4 mt-4">
                   <label className="text-sm font-semibold text-gray-700 mb-2 block">
                     Primary Role <span className="text-red-500">*</span>
                   </label>
@@ -1272,38 +1389,25 @@ export const UserManagement: React.FC = () => {
                     ))}
                   </div>
                 </div>
-
-                {/* Sub-Role Selection */}
-                {/* {form.role && (
-            <div className="mb-4">
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">Sub-Roles</label>
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  {subRoles[form.role as keyof typeof subRoles]?.map((subRole) => (
-                    <div key={subRole} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={subRole}
-                        checked={form.subRole.includes(subRole)}
-                        onChange={(e) => handleSubRoleChange(subRole, e.target.checked)}
-                        className="w-3 h-3 text-teal-600 rounded focus:ring-teal-500"
-                      />
-                      <label htmlFor={subRole} className="text-sm font-medium text-gray-700">
-                        {subRole.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )} */}
-
                 <CustomStepNavigation
-                  currentStep={2}
-                  totalSteps={4}
-                  onPrevious={() => setActiveTab("basic")}
-                  onNext={() => setActiveTab("permissions")}
-                  disabledNext={!form.role}
+                  currentStep={1}
+                  totalSteps={3}
+                  showPrevious={false}
+                  onNext={() => {
+                    if (
+                      !form.name ||
+                      !form.email ||
+                      (!isEditing && !form.password) ||
+                      !form.role
+                    ) {
+                      toast.error(
+                        "Please fill in all required fields: Name, Email, Password, and Role."
+                      );
+                      return;
+                    }
+                    setActiveTab("permissions");
+                  }}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1311,190 +1415,488 @@ export const UserManagement: React.FC = () => {
             {/* Permissions Tab */}
             {activeTab === "permissions" && (
               <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                {/* <SectionHeader
-                  icon={<Key className="w-4 h-4 text-white" />}
-                  title="Company Permissions"
-                  gradientFrom="from-purple-400"
-                  gradientTo="to-purple-500"
-                /> */}
+                <div className="relative company-dropdown-container">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder="Search company..."
+                      className="pl-9"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onFocus={() => setShowDropdown(true)}
+                    />
+                  </div>
 
-                <div className="space-y-4">
-                  {/* Company Access Sections */}
-                  {form.access.map((access, companyIndex) => (
-                    <Card
-                      key={access.company}
-                      className="border-teal-200 shadow-sm"
-                    >
-                      <CardHeader className="bg-teal-50 py-2 rounded-t-xl">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <Building2 className="w-4 h-4 mr-2 text-teal-600" />
-                            <CardTitle className="text-base text-teal-800">
-                              {getCompanyName(access.company)}
-                            </CardTitle>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4">
-                        {Object.entries(availableModules).map(
-                          ([moduleKey, moduleValue]) => (
-                            <div key={moduleKey} className="mb-4 last:mb-0">
-                              <h4 className="font-semibold text-gray-800 mb-2 flex items-center text-sm">
-                                <Lock className="w-3 h-3 mr-2 text-gray-600" />
-                                {moduleKey}
-                              </h4>
-                              <div className="pl-4 space-y-3">
-                                {Object.entries(moduleValue).map(
-                                  ([subModuleKey, defaultPermissions]) => (
-                                    <div
-                                      key={subModuleKey}
-                                      className="bg-gray-50 p-3 rounded-lg border border-gray-200"
-                                    >
-                                      <div className="flex items-center justify-between mb-2">
-                                        <span className="font-medium text-gray-700 text-sm">
-                                          {subModuleKey}
-                                        </span>
-                                        <div className="flex items-center space-x-2">
-                                          <span className="text-xs text-gray-500">
-                                            All
-                                          </span>
-                                          <input
-                                            type="checkbox"
-                                            checked={
-                                              getPermissionForCompany(
-                                                access.company,
-                                                moduleKey,
-                                                subModuleKey,
-                                                "create"
-                                              ) &&
-                                              getPermissionForCompany(
-                                                access.company,
-                                                moduleKey,
-                                                subModuleKey,
-                                                "read"
-                                              ) &&
-                                              getPermissionForCompany(
-                                                access.company,
-                                                moduleKey,
-                                                subModuleKey,
-                                                "update"
-                                              ) &&
-                                              getPermissionForCompany(
-                                                access.company,
-                                                moduleKey,
-                                                subModuleKey,
-                                                "delete"
-                                              )
-                                            }
-                                            onChange={(e) =>
-                                              handleToggleAllPermissions(
-                                                access.company,
-                                                moduleKey,
-                                                subModuleKey,
-                                                e.target.checked
-                                              )
-                                            }
-                                            className="w-3 h-3 text-teal-600 rounded focus:ring-teal-500"
-                                          />
-                                        </div>
-                                      </div>
-                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                        {(
-                                          [
-                                            "create",
-                                            "read",
-                                            "update",
-                                            "delete",
-                                          ] as const
-                                        ).map((permissionType) => (
-                                          <div
-                                            key={permissionType}
-                                            className="flex items-center space-x-1"
-                                          >
-                                            <input
-                                              type="checkbox"
-                                              id={`${access.company}-${moduleKey}-${subModuleKey}-${permissionType}`}
-                                              checked={
-                                                getPermissionForCompany(
-                                                  access.company,
-                                                  moduleKey,
-                                                  subModuleKey,
-                                                  permissionType
-                                                ) as boolean
-                                              }
-                                              onChange={(e) =>
-                                                handlePermissionChange(
-                                                  access.company,
-                                                  moduleKey,
-                                                  subModuleKey,
-                                                  permissionType,
-                                                  e.target.checked
-                                                )
-                                              }
-                                              className="w-3 h-3 text-teal-600 rounded focus:ring-teal-500"
-                                            />
-                                            <label
-                                              htmlFor={`${access.company}-${moduleKey}-${subModuleKey}-${permissionType}`}
-                                              className="text-xs text-gray-600 capitalize"
-                                            >
-                                              {permissionType}
-                                            </label>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )
-                                )}
-                              </div>
-                            </div>
-                          )
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-
-                  {form.access.length === 0 && (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="text-center">
-                        <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500 text-base font-semibold">
-                          No Company Access Configured
-                        </p>
-                        <p className="text-gray-400 text-xs mb-3">
-                          Add company access to configure permissions
-                        </p>
-                        <Button
-                          // onClick={addCompanyAccess}
-                          variant="outline"
-                          className="flex items-center border-gray-300 hover:bg-gray-100 text-sm py-1"
+                  {/* Compact chips above tabs */}
+                  {selectedCompanies.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2 p-2 bg-gray-50 rounded-lg">
+                      <span className="text-xs text-gray-500 font-medium mr-2 self-center">
+                        Selected:
+                      </span>
+                      {selectedCompanyData.map((company) => (
+                        <div
+                          key={company._id}
+                          className="flex items-center gap-1 bg-teal-100 text-teal-700 px-2 py-1 rounded-full text-xs font-medium"
                         >
-                          <Plus className="w-3 h-3 mr-1" />
-                          Add Company Access
-                        </Button>
-                      </div>
+                          {company.namePrint}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleCompanySelection(company._id);
+                            }}
+                            className="ml-0.5 hover:text-teal-900"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {showDropdown && (
+                    <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-[300px] overflow-hidden">
+                      <ScrollArea className="max-h-[300px] p-2">
+                        {loading ? (
+                          <p className="text-center text-gray-500 text-sm mt-4">
+                            Loading companies...
+                          </p>
+                        ) : companies.length > 0 ? (
+                          <div className="flex flex-col gap-2">
+                            {companies
+                              .filter(
+                                (company) =>
+                                  !selectedCompanies.includes(company._id)
+                              ) // 👈 hides already-selected ones
+                              .map((company) => {
+                                return (
+                                  <div
+                                    key={company._id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleCompanySelection(company._id);
+                                    }}
+                                    className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-150 bg-gray-50 hover:bg-gray-100 border border-gray-200"
+                                  >
+                                    <div className="flex flex-col">
+                                      <p className="text-sm font-semibold text-gray-800">
+                                        {company.namePrint}
+                                      </p>
+                                      {company.nameStreet && (
+                                        <p className="text-xs text-gray-500">
+                                          {company.nameStreet}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        ) : (
+                          <p className="text-center text-gray-500 text-sm mt-4">
+                            No companies found.
+                          </p>
+                        )}
+                      </ScrollArea>
                     </div>
                   )}
                 </div>
 
+                {selectedCompanyData.length === 0 ? (
+                  <EmptyStateCard
+                    title="No company selected"
+                    description="Please select a company to assign permissions."
+                    icon={Building2}
+                  />
+                ) : (
+                  <div className="mt-1 shadow-sm p-2">
+                    <nav className="bg-gradient-to-r from-gray-50 to-white rounded-lg mb-4 shadow-sm">
+                      <div className="flex space-x-1 overflow-x-auto">
+                        {selectedCompanyData.map((company) => {
+                          const isActive = activeCompanyTab === company._id;
+                          return (
+                            <button
+                              key={company._id}
+                              onClick={() => setActiveCompanyTab(company._id)}
+                              className={`
+            relative flex items-center gap-2 px-2 whitespace-nowrap py-3 text-sm font-medium transition-all duration-300
+            border-b-2
+            ${
+              isActive
+                ? "border-teal-500 text-teal-700 bg-gradient-to-b from-white to-teal-50 shadow-sm"
+                : "border-transparent text-gray-500 hover:text-teal-600 hover:border-teal-200"
+            }
+          `}
+                            >
+                              <div
+                                className={`flex items-center justify-center rounded transition-colors
+              ${isActive ? "bg-teal-100 text-teal-600" : "text-gray-400"}
+            `}
+                              >
+                                <Building2 className="w-3.5 h-3.5" />
+                              </div>
+
+                              <span className="font-semibold">
+                                {company.namePrint}
+                              </span>
+
+                              {isActive && (
+                                <span className="absolute bottom-0 left-0 right-0 h-[1px] bg-teal-500 rounded-full"></span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </nav>
+
+                    {activeCompanyTab && (
+                      <div className="mt-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium text-teal-700">
+                            Quick Permission Templates:
+                          </label>
+                          <select
+                            className="border border-teal-300 rounded-lg p-2 text-sm"
+                            value={selectedTemplates[activeCompanyTab] || ""} // 👈 this keeps it in sync
+                            onChange={(e) => {
+                              const templateName = e.target.value;
+                              setSelectedTemplates((prev) => ({
+                                ...prev,
+                                [activeCompanyTab]: templateName, // 👈 remember selection for that company
+                              }));
+
+                              const selectedTemplate =
+                                permissionTemplates[
+                                  templateName as keyof typeof permissionTemplates
+                                ];
+                              if (selectedTemplate) {
+                                Object.entries(availableModules).forEach(
+                                  ([moduleKey, subModules]) => {
+                                    Object.keys(subModules).forEach(
+                                      (subKey) => {
+                                        handleToggleAllPermissions(
+                                          activeCompanyTab,
+                                          moduleKey,
+                                          subKey,
+                                          false
+                                        );
+                                        Object.entries(
+                                          selectedTemplate
+                                        ).forEach(([permType, value]) => {
+                                          handlePermissionChange(
+                                            activeCompanyTab,
+                                            moduleKey,
+                                            subKey,
+                                            permType as keyof Permission,
+                                            value
+                                          );
+                                        });
+                                      }
+                                    );
+                                  }
+                                );
+                                toast.success(
+                                  `Applied ${templateName} template to ${getCompanyName(
+                                    activeCompanyTab
+                                  )}`
+                                );
+                              }
+                            }}
+                          >
+                            <option value="">Select Template</option>
+                            <option value="fullAccess">Full Access</option>
+                            <option value="readOnly">Read Only</option>
+                            <option value="alterOnly">Alter Only</option>
+                            <option value="noDelete">
+                              Full Access except Delete
+                            </option>
+                          </select>
+                        </div>
+
+                        <div className="border border-gray-200 rounded-xl overflow-hidden">
+                          {Object.entries(availableModules).map(
+                            ([moduleKey, subModules]) => {
+                              const allChecked = Object.entries(
+                                subModules
+                              ).every(([subModuleKey]) => {
+                                const perms = [
+                                  "create",
+                                  "read",
+                                  "update",
+                                  "delete",
+                                ];
+                                return perms.every((permType) =>
+                                  getPermissionForCompany(
+                                    activeCompanyTab,
+                                    moduleKey,
+                                    subModuleKey,
+                                    permType
+                                  )
+                                );
+                              });
+
+                              return (
+                                <div
+                                  key={moduleKey}
+                                  className="border-b border-gray-200 last:border-b-0"
+                                >
+                                  <button
+                                    onClick={() => {
+                                      setOpenModules((prev) => ({
+                                        ...prev,
+                                        [moduleKey]: !prev[moduleKey],
+                                      }));
+                                    }}
+                                    className="flex items-center justify-between w-full p-5 text-left hover:bg-gray-50 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div className="flex flex-col items-start">
+                                        <h4 className="font-bold text-gray-800 text-lg">
+                                          {moduleKey}
+                                        </h4>
+                                        <span className="text-xs bg-gray-100 text-gray-600 rounded-full mt-1">
+                                          {Object.entries(subModules).reduce(
+                                            (acc, [subModuleKey]) => {
+                                              const perms = [
+                                                "create",
+                                                "read",
+                                                "update",
+                                                "delete",
+                                              ];
+                                              const count = perms.filter(
+                                                (permType) =>
+                                                  getPermissionForCompany(
+                                                    activeCompanyTab,
+                                                    moduleKey,
+                                                    subModuleKey,
+                                                    permType
+                                                  )
+                                              ).length;
+                                              return acc + count;
+                                            },
+                                            0
+                                          )}{" "}
+                                          selected out of{" "}
+                                          {Object.keys(subModules).length * 4}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                      <label
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={allChecked}
+                                          onChange={(e) => {
+                                            const checked = e.target.checked;
+                                            Object.entries(subModules).forEach(
+                                              ([subModuleKey]) => {
+                                                [
+                                                  "create",
+                                                  "read",
+                                                  "update",
+                                                  "delete",
+                                                ].forEach((permType) => {
+                                                  handlePermissionChange(
+                                                    activeCompanyTab,
+                                                    moduleKey,
+                                                    subModuleKey,
+                                                    permType,
+                                                    checked
+                                                  );
+                                                });
+                                              }
+                                            );
+                                          }}
+                                          className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                        />
+                                        <span className="font-medium">All</span>
+                                      </label>
+
+                                      <ChevronDown
+                                        className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                                          openModules[moduleKey]
+                                            ? "rotate-180"
+                                            : ""
+                                        }`}
+                                      />
+                                    </div>
+                                  </button>
+
+                                  <div
+                                    className={`overflow-hidden transition-all duration-200 ${
+                                      openModules[moduleKey]
+                                        ? "max-h-[1000px] opacity-100"
+                                        : "max-h-0 opacity-0"
+                                    }`}
+                                  >
+                                    <div className="pb-3 px-2 space-y-1">
+                                      {Object.entries(subModules).map(
+                                        ([subModuleKey]) => {
+                                          const allSubChecked = [
+                                            "create",
+                                            "read",
+                                            "update",
+                                            "delete",
+                                          ].every((permType) =>
+                                            getPermissionForCompany(
+                                              activeCompanyTab,
+                                              moduleKey,
+                                              subModuleKey,
+                                              permType
+                                            )
+                                          );
+                                          return (
+                                            <div
+                                              key={subModuleKey}
+                                              className="flex flex-col bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-all"
+                                            >
+                                              <div className="flex items-center justify-between w-full ">
+                                                <div className="flex-1">
+                                                  <span className="text-sm font-semibold text-gray-700">
+                                                    {subModuleKey}
+                                                  </span>
+                                                </div>
+                                                {openModules[moduleKey] && (
+                                                  <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={allSubChecked}
+                                                      onChange={(e) => {
+                                                        const checked =
+                                                          e.target.checked;
+                                                        [
+                                                          "create",
+                                                          "read",
+                                                          "update",
+                                                          "delete",
+                                                        ].forEach(
+                                                          (permType) => {
+                                                            handlePermissionChange(
+                                                              activeCompanyTab,
+                                                              moduleKey,
+                                                              subModuleKey,
+                                                              permType,
+                                                              checked
+                                                            );
+                                                          }
+                                                        );
+                                                      }}
+                                                      className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                                    />
+                                                    <span className="font-medium">
+                                                      All
+                                                    </span>
+                                                  </label>
+                                                )}
+                                              </div>
+                                              {openModules[moduleKey] && (
+                                                <div className="flex items-center gap-4 border-t border-gray-100 pt-3">
+                                                  {(
+                                                    [
+                                                      "create",
+                                                      "read",
+                                                      "update",
+                                                      "delete",
+                                                    ] as const
+                                                  ).map((permType) => (
+                                                    <label
+                                                      key={permType}
+                                                      className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+                                                    >
+                                                      <input
+                                                        type="checkbox"
+                                                        checked={getPermissionForCompany(
+                                                          activeCompanyTab,
+                                                          moduleKey,
+                                                          subModuleKey,
+                                                          permType
+                                                        )}
+                                                        onChange={(e) =>
+                                                          handlePermissionChange(
+                                                            activeCompanyTab,
+                                                            moduleKey,
+                                                            subModuleKey,
+                                                            permType,
+                                                            e.target.checked
+                                                          )
+                                                        }
+                                                        className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                                      />
+                                                      <span className="font-medium">
+                                                        {permType
+                                                          .charAt(0)
+                                                          .toUpperCase() +
+                                                          permType.slice(1)}
+                                                      </span>
+                                                    </label>
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        }
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex justify-end items-end mt-6 border-t pt-4 border-gray-200">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Are you sure you want to reset all permissions? This action cannot be undone."
+                        )
+                      ) {
+                        selectedCompanyData.forEach((company) => {
+                          Object.entries(availableModules).forEach(
+                            ([moduleKey, subModules]) => {
+                              Object.keys(subModules).forEach((subKey) => {
+                                handleToggleAllPermissions(
+                                  company._id,
+                                  moduleKey,
+                                  subKey,
+                                  false
+                                );
+                              });
+                            }
+                          );
+                        });
+                        toast.success("All permissions have been reset");
+                      }
+                    }}
+                    className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 cursor-pointer"
+                  >
+                    Reset Permissions
+                  </Button>
+                </div>
+
+                {/* Step Navigation */}
                 <CustomStepNavigation
-                  currentStep={3}
-                  totalSteps={4}
-                  onPrevious={() => setActiveTab("role")}
+                  currentStep={2}
+                  totalSteps={3}
+                  onPrevious={() => setActiveTab("basic")}
                   onNext={() => setActiveTab("settings")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
-
             {/* Settings Tab */}
             {activeTab === "settings" && (
               <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                {/* <SectionHeader
-                  icon={<Settings2 className="w-4 h-4 text-white" />}
-                  title="User & Permission Summary"
-                  gradientFrom="from-blue-400"
-                  gradientTo="to-blue-500"
-                /> */}
-
                 {/* User Summary */}
                 <div className="bg-teal-50 p-3 rounded-lg border border-teal-200 mb-4">
                   <h4 className="text-sm font-semibold text-teal-700 mb-2">
@@ -1561,8 +1963,8 @@ export const UserManagement: React.FC = () => {
                 )}
 
                 <CustomStepNavigation
-                  currentStep={4}
-                  totalSteps={4}
+                  currentStep={3}
+                  totalSteps={3}
                   onPrevious={() => setActiveTab("permissions")}
                   onSubmit={handleSubmit}
                   submitLabel={isEditing ? "Update User" : "Create User"}
@@ -1578,3 +1980,75 @@ export const UserManagement: React.FC = () => {
 };
 
 export default UserManagement;
+
+{
+  /* <div className="grid grid-cols-3 gap-3 w-full max-w-2xl mx-auto mt-4">
+                          {(() => {
+                            let totalPermissions = 0;
+                            let enabledPermissions = 0;
+
+                            Object.entries(availableModules).forEach(
+                              ([moduleKey, subModules]) => {
+                                Object.entries(subModules).forEach(
+                                  ([subModuleKey]) => {
+                                    const perms = [
+                                      "create",
+                                      "read",
+                                      "update",
+                                      "delete",
+                                    ];
+                                    totalPermissions += perms.length;
+                                    perms.forEach((permType) => {
+                                      if (
+                                        getPermissionForCompany(
+                                          activeCompanyTab,
+                                          moduleKey,
+                                          subModuleKey,
+                                          permType
+                                        )
+                                      ) {
+                                        enabledPermissions++;
+                                      }
+                                    });
+                                  }
+                                );
+                              }
+                            );
+
+                            const percent =
+                              totalPermissions > 0
+                                ? Math.round(
+                                    (enabledPermissions / totalPermissions) *
+                                      100
+                                  )
+                                : 0;
+
+                            const statBoxes = [
+                              {
+                                label: "Total Permissions",
+                                value: totalPermissions,
+                              },
+                              { label: "Enabled", value: enabledPermissions },
+                              { label: "Progress", value: `${percent}%` },
+                            ];
+
+                            return (
+                              <>
+                                {statBoxes.map((stat) => (
+                                  <div
+                                    key={stat.label}
+                                    className="flex flex-col items-center justify-center bg-gradient-to-b from-teal-50 to-white border border-teal-300 rounded-xl shadow-sm p-3 text-center transition-all duration-200 hover:shadow-md"
+                                  >
+                                    <span className="text-xs font-medium text-teal-600">
+                                      {stat.label}
+                                    </span>
+                                    <span className="text-lg font-bold text-teal-700 mt-1">
+                                      {stat.value}
+                                    </span>
+                                  </div>
+                                ))}
+                              </>
+                            );
+                          })()}
+                        </div> */
+}

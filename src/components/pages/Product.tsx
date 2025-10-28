@@ -214,7 +214,7 @@ const ProductPage: React.FC = () => {
     defaultSupplier: "",
     minimumRate: 0,
     maximumRate: 0,
-    companyId: defaultSelected?._idd,
+    companyId: defaultSelected?._id,
     defaultGodown: "",
     productType: "",
     taxConfiguration: {
@@ -233,12 +233,12 @@ const ProductPage: React.FC = () => {
   });
    useEffect(() => {
      if (defaultSelected) {
-       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._idd }));
+       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
      }
    }, [defaultSelected, companies]);
   // Initial fetch
   useEffect(() => {
-    fetchProducts(currentPage, limit, defaultSelected);
+    fetchProducts(currentPage, limit, defaultSelected?._id);
   }, [fetchProducts, currentPage]);
 
   // Reset page to 1 when filters change

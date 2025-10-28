@@ -31,7 +31,7 @@ export default function CustomerDropdown({
   // Initial load
   useEffect(() => {
     if (defaultSelected) {
-      fetchCustomers(1, 20, search, defaultSelected); // page, limit, search, companyId
+      fetchCustomers(1, 20, search, defaultSelected?._id); // page, limit, search, companyId
       setPage(1);
     }
   }, [defaultSelected, search]);
@@ -46,7 +46,7 @@ export default function CustomerDropdown({
     ) {
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchCustomers(nextPage, 20, search, defaultSelected);
+      fetchCustomers(nextPage, 20, search, defaultSelected?._id);
     }
   };
 

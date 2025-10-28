@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -270,6 +270,7 @@ const VendorRegistrationPage: React.FC = () => {
   const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const {
     fetchVendors,
@@ -694,14 +695,6 @@ const VendorRegistrationPage: React.FC = () => {
       toast.error("Please enter a valid email address");
       return;
     }
-    if (!formData.country) {
-      toast.error("Please select Country");
-      return;
-    }
-    if (!formData.zipCode.trim()) {
-      toast.error("Please enter Zip/Pincode");
-      return;
-    }
 
     const vendorFormData = new FormData();
 
@@ -783,7 +776,7 @@ const VendorRegistrationPage: React.FC = () => {
   // Initial fetch
   useEffect(() => {
     fetchVendors(currentPage, limit, defaultSelected?._id);
-  }, [fetchVendors, currentPage,defaultSelected]);
+  }, [fetchVendors, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -793,7 +786,14 @@ const VendorRegistrationPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterVendors(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
+      filterVendors(
+        searchTerm,
+        statusFilter,
+        sortBy,
+        currentPage,
+        limit,
+        defaultSelected?._id
+      )
         .then((result) => {
           setFilteredVendors(result);
         })
@@ -805,7 +805,14 @@ const VendorRegistrationPage: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterVendors, defaultSelected]);
+  }, [
+    searchTerm,
+    statusFilter,
+    sortBy,
+    currentPage,
+    filterVendors,
+    defaultSelected,
+  ]);
 
   const formatSimpleDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -1067,7 +1074,7 @@ const VendorRegistrationPage: React.FC = () => {
             onClick={() => {
               resetForm();
               setOpen(true);
-                if (defaultSelected && companies.length > 0) {
+              if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
                   companyId: defaultSelected?._id,
@@ -1075,7 +1082,7 @@ const VendorRegistrationPage: React.FC = () => {
               }
               setOpen(true);
             }}
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
           >
             <Users className="w-4 h-4" />
             Add Vendor
@@ -1209,11 +1216,46 @@ const VendorRegistrationPage: React.FC = () => {
           <MultiStepNav
             steps={tabs}
             currentStep={activeTab}
-            onStepChange={setActiveTab}
+            onStepChange={(nextTab) => {
+              const stepOrder = [
+                "basic",
+                "contact",
+                "financialSettings",
+                "tax",
+                "bank",
+                "settings",
+              ];
+              const currentIndex = stepOrder.indexOf(activeTab);
+              const nextIndex = stepOrder.indexOf(nextTab);
+
+              if (nextIndex < currentIndex) {
+                setActiveTab(nextTab);
+              }
+              if (activeTab === "basic") {
+                if (!formData.vendorType || !formData.vendorName) {
+                  toast.error("Please fill in the required fields.");
+                  return;
+                }
+              }
+              if (activeTab === "contact") {
+                if (!formData.contactPerson || !formData.emailAddress) {
+                  toast.error("Please fill in the required fields.");
+                  return;
+                }
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(formData.emailAddress)) {
+                  toast.error("Please enter a valid email address");
+                  return;
+                }
+              }
+              setActiveTab(nextTab);
+            }}
             stepIcons={stepIcons}
+            scrollContainerRef={containerRef}
+
           />
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto"  ref={containerRef}>
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <SectionHeader
@@ -1241,9 +1283,7 @@ const VendorRegistrationPage: React.FC = () => {
                       <option value="trust">Trust</option>
                     </select>
                   </div>
-                  <SelectedCompany
-                    
-                  />
+                  <SelectedCompany />
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1384,19 +1424,18 @@ const VendorRegistrationPage: React.FC = () => {
                   currentStep={1}
                   totalSteps={6}
                   showPrevious={false}
-                  onNext={() => setActiveTab("contact")}
+                  onNext={() => {
+                    if (!formData.vendorType || !formData.vendorName) {
+                      toast.error("Please fill vendor type and name.");
+                      return;
+                    }
+                    setActiveTab("contact");
+                  }}
                 />
               </div>
             )}
             {activeTab === "contact" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Phone className="w-4 h-4 text-white" />}
-        title="Contact Details"
-        gradientFrom="from-blue-400"
-        gradientTo="to-blue-500"
-      />   */}
-
                 <div className="grid grid-cols-1 gap-6">
                   <CustomInputBox
                     label="Contact Person"
@@ -1528,7 +1567,6 @@ const VendorRegistrationPage: React.FC = () => {
                     value={formData.zipCode}
                     onChange={handleChange}
                     maxLength={10}
-                    required={true}
                   />
                   <CustomInputBox
                     label="Website"
@@ -1543,7 +1581,20 @@ const VendorRegistrationPage: React.FC = () => {
                   currentStep={2}
                   totalSteps={6}
                   onPrevious={() => setActiveTab("basic")}
-                  onNext={() => setActiveTab("financialSettings")}
+                  onNext={() => {
+                    if (!formData.contactPerson || !formData.emailAddress) {
+                      toast.error(
+                        "Please enter contact person and email address."
+                      );
+                      return;
+                    }
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(formData.emailAddress)) {
+                      toast.error("Please enter a valid email address");
+                      return;
+                    }
+                    setActiveTab("financialSettings");
+                  }}
                 />
               </div>
             )}

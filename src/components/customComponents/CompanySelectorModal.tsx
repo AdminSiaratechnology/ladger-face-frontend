@@ -53,16 +53,21 @@ const CompanySelectorModal = ({
   }, [filterCompanies, statusFilter, sortBy]);
 
   // ✅ Debounced search trigger
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if(user){
+useEffect(() => {
+  const handler = setTimeout(() => {
+    if (user && searchTerm.length >= 3) {
       filterCompanies(searchTerm, statusFilter, sortBy, "68c1503077fd742fa21575df")
         .catch((err) => console.error("Error filtering companies:", err));
-      }
-    }, 500); // 500ms debounce
+    } else if (searchTerm.length === 0 && user) {
+      // Optional: fetch all companies again when search is cleared
+      filterCompanies("", statusFilter, sortBy, "68c1503077fd742fa21575df")
+        .catch((err) => console.error("Error fetching all companies:", err));
+    }
+  }, 500); // ⏳ debounce
 
-    return () => clearTimeout(handler);
-  }, [searchTerm, statusFilter, sortBy, filterCompanies]);
+  return () => clearTimeout(handler);
+}, [searchTerm, statusFilter, sortBy, filterCompanies]);
+
 
   useEffect(() => {
     setSelectedId(defaultSelected || null);

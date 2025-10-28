@@ -338,9 +338,8 @@ const CompanyPage: React.FC = () => {
 
     let newValue = value;
 
-    // Only allow digits for the accountNumber field
     if (name === "accountNumber") {
-      newValue = value.replace(/\D/g, ""); // remove non-numeric characters
+      newValue = value.replace(/\D/g, "");
     }
 
     setBankForm((prev) => ({
@@ -585,7 +584,7 @@ const CompanyPage: React.FC = () => {
   };
 
   const handleSubmit = (): void => {
-    console.log("first")
+    console.log("first");
     if (!formData.namePrint.trim()) {
       toast.error("Please enter Company Name (Print)");
       return;
@@ -597,19 +596,6 @@ const CompanyPage: React.FC = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       toast.error("Please enter a valid email address");
-      return;
-    }
-    if (!formData.country) {
-      toast.error("Please select Country");
-      return;
-    }
-    if (!formData.pincode.trim()) {
-      toast.error("Please enter Pincode");
-      return;
-    }
-    const pinRegex = /^\d{6}$/;
-    if (!pinRegex.test(formData.pincode.trim())) {
-      toast.error("Pincode must be a 6-digit number");
       return;
     }
 
@@ -639,10 +625,10 @@ const CompanyPage: React.FC = () => {
     }
 
     // Filter only new documents (with File)
-    console.log(formData.registrationDocs,"formData.registrationDocs")
- const newRegistrationDocs = formData.registrationDocs.filter(
-  (doc) => doc.file && doc.file instanceof Blob // works for File and Blob
-);
+    console.log(formData.registrationDocs, "formData.registrationDocs");
+    const newRegistrationDocs = formData.registrationDocs.filter(
+      (doc) => doc.file && doc.file instanceof Blob // works for File and Blob
+    );
 
     newRegistrationDocs.forEach((doc) => {
       companyFormData.append("registrationDocs", doc.file!);
@@ -668,47 +654,39 @@ const CompanyPage: React.FC = () => {
     setOpen(false);
     resetForm();
   };
-  const filteredCompanies = useMemo(() => {
-    return companies
-      .filter((c) =>
-        statusFilter === "all" ? true : c.status === statusFilter
-      )
-      .filter((c) =>
-        searchTerm
-          ? c.namePrint.toLowerCase().includes(searchTerm.toLowerCase())
-          : true
-      )
-      .sort((a, b) => {
-        if (sortBy === "nameAsc") return a.namePrint.localeCompare(b.namePrint);
-        if (sortBy === "nameDesc")
-          return b.namePrint.localeCompare(a.namePrint);
-        if (sortBy === "dateAsc")
-          return (
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-        if (sortBy === "dateDesc")
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-        return 0;
-      });
-  }, [companies, searchTerm, statusFilter, sortBy]);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (searchTerm.length >= 3) {
+        filterCompanies(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          "68c1503077fd742fa21575df",
+          pagination.page,
+          pagination.limit
+        ).catch((err) => console.error("Error filtering companies:", err));
+      } else if (searchTerm.length === 0) {
+        // Fetch all if search cleared
+        filterCompanies("", statusFilter, sortBy, "68c1503077fd742fa21575df");
+      }
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm, statusFilter, sortBy, pagination.page, pagination.limit]);
 
   const stats = useMemo(
     () => ({
       totalCompanies: pagination?.total,
-      gstRegistered: filteredCompanies?.filter(
-        (c) => c.gstNumber?.trim() !== ""
-      ).length,
-      msmeRegistered: filteredCompanies?.filter(
-        (c) => c.msmeNumber?.trim() !== ""
-      ).length,
+      gstRegistered: companies?.filter((c) => c.gstNumber?.trim() !== "")
+        .length,
+      msmeRegistered: companies?.filter((c) => c.msmeNumber?.trim() !== "")
+        .length,
       activeCompanies:
         statusFilter === "active"
           ? pagination?.total
-          : filteredCompanies?.filter((c) => c.status === "active").length,
+          : companies?.filter((c) => c.status === "active").length,
     }),
-    [filteredCompanies, pagination, statusFilter, companies]
+    [companies, pagination, statusFilter, companies]
   );
 
   const tabs = [
@@ -772,7 +750,7 @@ const CompanyPage: React.FC = () => {
           <TableHeader headers={headers} />
 
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredCompanies.map((company) => (
+            {companies.map((company) => (
               <tr
                 key={company._id}
                 className="hover:bg-gray-50 transition-colors duration-200"
@@ -1196,7 +1174,39 @@ const CompanyPage: React.FC = () => {
             <MultiStepNav
               steps={tabs}
               currentStep={activeTab}
-              onStepChange={setActiveTab}
+              onStepChange={(nextTab) => {
+                const stepOrder = [
+                  "basic",
+                  "contact",
+                  "registration",
+                  "bank",
+                  "branding",
+                  "settings",
+                ];
+                const currentIndex = stepOrder.indexOf(activeTab);
+                const nextIndex = stepOrder.indexOf(nextTab);
+                if (nextIndex < currentIndex) {
+                  setActiveTab(nextTab);
+                }
+                if (activeTab === "basic") {
+                  if (!formData.namePrint) {
+                    toast.error("Company Name is required");
+                    return;
+                  }
+                }
+                if (activeTab === "contact") {
+                  if (!formData.email) {
+                    toast.error("Email is required");
+                    return;
+                  }
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (!emailRegex.test(formData.email)) {
+                    toast.error("Please enter a valid email address");
+                    return;
+                  }
+                }
+                setActiveTab(nextTab);
+              }}
               stepIcons={stepIcons}
               scrollContainerRef={containerRef}
             />
@@ -1326,7 +1336,6 @@ const CompanyPage: React.FC = () => {
                       name="pincode"
                       value={formData.pincode}
                       onChange={handleChange}
-                      required={true}
                     />
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-semibold text-gray-700">
@@ -1356,7 +1365,13 @@ const CompanyPage: React.FC = () => {
                     totalSteps={6}
                     showPrevious={false}
                     onSubmit={handleSubmit}
-                    onNext={() => setActiveTab("contact")}
+                    onNext={() => {
+                      if (!formData.namePrint) {
+                        toast.error("Please enter company name");
+                        return;
+                      }
+                      setActiveTab("contact");
+                    }}
                   />
                 </div>
               )}
@@ -1408,7 +1423,18 @@ const CompanyPage: React.FC = () => {
                     totalSteps={6}
                     onPrevious={() => setActiveTab("basic")}
                     onSubmit={handleSubmit}
-                    onNext={() => setActiveTab("registration")}
+                    onNext={() => {
+                      if (!formData.email) {
+                        toast.error("Please enter email");
+                        return;
+                      }
+                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                      if (!emailRegex.test(formData.email)) {
+                        toast.error("Please enter a valid email address");
+                        return;
+                      }
+                      setActiveTab("registration");
+                    }}
                   />
                 </div>
               )}
@@ -1503,20 +1529,18 @@ const CompanyPage: React.FC = () => {
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                     <CustomInputBox
-                      label="Account Holder Name *"
+                      label="Account Holder Name"
                       placeholder="e.g., John Doe"
                       name="accountHolderName"
                       value={bankForm.accountHolderName}
                       onChange={handleBankChange}
-                      required={true}
                     />
                     <CustomInputBox
-                      label="Account Number *"
+                      label="Account Number"
                       placeholder="e.g., 123456789012"
                       name="accountNumber"
                       value={bankForm.accountNumber}
                       onChange={handleBankChange}
-                      required={true}
                     />
                     <CustomInputBox
                       label="IFSC Code"
@@ -1540,12 +1564,11 @@ const CompanyPage: React.FC = () => {
                       onChange={handleBankChange}
                     />
                     <CustomInputBox
-                      label="Bank Name *"
+                      label="Bank Name"
                       placeholder="e.g., State Bank of India"
                       name="bankName"
                       value={bankForm.bankName}
                       onChange={handleBankChange}
-                      required={true}
                     />
                     <CustomInputBox
                       label="Branch"

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
@@ -267,6 +267,8 @@ const CustomerRegistrationPage: React.FC = () => {
   >("nameAsc");
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const limit = 10; // Fixed limit per page
   console.log(filteredCustomers, "dsdhhkfh");
   const {
@@ -691,14 +693,6 @@ const CustomerRegistrationPage: React.FC = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.emailAddress)) {
       toast.error("Please enter a valid email address");
-      return;
-    }
-    if (!formData.country) {
-      toast.error("Please select Country");
-      return;
-    }
-    if (!formData.zipCode.trim()) {
-      toast.error("Please enter Zip/Pincode");
       return;
     }
 
@@ -1137,7 +1131,7 @@ const CustomerRegistrationPage: React.FC = () => {
   return (
     <div className="custom-container">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8  sticky top-0 bg-white py-2 z-50">
+      <div className="flex justify-between items-center mb-8  sticky top-0 bg-white py-2 z-20">
         <HeaderGradient
           title="Customer Management"
           subtitle="Manage your customer information and registrations"
@@ -1159,7 +1153,7 @@ const CustomerRegistrationPage: React.FC = () => {
               }
               setOpen(true);
             }}
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
           >
             <Users className="w-4 h-4" />
             Add Customer
@@ -1293,20 +1287,47 @@ const CustomerRegistrationPage: React.FC = () => {
           <MultiStepNav
             steps={tabs}
             currentStep={activeTab}
-            onStepChange={setActiveTab}
+            onStepChange={(nextTab) => {
+              const stepOrder = [
+                "basic",
+                "contact",
+                "financialSettings",
+                "tax",
+                "bank",
+                "settings",
+              ];
+              const currentIndex = stepOrder.indexOf(activeTab);
+              const nextIndex = stepOrder.indexOf(nextTab);
+
+              if (nextIndex < currentIndex) {
+                setActiveTab(nextTab);
+              }
+              if (activeTab === "basic") {
+                if (!formData.customerType || !formData.customerName) {
+                  toast.error("Please fill in the required fields.");
+                  return;
+                }
+              }
+              if (activeTab === "contact") {
+                if (!formData.contactPerson || !formData.emailAddress) {
+                  toast.error("Please fill in the required fields.");
+                  return;
+                }
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(formData.emailAddress)) {
+                  toast.error("Please enter a valid email address");
+                  return;
+                }
+              }
+              setActiveTab(nextTab);
+            }}
             stepIcons={stepIcons}
+            scrollContainerRef={containerRef}
           />
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto" ref={containerRef}>
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-                  icon={<Users className="w-4 h-4 text-white" />}
-                  title="Customer Details"
-                  gradientFrom="from-blue-400"
-                  gradientTo="to-blue-500"
-                /> */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1349,7 +1370,7 @@ const CustomerRegistrationPage: React.FC = () => {
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
-                    label="Customer Name *"
+                    label="Customer Name "
                     placeholder="e.g., ABC Suppliers"
                     name="customerName"
                     value={formData.customerName}
@@ -1483,23 +1504,21 @@ const CustomerRegistrationPage: React.FC = () => {
                   currentStep={1}
                   totalSteps={6}
                   showPrevious={false}
-                  onNext={() => setActiveTab("contact")}
+                  onNext={() => {
+                    if (!formData.customerName) {
+                      toast.error("Please fill customer name.");
+                      return;
+                    }
+                    setActiveTab("contact");
+                  }}
                 />
               </div>
             )}
             {activeTab === "contact" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/*                 
-                    <SectionHeader
-        icon={<Phone className="w-4 h-4 text-white" />}
-        title="Contact Information"
-        gradientFrom="from-green-400"
-        gradientTo="to-green-500"
-      />   */}
-
                 <div className="grid grid-cols-1 gap-6">
                   <CustomInputBox
-                    label="Contact Person *"
+                    label="Contact Person"
                     placeholder="e.g., John Doe"
                     name="contactPerson"
                     value={formData.contactPerson}
@@ -1530,7 +1549,7 @@ const CustomerRegistrationPage: React.FC = () => {
                     />
                   </div>
                   <CustomInputBox
-                    label="Email Address *"
+                    label="Email Address"
                     placeholder="e.g., john@example.com"
                     name="emailAddress"
                     value={formData.emailAddress}
@@ -1622,13 +1641,12 @@ const CustomerRegistrationPage: React.FC = () => {
                     </div>
                   </div>
                   <CustomInputBox
-                    label="Zip/Pincode *"
+                    label="Zip/Pincode"
                     placeholder="e.g., 12345"
                     name="zipCode"
                     value={formData.zipCode}
                     onChange={handleChange}
                     maxLength={10}
-                    required={true}
                   />
                   <CustomInputBox
                     label="Website"
@@ -1643,7 +1661,20 @@ const CustomerRegistrationPage: React.FC = () => {
                   currentStep={2}
                   totalSteps={6}
                   onPrevious={() => setActiveTab("basic")}
-                  onNext={() => setActiveTab("financialSettings")}
+                  onNext={() => {
+                    if (!formData.contactPerson || !formData.emailAddress) {
+                      toast.error(
+                        "Please enter contact person and email address."
+                      );
+                      return;
+                    }
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(formData.emailAddress)) {
+                      toast.error("Please enter a valid email address");
+                      return;
+                    }
+                    setActiveTab("financialSettings");
+                  }}
                 />
               </div>
             )}
@@ -1855,7 +1886,7 @@ const CustomerRegistrationPage: React.FC = () => {
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                   <CustomInputBox
-                    label="Account Holder Name *"
+                    label="Account Holder Name"
                     placeholder="e.g., John Doe"
                     name="accountHolderName"
                     value={bankForm.accountHolderName}
@@ -1863,7 +1894,7 @@ const CustomerRegistrationPage: React.FC = () => {
                     required={true}
                   />
                   <CustomInputBox
-                    label="Account Number *"
+                    label="Account Number"
                     placeholder="e.g., 123456789012"
                     name="accountNumber"
                     value={bankForm.accountNumber}
@@ -1892,7 +1923,7 @@ const CustomerRegistrationPage: React.FC = () => {
                     onChange={handleBankChange}
                   />
                   <CustomInputBox
-                    label="Bank Name *"
+                    label="Bank Name"
                     placeholder="e.g., State Bank of India"
                     name="bankName"
                     value={bankForm.bankName}
