@@ -1436,7 +1436,7 @@ const handleSubmit = async (): Promise<void> => {
                       {selectedCompanyData.map((company) => (
                         <div
                           key={company._id}
-                          className="flex items-center gap-1 bg-teal-100 text-teal-700 px-2 py-1 rounded-full text-xs font-medium"
+                          className="flex items-center gap-1 bg-gray-300 text-teal-700 px-2 py-1 rounded-full text-xs font-medium"
                         >
                           {company.namePrint}
                           <button
