@@ -360,9 +360,106 @@ const deleteLedger = async (id: number | string) => {
   const res = await apiClient.delete(`/agent/ledgers/${id}`);
   return res.data;
 };
+export interface PerformedBy {
+  _id: string;
+  name?: string;
+  email?: string;
+}
+
+export interface AuditLog {
+  _id: string;
+  module: string;
+  action: string;
+  performedBy?: PerformedBy;
+  ipAddress?: string;
+  details?: string;
+  timestamp: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface AuditLogResponse {
+  auditLogs: AuditLog[];
+  pagination: Pagination;
+}
+
+export interface GetAuditLogsOptions {
+  search?: string;
+  module?: string;
+  action?: string;
+  performedBy?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  limit?: number;
+}
 
 
+export const getAuditLogs = async (params:string) => {
+  try {
+   
 
+    
+
+    const response = await apiClient.get(`/auditLog/client?${params}`);
+
+    const data = response;
+    return data 
+
+  } catch (error: any) {
+    console.error("❌ Failed to fetch audit logs:", error.response?.data || error.message);
+    throw error;
+  }
+};
+export const getAuditLogsDetail = async (params:string) => {
+  try {
+   
+
+    
+
+    const response = await apiClient.get(`/auditLog/client/all?${params}`);
+
+    const data = response;
+    return data 
+
+  } catch (error: any) {
+    console.error("❌ Failed to fetch audit logs:", error.response?.data || error.message);
+    throw error;
+  }
+};
+export const getAuditLogsByID = async (id:string) => {
+  try {
+   
+
+    
+
+    const response = await apiClient.get(`/auditLog/client/detail/${id}`);
+
+    const data = response;
+    return data 
+
+  } catch (error: any) {
+    console.error("❌ Failed to fetch audit logs:", error.response?.data || error.message);
+    throw error;
+  }
+};
+export const restoreRecord=async({module, referenceId,id}:{module:string, referenceId:string,id:string})=>{
+  try {
+    console.log(module, referenceId,id,"module, referenceId,idR")
+    const response=await apiClient.patch("/auditLog/client/restore",{module, referenceId,id})
+    console.log(response,"response")
+    
+  } catch (error) {
+    throw error
+  }
+}
 
 
 
@@ -411,7 +508,11 @@ getStockCategory,
   createAgent,
   updateAgent,
   deleteAgent,
-  fetchLedgers, createLedger, updateLedger, deleteLedger 
+  fetchLedgers, createLedger, updateLedger, deleteLedger ,
+  getAuditLogs,
+  getAuditLogsDetail,
+  getAuditLogsByID,
+  restoreRecord
 
 
 }

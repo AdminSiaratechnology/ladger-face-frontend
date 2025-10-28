@@ -40,6 +40,8 @@ import { useAuthStore } from "../store/authStore";
 import { checkPermission } from "./lib/utils";
 import ProductSelection from "./components/pages/ProductSelection";
 import CheckoutPage from "./components/pages/CheckoutPage";
+import  AuditLogs  from "./components/pages/AuditLogs";
+import RestoreDeletedPage from "./components/pages/RestoreDeletedPage";
 
 const Login = React.lazy(() => import("./components/pages/Login"));
 const AdminDashboard = React.lazy(
@@ -443,6 +445,26 @@ export default function App() {
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AppLayout>
                   <Agent />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/auditlog"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <AuditLogs />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/restore"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AppLayout>
+                  <RestoreDeletedPage />
                 </AppLayout>
               </ProtectedRoute>
             }

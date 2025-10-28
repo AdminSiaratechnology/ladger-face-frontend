@@ -24,6 +24,16 @@ const FilterBar: React.FC<FilterBarProps> = ({
 }) => {
   const hasActiveFilters = searchTerm || statusFilter !== "all" || sortBy !== "dateDesc";
 
+  // Hack to prevent autofill: force empty value on mount
+  React.useEffect(() => {
+    setSearchTerm("");
+  }, []);
+
+  const preventAutofill = (e: React.FormEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    (e.target as HTMLInputElement).value = "";
+  };
+
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-sm mb-3">
       {/* Mobile Layout */}
@@ -32,10 +42,19 @@ const FilterBar: React.FC<FilterBarProps> = ({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search vendors..."
+            type="search"
+            placeholder="Search companies..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={preventAutofill}
             className="pl-10 pr-10 bg-white/50 border-gray-200 rounded-xl"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            data-form-type="other"
+            name="company-search"
+            role="searchbox"
           />
           {searchTerm && (
             <button
@@ -97,10 +116,19 @@ const FilterBar: React.FC<FilterBarProps> = ({
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search by name, email, or ID..."
+            type="search"
+            placeholder="Search by name or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={preventAutofill}
             className="pl-10 pr-10 bg-white/50 border-gray-200 rounded-xl transition-all duration-200 focus:bg-white"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            data-form-type="other"
+            name="company-search"
+            role="searchbox"
           />
           {searchTerm && (
             <button
