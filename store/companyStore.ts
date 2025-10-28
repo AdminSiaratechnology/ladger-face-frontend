@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api";
 import { useEffect, useMemo } from "react";
+import { toast } from "sonner";
 
 // Types (unchanged, but included for completeness)
 export interface Bank {
@@ -156,6 +157,7 @@ export const useCompanyStore = create<CompanyStore>()(
           });
         } catch (error: any) {
           console.log("Error creating company:", error);
+             toast.error(`Error creating company:${error?.response?.data?.error}`)
           set({
             loading: false,
             error: error.response?.data?.message || "Failed to create company",
