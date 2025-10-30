@@ -75,7 +75,7 @@ interface ProductStore {
   deleteProduct: (id: string) => Promise<void>;
   filterProducts: (
     searchTerm: string,
-    statusFilter: 'all' | 'Active' | 'Inactive',
+    statusFilter: 'all' | 'active' | 'inactive',
     sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
     companyId?:number | string,
     page?: number,

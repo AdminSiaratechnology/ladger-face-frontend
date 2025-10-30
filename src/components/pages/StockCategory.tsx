@@ -37,6 +37,7 @@ import PaginationControls from "../customComponents/CustomPaginationControls";
 import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import SelectedCompany from "../customComponents/SelectedCompany";
+import { set } from "react-hook-form";
 
 // StockCategory interface
 interface StockCategory {
@@ -91,6 +92,9 @@ const StockCategoryRegistration: React.FC = () => {
   const { companies, defaultSelected } = useCompanyStore();
   const { stockGroups } = useStockGroup();
 
+  useEffect(() => {
+    setFilteredStockCategories(stockCategories);
+  }, [stockCategories]);
   // Initial fetch
   useEffect(() => {
     fetchStockCategory(currentPage, limit,defaultSelected?._id);
@@ -103,6 +107,7 @@ const StockCategoryRegistration: React.FC = () => {
 
   // Filtering with debounce
   useEffect(() => {
+    console.log("first, sttausfilter", statusFilter)
     const handler = setTimeout(() => {
       filterStockCategories(
         searchTerm,

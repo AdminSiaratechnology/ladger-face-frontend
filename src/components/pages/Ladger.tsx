@@ -92,6 +92,7 @@ interface Ledger {
   industryType: string;
   territory: string;
   ledgerStatus: string;
+  status: string;
   companySize: string;
   contactPerson: string;
   designation: string;
@@ -147,6 +148,7 @@ interface LedgerForm {
   industryType: string;
   territory: string;
   ledgerStatus: string;
+  status: string;
   companySize: string;
   contactPerson: string;
   designation: string;
@@ -235,9 +237,12 @@ const LedgerRegistration: React.FC = () => {
   } = useLedgerStore();
   const { companies, defaultSelected } = useCompanyStore();
 
+  useEffect(() => {
+    setFilteredLedgers(ledgers);
+  },[ledgers])
   // Initial fetch
   useEffect(() => {
-    fetchLedgers(currentPage, limit, defaultSelected?._idd);
+    fetchLedgers(currentPage, limit, defaultSelected?._id);
   }, [fetchLedgers, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
@@ -289,6 +294,7 @@ const LedgerRegistration: React.FC = () => {
     industryType: "",
     territory: "",
     ledgerStatus: "active",
+    status: "active",
     companySize: "",
     contactPerson: "",
     designation: "",
@@ -544,6 +550,7 @@ const LedgerRegistration: React.FC = () => {
       industryType: "",
       territory: "",
       ledgerStatus: "active",
+      status: "active",
       companySize: "",
       contactPerson: "",
       designation: "",
@@ -660,8 +667,10 @@ const LedgerRegistration: React.FC = () => {
 
     if (editingLedger) {
       updateLedger({ id: editingLedger._id || "", ledger: ledgerFormData });
+      toast.success("ledger updated successfully");
     } else {
       addLedger(ledgerFormData);
+      toast.success("Ledger added successfully");
     }
     setOpen(false);
     resetForm();
@@ -673,7 +682,7 @@ const LedgerRegistration: React.FC = () => {
       activeLedgers:
         statusFilter === "active"
           ? pagination?.total
-          : filteredLedgers.filter((c) => c.ledgerStatus === "active").length,
+          : filteredLedgers.filter((c) => c.status === "active").length,
       gstRegistered: filteredLedgers.filter((c) => c.gstNumber?.trim() !== "")
         .length,
       individualAccounts: filteredLedgers.filter(
@@ -752,12 +761,12 @@ const LedgerRegistration: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Badge
                     className={`${
-                      ledger.ledgerStatus === "active"
+                      ledger.status === "active"
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-700"
                     } hover:bg-current`}
                   >
-                    {ledger.ledgerStatus}
+                    {ledger.status}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -814,12 +823,12 @@ const LedgerRegistration: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Badge
                   className={`${
-                    ledger.ledgerStatus === "active"
+                    ledger.status === "active"
                       ? "bg-green-100 text-green-700"
                       : "bg-gray-100 text-gray-700"
                   } hover:bg-current`}
                 >
-                  {ledger.ledgerStatus}
+                  {ledger.status}
                 </Badge>
                 <CheckAccess
                   module="BusinessManagement"
@@ -1236,15 +1245,14 @@ const LedgerRegistration: React.FC = () => {
                       Ledger Status
                     </label>
                     <select
-                      value={formData.ledgerStatus}
+                      value={formData.status}
                       onChange={(e) =>
-                        handleSelectChange("ledgerStatus", e.target.value)
+                        handleSelectChange("status", e.target.value)
                       }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
-                      <option value="suspended">Suspended</option>
                     </select>
                   </div>
 
@@ -1299,6 +1307,7 @@ const LedgerRegistration: React.FC = () => {
                     }
                     setActiveTab("contact");
                   }}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1476,6 +1485,7 @@ const LedgerRegistration: React.FC = () => {
                     }
                     setActiveTab("tax");
                   }}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1566,6 +1576,7 @@ const LedgerRegistration: React.FC = () => {
                   totalSteps={6}
                   onPrevious={() => setActiveTab("financialSettings")}
                   onNext={() => setActiveTab("bank")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1673,6 +1684,7 @@ const LedgerRegistration: React.FC = () => {
                   totalSteps={5}
                   onPrevious={() => setActiveTab("tax")}
                   onNext={() => setActiveTab("settings")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}

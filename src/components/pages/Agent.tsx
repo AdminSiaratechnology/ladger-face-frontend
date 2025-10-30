@@ -88,6 +88,7 @@ interface Agent {
   territory: string;
   supervisor: string;
   agentStatus: string;
+  status: string;
   experienceLevel: string;
   contactPerson: string;
   designation: string;
@@ -155,6 +156,7 @@ interface AgentForm {
   territory: string;
   supervisor: string;
   agentStatus: string;
+  status: string;
   experienceLevel: string;
   contactPerson: string;
   designation: string;
@@ -229,7 +231,7 @@ const AgentRegistrationPage: React.FC = () => {
   >(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "inactive" | "suspended" | "probation"
+    "all" | "active" | "inactive"
   >("all");
   const [sortBy, setSortBy] = useState<
     "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
@@ -303,6 +305,7 @@ const AgentRegistrationPage: React.FC = () => {
     territory: "",
     supervisor: "",
     agentStatus: "active",
+    status: "active",
     experienceLevel: "",
     contactPerson: "",
     designation: "",
@@ -600,6 +603,7 @@ const AgentRegistrationPage: React.FC = () => {
       territory: "",
       supervisor: "",
       agentStatus: "active",
+      status: "active",
       experienceLevel: "",
       contactPerson: "",
       designation: "",
@@ -780,7 +784,7 @@ const AgentRegistrationPage: React.FC = () => {
       gstRegistered:
         filteredAgents.filter((c) => c.gstNumber?.trim() !== "").length || 0,
       activeAgents:
-        filteredAgents.filter((c) => c.agentStatus === "active").length || 0,
+        filteredAgents.filter((c) => c.status === "active").length || 0,
       topPerformers:
         filteredAgents.filter((c) => c.performanceRating >= 4).length || 0,
     }),
@@ -855,12 +859,12 @@ const AgentRegistrationPage: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Badge
                     className={`${
-                      agent.agentStatus === "active"
+                      agent.status === "active"
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-700"
                     } hover:bg-current`}
                   >
-                    {agent.agentStatus}
+                    {agent.status}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -917,12 +921,12 @@ const AgentRegistrationPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Badge
                   className={`${
-                    agent.agentStatus === "active"
+                    agent.status === "active"
                       ? "bg-green-100 text-green-700"
                       : "bg-gray-100 text-gray-700"
                   } hover:bg-current`}
                 >
-                  {agent.agentStatus}
+                  {agent.status}
                 </Badge>
                 <CheckAccess
                   module="BusinessManagement"
@@ -1312,16 +1316,14 @@ const AgentRegistrationPage: React.FC = () => {
                       Agent Status
                     </label>
                     <select
-                      value={formData.agentStatus}
+                      value={formData.status}
                       onChange={(e) =>
-                        handleSelectChange("agentStatus", e.target.value)
+                        handleSelectChange("status", e.target.value)
                       }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
-                      <option value="suspended">Suspended</option>
-                      <option value="probation">Probation</option>
                     </select>
                   </div>
 
@@ -1394,6 +1396,7 @@ const AgentRegistrationPage: React.FC = () => {
                     }
                     setActiveTab("contact");
                   }}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1542,6 +1545,7 @@ const AgentRegistrationPage: React.FC = () => {
                     }
                     setActiveTab("commission");
                   }}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1626,6 +1630,7 @@ const AgentRegistrationPage: React.FC = () => {
                   totalSteps={6}
                   onPrevious={() => setActiveTab("contact")}
                   onNext={() => setActiveTab("tax")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1716,6 +1721,7 @@ const AgentRegistrationPage: React.FC = () => {
                   totalSteps={6}
                   onPrevious={() => setActiveTab("financialSettings")}
                   onNext={() => setActiveTab("bank")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1816,6 +1822,7 @@ const AgentRegistrationPage: React.FC = () => {
                   totalSteps={6}
                   onPrevious={() => setActiveTab("tax")}
                   onNext={() => setActiveTab("settings")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}

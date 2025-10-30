@@ -139,7 +139,7 @@ export const useStockCategory = create<StockCategoryStore>()(
             page: page.toString(),
             limit: limit.toString(),
           });
-
+console.log(queryParams)
           const result = await api.getStockCategory({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
           console.log("Filter result:", result);
 

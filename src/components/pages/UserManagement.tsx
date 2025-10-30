@@ -155,6 +155,7 @@ interface UserForm {
   phone: string;
   area: string;
   pincode: string;
+  status: string;
 }
 
 // Step Icons for MultiStepNav
@@ -170,8 +171,10 @@ export const UserManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("basic");
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+    const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -414,6 +417,7 @@ export const UserManagement: React.FC = () => {
     access: [],
     phone: "",
     area: "",
+    status: "active",
     pincode: "",
   });
   useEffect(() => {
@@ -545,6 +549,7 @@ export const UserManagement: React.FC = () => {
       role: "",
       subRole: [],
       allPermissions: false,
+      status: "",
       parent: "",
       createdBy: "",
       clientID: "",
@@ -665,7 +670,7 @@ const handleSubmit = async (): Promise<void> => {
   const userData: User = {
     ...form,
     id: editingUser?._id || Date.now().toString(),
-    status: editingUser?.status || "active",
+    status: form?.status || "active",
     lastLogin: editingUser?.lastLogin || null,
     createdAt: editingUser?.createdAt || new Date().toISOString(),
     createdBy: form.createdBy || "current_user_id", // Replace with actual user ID
@@ -673,7 +678,6 @@ const handleSubmit = async (): Promise<void> => {
     clientID: form.clientID || "",
     company: form.company || "",
   };
-
   try {
     let res;
     if (isEditing && editingUser) {
@@ -681,6 +685,7 @@ const handleSubmit = async (): Promise<void> => {
     } else {
       res = await addUser(userData);
     }
+    console.log(res)
     console.log(res?.statusCode,"ressssssssssssss")
 
     if (res && res?.statusCode) {
@@ -734,6 +739,7 @@ const handleSubmit = async (): Promise<void> => {
       phone: user.phone || "",
       area: user.area || "",
       pincode: user.pincode || "",
+      status: user.status,
     });
 
     // ✅ Update company selections for permission tab
@@ -1032,9 +1038,9 @@ const handleSubmit = async (): Promise<void> => {
       </div>
 
       {/* Filters and Search */}
-      <Card className="border-0 shadow-sm bg-white rounded-xl overflow-hidden mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row items-stretch md:items-center space-y-4 md:space-y-0 md:space-x-4">
+      <Card className="border-0 shadow-sm bg-white rounded-xl overflow-hidden mb-3">
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center md:space-y-0 md:space-x-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
@@ -1050,7 +1056,7 @@ const handleSubmit = async (): Promise<void> => {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full md:w-40 h-10 px-3 py-2 border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-teal-200"
+              className="w-full md:w-40 h-10 px-3  border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-teal-200"
             >
               <option value="all">All Roles</option>
               {roles.map((role) => (
@@ -1062,7 +1068,7 @@ const handleSubmit = async (): Promise<void> => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full md:w-40 h-10 px-3 py-2 border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-teal-200"
+              className="w-full md:w-40 h-10 px-3 py-1 border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-teal-200"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -1352,6 +1358,22 @@ const handleSubmit = async (): Promise<void> => {
                     placeholder="e.g., 400001"
                   />
                 </div>
+                  <div className="flex flex-col w-1/2 gap-1 mt-4">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Status
+                      </label>
+                      <select
+                        value={form.status}
+                        onChange={(e) =>{
+                          console.log(e.target.value)
+                          handleSelectChange("status", e.target.value)
+                        }}
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
 
                 {/* Role Selection */}
                 <div className="mb-4 mt-4">

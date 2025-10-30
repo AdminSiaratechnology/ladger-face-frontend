@@ -54,7 +54,7 @@ export interface Company {
   createdAt: string;
   updatedAt: string;
   __v: number;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   maintainGodown: Boolean;
   maintainBatch: Boolean;
   closingQuantityOrder: Boolean;
@@ -69,14 +69,21 @@ interface CompanyStore {
   defaultSelected: string | null;
   resetCompanies: () => Promise<void>;
   setDefaultCompany: (companyId: Company) => Promise<void>;
-  fetchCompanies: (agentId: string, page?: number, limit?: number) => Promise<void>;
+  fetchCompanies: (
+    agentId: string,
+    page?: number,
+    limit?: number
+  ) => Promise<void>;
   addCompany: (companyData: FormData) => Promise<void>;
-  updateCompany: (params: { companyId: string; companyData: FormData }) => Promise<void>;
+  updateCompany: (params: {
+    companyId: string;
+    companyData: FormData;
+  }) => Promise<void>;
   deleteCompany: (companyId: string) => Promise<void>;
   filterCompanies: (
     searchTerm: string,
-    statusFilter: 'all' | 'active' | 'inactive',
-    sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+    statusFilter: "all" | "active" | "inactive",
+    sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
     agentId: string,
     page?: number,
     limit?: number
@@ -95,7 +102,7 @@ export const useCompanyStore = create<CompanyStore>()(
         total: 0,
         page: 1,
         limit: 10,
-        totalPages: 0
+        totalPages: 0,
       },
 
       resetCompanies: async () => {
@@ -107,14 +114,21 @@ export const useCompanyStore = create<CompanyStore>()(
             total: 0,
             page: 1,
             limit: 10,
-            totalPages: 0
+            totalPages: 0,
           },
         });
-        let cm=get().companies
-        console.log(cm,"cm")
+        let cm = get().companies;
+        console.log(cm, "cm");
       },
       fetchCompanies: async (agentId: string, page = 1, limit = 10) => {
-        console.log("Fetching companies for agentId:", agentId, "page:", page, "limit:", limit);
+        console.log(
+          "Fetching companies for agentId:",
+          agentId,
+          "page:",
+          page,
+          "limit:",
+          limit
+        );
         try {
           set({ loading: true, error: null });
 
@@ -123,7 +137,10 @@ export const useCompanyStore = create<CompanyStore>()(
             limit: limit.toString(),
           });
 
-          const res = await api.getCompanies({ agentId, queryParams: queryParams.toString() });
+          const res = await api.getCompanies({
+            agentId,
+            queryParams: queryParams.toString(),
+          });
           console.log("Fetched companies response:", res);
 
           set({
@@ -139,7 +156,6 @@ export const useCompanyStore = create<CompanyStore>()(
           });
         }
       },
-
       addCompany: async (companyData) => {
         console.log("Creating new company:", companyData);
         try {
@@ -155,13 +171,20 @@ export const useCompanyStore = create<CompanyStore>()(
             loading: false,
             error: null,
           });
+
+          return newCompany; // ✅ Return the created company
         } catch (error: any) {
           console.log("Error creating company:", error);
-             toast.error(`Error creating company:${error?.response?.data?.error}`)
+          toast.error(
+            `Error creating company: ${error?.response?.data?.error}`
+          );
+
           set({
             loading: false,
             error: error.response?.data?.message || "Failed to create company",
           });
+
+          throw error; // ✅ Optional: rethrow for catch block in handleSubmit
         }
       },
 
@@ -213,8 +236,8 @@ export const useCompanyStore = create<CompanyStore>()(
 
       filterCompanies: async (
         searchTerm: string,
-        statusFilter: 'all' | 'active' | 'inactive',
-        sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+        statusFilter: "all" | "active" | "inactive",
+        sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
         agentId: string,
         page = 1,
         limit = 10
@@ -224,14 +247,17 @@ export const useCompanyStore = create<CompanyStore>()(
 
           const queryParams = new URLSearchParams({
             search: searchTerm,
-            status: statusFilter !== 'all' ? statusFilter : '',
-            sortBy: sortBy.includes('name') ? 'namePrint' : 'createdAt',
-            sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
+            status: statusFilter !== "all" ? statusFilter : "",
+            sortBy: sortBy.includes("name") ? "namePrint" : "createdAt",
+            sortOrder: sortBy.includes("Desc") ? "desc" : "asc",
             page: page.toString(),
             limit: limit.toString(),
           });
 
-          const res = await api.getCompanies({ agentId, queryParams: queryParams.toString() });
+          const res = await api.getCompanies({
+            agentId,
+            queryParams: queryParams.toString(),
+          });
           console.log("Database search response:", res);
 
           set({
@@ -245,20 +271,21 @@ export const useCompanyStore = create<CompanyStore>()(
         } catch (error: any) {
           set({
             loading: false,
-            error: error.response?.data?.message || "Failed to search companies",
+            error:
+              error.response?.data?.message || "Failed to search companies",
           });
           return [];
         }
       },
-      setDefaultCompany: async(companyId: Company) =>{
-      set({defaultSelected : companyId})
-    }
+      setDefaultCompany: async (companyId: Company) => {
+        set({ defaultSelected: companyId });
+      },
     }),
-    
+
     {
       name: "company-storage",
       // getStorage: () => localStorage,
-       storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         companies: state.companies,
         defaultSelected: state.defaultSelected,
@@ -278,10 +305,12 @@ export const useGetCompany = (id: string) => {
     const companyExists = companies.some((c) => c._id === id);
     if (!companies.length || !companyExists) {
       // Try to find by ID in a targeted search
-      filterCompanies(id, 'all', 'nameAsc', "68c1503077fd742fa21575df").catch(() => {
-        // Fallback to fetching all companies if targeted search fails
-        fetchCompanies("68c1503077fd742fa21575df");
-      });
+      filterCompanies(id, "all", "nameAsc", "68c1503077fd742fa21575df").catch(
+        () => {
+          // Fallback to fetching all companies if targeted search fails
+          fetchCompanies("68c1503077fd742fa21575df");
+        }
+      );
     }
   }, [id, companies, fetchCompanies, filterCompanies]);
 

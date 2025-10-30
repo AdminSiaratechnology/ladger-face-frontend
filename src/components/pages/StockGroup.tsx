@@ -91,11 +91,14 @@ const StockGroupRegistration: React.FC = () => {
     filterStockGroups,
   } = useStockGroup();
   const { companies, defaultSelected } = useCompanyStore();
+  useEffect(() => {
+    setFilteredStockGroups(stockGroups);
+  }, [stockGroups]);
 
   // Initial fetch
   useEffect(() => {
-    fetchStockGroup(currentPage, limit,defaultSelected?._id);
-  }, [fetchStockGroup, currentPage,defaultSelected]);
+    fetchStockGroup(currentPage, limit, defaultSelected?._id);
+  }, [fetchStockGroup, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -105,7 +108,14 @@ const StockGroupRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterStockGroups(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
+      filterStockGroups(
+        searchTerm,
+        statusFilter,
+        sortBy,
+        currentPage,
+        limit,
+        defaultSelected?._id
+      )
         .then((result) => {
           setFilteredStockGroups(result);
         })
@@ -117,7 +127,14 @@ const StockGroupRegistration: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterStockGroups, defaultSelected]);
+  }, [
+    searchTerm,
+    statusFilter,
+    sortBy,
+    currentPage,
+    filterStockGroups,
+    defaultSelected,
+  ]);
 
   const [formData, setFormData] = useState<StockGroupForm>({
     name: "",
@@ -126,11 +143,11 @@ const StockGroupRegistration: React.FC = () => {
     stockGroupId: "",
     companyId: "",
   });
-   useEffect(() => {
-     if (defaultSelected) {
-       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
-     }
-   }, [defaultSelected, companies]);
+  useEffect(() => {
+    if (defaultSelected) {
+      setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
+    }
+  }, [defaultSelected, companies]);
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ): void => {
@@ -216,18 +233,6 @@ const StockGroupRegistration: React.FC = () => {
     }),
     [filteredStockGroups, pagination, statusFilter]
   );
-
-  const tabs = [
-    { id: "basic", label: "Basic Info" },
-    { id: "hierarchy", label: "Hierarchy" },
-    { id: "settings", label: "Settings" },
-  ];
-
-  const stepIcons = {
-    basic: <FileText className="w-2 h-2 md:w-5 md:h-5 " />,
-    hierarchy: <Layers className="w-2 h-2 md:w-5 md:h-5 " />,
-    settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5 " />,
-  };
 
   // Table View Component
   const TableView = () => (
@@ -362,7 +367,7 @@ const StockGroupRegistration: React.FC = () => {
             onClick={() => {
               resetForm();
               setOpen(true);
-               if (defaultSelected && companies.length > 0) {
+              if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
                   companyId: defaultSelected?._id,
@@ -518,7 +523,7 @@ const StockGroupRegistration: React.FC = () => {
                   onChange={handleChange}
                   label="Group Name"
                 />
-                              <SelectedCompany/>
+                <SelectedCompany />
                 {/* <div className="flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">
                     Company <span className="text-red-500">*</span>

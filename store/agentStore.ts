@@ -43,6 +43,7 @@ interface Agent {
   territory: string;
   supervisor: string;
   agentStatus: string;
+  status: string;
   experienceLevel: string;
   contactPerson: string;
   designation: string;

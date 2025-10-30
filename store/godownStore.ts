@@ -130,7 +130,7 @@ export const useGodownStore = create<GodownStore>()(
           const res = await api.updateGodown({id:godownId,godown:godownData});
           console.log("Updated godown response:", res);
 
-          const updatedGodown: Godown = res.data.data;
+          const updatedGodown: Godown = res.data;
 
           set({
             godowns: get().godowns.map((g) =>

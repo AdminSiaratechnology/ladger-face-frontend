@@ -93,30 +93,39 @@ export const useUserManagementStore = create<useUserManagementStore>()(
           return error;
         }
       },
-      editUser: async (id, user) => {
-        // console.log(id,user,"jndnjs")
+     editUser: async (id, userData) => {
+  set({ loading: true });
 
-        set({ loading: true });
-        try {
-          const response = await api.updateUser(id, user);
-          console.log(response, "responseof updateuser");
-          const updatedUser = response.data;
-          console.log(updatedUser, "dataof updateuser");
-          let allusers = get().users;
-          console.log();
-          let hii = get().users.map((user) => {
-            return user?.["_id"] === id ? updatedUser : user;
-          });
-          console.log(hii, "hiii");
+  try {
+    const response = await api.updateUser(id, userData);
+    const updatedUser = response.data;
 
-          // set({users:get().users.map((user)=>{
-          //     user?.["_id"]===id?updatedUser:user
-          // })})
-        } catch (error: any) {
-          set({ error: error.message, loading: false });
-          toast.error("User updated  failed");
-        }
-      },
+    console.log(updatedUser, "updated user data");
+
+let hii=get().users.map((u) =>{
+
+  console.log(u._id,id,"u._id === id" );
+ return u._id === id ? updatedUser : "jj"
+}
+      )
+          console.log(hii,"hiiiiiiii")
+        
+
+    set({
+      users: get().users.map((u) =>
+        u._id === id ? updatedUser : u
+      ),
+      loading: false,
+    });
+    return response;
+
+    // toast.success("User updated successfully");
+  } catch (error: any) {
+    set({ error: error.message, loading: false });
+    toast.error("User update failed");
+  }
+},
+
       deleteUser: async (id) => {
         set({ loading: true });
         try {

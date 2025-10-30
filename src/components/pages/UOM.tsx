@@ -100,6 +100,9 @@ const UnitManagement: React.FC = () => {
   const { companies, defaultSelected } = useCompanyStore();
 
   useEffect(() => {
+    setFilteredUnits(units);
+  },[units])
+  useEffect(() => {
     fetchUnits(currentPage, limit, defaultSelected?._id);
   }, [fetchUnits, currentPage, defaultSelected]);
 
@@ -268,14 +271,6 @@ const UnitManagement: React.FC = () => {
     }),
     [filteredUnits, pagination, statusFilter]
   );
-
-  const tabs = [{ id: "basic", label: "Basic Info" }];
-
-  const stepIcons = {
-    basic: <FileText className="w-2 h-2 md:w-5 md:h-5" />,
-    details: <Calculator className="w-2 h-2 md:w-5 md:h-5" />,
-    settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />,
-  };
 
   // Table View Component
   const TableView = () => (
@@ -468,7 +463,7 @@ const UnitManagement: React.FC = () => {
                 }));
               }
             }}
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
           >
             <Calculator className="w-4 h-4 " />
             Add Unit
