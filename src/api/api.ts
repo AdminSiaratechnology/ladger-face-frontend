@@ -36,9 +36,9 @@ const createUser = async (userData: any) => {
 
 //Fetch users for agent 
 
-const fetchUsers=async({companyId}:{companyId:string},{queryParams}:{queryParams:string})=>{
+const fetchUsers=async({queryParams}:{queryParams:string})=>{
   console.log("fewtching usersss ");
-  const res=await apiClient.get(`/user-management/client/${companyId}?${queryParams}`)
+  const res=await apiClient.get(`/user-management/client/allUsers?${queryParams}`)
   console.log(res,"fetched users response")
   return res.data
 }
