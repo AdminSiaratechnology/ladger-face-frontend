@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api"; // Adjust the import path as needed
 
 // Define interfaces for Ledger
@@ -185,6 +185,7 @@ export const useLedgerStore = create<LedgerStore>()(
           });
 
           const result = await api.fetchLedgers({companyId}, { queryParams: queryParams.toString() });
+          console.log(result, "fetch result of ledgers");
           set({
             ledgers: result?.data?.ledgers || [],
             pagination: result?.data?.pagination || {
@@ -301,7 +302,8 @@ export const useLedgerStore = create<LedgerStore>()(
     }),
     {
       name: "ledger-storage",
-      getStorage: () => localStorage,
+      // getStorage: () => localStorage,
+       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         ledgers: state.ledgers,
       }),

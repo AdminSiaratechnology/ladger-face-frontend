@@ -325,7 +325,7 @@ export const useCustomerStore = create<CustomerStore>()(
 
           const queryParams = new URLSearchParams({
             search: searchTerm,
-            customerStatus: statusFilter !== "all" ? statusFilter : "",
+            status: statusFilter !== "all" ? statusFilter : "",
             sortBy: sortBy.includes("name") ? "customerName" : "createdAt",
             sortOrder: sortBy.includes("Desc") ? "desc" : "asc",
             page: page.toString(),

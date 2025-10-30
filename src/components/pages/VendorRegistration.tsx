@@ -99,6 +99,7 @@ interface Vendor {
   territory: string;
   procurementPerson: string;
   vendorStatus: string;
+  status: string;
   companySize: string;
   contactPerson: string;
   designation: string;
@@ -177,6 +178,7 @@ interface VendorForm {
   territory: string;
   procurementPerson: string;
   vendorStatus: string;
+  status: string;
   companySize: string;
   contactPerson: string;
   designation: string;
@@ -300,6 +302,7 @@ const VendorRegistrationPage: React.FC = () => {
     territory: "",
     procurementPerson: "",
     vendorStatus: "active",
+    status: "active",
     companySize: "",
     contactPerson: "",
     designation: "",
@@ -590,6 +593,7 @@ const VendorRegistrationPage: React.FC = () => {
       territory: "",
       procurementPerson: "",
       vendorStatus: "active",
+      status: "active",
       companySize: "",
       contactPerson: "",
       designation: "",
@@ -678,10 +682,6 @@ const VendorRegistrationPage: React.FC = () => {
       toast.error("Please enter Vendor Name");
       return;
     }
-    // if (!formData.companyId) {
-    //   toast.error("Please select Company");
-    //   return;
-    // }
     if (!formData.contactPerson.trim()) {
       toast.error("Please enter Contact Person");
       return;
@@ -759,7 +759,7 @@ const VendorRegistrationPage: React.FC = () => {
       activeVendors:
         statusFilter === "active"
           ? pagination?.total
-          : filteredVendors?.filter((c) => c.vendorStatus === "active").length,
+          : filteredVendors?.filter((c) => c.status === "active").length,
     }),
     [filteredVendors, pagination, statusFilter]
   );
@@ -772,6 +772,11 @@ const VendorRegistrationPage: React.FC = () => {
     { id: "bank", label: "Banking Details" },
     { id: "settings", label: "Settings" },
   ];
+
+  useEffect(() => {
+  setFilteredVendors(vendors);
+}, [vendors]);
+
 
   // Initial fetch
   useEffect(() => {
@@ -860,12 +865,12 @@ const VendorRegistrationPage: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Badge
                     className={`${
-                      vendor.vendorStatus === "active"
+                      vendor.status === "active"
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-700"
                     } hover:bg-green-100`}
                   >
-                    {vendor.vendorStatus}
+                    {vendor.status}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -918,12 +923,12 @@ const VendorRegistrationPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Badge
                   className={`${
-                    vendor.vendorStatus === "active"
+                    vendor.status === "active"
                       ? "bg-green-100 text-green-700"
                       : "bg-gray-100 text-gray-700"
                   } hover:bg-green-100`}
                 >
-                  {vendor.vendorStatus}
+                  {vendor.status}
                 </Badge>
                 {/* <ActionsDropdown vendor={vendor} /> */}
                 <ActionsDropdown
@@ -1387,16 +1392,14 @@ const VendorRegistrationPage: React.FC = () => {
                       Vendor Status
                     </label>
                     <select
-                      value={formData.vendorStatus}
+                      value={formData.status}
                       onChange={(e) =>
-                        handleSelectChange("vendorStatus", e.target.value)
+                        handleSelectChange("status", e.target.value)
                       }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
-                      <option value="suspended">Suspended</option>
-                      <option value="prospect">Prospect</option>
                     </select>
                   </div>
 
@@ -1431,6 +1434,7 @@ const VendorRegistrationPage: React.FC = () => {
                     }
                     setActiveTab("contact");
                   }}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1595,18 +1599,13 @@ const VendorRegistrationPage: React.FC = () => {
                     }
                     setActiveTab("financialSettings");
                   }}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
 
             {activeTab === "financialSettings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-                    icon={<CreditCard className="w-4 h-4 text-white" />}
-                    title=" Financial Settings"
-                    gradientFrom="from-blue-400 "
-                    gradientTo="to-blue-500"
-                  /> */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1718,6 +1717,7 @@ const VendorRegistrationPage: React.FC = () => {
                   totalSteps={6}
                   onPrevious={() => setActiveTab("contact")}
                   onNext={() => setActiveTab("tax")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1807,6 +1807,7 @@ const VendorRegistrationPage: React.FC = () => {
                   totalSteps={6}
                   onPrevious={() => setActiveTab("financialSettings")}
                   onNext={() => setActiveTab("bank")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1921,6 +1922,7 @@ const VendorRegistrationPage: React.FC = () => {
                   totalSteps={6}
                   onPrevious={() => setActiveTab("tax")}
                   onNext={() => setActiveTab("settings")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}

@@ -583,77 +583,90 @@ const CompanyPage: React.FC = () => {
     deleteCompany(id);
   };
 
-  const handleSubmit = (): void => {
-    console.log("first");
-    if (!formData.namePrint.trim()) {
-      toast.error("Please enter Company Name (Print)");
+const handleSubmit = async (): Promise<void> => {
+  console.log("first");
+  if (!formData.namePrint.trim()) {
+    toast.error("Please enter Company Name (Print)");
+    return;
+  }
+  if (!formData.email.trim()) {
+    toast.error("Please enter Email Address");
+    return;
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(formData.email)) {
+    toast.error("Please enter a valid email address");
+    return;
+  }
+
+  const companyFormData = new FormData();
+
+  Object.keys(formData).forEach((key) => {
+    const value = formData[key as keyof CompanyForm];
+    if (
+      key === "registrationDocs" ||
+      key === "banks" ||
+      key === "logoFile" ||
+      key === "logoPreviewUrl"
+    ) {
       return;
     }
-    if (!formData.email.trim()) {
-      toast.error("Please enter Email Address");
-      return;
+
+    if (value !== null && value !== undefined && value !== "") {
+      companyFormData.append(key, String(value));
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
+  });
 
-    const companyFormData = new FormData();
+  companyFormData.append("banks", JSON.stringify(formData.banks));
 
-    Object.keys(formData).forEach((key) => {
-      const value = formData[key as keyof CompanyForm];
+  if (formData.logoFile) {
+    companyFormData.append("logo", formData.logoFile);
+  }
 
-      if (
-        key === "registrationDocs" ||
-        key === "banks" ||
-        key === "logoFile" ||
-        key === "logoPreviewUrl"
-      ) {
-        return;
-      }
+  const newRegistrationDocs = formData.registrationDocs.filter(
+    (doc) => doc.file && doc.file instanceof Blob
+  );
 
-      if (value !== null && value !== undefined && value !== "") {
-        companyFormData.append(key, String(value));
-      }
-    });
+  newRegistrationDocs.forEach((doc) => {
+    companyFormData.append("registrationDocs", doc.file!);
+  });
 
-    companyFormData.append("banks", JSON.stringify(formData.banks));
-
-    if (formData.logoFile) {
-      companyFormData.append("logo", formData.logoFile);
-    }
-
-    // Filter only new documents (with File)
-    console.log(formData.registrationDocs, "formData.registrationDocs");
-    const newRegistrationDocs = formData.registrationDocs.filter(
-      (doc) => doc.file && doc.file instanceof Blob // works for File and Blob
+  if (newRegistrationDocs.length > 0) {
+    companyFormData.append(
+      "registrationDocTypes",
+      JSON.stringify(newRegistrationDocs.map((doc) => doc.type))
     );
+  }
 
-    newRegistrationDocs.forEach((doc) => {
-      companyFormData.append("registrationDocs", doc.file!);
-    });
-
-    if (newRegistrationDocs.length > 0) {
-      companyFormData.append(
-        "registrationDocTypes",
-        JSON.stringify(newRegistrationDocs.map((doc) => doc.type))
-      );
-    }
-
-    // No need for registrationDocsCount
-
+  // ✅ Submit logic
+  try {
+    let createdCompany;
     if (editingCompany) {
-      updateCompany({
+      await updateCompany({
         companyId: editingCompany._id || "",
         companyData: companyFormData,
       });
+      toast.success("Company updated successfully!");
     } else {
-      addCompany(companyFormData);
+      createdCompany = await addCompany(companyFormData);
+        await fetchCompanies("68c1503077fd742fa21575df");
+      toast.success("Company created successfully!");
     }
+
+    // ✅ If this is the first company created, auto-select it
+    if (!editingCompany && companies.length === 0 && createdCompany) {
+      setDefaultCompany(createdCompany);
+      toast.info(`${createdCompany.namePrint} set as default company`);
+    }
+
     setOpen(false);
     resetForm();
-  };
+  } catch (error) {
+    toast.error("Something went wrong while saving the company");
+    console.error(error);
+  }
+};
+
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchTerm.length >= 3) {
@@ -849,7 +862,7 @@ const CompanyPage: React.FC = () => {
   // Card View Component
   const CardView = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-      {filteredCompanies.map((company) => (
+      {companies.map((company) => (
         <Card
           key={company._id}
           className="group bg-white border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden h-full flex flex-col hover:border-teal-200 hover:-translate-y-1"

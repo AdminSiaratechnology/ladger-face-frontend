@@ -166,6 +166,7 @@ interface CustomerForm {
   territory: string;
   salesPerson: string;
   customerStatus: string;
+  status: string;
   companySize: string;
   contactPerson: string;
   designation: string;
@@ -296,6 +297,7 @@ const CustomerRegistrationPage: React.FC = () => {
     territory: "",
     salesPerson: "",
     customerStatus: "active",
+    status: "active",
     companySize: "",
     contactPerson: "",
     designation: "",
@@ -592,6 +594,7 @@ const CustomerRegistrationPage: React.FC = () => {
       territory: "",
       salesPerson: "",
       customerStatus: "active",
+      status: "active",
       companySize: "",
       contactPerson: "",
       designation: "",
@@ -763,7 +766,7 @@ const CustomerRegistrationPage: React.FC = () => {
       activeCustomers:
         statusFilter === "active"
           ? pagination?.total
-          : filteredCustomers?.filter((c) => c.customerStatus === "active")
+          : filteredCustomers?.filter((c) => c.status === "active")
               .length,
     }),
     [filteredCustomers, pagination, statusFilter]
@@ -778,6 +781,9 @@ const CustomerRegistrationPage: React.FC = () => {
     { id: "settings", label: "Settings" },
   ];
 
+  useEffect(() => {
+    setFilteredCustomers(customers);
+  },[customers]);
   // Initial fetch
   useEffect(() => {
     console.log(defaultSelected);
@@ -869,12 +875,12 @@ const CustomerRegistrationPage: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Badge
                     className={`${
-                      customer.customerStatus === "active"
+                      customer.status === "active"
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-700"
                     } hover:bg-green-100`}
                   >
-                    {customer.customerStatus}
+                    {customer.status}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -927,12 +933,12 @@ const CustomerRegistrationPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Badge
                   className={`${
-                    customer.customerStatus === "active"
+                    customer.status === "active"
                       ? "bg-green-100 text-green-700"
                       : "bg-gray-100 text-gray-700"
                   } hover:bg-green-100`}
                 >
-                  {customer.customerStatus}
+                  {customer.status}
                 </Badge>
                 {/* <ActionsDropdown customer={customer} /> */}
                 <ActionsDropdown
@@ -1469,9 +1475,9 @@ const CustomerRegistrationPage: React.FC = () => {
                       Customer Status
                     </label>
                     <select
-                      value={formData.customerStatus}
+                      value={formData.status}
                       onChange={(e) =>
-                        handleSelectChange("customerStatus", e.target.value)
+                        handleSelectChange("status", e.target.value)
                       }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
@@ -1511,6 +1517,7 @@ const CustomerRegistrationPage: React.FC = () => {
                     }
                     setActiveTab("contact");
                   }}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1675,6 +1682,7 @@ const CustomerRegistrationPage: React.FC = () => {
                     }
                     setActiveTab("financialSettings");
                   }}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1787,6 +1795,7 @@ const CustomerRegistrationPage: React.FC = () => {
                   totalSteps={6}
                   onPrevious={() => setActiveTab("contact")}
                   onNext={() => setActiveTab("tax")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1878,6 +1887,7 @@ const CustomerRegistrationPage: React.FC = () => {
                   totalSteps={6}
                   onPrevious={() => setActiveTab("financialSettings")}
                   onNext={() => setActiveTab("bank")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1988,6 +1998,7 @@ const CustomerRegistrationPage: React.FC = () => {
                   totalSteps={6}
                   onPrevious={() => setActiveTab("tax")}
                   onNext={() => setActiveTab("settings")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}

@@ -86,11 +86,14 @@ const GodownRegistration: React.FC = () => {
     filterGodowns,
   } = useGodownStore();
   const { companies, defaultSelected } = useCompanyStore();
+  useEffect(() => {
+    setFilteredGodowns(godowns);
+  }, [godowns]);
 
   // Initial fetch
   useEffect(() => {
-    fetchGodowns(currentPage, limit, defaultSelected?._idd);
-  }, [fetchGodowns, currentPage,defaultSelected]);
+    fetchGodowns(currentPage, limit, defaultSelected?._id);
+  }, [fetchGodowns, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -100,7 +103,14 @@ const GodownRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterGodowns(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
+      filterGodowns(
+        searchTerm,
+        statusFilter,
+        sortBy,
+        currentPage,
+        limit,
+        defaultSelected?._id
+      )
         .then((result) => {
           setFilteredGodowns(result);
         })
@@ -112,7 +122,14 @@ const GodownRegistration: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterGodowns, defaultSelected]);
+  }, [
+    searchTerm,
+    statusFilter,
+    sortBy,
+    currentPage,
+    filterGodowns,
+    defaultSelected,
+  ]);
 
   const [formData, setFormData] = useState<Godown>({
     id: 0,
@@ -131,11 +148,11 @@ const GodownRegistration: React.FC = () => {
     contactNumber: "",
     createdAt: "",
   });
-   useEffect(() => {
-     if (defaultSelected) {
-       setFormData((prev) => ({ ...prev, company: defaultSelected?._id }));
-     }
-   }, [defaultSelected, companies]);
+  useEffect(() => {
+    if (defaultSelected) {
+      setFormData((prev) => ({ ...prev, company: defaultSelected?._id }));
+    }
+  }, [defaultSelected, companies]);
   // Get all countries
   const allCountries = useMemo(() => Country.getAllCountries(), []);
 
@@ -241,10 +258,6 @@ const GodownRegistration: React.FC = () => {
       toast.error("Please enter Godown Name");
       return;
     }
-    // if (!formData.company) {
-    //   toast.error("Please select Company");
-    //   return;
-    // }
 
     const godownFormData = new FormData();
     Object.keys(formData).forEach((key) => {
@@ -538,7 +551,7 @@ const GodownRegistration: React.FC = () => {
             onClick={() => {
               resetForm();
               setOpen(true);
-                if (defaultSelected && companies.length > 0) {
+              if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
                   company: defaultSelected?._id,
@@ -682,8 +695,21 @@ const GodownRegistration: React.FC = () => {
           <MultiStepNav
             steps={tabs}
             currentStep={activeTab}
-            onStepChange={(nextTab)=>{
-              const stepOrder = ["basic", ""]
+            onStepChange={(nextTab) => {
+              const stepOrder = ["basic", "location"];
+              const currentIndex = stepOrder.indexOf(activeTab);
+              const nextIndex = stepOrder.indexOf(nextTab);
+              if (nextIndex < currentIndex) {
+                setActiveTab(nextTab);
+              }
+              if (activeTab === "basic") {
+                console.log(formData);
+                if (!formData.code || !formData.name) {
+                  toast.error("Please enter Godown Code and Name");
+                  return;
+                }
+              }
+              setActiveTab(nextTab);
             }}
             stepIcons={stepIcons}
           />
@@ -691,13 +717,6 @@ const GodownRegistration: React.FC = () => {
           <div className="flex-1 overflow-y-auto">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Warehouse className="w-4 h-4 text-white" />}
-        title="Godown Information"
-        gradientFrom="from-teal-400"
-        gradientTo="to-teal-500"
-      /> */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Godown Code"
@@ -800,7 +819,14 @@ const GodownRegistration: React.FC = () => {
                   currentStep={1}
                   totalSteps={2}
                   showPrevious={false}
-                  onNext={() => setActiveTab("location")}
+                  onNext={() => {
+                    if (!formData.code || !formData.name) {
+                      toast.error("Please enter Godown Code and Name");
+                      return;
+                    }
+                    setActiveTab("location");
+                  }}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}

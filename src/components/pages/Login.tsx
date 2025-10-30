@@ -54,12 +54,9 @@ export default function Login() {
 
   console.log(user, "usuario en login");
 
-  // if (user) {
-  //   return <Navigate to="/" replace />;
-  // }
   useEffect(() => {
     if (user) {
-      console.log(user,"userrrr");
+      console.log(user, "userrrr");
       const fetchCompaniesAsync = async () => {
         await fetchCompanies("", 1, 10);
         setLoadCompany(true);
@@ -71,15 +68,23 @@ export default function Login() {
     }
   }, [user, navigate, fetchCompanies]);
   useEffect(() => {
-    if (loadCompany) {
-      if (companies.length > 0 && !companyLoading && user) {
-        console.log(companies.length, companyLoading, user, "bgfbjgbfjkgbjkf");
+    if (loadCompany && !companyLoading && user) {
+      if (companies.length === 1) {
+        // ✅ Auto-select the only company and set as default
+        const singleCompany = companies[0];
+        setDefaultCompany(singleCompany);
+        setShowCompanyPopup(false);
+        navigate("/"); // Directly navigate to dashboard
+      } else if (companies.length > 1) {
+        // ✅ Show popup only when multiple companies exist
         setShowCompanyPopup(true);
-      } else if (user && !companyLoading && companies.length === 0) {
+      } else {
+        // ✅ No companies, navigate to create one
         navigate("/company");
       }
     }
-  }, [companyLoading, user, loadCompany]);
+  }, [companyLoading, user, loadCompany, companies]);
+
   console.log(companies);
   const setDefaultCompany = useCompanyStore((state) => state.setDefaultCompany);
   const handleSelect = (company) => {

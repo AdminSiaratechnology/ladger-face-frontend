@@ -168,7 +168,7 @@ const ProductPage: React.FC = () => {
   const [viewingImage, setViewingImage] = useState<ProductImage | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "Active" | "Inactive"
+    "all" | "active" | "inactive"
   >("all");
   const [sortBy, setSortBy] = useState<
     "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
@@ -236,6 +236,10 @@ const ProductPage: React.FC = () => {
        setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
      }
    }, [defaultSelected, companies]);
+
+  useEffect(() => {
+    setFilteredProducts(products);
+  },[products])
   // Initial fetch
   useEffect(() => {
     fetchProducts(currentPage, limit, defaultSelected?._id);
@@ -469,15 +473,16 @@ const ProductPage: React.FC = () => {
   };
 
   const handleEditProduct = (product: Product): void => {
+    console.log(product)
     setEditingProduct(product);
     setFormData({
       code: product.code,
       name: product.name,
       partNo: product.partNo,
-      stockGroup: product.stockGroup,
-      stockCategory: product.stockCategory,
+      stockGroup: product.stockGroup?._id,
+      stockCategory: product.stockCategory?._id,
       batch: product.batch,
-      unit: product.unit,
+      unit: product.unit?._id,
       alternateUnit: product.alternateUnit,
       minimumQuantity: product.minimumQuantity || 0,
       defaultSupplier: product.defaultSupplier || "",
@@ -1257,8 +1262,8 @@ const ProductPage: React.FC = () => {
                       }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
                     </select>
                   </div>
                   <div className="mt-2">
@@ -1279,6 +1284,7 @@ const ProductPage: React.FC = () => {
                   totalSteps={4}
                   showPrevious={false}
                   onNext={() => setActiveTab("tax")}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1502,6 +1508,7 @@ const ProductPage: React.FC = () => {
                   nextDisabled={
                     formData.taxConfiguration.applicable && !isTaxValid()
                   }
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
@@ -1703,6 +1710,7 @@ const ProductPage: React.FC = () => {
                   onPrevious={() => setActiveTab("tax")}
                   onNext={() => setActiveTab("settings")}
                   nextDisabled={remainingQuantity < 0}
+                  onSubmit={handleSubmit}
                 />
               </div>
             )}
