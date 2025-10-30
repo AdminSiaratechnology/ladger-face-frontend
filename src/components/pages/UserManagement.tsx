@@ -196,7 +196,7 @@ export const UserManagement: React.FC = () => {
   const [selectedTemplates, setSelectedTemplates] = useState<{
     [companyId: string]: string;
   }>({});
-
+  
   const { defaultSelected, companies, filterCompanies } = useCompanyStore();
   const {
     addUser,
@@ -212,7 +212,7 @@ export const UserManagement: React.FC = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchUsers(currentPage, limit, defaultSelected?._id);
+    fetchUsers(currentPage, limit);
   }, [fetchUsers, currentPage]);
 
   // Reset page to 1 when filters change

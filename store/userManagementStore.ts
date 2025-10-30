@@ -50,7 +50,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
       loading: false,
       error: null,
 
-      fetchUsers: async (page = 1, limit = 10, companyId) => {
+      fetchUsers: async (page = 1, limit = 10) => {
         set({ loading: true });
         try {
           console.log("Fetching users...");
@@ -58,10 +58,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             page: page.toString(),
             limit: limit.toString(),
           });
-          const id = companyId?.toLocaleString();
-          const response = await api.fetchUsers(
-            { companyId: id },
-            { queryParams: queryParams.toString() }
+          const response = await api.fetchUsers({ queryParams: queryParams.toString() }
           ); // Adjust api call if needed
           set({
             users: response.data?.[0]?.users || [],
