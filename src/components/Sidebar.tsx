@@ -29,9 +29,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import { dummyCompanies } from "../lib/dummyData";
 import { useAuthStore } from "../../store/authStore";
-
+import { useCompanyStore } from "../../store/companyStore";
 interface SidebarProps {
   isOpen: boolean;
   onClose?: () => void;
@@ -65,6 +64,9 @@ function checkPermission(user: any, module: string, subModule: string) {
 
   for (const accessItem of user.access) {
     const modules = accessItem.modules;
+    console.log(modules);
+    console.log(modules[module])
+    console.log(modules[module][subModule])
     if (modules && modules[module] && modules[module][subModule]) {
       return modules[module][subModule].read === true;
     }
@@ -73,6 +75,11 @@ function checkPermission(user: any, module: string, subModule: string) {
 }
 
 function hasMenuAccess(user: any, item: MenuItem | SubMenuItem) {
+  console.log(user.access, "user.access");
+  console.log(item, "item")
+  if ('type' in item && item.type === "accordion") {
+  return true;
+}
   if (item.module && item.subModule)
     return checkPermission(user, item.module, item.subModule);
   if (item.roles && user?.role)
@@ -88,7 +95,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     undefined
   );
   const [collapsed, setCollapsed] = useState(false); // 🔹 New: collapse state
-
+  const {companies} = useCompanyStore();
   // Detect active accordion on route change
   useEffect(() => {
     const activeAccordion = filteredMenuItems.find(
@@ -105,7 +112,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   useEffect(() => {
     const checkCompanyExists = () => {
       try {
-        const companysData = dummyCompanies;
+        const companysData = companies;
         if (companysData) {
           const companies = companysData;
           setHasCompany(Array.isArray(companies) && companies.length > 0);
@@ -126,7 +133,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       window.removeEventListener("companiesUpdated", handleStorageChange);
     };
   }, []);
-
   // Menu data
   const fullMenuItems: MenuItem[] = [
     {
@@ -149,6 +155,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: "User Management",
       roles: ["admin"],
       type: "link",
+      module: "UserManagement",
+      subModule: "User",
     },
     {
       id: "business-partners",
@@ -178,12 +186,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           icon: HatGlasses,
           label: "Agent",
           roles: ["admin", "agent"],
+          module: "BusinessManagement",
+          subModule: "Agent",
         },
         {
           path: "/ladger-registration",
           icon: HatGlasses,
           label: "Ladger",
           roles: ["admin", "agent"],
+          module: "BusinessManagement",
+          subModule: "Ledger",
         },
       ],
     },
@@ -207,19 +219,25 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           icon: Layers,
           label: "Stock Group",
           roles: ["admin", "agent"],
+          module: "InventoryManagement",
+          subModule: "StockGroup",
         },
         {
           path: "/stock-category",
           icon: FolderOpen,
           label: "Stock Category",
           roles: ["admin", "agent"],
+          module: "InventoryManagement",  
+          subModule: "StockCategory",
         },
-        { path: "/uom", icon: Ruler, label: "UOM", roles: ["admin", "agent"] },
+        { path: "/uom", icon: Ruler, label: "UOM", roles: ["admin", "agent"], module: "InventoryManagement", subModule: "Unit" },
         {
           path: "/product",
           icon: Package,
           label: "Product",
           roles: ["admin", "agent"],
+          module: "InventoryManagement",
+          subModule: "Product",
         },
         {
           path: "/price-list",
@@ -237,8 +255,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: "Orders",
       roles: ["admin", "agent", "salesman"],
       type: "link",
-      module: "OrderManagement",
-      subModule: "Order",
+      module: "Order",
+      subModule: "Orders",
     },
     {
       path: "/tracking",
@@ -302,11 +320,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   ];
 
   const menuItems = hasCompany ? fullMenuItems : limitedMenuItems;
-
+console.log(menuItems)
   const filteredMenuItems = menuItems
     .filter((item) => user && hasMenuAccess(user, item))
     .map((item) => {
+      console.log(item);
       if (item.type === "accordion" && item.subItems) {
+        console.log(item.subItems);
         const filteredSubItems = item.subItems.filter((sub) =>
           hasMenuAccess(user, sub)
         );
@@ -317,7 +337,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     .filter((item) =>
       item.type === "accordion" ? item.subItems?.length > 0 : true
     );
-
+console.log(filteredMenuItems)
   const handleLinkClick = () => {
     if (window.innerWidth < 768 && onClose) onClose();
   };

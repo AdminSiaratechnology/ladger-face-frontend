@@ -583,89 +583,89 @@ const CompanyPage: React.FC = () => {
     deleteCompany(id);
   };
 
-const handleSubmit = async (): Promise<void> => {
-  console.log("first");
-  if (!formData.namePrint.trim()) {
-    toast.error("Please enter Company Name (Print)");
-    return;
-  }
-  if (!formData.email.trim()) {
-    toast.error("Please enter Email Address");
-    return;
-  }
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(formData.email)) {
-    toast.error("Please enter a valid email address");
-    return;
-  }
-
-  const companyFormData = new FormData();
-
-  Object.keys(formData).forEach((key) => {
-    const value = formData[key as keyof CompanyForm];
-    if (
-      key === "registrationDocs" ||
-      key === "banks" ||
-      key === "logoFile" ||
-      key === "logoPreviewUrl"
-    ) {
+  const handleSubmit = async (): Promise<void> => {
+    console.log("first");
+    if (!formData.namePrint.trim()) {
+      toast.error("Please enter Company Name (Print)");
+      return;
+    }
+    if (!formData.email.trim()) {
+      toast.error("Please enter Email Address");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Please enter a valid email address");
       return;
     }
 
-    if (value !== null && value !== undefined && value !== "") {
-      companyFormData.append(key, String(value));
+    const companyFormData = new FormData();
+
+    Object.keys(formData).forEach((key) => {
+      const value = formData[key as keyof CompanyForm];
+      if (
+        key === "registrationDocs" ||
+        key === "banks" ||
+        key === "logoFile" ||
+        key === "logoPreviewUrl"
+      ) {
+        return;
+      }
+
+      if (value !== null && value !== undefined && value !== "") {
+        companyFormData.append(key, String(value));
+      }
+    });
+
+    companyFormData.append("banks", JSON.stringify(formData.banks));
+
+    if (formData.logoFile) {
+      companyFormData.append("logo", formData.logoFile);
     }
-  });
 
-  companyFormData.append("banks", JSON.stringify(formData.banks));
-
-  if (formData.logoFile) {
-    companyFormData.append("logo", formData.logoFile);
-  }
-
-  const newRegistrationDocs = formData.registrationDocs.filter(
-    (doc) => doc.file && doc.file instanceof Blob
-  );
-
-  newRegistrationDocs.forEach((doc) => {
-    companyFormData.append("registrationDocs", doc.file!);
-  });
-
-  if (newRegistrationDocs.length > 0) {
-    companyFormData.append(
-      "registrationDocTypes",
-      JSON.stringify(newRegistrationDocs.map((doc) => doc.type))
+    const newRegistrationDocs = formData.registrationDocs.filter(
+      (doc) => doc.file && doc.file instanceof Blob
     );
-  }
 
-  // ✅ Submit logic
-  try {
-    let createdCompany;
-    if (editingCompany) {
-      await updateCompany({
-        companyId: editingCompany._id || "",
-        companyData: companyFormData,
-      });
-      toast.success("Company updated successfully!");
-    } else {
-      createdCompany = await addCompany(companyFormData);
+    newRegistrationDocs.forEach((doc) => {
+      companyFormData.append("registrationDocs", doc.file!);
+    });
+
+    if (newRegistrationDocs.length > 0) {
+      companyFormData.append(
+        "registrationDocTypes",
+        JSON.stringify(newRegistrationDocs.map((doc) => doc.type))
+      );
+    }
+
+    // ✅ Submit logic
+    try {
+      let createdCompany;
+      if (editingCompany) {
+        await updateCompany({
+          companyId: editingCompany._id || "",
+          companyData: companyFormData,
+        });
+        toast.success("Company updated successfully!");
+      } else {
+        createdCompany = await addCompany(companyFormData);
         await fetchCompanies("68c1503077fd742fa21575df");
-      toast.success("Company created successfully!");
-    }
+        toast.success("Company created successfully!");
+      }
 
-    // ✅ If this is the first company created, auto-select it
-    if (!editingCompany && companies.length === 0 && createdCompany) {
-      setDefaultCompany(createdCompany);
-      toast.info(`${createdCompany.namePrint} set as default company`);
-    }
+      // ✅ If this is the first company created, auto-select it
+      if (!editingCompany && companies.length === 0 && createdCompany) {
+        setDefaultCompany(createdCompany);
+        toast.info(`${createdCompany.namePrint} set as default company`);
+      }
 
-    setOpen(false);
-    resetForm();
-  } catch (error) {
-    toast.error("Something went wrong while saving the company");
-    console.error(error);
-  }
-};
+      setOpen(false);
+      resetForm();
+    } catch (error) {
+      toast.error("Something went wrong while saving the company");
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -843,7 +843,7 @@ const handleSubmit = async (): Promise<void> => {
                     {company.status}
                   </Badge>
                 </td>
-                <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-right">
+                <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-right z-10">
                   <ActionsDropdown
                     onEdit={() => handleEditCompany(company)}
                     onDelete={() => handleDeleteCompany(company._id || "")}
@@ -1029,7 +1029,7 @@ const handleSubmit = async (): Promise<void> => {
     <>
       <div className="custom-container">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-4">
           <HeaderGradient
             title="Company Management"
             subtitle="Manage your company information and registrations"
@@ -1061,7 +1061,7 @@ const handleSubmit = async (): Promise<void> => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-2">
           <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -1215,6 +1215,21 @@ const handleSubmit = async (): Promise<void> => {
                   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                   if (!emailRegex.test(formData.email)) {
                     toast.error("Please enter a valid email address");
+                    return;
+                  }
+                }
+                if (nextTab !== "contact" && nextTab !== "basic") {
+                  if (!formData.email) {
+                    toast.error("Email is required");
+                    return;
+                  }
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (!emailRegex.test(formData.email)) {
+                    toast.error("Please enter a valid email address");
+                    return;
+                  }
+                  if (!formData.namePrint) {
+                    toast.error("Company Name is required");
                     return;
                   }
                 }

@@ -31,6 +31,7 @@ import PaginationControls from "../customComponents/CustomPaginationControls";
 import SectionHeader from "../customComponents/SectionHeader";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
+import { set } from "react-hook-form";
 
 // Godown interface
 interface Godown {
@@ -70,7 +71,7 @@ const GodownRegistration: React.FC = () => {
   >("all");
   const [sortBy, setSortBy] = useState<
     "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
-  >("nameAsc");
+  >("dateDesc");
   const [filteredGodowns, setFilteredGodowns] = useState<Godown[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
@@ -271,6 +272,8 @@ const GodownRegistration: React.FC = () => {
       updateGodown(editingGodown._id || "", godownFormData);
     } else {
       addGodown(godownFormData);
+      fetchGodowns();
+      setOpen(false);
     }
     setOpen(false);
     resetForm();
@@ -400,7 +403,7 @@ const GodownRegistration: React.FC = () => {
                   <CheckAccess
                     module="InventoryManagement"
                     subModule="Godown"
-                    type="edit"
+                    type="update"
                   >
                     <ActionsDropdown
                       onEdit={() => handleEditGodown(godown)}
@@ -456,7 +459,7 @@ const GodownRegistration: React.FC = () => {
               <CheckAccess
                 module="InventoryManagement"
                 subModule="Godown"
-                type="edit"
+                type="update"
               >
                 <ActionsDropdown
                   onEdit={() => handleEditGodown(godown)}
@@ -536,8 +539,8 @@ const GodownRegistration: React.FC = () => {
   );
 
   return (
-    <div className="custopm-container">
-      <div className="flex justify-between items-center mb-8">
+    <div className="custom-container">
+      <div className="flex justify-between items-center mb-4">
         <HeaderGradient
           title="Godown Management"
           subtitle="Manage your godown information and registrations"

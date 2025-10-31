@@ -172,7 +172,7 @@ const ProductPage: React.FC = () => {
   >("all");
   const [sortBy, setSortBy] = useState<
     "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
-  >("nameAsc");
+  >("dateDesc");
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10;
@@ -191,6 +191,7 @@ const ProductPage: React.FC = () => {
     filterProducts,
     pagination,
     loading,
+    resetProductStore,
   } = useProductStore();
   const { vendors } = useVendorStore();
   const [country] = useState<string>("india");
@@ -229,17 +230,23 @@ const ProductPage: React.FC = () => {
     },
     images: [],
     remarks: "",
-    status: "Active",
+    status: "active",
   });
-   useEffect(() => {
-     if (defaultSelected) {
-       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
-     }
-   }, [defaultSelected, companies]);
-
+  useEffect(() => {
+    if (defaultSelected) {
+      setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
+    }
+  }, [defaultSelected, companies]);
+  useEffect(() => {
+    // Cleanup when leaving the page_
+    return () => {
+      resetProductStore();
+      console.log("🧹 Stock state reset on page leave 🚀");
+    };
+  }, [resetProductStore]);
   useEffect(() => {
     setFilteredProducts(products);
-  },[products])
+  }, [products]);
   // Initial fetch
   useEffect(() => {
     fetchProducts(currentPage, limit, defaultSelected?._id);
@@ -254,7 +261,14 @@ const ProductPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterProducts(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
+      filterProducts(
+        searchTerm,
+        statusFilter,
+        sortBy,
+        currentPage,
+        limit,
+        defaultSelected?._id
+      )
         .then((result) => {
           setFilteredProducts(result);
         })
@@ -266,7 +280,14 @@ const ProductPage: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterProducts, defaultSelected]);
+  }, [
+    searchTerm,
+    statusFilter,
+    sortBy,
+    currentPage,
+    filterProducts,
+    defaultSelected,
+  ]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -461,7 +482,7 @@ const ProductPage: React.FC = () => {
       },
       images: [],
       remarks: "",
-      status: "Active",
+      status: "active",
     });
     setEditingProduct(null);
     setOpeningQuantities([
@@ -473,7 +494,6 @@ const ProductPage: React.FC = () => {
   };
 
   const handleEditProduct = (product: Product): void => {
-    console.log(product)
     setEditingProduct(product);
     setFormData({
       code: product.code,
@@ -503,7 +523,7 @@ const ProductPage: React.FC = () => {
       },
       images: product.images || [],
       remarks: product.remarks || "",
-      status: product.status || "Active",
+      status: product.status || "active",
     });
     if (product.openingQuantities && product.openingQuantities.length > 0) {
       setOpeningQuantities(product.openingQuantities);
@@ -521,7 +541,7 @@ const ProductPage: React.FC = () => {
     deleteProduct(id);
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async (): Promise<void> => {
     console.log(
       "Submitting form with data:",
       formData,
@@ -541,18 +561,6 @@ const ProductPage: React.FC = () => {
       toast.error("Please select Company");
       return;
     }
-    // if (!formData.stockGroup) {
-    //   toast.error("Please select Stock Group");
-    //   return;
-    // }
-    // if (!formData.stockCategory) {
-    //   toast.error("Please select Stock Category");
-    //   return;
-    // }
-    // if (!formData.unit) {
-    //   toast.error("Please select Unit");
-    //   return;
-    // }
     if (formData.taxConfiguration.applicable && !isTaxValid()) {
       toast.error("CGST + SGST cannot exceed the tax percentage");
       return;
@@ -596,9 +604,14 @@ const ProductPage: React.FC = () => {
     );
 
     if (editingProduct) {
-      updateProduct({ id: editingProduct._id || "", product: productFormData });
+      await updateProduct({
+        id: editingProduct._id || "",
+        product: productFormData,
+      });
+      await fetchProducts(currentPage, limit, defaultSelected?._id);
     } else {
-      addProduct(productFormData);
+      await addProduct(productFormData);
+      fetchProducts();
     }
     setOpen(false);
     resetForm();
@@ -650,9 +663,9 @@ const ProductPage: React.FC = () => {
     () => ({
       totalProducts: pagination?.total || 0,
       activeProducts:
-        statusFilter === "Active"
+        statusFilter === "active"
           ? pagination?.total
-          : filteredProducts?.filter((p) => p.status === "Active").length || 0,
+          : filteredProducts?.filter((p) => p.status === "active").length || 0,
       batchProducts: filteredProducts?.filter((p) => p.batch).length || 0,
       taxableProducts:
         filteredProducts?.filter((p) => p.taxConfiguration?.applicable)
@@ -746,7 +759,7 @@ const ProductPage: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Badge
                       className={`${
-                        product.status === "Active"
+                        product.status === "active"
                           ? "bg-green-100 text-green-700"
                           : "bg-gray-100 text-gray-700"
                       } hover:bg-current`}
@@ -758,7 +771,7 @@ const ProductPage: React.FC = () => {
                     <CheckAccess
                       module="InventoryManagement"
                       subModule="product"
-                      type="edit"
+                      type="update"
                     >
                       <ActionsDropdown
                         onEdit={() => handleEditProduct(product)}
@@ -800,7 +813,7 @@ const ProductPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Badge
                   className={`${
-                    product.status === "Active"
+                    product.status === "active"
                       ? "bg-green-100 text-green-700"
                       : "bg-gray-100 text-gray-700"
                   } hover:bg-current`}
@@ -810,7 +823,7 @@ const ProductPage: React.FC = () => {
                 <CheckAccess
                   module="InventoryManagement"
                   subModule="product"
-                  type="edit"
+                  type="update"
                 >
                   <ActionsDropdown
                     onEdit={() => handleEditProduct(product)}
@@ -885,7 +898,7 @@ const ProductPage: React.FC = () => {
 
   return (
     <div className="custom-container">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4">
         <HeaderGradient
           title="Product Management"
           subtitle="Manage your product inventory and details"
@@ -899,11 +912,14 @@ const ProductPage: React.FC = () => {
             onClick={() => {
               resetForm();
               setOpen(true);
-               useEffect(() => {
-                 if (defaultSelected) {
-                   setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
-                 }
-               }, [defaultSelected, companies]);
+              useEffect(() => {
+                if (defaultSelected) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    companyId: defaultSelected?._id,
+                  }));
+                }
+              }, [defaultSelected, companies]);
             }}
             className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >
@@ -1035,7 +1051,22 @@ const ProductPage: React.FC = () => {
           <MultiStepNav
             steps={tabs}
             currentStep={activeTab}
-            onStepChange={setActiveTab}
+            onStepChange={(nextTab) => {
+              const stepOrder = ["basic", "tax", "opening", "settings"];
+              const currentIndex = stepOrder.indexOf(activeTab);
+              const nextIndex = stepOrder.indexOf(nextTab);
+
+              if (nextIndex < currentIndex) {
+                setActiveTab(nextTab);
+              }
+              if (activeTab === "basic") {
+                if (!formData.code.trim() || !formData.name.trim()) {
+                  toast.error("Please enter Product Code and Name");
+                  return;
+                }
+              }
+              setActiveTab(nextTab);
+            }}
             stepIcons={stepIcons}
           />
           <div className="flex-1 overflow-y-auto">
@@ -1283,19 +1314,19 @@ const ProductPage: React.FC = () => {
                   currentStep={1}
                   totalSteps={4}
                   showPrevious={false}
-                  onNext={() => setActiveTab("tax")}
+                  onNext={() => {
+                    if (!formData.code.trim() || !formData.name.trim()) {
+                      toast.error("Please enter Product Code and Name");
+                      return;
+                    }
+                    setActiveTab("tax");
+                  }}
                   onSubmit={handleSubmit}
                 />
               </div>
             )}
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-                  icon={<FileText className="w-4 h-4 text-white" />}
-                  title="Tax Configuration"
-                  gradientFrom="from-blue-400"
-                  gradientTo="to-blue-500"
-                /> */}
                 <div className="mb-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">

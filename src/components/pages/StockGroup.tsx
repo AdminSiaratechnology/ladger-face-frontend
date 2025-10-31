@@ -72,7 +72,7 @@ const StockGroupRegistration: React.FC = () => {
   >("all");
   const [sortBy, setSortBy] = useState<
     "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
-  >("nameAsc");
+  >("dateDesc");
   const [filteredStockGroups, setFilteredStockGroups] = useState<StockGroup[]>(
     []
   );
@@ -197,22 +197,17 @@ const StockGroupRegistration: React.FC = () => {
     deleteStockGroup(stockGroupId);
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit =async ():Promise<void> => {
     if (!formData.name.trim()) {
       toast.error("Please enter Stock Group Name");
       return;
     }
-    // if (!formData.companyId) {
-    //   toast.error("Please select Company");
-    //   return;
-    // }
-
     if (editingStockGroup) {
       updateStockGroup(editingStockGroup._id, formData);
     } else {
       addStockGroup(formData);
+      await fetchStockGroup();
     }
-
     resetForm();
     setOpen(false);
   };
@@ -353,7 +348,7 @@ const StockGroupRegistration: React.FC = () => {
 
   return (
     <div className="custom-container">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4">
         <HeaderGradient
           title="Stock Group Management"
           subtitle="Manage your stock group information and categories"
