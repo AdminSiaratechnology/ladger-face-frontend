@@ -216,9 +216,10 @@ const LedgerRegistration: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "inactive" | "suspended"
   >("all");
+  const [editingBankId, setEditingBankId] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<
     "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
-  >("nameAsc");
+  >("dateDesc");
   const [filteredLedgers, setFilteredLedgers] = useState<Ledger[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -239,7 +240,7 @@ const LedgerRegistration: React.FC = () => {
 
   useEffect(() => {
     setFilteredLedgers(ledgers);
-  },[ledgers])
+  }, [ledgers]);
   // Initial fetch
   useEffect(() => {
     fetchLedgers(currentPage, limit, defaultSelected?._id);
@@ -419,9 +420,16 @@ const LedgerRegistration: React.FC = () => {
 
   const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
+
+    let newValue = value;
+
+    if (name === "accountNumber") {
+      newValue = value.replace(/\D/g, "");
+    }
+
     setBankForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: newValue,
     }));
   };
 
@@ -451,7 +459,10 @@ const LedgerRegistration: React.FC = () => {
       branch: "",
     });
   };
-
+  const editBank = (bank: Bank): void => {
+    setBankForm(bank);
+    setEditingBankId(bank.id);
+  };
   const removeBank = (id: number): void => {
     setFormData((prev) => ({
       ...prev,
@@ -670,6 +681,7 @@ const LedgerRegistration: React.FC = () => {
       toast.success("ledger updated successfully");
     } else {
       addLedger(ledgerFormData);
+      fetchLedgers();
       toast.success("Ledger added successfully");
     }
     setOpen(false);
@@ -773,7 +785,7 @@ const LedgerRegistration: React.FC = () => {
                   <CheckAccess
                     module="BusinessManagement"
                     subModule="Ledger"
-                    type="edit"
+                    type="update"
                   >
                     <ActionsDropdown
                       onEdit={() => handleEditLedger(ledger)}
@@ -833,7 +845,7 @@ const LedgerRegistration: React.FC = () => {
                 <CheckAccess
                   module="BusinessManagement"
                   subModule="Ledger"
-                  type="edit"
+                  type="update"
                 >
                   <ActionsDropdown
                     onEdit={() => handleEditLedger(ledger)}
@@ -949,7 +961,7 @@ const LedgerRegistration: React.FC = () => {
 
   return (
     <div className="custom-container">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4">
         <HeaderGradient
           title="Ledger Management"
           subtitle="Manage your ledger information and registrations"
@@ -1128,6 +1140,25 @@ const LedgerRegistration: React.FC = () => {
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!emailRegex.test(formData.emailAddress)) {
                   toast.error("Please enter a valid email address");
+                  return;
+                }
+              }
+              if (nextTab !== "contact" && nextTab !== "basic") {
+                if (!formData.contactPerson) {
+                  toast.error("Contact Person is required");
+                  return;
+                }
+                if (!formData.emailAddress) {
+                  toast.error("Email is required");
+                  return;
+                }
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(formData.emailAddress)) {
+                  toast.error("Please enter a valid email address");
+                  return;
+                }
+                if (!formData.ledgerName) {
+                  toast.error("Agent Name is required");
                   return;
                 }
               }
@@ -1314,19 +1345,6 @@ const LedgerRegistration: React.FC = () => {
 
             {activeTab === "contact" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center shadow-lg">
-                    <Phone className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Contact Information</h3>
-                </div> */}
-                {/* <SectionHeader
-                  icon={<Phone className="w-4 h-4 text-white" />}
-                  title="Contact Information"
-                  gradientFrom="from-green-400"
-                  gradientTo="to-green-500"
-                /> */}
-
                 <div className="grid grid-cols-1 gap-6">
                   <CustomInputBox
                     label="Contact Person"
@@ -1666,14 +1684,23 @@ const LedgerRegistration: React.FC = () => {
                             {bank.accountNumber.slice(-4)}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeBank(bank.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => editBank(bank)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeBank(bank.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1753,78 +1780,119 @@ const LedgerRegistration: React.FC = () => {
                     Registration Documents
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {["TAX", "VAT", "GST", "PAN", "TAN"].map((docType) => (
-                      <div
-                        key={docType}
-                        className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
-                      >
-                        <p className="text-sm font-semibold text-gray-700 mb-3">
-                          {docType} Document
-                        </p>
-                        <input
-                          type="file"
-                          id={`${docType.toLowerCase()}-doc`}
-                          className="hidden"
-                          onChange={(e) => handleDocumentUpload(docType, e)}
-                          accept="image/*,.pdf"
-                        />
-                        <label
-                          htmlFor={`${docType.toLowerCase()}-doc`}
-                          className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
+                    {["GST", "PAN", "TAN", "MSME", "UDYAM"].map((docType) => {
+                      const existingDoc = formData.registrationDocs.find(
+                        (doc) => doc.type === docType
+                      );
+
+                      return (
+                        <div
+                          key={docType}
+                          className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
                         >
-                          <Upload className="w-6 h-6 text-blue-500" />
-                          <p className="text-sm text-gray-600">Upload</p>
-                        </label>
-                        {formData.registrationDocs.find(
-                          (doc) => doc.type === docType
-                        ) && (
-                          <div className="mt-4 w-full">
-                            <p className="text-xs text-gray-500 truncate mb-2">
-                              {
-                                formData.registrationDocs.find(
-                                  (doc) => doc.type === docType
-                                )?.fileName
-                              }
-                            </p>
-                            {formData.registrationDocs.find(
-                              (doc) => doc.type === docType
-                            )?.previewUrl &&
-                              docType !== "PDF" && (
-                                <img
-                                  src={
-                                    formData.registrationDocs.find(
-                                      (doc) => doc.type === docType
-                                    )?.previewUrl
-                                  }
-                                  alt={`${docType} document`}
-                                  className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
-                                  onClick={() =>
-                                    setViewingImage(
-                                      formData.registrationDocs.find(
-                                        (doc) => doc.type === docType
-                                      )!
-                                    )
-                                  }
-                                />
-                              )}
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-2 right-2 w-6 h-6 rounded-full"
-                              onClick={() =>
-                                removeDocument(
-                                  formData.registrationDocs.find(
-                                    (doc) => doc.type === docType
-                                  )!.id
-                                )
-                              }
+                          <p className="text-sm font-semibold text-gray-700 mb-3">
+                            {docType} Document
+                          </p>
+                          <input
+                            type="file"
+                            id={`${docType.toLowerCase()}-doc`}
+                            className="hidden"
+                            onChange={(e) => handleDocumentUpload(docType, e)}
+                            accept="image/*,.pdf"
+                          />
+
+                          {/* Show upload button only if no document exists */}
+                          {!existingDoc && (
+                            <label
+                              htmlFor={`${docType.toLowerCase()}-doc`}
+                              className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
                             >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                              <Upload className="w-6 h-6 text-blue-500" />
+                              <p className="text-sm text-gray-600">Upload</p>
+                            </label>
+                          )}
+
+                          {/* Show document preview if document exists */}
+                          {existingDoc && (
+                            <div className="mt-4 w-full">
+                              <p className="text-xs text-gray-500 truncate mb-2 text-center">
+                                {existingDoc.fileName}
+                              </p>
+
+                              {/* Show image preview for image files */}
+                              {existingDoc.previewUrl &&
+                                !existingDoc.fileName
+                                  ?.toLowerCase()
+                                  .endsWith(".pdf") && (
+                                  <img
+                                    src={existingDoc.previewUrl}
+                                    alt={`${docType} document`}
+                                    className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
+                                    onClick={() => setViewingImage(existingDoc)}
+                                  />
+                                )}
+
+                              {/* Show PDF preview for PDF files */}
+                              {existingDoc.previewUrl &&
+                                existingDoc.fileName
+                                  ?.toLowerCase()
+                                  .endsWith(".pdf") && (
+                                  <div
+                                    className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200"
+                                    onClick={() =>
+                                      window.open(
+                                        existingDoc.previewUrl,
+                                        "_blank"
+                                      )
+                                    }
+                                  >
+                                    <FileText className="w-8 h-8 text-red-500 mb-2" />
+                                    <p className="text-xs text-gray-600">
+                                      View PDF Document
+                                    </p>
+                                  </div>
+                                )}
+
+                              {/* Show file icon for other file types */}
+                              {!existingDoc.previewUrl && (
+                                <div className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center">
+                                  <File className="w-8 h-8 text-gray-400 mb-2" />
+                                  <p className="text-xs text-gray-600">
+                                    Document Uploaded
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Action buttons */}
+                              <div className="flex gap-2 mt-3 justify-center">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    document
+                                      .getElementById(
+                                        `${docType.toLowerCase()}-doc`
+                                      )
+                                      ?.click()
+                                  }
+                                >
+                                  <Edit className="w-4 h-4 mr-1" />
+                                  Replace
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => removeDocument(existingDoc.id)}
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

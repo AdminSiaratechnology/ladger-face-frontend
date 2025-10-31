@@ -81,7 +81,7 @@ const UnitManagement: React.FC = () => {
   >("all");
   const [sortBy, setSortBy] = useState<
     "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
-  >("nameAsc");
+  >("dateDesc");
   const [filteredUnits, setFilteredUnits] = useState<Unit[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10;
@@ -246,8 +246,11 @@ const UnitManagement: React.FC = () => {
 
     if (editingUnit) {
       updateUnit({ unitId: editingUnit._id, data: submitData });
+      toast.success("Unit updated successfully");
     } else {
       addUnit(submitData);
+      fetchUnits();
+      toast.success("Unit added successfully");
     }
     setOpen(false);
     resetForm();
@@ -443,7 +446,7 @@ const UnitManagement: React.FC = () => {
 
   return (
     <div className="custom-container">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4">
         <HeaderGradient
           title="Unit of Measurement"
           subtitle="Manage your unit measurements and conversions"

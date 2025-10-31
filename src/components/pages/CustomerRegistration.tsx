@@ -265,7 +265,7 @@ const CustomerRegistrationPage: React.FC = () => {
   >("all");
   const [sortBy, setSortBy] = useState<
     "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
-  >("nameAsc");
+  >("dateDesc");
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -449,9 +449,16 @@ const CustomerRegistrationPage: React.FC = () => {
 
   const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
+
+    let newValue = value;
+
+    if (name === "accountNumber") {
+      newValue = value.replace(/\D/g, "");
+    }
+
     setBankForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: newValue,
     }));
   };
 
@@ -749,6 +756,7 @@ const CustomerRegistrationPage: React.FC = () => {
       });
     } else {
       addCustomer(customerFormData);
+      fetchCustomers();
     }
     setOpen(false);
     resetForm();
@@ -766,8 +774,7 @@ const CustomerRegistrationPage: React.FC = () => {
       activeCustomers:
         statusFilter === "active"
           ? pagination?.total
-          : filteredCustomers?.filter((c) => c.status === "active")
-              .length,
+          : filteredCustomers?.filter((c) => c.status === "active").length,
     }),
     [filteredCustomers, pagination, statusFilter]
   );
@@ -783,12 +790,12 @@ const CustomerRegistrationPage: React.FC = () => {
 
   useEffect(() => {
     setFilteredCustomers(customers);
-  },[customers]);
+  }, [customers]);
   // Initial fetch
-  useEffect(() => {
-    console.log(defaultSelected);
-    fetchCustomers(currentPage, limit, defaultSelected?._id);
-  }, [fetchCustomers, currentPage, defaultSelected]);
+  // useEffect(() => {
+  //   console.log(defaultSelected);
+  //   fetchCustomers(currentPage, limit, defaultSelected?._id);
+  // }, [fetchCustomers, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -1099,6 +1106,7 @@ const CustomerRegistrationPage: React.FC = () => {
           <Input
             placeholder="Search by name, email, or code..."
             value={searchTerm}
+            autoComplete="new-password"
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 pr-4 py-2 w-full md:w-64 border-gray-300 focus:border-teal-500 active:!ring-2 active:!ring-teal-500 !outline-0 focus:!border-none"
           />
@@ -1118,8 +1126,6 @@ const CustomerRegistrationPage: React.FC = () => {
         <option value="all">All Statuses</option>
         <option value="active">Active</option>
         <option value="inactive">Inactive</option>
-        <option value="suspended">Suspended</option>
-        <option value="prospect">Prospect</option>
       </select>
       <select
         value={sortBy}
@@ -1137,7 +1143,7 @@ const CustomerRegistrationPage: React.FC = () => {
   return (
     <div className="custom-container">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8  sticky top-0 bg-white py-2 z-20">
+      <div className="flex justify-between items-center mb-4  sticky top-0 bg-white py-2 z-20">
         <HeaderGradient
           title="Customer Management"
           subtitle="Manage your customer information and registrations"
@@ -1309,7 +1315,7 @@ const CustomerRegistrationPage: React.FC = () => {
                 setActiveTab(nextTab);
               }
               if (activeTab === "basic") {
-                if (!formData.customerType || !formData.customerName) {
+                if (!formData.customerName) {
                   toast.error("Please fill in the required fields.");
                   return;
                 }
@@ -1322,6 +1328,25 @@ const CustomerRegistrationPage: React.FC = () => {
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!emailRegex.test(formData.emailAddress)) {
                   toast.error("Please enter a valid email address");
+                  return;
+                }
+              }
+              if (nextTab !== "contact" && nextTab !== "basic") {
+                if (!formData.contactPerson) {
+                  toast.error("Contact Person is required");
+                  return;
+                }
+                if (!formData.emailAddress) {
+                  toast.error("Email is required");
+                  return;
+                }
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(formData.emailAddress)) {
+                  toast.error("Please enter a valid email address");
+                  return;
+                }
+                if (!formData.customerName) {
+                  toast.error("Company Name is required");
                   return;
                 }
               }
@@ -2059,8 +2084,12 @@ const CustomerRegistrationPage: React.FC = () => {
                     Registration Documents
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {["GST", "VAT", "MSME", "PAN", "TAN", "Other"].map(
-                      (docType) => (
+                    {["GST", "PAN", "TAN", "MSME", "UDYAM"].map((docType) => {
+                      const existingDoc = formData.registrationDocs.find(
+                        (doc) => doc.type === docType
+                      );
+
+                      return (
                         <div
                           key={docType}
                           className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
@@ -2075,64 +2104,99 @@ const CustomerRegistrationPage: React.FC = () => {
                             onChange={(e) => handleDocumentUpload(docType, e)}
                             accept="image/*,.pdf"
                           />
-                          <label
-                            htmlFor={`${docType.toLowerCase()}-doc`}
-                            className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
-                          >
-                            <Upload className="w-6 h-6 text-blue-500" />
-                            <p className="text-sm text-gray-600">Upload</p>
-                          </label>
-                          {formData.registrationDocs.find(
-                            (doc) => doc.type === docType
-                          ) && (
+
+                          {/* Show upload button only if no document exists */}
+                          {!existingDoc && (
+                            <label
+                              htmlFor={`${docType.toLowerCase()}-doc`}
+                              className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
+                            >
+                              <Upload className="w-6 h-6 text-blue-500" />
+                              <p className="text-sm text-gray-600">Upload</p>
+                            </label>
+                          )}
+
+                          {/* Show document preview if document exists */}
+                          {existingDoc && (
                             <div className="mt-4 w-full">
-                              <p className="text-xs text-gray-500 truncate mb-2">
-                                {
-                                  formData.registrationDocs.find(
-                                    (doc) => doc.type === docType
-                                  )?.fileName
-                                }
+                              <p className="text-xs text-gray-500 truncate mb-2 text-center">
+                                {existingDoc.fileName}
                               </p>
-                              {formData.registrationDocs.find(
-                                (doc) => doc.type === docType
-                              )?.previewUrl &&
-                                docType !== "PDF" && (
+
+                              {/* Show image preview for image files */}
+                              {existingDoc.previewUrl &&
+                                !existingDoc.fileName
+                                  ?.toLowerCase()
+                                  .endsWith(".pdf") && (
                                   <img
-                                    src={
-                                      formData.registrationDocs.find(
-                                        (doc) => doc.type === docType
-                                      )?.previewUrl
-                                    }
+                                    src={existingDoc.previewUrl}
                                     alt={`${docType} document`}
                                     className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
-                                    onClick={() =>
-                                      setViewingImage(
-                                        formData.registrationDocs.find(
-                                          (doc) => doc.type === docType
-                                        )!
-                                      )
-                                    }
+                                    onClick={() => setViewingImage(existingDoc)}
                                   />
                                 )}
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-2 right-2 w-6 h-6 rounded-full"
-                                onClick={() =>
-                                  removeDocument(
-                                    formData.registrationDocs.find(
-                                      (doc) => doc.type === docType
-                                    )!.id
-                                  )
-                                }
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
+
+                              {/* Show PDF preview for PDF files */}
+                              {existingDoc.previewUrl &&
+                                existingDoc.fileName
+                                  ?.toLowerCase()
+                                  .endsWith(".pdf") && (
+                                  <div
+                                    className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200"
+                                    onClick={() =>
+                                      window.open(
+                                        existingDoc.previewUrl,
+                                        "_blank"
+                                      )
+                                    }
+                                  >
+                                    <FileText className="w-8 h-8 text-red-500 mb-2" />
+                                    <p className="text-xs text-gray-600">
+                                      View PDF Document
+                                    </p>
+                                  </div>
+                                )}
+
+                              {/* Show file icon for other file types */}
+                              {!existingDoc.previewUrl && (
+                                <div className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center">
+                                  <File className="w-8 h-8 text-gray-400 mb-2" />
+                                  <p className="text-xs text-gray-600">
+                                    Document Uploaded
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Action buttons */}
+                              <div className="flex gap-2 mt-3 justify-center">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    document
+                                      .getElementById(
+                                        `${docType.toLowerCase()}-doc`
+                                      )
+                                      ?.click()
+                                  }
+                                >
+                                  <Edit className="w-4 h-4 mr-1" />
+                                  Replace
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => removeDocument(existingDoc.id)}
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  Remove
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </div>
-                      )
-                    )}
+                      );
+                    })}
                   </div>
                 </div>
 

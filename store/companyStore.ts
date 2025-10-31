@@ -108,6 +108,7 @@ export const useCompanyStore = create<CompanyStore>()(
       resetCompanies: async () => {
         set({
           companies: [],
+          defaultSelected: null,
           loading: false,
           error: null,
           pagination: {

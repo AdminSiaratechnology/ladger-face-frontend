@@ -268,7 +268,7 @@ const VendorRegistrationPage: React.FC = () => {
   >("all");
   const [sortBy, setSortBy] = useState<
     "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
-  >("nameAsc");
+  >("dateDesc");
   const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
@@ -451,9 +451,16 @@ const VendorRegistrationPage: React.FC = () => {
 
   const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
+
+    let newValue = value;
+
+    if (name === "accountNumber") {
+      newValue = value.replace(/\D/g, "");
+    }
+
     setBankForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: newValue,
     }));
   };
 
@@ -743,6 +750,7 @@ const VendorRegistrationPage: React.FC = () => {
       updateVendor({ id: editingVendor._id || "", vendor: vendorFormData });
     } else {
       addVendor(vendorFormData);
+      fetchVendors();
     }
     setOpen(false);
     resetForm();
@@ -774,9 +782,8 @@ const VendorRegistrationPage: React.FC = () => {
   ];
 
   useEffect(() => {
-  setFilteredVendors(vendors);
-}, [vendors]);
-
+    setFilteredVendors(vendors);
+  }, [vendors]);
 
   // Initial fetch
   useEffect(() => {
@@ -1065,7 +1072,7 @@ const VendorRegistrationPage: React.FC = () => {
   return (
     <div className="custom-container">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4">
         <HeaderGradient
           title="Vendor Management"
           subtitle="Manage your vendor information and registrations"
@@ -1237,7 +1244,7 @@ const VendorRegistrationPage: React.FC = () => {
                 setActiveTab(nextTab);
               }
               if (activeTab === "basic") {
-                if (!formData.vendorType || !formData.vendorName) {
+                if (!formData.vendorName) {
                   toast.error("Please fill in the required fields.");
                   return;
                 }
@@ -1253,14 +1260,28 @@ const VendorRegistrationPage: React.FC = () => {
                   return;
                 }
               }
+              if (nextTab !== "contact" && nextTab !== "basic") {
+                if (!formData.contactPerson) {
+                  toast.error("Please fill Contact Person");
+                  return;
+                }
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(formData.emailAddress)) {
+                  toast.error("Please enter a valid email address");
+                  return;
+                }
+                if (!formData.vendorName) {
+                  toast.error("Vendor Name is required");
+                  return;
+                }
+              }
               setActiveTab(nextTab);
             }}
             stepIcons={stepIcons}
             scrollContainerRef={containerRef}
-
           />
 
-          <div className="flex-1 overflow-y-auto"  ref={containerRef}>
+          <div className="flex-1 overflow-y-auto" ref={containerRef}>
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <SectionHeader
@@ -1814,19 +1835,6 @@ const VendorRegistrationPage: React.FC = () => {
 
             {activeTab === "bank" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-lg">
-                      <Building2 className="w-6 h-6 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-800">Bank Details</h3>
-                  </div> */}
-                {/* <SectionHeader
-        icon={<Building2 className="w-4 h-4 text-white" />}
-        title="Bank Information"
-        gradientFrom="from-purple-400"
-        gradientTo="to-purple-500"
-      /> */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                   <CustomInputBox
                     label="Account Holder Name *"
@@ -1929,13 +1937,6 @@ const VendorRegistrationPage: React.FC = () => {
 
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Settings2 className="w-4 h-4 text-white" />}
-        title=" Additional Settings"
-        gradientFrom="from-cyan-400"
-        gradientTo="to-cyan-500"
-      /> */}
-
                 <div className="mb-8">
                   <h4 className="font-semibold text-gray-800 mb-4 text-lg">
                     Vendor Logo
@@ -1990,8 +1991,12 @@ const VendorRegistrationPage: React.FC = () => {
                     Registration Documents
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {["TAX", "VAT", "GST", "PAN", "TAN", "MSME"].map(
-                      (docType) => (
+                    {["GST", "PAN", "TAN", "MSME", "UDYAM"].map((docType) => {
+                      const existingDoc = formData.registrationDocs.find(
+                        (doc) => doc.type === docType
+                      );
+
+                      return (
                         <div
                           key={docType}
                           className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
@@ -2006,64 +2011,99 @@ const VendorRegistrationPage: React.FC = () => {
                             onChange={(e) => handleDocumentUpload(docType, e)}
                             accept="image/*,.pdf"
                           />
-                          <label
-                            htmlFor={`${docType.toLowerCase()}-doc`}
-                            className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
-                          >
-                            <Upload className="w-6 h-6 text-blue-500" />
-                            <p className="text-sm text-gray-600">Upload</p>
-                          </label>
-                          {formData.registrationDocs.find(
-                            (doc) => doc.type === docType
-                          ) && (
+
+                          {/* Show upload button only if no document exists */}
+                          {!existingDoc && (
+                            <label
+                              htmlFor={`${docType.toLowerCase()}-doc`}
+                              className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
+                            >
+                              <Upload className="w-6 h-6 text-blue-500" />
+                              <p className="text-sm text-gray-600">Upload</p>
+                            </label>
+                          )}
+
+                          {/* Show document preview if document exists */}
+                          {existingDoc && (
                             <div className="mt-4 w-full">
-                              <p className="text-xs text-gray-500 truncate mb-2">
-                                {
-                                  formData.registrationDocs.find(
-                                    (doc) => doc.type === docType
-                                  )?.fileName
-                                }
+                              <p className="text-xs text-gray-500 truncate mb-2 text-center">
+                                {existingDoc.fileName}
                               </p>
-                              {formData.registrationDocs.find(
-                                (doc) => doc.type === docType
-                              )?.previewUrl &&
-                                docType !== "PDF" && (
+
+                              {/* Show image preview for image files */}
+                              {existingDoc.previewUrl &&
+                                !existingDoc.fileName
+                                  ?.toLowerCase()
+                                  .endsWith(".pdf") && (
                                   <img
-                                    src={
-                                      formData.registrationDocs.find(
-                                        (doc) => doc.type === docType
-                                      )?.previewUrl
-                                    }
+                                    src={existingDoc.previewUrl}
                                     alt={`${docType} document`}
                                     className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
-                                    onClick={() =>
-                                      setViewingImage(
-                                        formData.registrationDocs.find(
-                                          (doc) => doc.type === docType
-                                        )!
-                                      )
-                                    }
+                                    onClick={() => setViewingImage(existingDoc)}
                                   />
                                 )}
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-2 right-2 w-6 h-6 rounded-full"
-                                onClick={() =>
-                                  removeDocument(
-                                    formData.registrationDocs.find(
-                                      (doc) => doc.type === docType
-                                    )!.id
-                                  )
-                                }
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
+
+                              {/* Show PDF preview for PDF files */}
+                              {existingDoc.previewUrl &&
+                                existingDoc.fileName
+                                  ?.toLowerCase()
+                                  .endsWith(".pdf") && (
+                                  <div
+                                    className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200"
+                                    onClick={() =>
+                                      window.open(
+                                        existingDoc.previewUrl,
+                                        "_blank"
+                                      )
+                                    }
+                                  >
+                                    <FileText className="w-8 h-8 text-red-500 mb-2" />
+                                    <p className="text-xs text-gray-600">
+                                      View PDF Document
+                                    </p>
+                                  </div>
+                                )}
+
+                              {/* Show file icon for other file types */}
+                              {!existingDoc.previewUrl && (
+                                <div className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center">
+                                  <File className="w-8 h-8 text-gray-400 mb-2" />
+                                  <p className="text-xs text-gray-600">
+                                    Document Uploaded
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Action buttons */}
+                              <div className="flex gap-2 mt-3 justify-center">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    document
+                                      .getElementById(
+                                        `${docType.toLowerCase()}-doc`
+                                      )
+                                      ?.click()
+                                  }
+                                >
+                                  <Edit className="w-4 h-4 mr-1" />
+                                  Replace
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => removeDocument(existingDoc.id)}
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  Remove
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </div>
-                      )
-                    )}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -2179,7 +2219,6 @@ const VendorRegistrationPage: React.FC = () => {
               </div>
             )}
           </div>
-          {/* </div> */}
         </DialogContent>
       </Dialog>
 

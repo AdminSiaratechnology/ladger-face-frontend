@@ -11,7 +11,7 @@ export const CheckAccess = ({children,module, subModule,type}:CheckAccess) => {
       
 
     )
-    return <>{children}</>;
+    // return <>{children}</>;
         const {user,isLoading}=useAuthStore();
         if (module && subModule) {
             const hasPermission = checkPermission({user, module, subModule,type});

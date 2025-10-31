@@ -35,7 +35,7 @@ const ActionsDropdown = ({ onEdit, onDelete,module ,subModule }: ActionsDropdown
           />
 
           {/* Dropdown Menu */}
-          <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+          <div className="absolute right-4 -mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
             <CheckAccess module={module} subModule={subModule} type="update">
             <Button
                 

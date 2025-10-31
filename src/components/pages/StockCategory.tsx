@@ -48,7 +48,6 @@ interface StockCategory {
   status: string;
   createdAt: string;
   companyId: string;
-  stockGroupId: string;
 }
 
 interface StockCategoryForm {
@@ -57,7 +56,6 @@ interface StockCategoryForm {
   parent: string;
   status: string;
   companyId: string;
-  stockGroupId: string;
 }
 
 const StockCategoryRegistration: React.FC = () => {
@@ -71,7 +69,7 @@ const StockCategoryRegistration: React.FC = () => {
   >("all");
   const [sortBy, setSortBy] = useState<
     "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
-  >("nameAsc");
+  >("dateDesc");
   const [filteredStockCategories, setFilteredStockCategories] = useState<
     StockCategory[]
   >([]);
@@ -136,7 +134,6 @@ const StockCategoryRegistration: React.FC = () => {
     parent: "primary",
     status: "active",
     companyId: "",
-    stockGroupId: stockGroups.length > 0 ? stockGroups[0]._id : "",
   });
 
   const handleChange = (
@@ -167,7 +164,6 @@ const StockCategoryRegistration: React.FC = () => {
       parent: "primary",
       status: "active",
       companyId: "",
-      stockGroupId: stockGroups.length > 0 ? stockGroups[0]._id : "",
     });
     setEditingStockCategory(null);
   };
@@ -180,7 +176,6 @@ const StockCategoryRegistration: React.FC = () => {
       parent: stockCategory.parent,
       status: stockCategory.status,
       companyId: stockCategory.companyId,
-      stockGroupId: stockCategory.stockGroupId,
     });
     setOpen(true);
   };
@@ -256,7 +251,6 @@ const StockCategoryRegistration: React.FC = () => {
               "Category",
               "Description",
               "Company",
-              "Stock Group",
               "Parent",
               "Created",
               "Status",
@@ -278,9 +272,9 @@ const StockCategoryRegistration: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {getCompanyName(category.companyId)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {getStockGroupName(category.stockGroupId)}
-                </td>
+                </td> */}
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {category.parent === "primary"
                     ? "Primary"
@@ -347,10 +341,10 @@ const StockCategoryRegistration: React.FC = () => {
                 <Building2 className="w-4 h-4 mr-2 text-gray-400" />
                 Company: {getCompanyName(category.companyId)}
               </div>
-              <div className="flex items-center">
+              {/* <div className="flex items-center">
                 <Layers className="w-4 h-4 mr-2 text-gray-400" />
                 Group: {getStockGroupName(category.stockGroupId)}
-              </div>
+              </div> */}
               <div className="flex items-center">
                 <Package className="w-4 h-4 mr-2 text-gray-400" />
                 Parent:{" "}
@@ -380,7 +374,7 @@ const StockCategoryRegistration: React.FC = () => {
   return (
     <div className="custom-container">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4">
         <HeaderGradient
           title="Stock Category Management"
           subtitle="Manage your stock category information and classifications"
@@ -582,7 +576,7 @@ const StockCategoryRegistration: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div className="flex flex-col gap-1">
+                {/* <div className="flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">
                     Stock Group
                   </label>
@@ -600,7 +594,7 @@ const StockCategoryRegistration: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                </div>
+                </div> */}
 
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">

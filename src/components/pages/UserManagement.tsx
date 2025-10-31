@@ -210,6 +210,9 @@ export const UserManagement: React.FC = () => {
     pagination,
   } = useUserManagementStore();
 
+  useEffect(() => {
+    setFilteredUsers(users);
+  }, [users]);
   // Initial fetch
   useEffect(() => {
     fetchUsers(currentPage, limit);
@@ -948,7 +951,7 @@ const handleSubmit = async (): Promise<void> => {
   return (
     <div className="custom-container ">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
         <HeaderGradient
           title="User Management"
           subtitle="Manage users, roles, and permissions across companies"

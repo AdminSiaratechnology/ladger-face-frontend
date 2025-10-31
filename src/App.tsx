@@ -239,7 +239,7 @@ export default function App() {
           <Route
             path="/order-report"
             element={
-              <ProtectedRoute module="OrderManagement" subModule="OrderReport">
+              <ProtectedRoute module="Order" subModule="Orders">
                 <AppLayout>
                   <OrderManagement />
                 </AppLayout>
@@ -250,7 +250,7 @@ export default function App() {
           <Route
             path="/orders"
             element={
-              <ProtectedRoute module="OrderManagement" subModule="Order">
+              <ProtectedRoute module="Order" subModule="Orders">
                 <AppLayout>
                   <OrderManagement />
                 </AppLayout>
@@ -260,7 +260,7 @@ export default function App() {
           <Route
             path="/checkout"
             element={
-              <ProtectedRoute module="OrderManagement" subModule="Order">
+              <ProtectedRoute module="Order" subModule="Orders">
                 <AppLayout>
                   <CheckoutPage />
                 </AppLayout>
@@ -271,7 +271,7 @@ export default function App() {
           <Route
             path="/select-user"
             element={
-              <ProtectedRoute module="UserSelection" subModule="UserSelection">
+              <ProtectedRoute module="Order" subModule="Orders">
                 <AppLayout>
                   <UserSelection />
                 </AppLayout>
@@ -282,8 +282,8 @@ export default function App() {
             path="/select-products"
             element={
               <ProtectedRoute
-                module="ProductSelection"
-                subModule="ProductSelection"
+                module="Order"
+                subModule="Orders"
               >
                 <AppLayout>
                   <ProductSelection />
