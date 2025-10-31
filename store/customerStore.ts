@@ -206,6 +206,7 @@ interface CustomerStore {
     limit?: number,
     companyId?: number | string
   ) => Promise<Customer[]>;
+  initialLoading: () => void;
 }
 
 export const useCustomerStore = create<CustomerStore>()(
@@ -218,7 +219,7 @@ export const useCustomerStore = create<CustomerStore>()(
         limit: 10,
         totalPages: 0,
       },
-      loading: false,
+      loading: true,
       error: false,
       errorMessage: null,
 
@@ -357,6 +358,7 @@ export const useCustomerStore = create<CustomerStore>()(
           return [];
         }
       },
+      initialLoading: () => set({ loading: true, error: false }),
     }),
     {
       name: "customer-storage",

@@ -86,8 +86,10 @@ interface CompanyStore {
     sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
     agentId: string,
     page?: number,
-    limit?: number
+    limit?: number,
+    isLogin?: boolean
   ) => Promise<Company[]>;
+  initialLoading: () => void;
 }
 
 // Zustand store with persistence
@@ -95,7 +97,7 @@ export const useCompanyStore = create<CompanyStore>()(
   persist(
     (set, get) => ({
       companies: [],
-      loading: false,
+      loading: true,
       error: null,
       defaultSelected: null,
       pagination: {
@@ -241,7 +243,8 @@ export const useCompanyStore = create<CompanyStore>()(
         sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
         agentId: string,
         page = 1,
-        limit = 10
+        limit = 10,
+        isLogin = false
       ) => {
         try {
           set({ loading: true, error: null });
@@ -262,7 +265,7 @@ export const useCompanyStore = create<CompanyStore>()(
           console.log("Database search response:", res);
 
           set({
-            companies: res.data.companies,
+            companies: res.data.companies?.length <= 0 && isLogin?[...get().companies]:res.data.companies,
             pagination: res?.data?.pagination,
             loading: false,
             error: null,
@@ -278,6 +281,7 @@ export const useCompanyStore = create<CompanyStore>()(
           return [];
         }
       },
+      initialLoading: () => set({ loading: true }),
       setDefaultCompany: async (companyId: Company) => {
         set({ defaultSelected: companyId });
       },
@@ -290,6 +294,7 @@ export const useCompanyStore = create<CompanyStore>()(
       partialize: (state) => ({
         companies: state.companies,
         defaultSelected: state.defaultSelected,
+        pagination: state.pagination,
       }),
     }
   )

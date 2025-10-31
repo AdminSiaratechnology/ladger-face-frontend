@@ -86,6 +86,7 @@ const StockCategoryRegistration: React.FC = () => {
     loading,
     error,
     filterStockCategories,
+    initialLoading
   } = useStockCategory();
   const { companies, defaultSelected } = useCompanyStore();
   const { stockGroups } = useStockGroup();
@@ -94,9 +95,9 @@ const StockCategoryRegistration: React.FC = () => {
     setFilteredStockCategories(stockCategories);
   }, [stockCategories]);
   // Initial fetch
-  useEffect(() => {
-    fetchStockCategory(currentPage, limit,defaultSelected?._id);
-  }, [fetchStockCategory, currentPage, defaultSelected]);
+  // useEffect(() => {
+  //   fetchStockCategory(currentPage, limit,defaultSelected?._id);
+  // }, [fetchStockCategory, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -107,6 +108,7 @@ const StockCategoryRegistration: React.FC = () => {
   useEffect(() => {
     console.log("first, sttausfilter", statusFilter)
     const handler = setTimeout(() => {
+            if (searchTerm.length >= 3){
       filterStockCategories(
         searchTerm,
         statusFilter,
@@ -121,6 +123,9 @@ const StockCategoryRegistration: React.FC = () => {
         .catch((err) => {
           console.error("Error filtering stock categories:", err);
         });
+      } else if (searchTerm.length === 0){
+          filterStockCategories("", statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
+      }
     }, 500); // 500ms debounce time
 
     return () => {
@@ -370,6 +375,11 @@ const StockCategoryRegistration: React.FC = () => {
       ))}
     </div>
   );
+ useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
 
   return (
     <div className="custom-container">

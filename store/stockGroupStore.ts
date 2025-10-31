@@ -48,6 +48,8 @@ interface StockGroupStore {
     page?: number,
     limit?: number
   ) => Promise<StockGroup[]>;
+  initialLoading: () => void;
+  resetStockGroup: () => Promise<void>;
 }
 
 // zustand store with persistence
@@ -62,10 +64,10 @@ export const useStockGroup = create<StockGroupStore>()(
         limit: 10,
         totalPages: 0,
       },
-      loading: false,
+      loading: true,
       error: false,
       errormessage: null,
-      fetchStockGroup: async (page = 1, limit = 10,companyId) => {
+      fetchStockGroup: async (page = 1, limit = 10, companyId) => {
         console.log("fetching stock groups page:", page, "limit:", limit);
         set({ loading: true });
         try {
@@ -198,6 +200,21 @@ export const useStockGroup = create<StockGroupStore>()(
           });
           return [];
         }
+      },
+      initialLoading: () => set({ loading: true }),
+      resetStockGroup: () => {
+        set({
+          stockGroups: [],
+          pagination: {
+            total: 0,
+            page: 1,
+            limit: 10,
+            totalPages: 0,
+          },
+          loading: false,
+          error: false,
+          errormessage: null,
+        });
       },
     }),
     {

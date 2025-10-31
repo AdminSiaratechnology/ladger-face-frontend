@@ -282,6 +282,7 @@ const CustomerRegistrationPage: React.FC = () => {
     pagination,
     loading,
     error,
+    initialLoading
   } = useCustomerStore(); // Assuming store exists
   const { defaultSelected, companies } = useCompanyStore();
   console.log(defaultSelected);
@@ -805,21 +806,32 @@ const CustomerRegistrationPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterCustomers(
-        searchTerm,
-        statusFilter,
-        sortBy,
-        currentPage,
-        limit,
-        defaultSelected?._id
-      )
-        .then((result) => {
-          setFilteredCustomers(result);
-          console.log(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering customers:", err);
-        });
+      if (searchTerm.length >= 3) {
+        filterCustomers(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+          .then((result) => {
+            setFilteredCustomers(result);
+            console.log(result);
+          })
+          .catch((err) => {
+            console.error("Error filtering customers:", err);
+          });
+      } else if (searchTerm.length === 0) {
+        filterCustomers(
+          "",
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        );
+      }
     }, 500); // 500ms debounce time
 
     return () => {
@@ -1082,64 +1094,25 @@ const CustomerRegistrationPage: React.FC = () => {
   );
 
   // FilterBar component
-  const FilterBar = ({
-    searchTerm,
-    setSearchTerm,
-    statusFilter,
-    setStatusFilter,
-    sortBy,
-    setSortBy,
-    onClearFilters,
-  }: {
-    searchTerm: string;
-    setSearchTerm: (value: string) => void;
-    statusFilter: string;
-    setStatusFilter: (value: any) => void;
-    sortBy: string;
-    setSortBy: (value: any) => void;
-    onClearFilters: () => void;
-  }) => (
-    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 bg-white rounded-md p-4 shadow-sm">
-      <div className="flex gap-3">
-        <div className="relative w-full md:w-auto flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 " />
-          <Input
-            placeholder="Search by name, email, or code..."
-            value={searchTerm}
-            autoComplete="new-password"
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 w-full md:w-64 border-gray-300 focus:border-teal-500 active:!ring-2 active:!ring-teal-500 !outline-0 focus:!border-none"
-          />
-        </div>
-        <button
-          className=" bg-black text-white px-2 rounded-sm  font-bold text-sm"
-          onClick={onClearFilters}
-        >
-          Clear Fitler
-        </button>
-      </div>
-      <select
-        value={statusFilter}
-        onChange={(e) => setStatusFilter(e.target.value)}
-        className="h-10 px-3 py-2 border border-gray-300 rounded-md focus:border-teal-500 focus:outline-none bg-white w-full md:w-auto"
-      >
-        <option value="all">All Statuses</option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </select>
-      <select
-        value={sortBy}
-        onChange={(e) => setSortBy(e.target.value)}
-        className="h-10 px-3 py-2 border border-gray-300 rounded-md focus:border-teal-500 focus:outline-none bg-white w-full md:w-auto"
-      >
-        <option value="nameAsc">Name A-Z</option>
-        <option value="nameDesc">Name Z-A</option>
-        <option value="dateAsc">Oldest First</option>
-        <option value="dateDesc">Newest First</option>
-      </select>
-    </div>
-  );
-
+  <FilterBar
+    searchTerm={searchTerm}
+    setSearchTerm={setSearchTerm}
+    statusFilter={statusFilter}
+    setStatusFilter={setStatusFilter}
+    sortBy={sortBy}
+    setSortBy={setSortBy}
+    onClearFilters={() => {
+      setSearchTerm("");
+      setStatusFilter("all");
+      setSortBy("dateDesc");
+      setCurrentPage(1);
+    }}
+  />;
+ useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
   return (
     <div className="custom-container">
       {/* Header */}

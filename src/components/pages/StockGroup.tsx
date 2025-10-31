@@ -57,6 +57,7 @@ interface StockGroupForm {
   status: "active" | "inactive";
   stockGroupId: string;
   companyId: string;
+  parent: string;
 }
 
 const StockGroupRegistration: React.FC = () => {
@@ -89,6 +90,7 @@ const StockGroupRegistration: React.FC = () => {
     loading,
     error,
     filterStockGroups,
+    initialLoading,
   } = useStockGroup();
   const { companies, defaultSelected } = useCompanyStore();
   useEffect(() => {
@@ -96,9 +98,9 @@ const StockGroupRegistration: React.FC = () => {
   }, [stockGroups]);
 
   // Initial fetch
-  useEffect(() => {
-    fetchStockGroup(currentPage, limit, defaultSelected?._id);
-  }, [fetchStockGroup, currentPage, defaultSelected]);
+  // useEffect(() => {
+  //   fetchStockGroup(currentPage, limit, defaultSelected?._id);
+  // }, [fetchStockGroup, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -108,6 +110,8 @@ const StockGroupRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
+            if (searchTerm.length >= 3){
+
       filterStockGroups(
         searchTerm,
         statusFilter,
@@ -122,6 +126,9 @@ const StockGroupRegistration: React.FC = () => {
         .catch((err) => {
           console.error("Error filtering stock groups:", err);
         });
+      } else if (searchTerm.length === 0){
+        filterStockGroups("", statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
+      }
     }, 500); // 500ms debounce time
 
     return () => {
@@ -142,6 +149,7 @@ const StockGroupRegistration: React.FC = () => {
     status: "active",
     stockGroupId: "",
     companyId: "",
+    parent: "",
   });
   useEffect(() => {
     if (defaultSelected) {
@@ -176,6 +184,7 @@ const StockGroupRegistration: React.FC = () => {
       status: "active",
       stockGroupId: "",
       companyId: "",
+      parent: "",
     });
     setEditingStockGroup(null);
     setActiveTab("basic");
@@ -189,6 +198,7 @@ const StockGroupRegistration: React.FC = () => {
       status: stockGroup.status,
       stockGroupId: stockGroup.stockGroupId || "",
       companyId: stockGroup.companyId || "",
+      parent: stockGroup.parent || "",
     });
     setOpen(true);
   };
@@ -257,8 +267,8 @@ const StockGroupRegistration: React.FC = () => {
                   {group.description || "No description"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {group.stockGroupId
-                    ? stockGroups.find((g) => g._id === group.stockGroupId)
+                  {group.parent
+                    ? stockGroups.find((g) => g._id === group.parent)
                         ?.name || "Unknown"
                     : "Primary"}
                 </td>
@@ -322,8 +332,8 @@ const StockGroupRegistration: React.FC = () => {
               <div className="flex items-center">
                 <Layers className="w-4 h-4 mr-2 text-gray-400" />
                 Parent:{" "}
-                {group.stockGroupId
-                  ? stockGroups.find((g) => g._id === group.stockGroupId)
+                {group.parent
+                  ? stockGroups.find((g) => g._id === group.parent)
                       ?.name || "Unknown"
                   : "Primary"}
               </div>
@@ -345,6 +355,11 @@ const StockGroupRegistration: React.FC = () => {
       ))}
     </div>
   );
+ useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
 
   return (
     <div className="custom-container">
@@ -559,9 +574,9 @@ const StockGroupRegistration: React.FC = () => {
                   Parent Group
                 </label>
                 <select
-                  value={formData.stockGroupId || ""}
+                  value={formData.parent || ""}
                   onChange={(e) =>
-                    handleSelectChange("stockGroupId", e.target.value)
+                    handleSelectChange("parent", e.target.value)
                   }
                   className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                 >

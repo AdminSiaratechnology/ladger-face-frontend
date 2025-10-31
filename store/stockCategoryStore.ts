@@ -29,18 +29,27 @@ interface StockCategoryStore {
   error: boolean;
   errormessage: null | string;
 
-  fetchStockCategory: (page?: number, limit?: number, companyId?:number | string) => Promise<void>;
+  fetchStockCategory: (
+    page?: number,
+    limit?: number,
+    companyId?: number | string
+  ) => Promise<void>;
   addStockCategory: (data: StockCategory) => Promise<void>;
-  updateStockCategory: (params: { stockCategoryId: string; data: StockCategory }) => Promise<void>;
+  updateStockCategory: (params: {
+    stockCategoryId: string;
+    data: StockCategory;
+  }) => Promise<void>;
   deleteStockCategory: (stockCategoryId: string) => Promise<void>;
   filterStockCategories: (
     searchTerm: string,
-    statusFilter: 'all' | 'active' | 'inactive',
-    sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
-    companyId?:number | string,
+    statusFilter: "all" | "active" | "inactive",
+    sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
+    companyId?: number | string,
     page?: number,
     limit?: number
   ) => Promise<StockCategory[]>;
+  initialLoading: () => void;
+  resetSrockCategories: () => Promise<void>;
 }
 
 export const useStockCategory = create<StockCategoryStore>()(
@@ -51,13 +60,13 @@ export const useStockCategory = create<StockCategoryStore>()(
         total: 0,
         page: 1,
         limit: 10,
-        totalPages: 0
+        totalPages: 0,
       },
-      loading: false,
+      loading: true,
       error: false,
       errormessage: null,
 
-      fetchStockCategory: async (page = 1, limit = 10,companyId) => {
+      fetchStockCategory: async (page = 1, limit = 10, companyId) => {
         console.log("Fetching stock categories page:", page, "limit:", limit);
         set({ loading: true, error: false });
         try {
@@ -66,11 +75,17 @@ export const useStockCategory = create<StockCategoryStore>()(
             limit: limit.toString(),
           });
           const id = companyId?.toLocaleString();
-          const result = await api.getStockCategory({companyId:id}, { queryParams: queryParams.toString() }); // Adjust api call
+          const result = await api.getStockCategory(
+            { companyId: id },
+            { queryParams: queryParams.toString() }
+          ); // Adjust api call
           if (result?.statusCode === 200) {
-            set({ stockCategories: result.data?.categories, pagination: result.data.pagination, loading: false });
+            set({
+              stockCategories: result.data?.categories,
+              pagination: result.data.pagination,
+              loading: false,
+            });
           }
-          
         } catch (err: any) {
           set({ loading: false, error: true, errormessage: err.message });
         }
@@ -94,7 +109,10 @@ export const useStockCategory = create<StockCategoryStore>()(
         set({ loading: true, error: false });
         try {
           console.log(stockCategoryId, data, "stockCategoryId, data");
-          const result = await api.updateStockCategory({ stockCategoryId, data });
+          const result = await api.updateStockCategory({
+            stockCategoryId,
+            data,
+          });
           const updatedStockCategory: StockCategory = result.data;
           set({
             stockCategories: get().stockCategories.map((cat) =>
@@ -112,7 +130,9 @@ export const useStockCategory = create<StockCategoryStore>()(
         try {
           await api.deleteStockCategory(stockCategoryId);
           set({
-            stockCategories: get().stockCategories.filter((cat) => cat._id !== stockCategoryId),
+            stockCategories: get().stockCategories.filter(
+              (cat) => cat._id !== stockCategoryId
+            ),
             loading: false,
           });
         } catch (err: any) {
@@ -122,8 +142,8 @@ export const useStockCategory = create<StockCategoryStore>()(
 
       filterStockCategories: async (
         searchTerm: string,
-        statusFilter: 'all' | 'active' | 'inactive',
-        sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+        statusFilter: "all" | "active" | "inactive",
+        sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
         page = 1,
         limit = 10,
         companyId
@@ -133,14 +153,17 @@ export const useStockCategory = create<StockCategoryStore>()(
 
           const queryParams = new URLSearchParams({
             search: searchTerm,
-            status: statusFilter !== 'all' ? statusFilter : '',
-            sortBy: sortBy.includes('name') ? 'name' : 'createdAt',
-            sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
+            status: statusFilter !== "all" ? statusFilter : "",
+            sortBy: sortBy.includes("name") ? "name" : "createdAt",
+            sortOrder: sortBy.includes("Desc") ? "desc" : "asc",
             page: page.toString(),
             limit: limit.toString(),
           });
-console.log(queryParams)
-          const result = await api.getStockCategory({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
+          console.log(queryParams);
+          const result = await api.getStockCategory(
+            { companyId },
+            { queryParams: queryParams.toString() }
+          ); // Adjust api call
           console.log("Filter result:", result);
 
           set({
@@ -154,6 +177,24 @@ console.log(queryParams)
           set({ loading: false, error: true, errormessage: err.message });
           return [];
         }
+      },
+
+      initialLoading: () => {
+        set({ loading: true, error: false });
+      },
+      resetSrockCategories: () => {
+        set({
+          stockCategories: [],
+          pagination: {
+            total: 0,
+            page: 1,
+            limit: 10,
+            totalPages: 0,
+          },
+          loading: false,
+          error: false,
+          errormessage: null,
+        });
       },
     }),
     {
