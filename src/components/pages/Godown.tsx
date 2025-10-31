@@ -74,6 +74,7 @@ const GodownRegistration: React.FC = () => {
   >("dateDesc");
   const [filteredGodowns, setFilteredGodowns] = useState<Godown[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
+
   const limit = 10; // Fixed limit per page
 
   const {
@@ -85,39 +86,50 @@ const GodownRegistration: React.FC = () => {
     updateGodown,
     deleteGodown,
     filterGodowns,
+    initialLoading,
   } = useGodownStore();
   const { companies, defaultSelected } = useCompanyStore();
   useEffect(() => {
     setFilteredGodowns(godowns);
   }, [godowns]);
 
-  // Initial fetch
-  useEffect(() => {
-    fetchGodowns(currentPage, limit, defaultSelected?._id);
-  }, [fetchGodowns, currentPage, defaultSelected]);
-
-  // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, sortBy]);
 
-  // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterGodowns(
-        searchTerm,
-        statusFilter,
-        sortBy,
-        currentPage,
-        limit,
-        defaultSelected?._id
-      )
-        .then((result) => {
-          setFilteredGodowns(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering godowns:", err);
-        });
+      if (searchTerm.length >= 3) {
+        filterGodowns(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+          .then((result) => {
+            setFilteredGodowns(result);
+          })
+          .catch((err) => {
+            console.error("Error filtering godowns:", err);
+          });
+      } else if (searchTerm.length === 0) {
+        filterGodowns(
+          "",
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+          .then((result) => {
+            setFilteredGodowns(result);
+          })
+          .catch((err) => {
+            console.error("Error filtering godowns:", err);
+          });
+      }
     }, 500); // 500ms debounce time
 
     return () => {
@@ -537,6 +549,11 @@ const GodownRegistration: React.FC = () => {
       ))}
     </div>
   );
+  useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
 
   return (
     <div className="custom-container">
@@ -644,6 +661,7 @@ const GodownRegistration: React.FC = () => {
           setCurrentPage(1);
         }}
       />
+
       {loading && <TableViewSkeleton />}
 
       <ViewModeToggle

@@ -254,6 +254,7 @@ const AgentRegistrationPage: React.FC = () => {
     filterAgents,
     pagination,
     loading,
+    initialLoading
   } = useAgentStore(); // Assuming the store is implemented
   const { companies, defaultSelected } = useCompanyStore();
 
@@ -263,9 +264,9 @@ const AgentRegistrationPage: React.FC = () => {
   }, [agents]);
 
   // Initial fetch
-  useEffect(() => {
-    fetchAgents(currentPage, limit, defaultSelected?._id);
-  }, [fetchAgents, currentPage]);
+  // useEffect(() => {
+  //   fetchAgents(currentPage, limit, defaultSelected?._id);
+  // }, [fetchAgents, currentPage]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -275,6 +276,7 @@ const AgentRegistrationPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
+            if (searchTerm.length >= 3){
       filterAgents(
         searchTerm,
         statusFilter,
@@ -289,6 +291,9 @@ const AgentRegistrationPage: React.FC = () => {
         .catch((err) => {
           console.error("Error filtering agents:", err);
         });
+      } else if (searchTerm.length === 0){
+        filterAgents("", statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
+      }
     }, 500);
 
     return () => {
@@ -1073,7 +1078,11 @@ const AgentRegistrationPage: React.FC = () => {
       ))}
     </div>
   );
-
+ useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
   return (
     <div className="custom-container">
       <div className="flex justify-between items-center mb-4">

@@ -48,6 +48,7 @@ import CheckboxWithLabel from "../customComponents/CheckboxWithLabel";
 import type { Value } from "@radix-ui/react-select";
 import { SwitchThumb } from "@radix-ui/react-switch";
 import CompanySelectorModal from "../customComponents/CompanySelectorModal";
+import { DatePickerField } from "../customComponents/DatePickerField";
 
 // Bank interface (unchanged)
 interface Bank {
@@ -198,9 +199,8 @@ const CompanyPage: React.FC = () => {
     deleteCompany,
     filterCompanies,
     defaultSelected,
+    initialLoading,
   } = useCompanyStore();
-
-  console.log("Companies from store:", companies);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -712,42 +712,12 @@ const CompanyPage: React.FC = () => {
   ];
 
   // Initial fetch
-  useEffect(() => {
-    fetchCompanies("", currentPage, limit);
-  }, [fetchCompanies, currentPage]);
 
   // Reset page to 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, sortBy]);
-
-  // Filtering with debounce
   // useEffect(() => {
-  //   const handler = setTimeout(() => {
-  //     filterCompanies(
-  //       searchTerm,
-  //       statusFilter,
-  //       sortBy,
-  //       "68c1503077fd742fa21575df",
-  //       currentPage,
-  //       limit
-  //     )
-  //       .then((result) => {
-  //         setFilteredCompanies(result);
-  //       })
-  //       .catch((err) => {
-  //         console.error("Error filtering companies:", err);
-  //       });
-  //   }, 500); // 500ms debounce time
+  //   setCurrentPage(1);
+  // }, [searchTerm, statusFilter, sortBy]);
 
-  //   return () => {
-  //     clearTimeout(handler);
-  //   };
-  // }, [searchTerm, statusFilter, sortBy, currentPage, filterCompanies,]);
-
-  const formatSimpleDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
   const headers = ["Company", "Contact", "Registration", "Status", "Actions"];
   const setDefaultCompany = useCompanyStore((state) => state.setDefaultCompany);
   const handleSelect = (company) => {
@@ -1024,7 +994,11 @@ const CompanyPage: React.FC = () => {
     const res = await api.downloadCompanyPDF();
     console.log(res, "pdfresss");
   };
-
+  useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
   return (
     <>
       <div className="custom-container">
@@ -1868,30 +1842,19 @@ const CompanyPage: React.FC = () => {
                         <option value="inactive">Inactive</option>
                       </select>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">
-                        Book Starting Date
-                      </label>
-                      <input
-                        type="date"
-                        name="bookStartingDate"
-                        value={formData.bookStartingDate}
-                        onChange={handleChange}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700">
-                        Financial Date
-                      </label>
-                      <input
-                        type="date"
-                        name="financialDate"
-                        value={formData.financialDate}
-                        onChange={handleChange}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      />
-                    </div>
+                    <DatePickerField
+                      label="Book Starting Date"
+                      name="bookStartingDate"
+                      value={formData.bookStartingDate}
+                      onChange={handleChange}
+                    />
+
+                     <DatePickerField
+                      label="Financial Date"
+                      name="financialDate"
+                      value={formData.financialDate}
+                      onChange={handleChange}
+                    />
                   </div>
                   <div className="flex flex-wrap justify-between border px-2 py-2 mb-6">
                     <CheckboxWithLabel

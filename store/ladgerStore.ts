@@ -160,6 +160,7 @@ interface LedgerStore {
     page?: number,
     limit?: number
   ) => Promise<Ledger[]>;
+  initialLoading: () => void;
 }
 
 export const useLedgerStore = create<LedgerStore>()(
@@ -172,7 +173,7 @@ export const useLedgerStore = create<LedgerStore>()(
         limit: 10,
         totalPages: 0,
       },
-      loading: false,
+      loading: true,
       error: false,
       errorMessage: null,
 
@@ -298,6 +299,10 @@ export const useLedgerStore = create<LedgerStore>()(
           });
           return [];
         }
+      },
+
+      initialLoading: () => {
+        set({ loading: true });
       },
     }),
     {

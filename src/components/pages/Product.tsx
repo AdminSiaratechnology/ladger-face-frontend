@@ -49,6 +49,7 @@ import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
 import { useVendorStore } from "../../../store/vendorStore";
+import { DatePickerField } from "../customComponents/DatePickerField";
 
 // Interfaces
 interface Unit {
@@ -192,16 +193,11 @@ const ProductPage: React.FC = () => {
     pagination,
     loading,
     resetProductStore,
+    initialLoading,
   } = useProductStore();
   const { vendors } = useVendorStore();
   const [country] = useState<string>("india");
-  const [suppliers] = useState<Supplier[]>([
-    { id: 1, name: "Tech Suppliers Inc", code: "SUP001" },
-    { id: 2, name: "Global Parts Ltd", code: "SUP002" },
-    { id: 3, name: "Quality Materials Co", code: "SUP003" },
-    { id: 4, name: "Prime Components Corp", code: "SUP004" },
-  ]);
-  console.log(defaultSelected);
+const today = new Date().toISOString().split("T")[0];
   const [formData, setFormData] = useState<ProductForm>({
     code: "",
     name: "",
@@ -226,7 +222,7 @@ const ProductPage: React.FC = () => {
       sgst: 0,
       cess: 0,
       additionalCess: 0,
-      applicableDate: "",
+      applicableDate: today,
     },
     images: [],
     remarks: "",
@@ -248,9 +244,9 @@ const ProductPage: React.FC = () => {
     setFilteredProducts(products);
   }, [products]);
   // Initial fetch
-  useEffect(() => {
-    fetchProducts(currentPage, limit, defaultSelected?._id);
-  }, [fetchProducts, currentPage]);
+  // useEffect(() => {
+  //   fetchProducts(currentPage, limit, defaultSelected?._id);
+  // }, [fetchProducts, currentPage]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -261,20 +257,31 @@ const ProductPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterProducts(
-        searchTerm,
-        statusFilter,
-        sortBy,
-        currentPage,
-        limit,
-        defaultSelected?._id
-      )
-        .then((result) => {
-          setFilteredProducts(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering products:", err);
-        });
+      if (searchTerm.length >= 3) {
+        filterProducts(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+          .then((result) => {
+            setFilteredProducts(result);
+          })
+          .catch((err) => {
+            console.error("Error filtering products:", err);
+          });
+      } else if (searchTerm.length === 0) {
+        filterProducts(
+          "",
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        );
+      }
     }, 500);
 
     return () => {
@@ -453,6 +460,7 @@ const ProductPage: React.FC = () => {
   };
 
   const resetForm = () => {
+    const today = new Date().toISOString().split("T")[0];
     cleanupImageUrls();
     setFormData({
       code: "",
@@ -478,7 +486,7 @@ const ProductPage: React.FC = () => {
         sgst: 0,
         cess: 0,
         additionalCess: 0,
-        applicableDate: "",
+        applicableDate: today,
       },
       images: [],
       remarks: "",
@@ -494,6 +502,7 @@ const ProductPage: React.FC = () => {
   };
 
   const handleEditProduct = (product: Product): void => {
+    const today = new Date().toISOString().split("T")[0];
     setEditingProduct(product);
     setFormData({
       code: product.code,
@@ -519,7 +528,7 @@ const ProductPage: React.FC = () => {
         sgst: 0,
         cess: 0,
         additionalCess: 0,
-        applicableDate: "",
+        applicableDate: today,
       },
       images: product.images || [],
       remarks: product.remarks || "",
@@ -611,7 +620,7 @@ const ProductPage: React.FC = () => {
       await fetchProducts(currentPage, limit, defaultSelected?._id);
     } else {
       await addProduct(productFormData);
-      fetchProducts();
+      await fetchProducts(currentPage, limit, defaultSelected?._id);
     }
     setOpen(false);
     resetForm();
@@ -895,6 +904,11 @@ const ProductPage: React.FC = () => {
       ))}
     </div>
   );
+  useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
 
   return (
     <div className="custom-container">
@@ -1508,14 +1522,12 @@ const ProductPage: React.FC = () => {
                         </div>
                       </div>
                     )}
-                    <CustomInputBox
-                      label="Tax Applicable Date"
-                      placeholder="Select date"
-                      name="applicableDate"
-                      value={formData.taxConfiguration.applicableDate}
-                      onChange={handleTaxChange}
-                      type="date"
-                    />
+                    <DatePickerField
+                    label= "Tax Applicable Date"
+                    name="applicableDate"
+                    value={formData.taxConfiguration.applicableDate}
+                    onChange={handleTaxChange}
+                  />
                   </div>
                 )}
                 {!formData.taxConfiguration.applicable && (
@@ -1583,7 +1595,7 @@ const ProductPage: React.FC = () => {
                       );
                     }}
                     min="0"
-                    step="0.01"
+                    step="1"
                     className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     placeholder="Enter total opening quantity"
                   />
@@ -1699,7 +1711,7 @@ const ProductPage: React.FC = () => {
                               }
                               className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                               min="0"
-                              step="0.01"
+                              step="1"
                             />
                           </td>
                           <td className="p-2 border border-teal-200">

@@ -235,6 +235,7 @@ const LedgerRegistration: React.FC = () => {
     filterLedgers,
     pagination,
     loading,
+    initialLoading
   } = useLedgerStore();
   const { companies, defaultSelected } = useCompanyStore();
 
@@ -242,9 +243,9 @@ const LedgerRegistration: React.FC = () => {
     setFilteredLedgers(ledgers);
   }, [ledgers]);
   // Initial fetch
-  useEffect(() => {
-    fetchLedgers(currentPage, limit, defaultSelected?._id);
-  }, [fetchLedgers, currentPage, defaultSelected]);
+  // useEffect(() => {
+  //   fetchLedgers(currentPage, limit, defaultSelected?._id);
+  // }, [fetchLedgers, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -254,6 +255,7 @@ const LedgerRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
+            if (searchTerm.length >= 3){
       filterLedgers(
         searchTerm,
         statusFilter,
@@ -271,6 +273,25 @@ const LedgerRegistration: React.FC = () => {
             description: "Failed to filter ledgers. Please try again.",
           });
         });
+      } else if ( searchTerm.length === 0){
+        filterLedgers(
+          "",
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+        .then((result) => {
+          setFilteredLedgers(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering ledgers:", err);
+          toast.error("Error", {
+            description: "Failed to filter ledgers. Please try again.",
+          });
+        });
+      }
     }, 500);
 
     return () => {
@@ -958,7 +979,11 @@ const LedgerRegistration: React.FC = () => {
       ))}
     </div>
   );
-
+ useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
   return (
     <div className="custom-container">
       <div className="flex justify-between items-center mb-4">

@@ -182,6 +182,7 @@ interface AgentStore {
     limit?: number,
     companyId?:number | string,
   ) => Promise<Agent[]>;
+  initialLoading: () => void;
 }
 
 export const useAgentStore = create<AgentStore>()(
@@ -194,7 +195,7 @@ export const useAgentStore = create<AgentStore>()(
         limit: 10,
         totalPages: 0
       },
-      loading: false,
+      loading: true,
       error: false,
       errorMessage: null,
 
@@ -322,6 +323,10 @@ export const useAgentStore = create<AgentStore>()(
           });
           return [];
         }
+      },
+
+      initialLoading: () => {
+        set({ loading: true });
       },
     }),
     {

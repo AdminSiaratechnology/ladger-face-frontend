@@ -82,6 +82,7 @@ interface ProductStore {
     limit?: number
   ) => Promise<Product[]>;
   resetProductStore:()=>Promise<void>
+  initialLoading: () => void
 }
 
 export const useProductStore = create<ProductStore>()(
@@ -94,7 +95,7 @@ export const useProductStore = create<ProductStore>()(
         limit: 10,
         totalPages: 0
       },
-      loading: false,
+      loading: true,
       error: false,
       errorMessage: null,
 
@@ -225,6 +226,9 @@ export const useProductStore = create<ProductStore>()(
           });
           return [];
         }
+      },
+      initialLoading: () => {
+        set({ loading: true, error: false });
       },
       resetProductStore:()=>{
         set({ products: [],

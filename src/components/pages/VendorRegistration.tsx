@@ -284,6 +284,7 @@ const VendorRegistrationPage: React.FC = () => {
     pagination,
     loading,
     error,
+    initialLoading
   } = useVendorStore(); // Assuming store exists
   const { defaultSelected, companies } = useCompanyStore();
   const getCompanyName = (companyId: string) => {
@@ -786,9 +787,9 @@ const VendorRegistrationPage: React.FC = () => {
   }, [vendors]);
 
   // Initial fetch
-  useEffect(() => {
-    fetchVendors(currentPage, limit, defaultSelected?._id);
-  }, [fetchVendors, currentPage, defaultSelected]);
+  // useEffect(() => {
+  //   fetchVendors(currentPage, limit, defaultSelected?._id);
+  // }, [fetchVendors, currentPage, defaultSelected]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -798,6 +799,7 @@ const VendorRegistrationPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
+      if (searchTerm.length >= 3){
       filterVendors(
         searchTerm,
         statusFilter,
@@ -812,6 +814,22 @@ const VendorRegistrationPage: React.FC = () => {
         .catch((err) => {
           console.error("Error filtering vendors:", err);
         });
+      } else if (searchTerm.length === 0){
+        filterVendors(
+          "",
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+        .then((result) => {
+          setFilteredVendors(result);
+        })
+        .catch((err) => {
+          console.error("Error filtering vendors:", err);
+        });
+      }
     }, 500); // 500ms debounce time
 
     return () => {
@@ -1068,7 +1086,11 @@ const VendorRegistrationPage: React.FC = () => {
       ))}
     </div>
   );
-
+ useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
   return (
     <div className="custom-container">
       {/* Header */}

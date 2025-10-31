@@ -19,6 +19,7 @@ interface CompanySelectorModalProps {
   onSelect: (company: Company) => void;
   onClose: () => void;
   onConfirmNavigate?: () => void;
+  isLogin: boolean | undefined;
 }
 
 const CompanySelectorModal = ({
@@ -27,11 +28,13 @@ const CompanySelectorModal = ({
   onSelect,
   onClose,
   onConfirmNavigate,
+  isLogin=false
 }: CompanySelectorModalProps) => {
   const {
     companies,
     filterCompanies,
     loading,
+    pagination,
   } = useCompanyStore();
   const { user } = useAuthStore();
 
@@ -43,24 +46,24 @@ const CompanySelectorModal = ({
   const [sortBy] = useState<"nameAsc" | "nameDesc" | "dateDesc" | "dateAsc">(
     "nameAsc"
   );
+  console.log(pagination, "GJGJGJGJGJGJGJGJGJGJGJGJGJGJGJGJGJGJGJ")
 
-  // ✅ Fetch initial companies (default view)
-  useEffect(() => {
-    if(user){
-    filterCompanies("", statusFilter, sortBy, "68c1503077fd742fa21575df");
-    }
-    console.log("first")
-  }, [filterCompanies, statusFilter, sortBy]);
+  // useEffect(() => {
+  //   if(user){
+  //   filterCompanies("", statusFilter, sortBy);
+  //   }
+  //   console.log("first")
+  // }, [filterCompanies, statusFilter, sortBy]);
 
   // ✅ Debounced search trigger
 useEffect(() => {
   const handler = setTimeout(() => {
-    if (user && searchTerm.length >= 3) {
-      filterCompanies(searchTerm, statusFilter, sortBy, "68c1503077fd742fa21575df")
+    if (user && searchTerm.length >= 3 ) {
+      filterCompanies(searchTerm, statusFilter, sortBy, "", 1, 10, isLogin)
         .catch((err) => console.error("Error filtering companies:", err));
-    } else if (searchTerm.length === 0 && user) {
+    } else if (searchTerm.length === 0 && user && companies.length < Math.min(10, pagination?.total)) {
       // Optional: fetch all companies again when search is cleared
-      filterCompanies("", statusFilter, sortBy, "68c1503077fd742fa21575df")
+      filterCompanies("", statusFilter, sortBy, "", 1, 10, isLogin)
         .catch((err) => console.error("Error fetching all companies:", err));
     }
   }, 500); // ⏳ debounce
@@ -83,7 +86,13 @@ useEffect(() => {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent onInteractOutside={(e)=> {
+        if(isLogin){
+          e.preventDefault()
+        }else {
+          return null
+        }
+      }}>
         <DialogHeader>
           <CustomFormDialogHeader
             title="Select a Company"

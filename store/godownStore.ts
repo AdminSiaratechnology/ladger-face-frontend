@@ -34,7 +34,11 @@ interface GodownStore {
   pagination: Pagination;
   loading: boolean;
   error: string | null;
-  fetchGodowns: (page?: number, limit?: number,companyId?:number | string) => Promise<void>;
+  fetchGodowns: (
+    page?: number,
+    limit?: number,
+    companyId?: number | string
+  ) => Promise<void>;
   addGodown: (godownData: Godown) => Promise<void>;
   updateGodown: (godownId: string, godownData: Godown) => Promise<void>;
   deleteGodown: (godownId: string) => Promise<void>;
@@ -42,10 +46,12 @@ interface GodownStore {
     searchTerm: string,
     statusFilter: "all" | "active" | "inactive" | "maintenance",
     sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
-    companyId?:number | string,
+    companyId?: number | string,
     page?: number,
     limit?: number
   ) => Promise<Godown[]>;
+  initialLoading: () => void;
+  resetGodown: () => Promise<void>
 }
 
 // Zustand store with persistence
@@ -53,7 +59,7 @@ export const useGodownStore = create<GodownStore>()(
   persist(
     (set, get) => ({
       godowns: [],
-      loading: false,
+      loading: true,
       error: null,
       pagination: {
         total: 0,
@@ -62,7 +68,7 @@ export const useGodownStore = create<GodownStore>()(
         totalPages: 0,
       },
 
-      fetchGodowns: async (page = 1, limit = 10) => {
+      fetchGodowns: async (page = 1, limit = 10, companyId) => {
         console.log("Fetching godowns page:", page, "limit:", limit);
 
         try {
@@ -72,10 +78,13 @@ export const useGodownStore = create<GodownStore>()(
             page: page.toString(),
             limit: limit.toString(),
           });
-          const id= companyId?.toLocaleString();
-          const res = await api.getGodowns({companyId:id}, {
-            queryParams: queryParams.toString(),
-          });
+          const id = companyId?.toLocaleString();
+          const res = await api.getGodowns(
+            { companyId: id },
+            {
+              queryParams: queryParams.toString(),
+            }
+          );
 
           console.log("Fetched godowns response:", res?.data);
 
@@ -127,7 +136,10 @@ export const useGodownStore = create<GodownStore>()(
         try {
           set({ loading: true, error: null });
 
-          const res = await api.updateGodown({id:godownId,godown:godownData});
+          const res = await api.updateGodown({
+            id: godownId,
+            godown: godownData,
+          });
           console.log("Updated godown response:", res);
 
           const updatedGodown: Godown = res.data;
@@ -188,9 +200,12 @@ export const useGodownStore = create<GodownStore>()(
             limit: limit.toString(),
           });
 
-          const res = await api.getGodowns({companyId}, {
-            queryParams: queryParams.toString(),
-          });
+          const res = await api.getGodowns(
+            { companyId },
+            {
+              queryParams: queryParams.toString(),
+            }
+          );
 
           console.log("Database search response for godowns:", res);
 
@@ -214,6 +229,20 @@ export const useGodownStore = create<GodownStore>()(
           });
           return [];
         }
+      },
+      initialLoading: () => set({ loading: true }),
+      resetGodown: () => {
+        set({
+          godowns: [],
+          loading: false,
+          error: null,
+          pagination: {
+            total: 0,
+            page: 1,
+            limit: 10,
+            totalPages: 0,
+          },
+        });
       },
     }),
     {
