@@ -33,6 +33,9 @@ import { useAgentStore } from "../../../store/agentStore";
 import { useStockCategory } from "../../../store/stockCategoryStore";
 import { useStockGroup } from "../../../store/stockGroupStore";
 import { useUOMStore } from "../../../store/uomStore";
+import { useGodownStore } from "../../../store/godownStore";
+import { useUserManagementStore } from "../../../store/userManagementStore";
+import { useVendorStore } from "../../../store/vendorStore";
 
 export default function Login() {
   // const { user, login, loading } = useAuth();
@@ -43,20 +46,12 @@ export default function Login() {
     defaultSelected,
     loading: companyLoading,
   } = useCompanyStore();
-    const {
-      fetchStockCategory,
-     
-    } = useStockCategory();
-    const {
-        fetchStockGroup,
-      
-      } = useStockGroup();
-    const {
-        fetchUnits,
-      
-      } = useUOMStore();
-  
-
+  const { fetchStockCategory } = useStockCategory();
+  const { fetchStockGroup } = useStockGroup();
+  const { fetchUnits } = useUOMStore();
+  const { fetchUsers } = useUserManagementStore();
+  const { fetchGodowns } = useGodownStore();
+  const { fetchVendors } = useVendorStore();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -73,45 +68,43 @@ export default function Login() {
   console.log(user, "usuario en login");
 
   useEffect(() => {
-     const fetchCompaniesAsync = async () => {
-        await fetchCompanies("", 1, 10);
-        setLoadCompany(true);
-        // ✅ Navigate programmatically after API call_
-        // navigate("/", { replace: true });
-        // fetchAgents(1, 10, defaultSelected?._id);
-        
-      };
+    const fetchCompaniesAsync = async () => {
+      await fetchCompanies("", 1, 10);
+      setLoadCompany(true);
+      // ✅ Navigate programmatically after API call_
+      // navigate("/", { replace: true });
+      // fetchAgents(1, 10, defaultSelected?._id);
+    };
     if (user) {
       console.log(user, "userrrrrrrrr");
-     
-      fetchCompaniesAsync();
 
+      fetchCompaniesAsync();
     }
   }, [user, navigate, fetchCompanies]);
 
   const fetchOtherAsync = async () => {
     const { defaultSelected } = useCompanyStore.getState(); // Use getState() to get the latest store value immediately
     const companyId = defaultSelected?._id;
-    console.log(defaultSelected,"defaultselectes")
+    console.log(defaultSelected, "defaultselectes");
     if (!companyId) return;
 
     try {
       // Run all API calls in parallel
       await Promise.all([
-       fetchStockCategory(1, 10, companyId),
-       fetchStockGroup(1, 10, companyId),
-     fetchUnits(1, 10, companyId),
+        fetchStockCategory(1, 10, companyId),
+        fetchStockGroup(1, 10, companyId),
+        fetchUnits(1, 10, companyId),
+        fetchGodowns(1,10,companyId),
+        fetchUsers(1,10,companyId),
+        fetchVendors(1,10,companyId),
       ]);
     } catch (error) {
       console.error("Error fetching stock data:", error);
-    }finally{
+    } finally {
       setShowCompanyPopup(false);
-            navigate("/");
+      navigate("/");
     }
   };
-
- 
-
 
   useEffect(() => {
     if (loadCompany && !companyLoading && user) {
@@ -570,6 +563,7 @@ export default function Login() {
         <CompanySelectorModal
           open={showCompanyPopup}
           companies={companies}
+          isLogin={true}
           defaultSelected={defaultSelected}
           onSelect={handleSelect}
           onClose={() => setShowCompanyPopup(false)}
