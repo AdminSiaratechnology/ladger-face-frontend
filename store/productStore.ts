@@ -81,6 +81,7 @@ interface ProductStore {
     page?: number,
     limit?: number
   ) => Promise<Product[]>;
+  resetProductStore:()=>Promise<void>
 }
 
 export const useProductStore = create<ProductStore>()(
@@ -225,6 +226,18 @@ export const useProductStore = create<ProductStore>()(
           return [];
         }
       },
+      resetProductStore:()=>{
+        set({ products: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      },
+      loading: false,
+      error: false,
+      errorMessage: null})
+      }
     }),
     {
       name: "product-storage",

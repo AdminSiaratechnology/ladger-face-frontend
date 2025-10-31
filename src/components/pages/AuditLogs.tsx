@@ -97,6 +97,7 @@ const AuditLogsPage: React.FC = () => {
     fetchAuditEvents,
     fetchAllAuditEvents,
     fetchAuditLogById,
+    resetStore
   } = useAuditLogStore();
 
   const limit = 10;
@@ -182,7 +183,7 @@ const AuditLogsPage: React.FC = () => {
       sortBy: sortByParam,
       sortOrder,
       page: 1,
-      limit: 10000, // Large limit for export
+      limit: 10, // Large limit for export
       fromDate,
     };
   };
@@ -328,6 +329,13 @@ const AuditLogsPage: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, actionFilter, timeFilter, sortBy]);
+  useEffect(() => {
+    // Cleanup when leaving the page
+    return () => {
+      resetStore()
+      console.log("Stock state reset on page leave 🚀");
+    };
+  }, [resetStore]);
 
   // Table View (primary view for logs)
   const TableView = () => (
