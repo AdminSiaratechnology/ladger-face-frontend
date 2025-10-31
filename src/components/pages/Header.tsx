@@ -23,6 +23,14 @@ import {
 } from "../ui/dropdown-menu";
 import { useAuthStore } from "../../../store/authStore";
 import { useCompanyStore } from "../../../store/companyStore";
+import { useAuditLogStore } from "../../../store/auditLogStore";
+import { useUOMStore } from "../../../store/uomStore";
+import { useStockCategory } from "../../../store/stockCategoryStore";
+import { useStockGroup } from "../../../store/stockGroupStore";
+import { useGodownStore } from "../../../store/godownStore";
+import { useUserManagementStore } from "../../../store/userManagementStore";
+
+
 import CompanySelectorModal from "../customComponents/CompanySelectorModal";
 import { toast } from "sonner";
 
@@ -35,6 +43,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { user, logout } = useAuthStore();
   const { defaultSelected, companies, resetCompanies } = useCompanyStore();
+  const { resetStore} = useAuditLogStore();
+  const {resetSrockCategories } = useStockCategory();
+  const { resetStockGroup } = useStockGroup();
+  const { resetUnits} = useUOMStore();
+  const { resetGodown} = useGodownStore();
+  const { resetUserManagement} = useUserManagementStore();
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
 
@@ -119,6 +133,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
     setShowLogout(false);
     logout();
     resetCompanies();
+    resetUnits()
+    resetStockGroup()
+    resetSrockCategories(),
+    resetGodown()
+    resetStore()
+    resetUserManagement()
+    
+
   }
   return (
     <>
@@ -334,6 +356,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <CompanySelectorModal
           open={showCompanyPopup}
           companies={companies}
+          isLogin={false}
           defaultSelected={defaultSelected}
           onSelect={handleSelect}
           onClose={() => setShowCompanyPopup(false)}
