@@ -73,7 +73,8 @@ export interface AuditLogStore {
   fetchAuditLogById: (id: string) => Promise<void>;
 
   //Restore deleted recode
-  restoreRecord:({module, referenceId,id}:{module:string, referenceId:string,id:string})=>Promise<void>
+  restoreRecord:({module, referenceId,id}:{module:string, referenceId:string,id:string})=>Promise<void>,
+  resetStore:()=>Promise<void>
 }
 
 export const useAuditLogStore = create<AuditLogStore>()(
@@ -212,6 +213,20 @@ export const useAuditLogStore = create<AuditLogStore>()(
               "Failed to fetch audit log by ID",
           });
         }
+      },
+      resetStore:()=>{
+        set({   auditEvents: [],
+      auditEventsDetail:[],
+      singleAuditEvent: null,
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+      },
+      loading: false,
+      error: false,
+      errorMessage: null})
       }
     }),
     {

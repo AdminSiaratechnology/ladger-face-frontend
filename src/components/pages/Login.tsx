@@ -29,6 +29,10 @@ import { toast } from "sonner";
 import { useAuthStore } from "../../../store/authStore";
 import CompanySelectorModal from "../customComponents/CompanySelectorModal";
 import { useCompanyStore } from "../../../store/companyStore";
+import { useAgentStore } from "../../../store/agentStore";
+import { useStockCategory } from "../../../store/stockCategoryStore";
+import { useStockGroup } from "../../../store/stockGroupStore";
+import { useUOMStore } from "../../../store/uomStore";
 
 export default function Login() {
   // const { user, login, loading } = useAuth();
@@ -39,6 +43,20 @@ export default function Login() {
     defaultSelected,
     loading: companyLoading,
   } = useCompanyStore();
+    const {
+      fetchStockCategory,
+     
+    } = useStockCategory();
+    const {
+        fetchStockGroup,
+      
+      } = useStockGroup();
+    const {
+        fetchUnits,
+      
+      } = useUOMStore();
+  
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,26 +73,53 @@ export default function Login() {
   console.log(user, "usuario en login");
 
   useEffect(() => {
-    if (user) {
-      console.log(user, "userrrr");
-      const fetchCompaniesAsync = async () => {
+     const fetchCompaniesAsync = async () => {
         await fetchCompanies("", 1, 10);
         setLoadCompany(true);
         // ✅ Navigate programmatically after API call_
         // navigate("/", { replace: true });
+        // fetchAgents(1, 10, defaultSelected?._id);
+        
       };
-
+    if (user) {
+      console.log(user, "userrrrrrrrr");
+     
       fetchCompaniesAsync();
+
     }
   }, [user, navigate, fetchCompanies]);
+
+  const fetchOtherAsync = async () => {
+    const { defaultSelected } = useCompanyStore.getState(); // Use getState() to get the latest store value immediately
+    const companyId = defaultSelected?._id;
+    console.log(defaultSelected,"defaultselectes")
+    if (!companyId) return;
+
+    try {
+      // Run all API calls in parallel
+      await Promise.all([
+       fetchStockCategory(1, 10, companyId),
+       fetchStockGroup(1, 10, companyId),
+     fetchUnits(1, 10, companyId),
+      ]);
+    } catch (error) {
+      console.error("Error fetching stock data:", error);
+    }finally{
+      setShowCompanyPopup(false);
+            navigate("/");
+    }
+  };
+
+ 
+
+
   useEffect(() => {
     if (loadCompany && !companyLoading && user) {
       if (companies.length === 1) {
         // ✅ Auto-select the only company and set as default
         const singleCompany = companies[0];
         setDefaultCompany(singleCompany);
-        setShowCompanyPopup(false);
-        navigate("/"); // Directly navigate to dashboard
+        fetchOtherAsync(); // Call fetchOtherAsync here to load other data and navigate
       } else if (companies.length > 1) {
         // ✅ Show popup only when multiple companies exist
         setShowCompanyPopup(true);
@@ -528,10 +573,7 @@ export default function Login() {
           defaultSelected={defaultSelected}
           onSelect={handleSelect}
           onClose={() => setShowCompanyPopup(false)}
-          onConfirmNavigate={() => {
-            setShowCompanyPopup(false);
-            navigate("/"); // Navigate after confirming selection
-          }}
+          onConfirmNavigate={fetchOtherAsync} // Pass the function directly (no arrow function to avoid stale closure)
         />
       )}
     </>

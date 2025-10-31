@@ -57,7 +57,7 @@ export const useStockCategory = create<StockCategoryStore>()(
       error: false,
       errormessage: null,
 
-      fetchStockCategory: async (page = 1, limit = 10) => {
+      fetchStockCategory: async (page = 1, limit = 10,companyId) => {
         console.log("Fetching stock categories page:", page, "limit:", limit);
         set({ loading: true, error: false });
         try {

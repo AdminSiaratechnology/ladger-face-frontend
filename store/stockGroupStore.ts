@@ -65,7 +65,7 @@ export const useStockGroup = create<StockGroupStore>()(
       loading: false,
       error: false,
       errormessage: null,
-      fetchStockGroup: async (page = 1, limit = 10) => {
+      fetchStockGroup: async (page = 1, limit = 10,companyId) => {
         console.log("fetching stock groups page:", page, "limit:", limit);
         set({ loading: true });
         try {
