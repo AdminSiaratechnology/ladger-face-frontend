@@ -86,7 +86,7 @@ const StockCategoryRegistration: React.FC = () => {
     loading,
     error,
     filterStockCategories,
-    initialLoading
+    initialLoading,
   } = useStockCategory();
   const { companies, defaultSelected } = useCompanyStore();
   const { stockGroups } = useStockGroup();
@@ -106,32 +106,46 @@ const StockCategoryRegistration: React.FC = () => {
 
   // Filtering with debounce
   useEffect(() => {
-    console.log("first, sttausfilter", statusFilter)
+    console.log("first, sttausfilter", statusFilter);
     const handler = setTimeout(() => {
-            if (searchTerm.length >= 3){
-      filterStockCategories(
-        searchTerm,
-        statusFilter,
-        sortBy,
-        currentPage,
-        limit,
-        defaultSelected?._id
-      )
-        .then((result) => {
-          setFilteredStockCategories(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering stock categories:", err);
-        });
-      } else if (searchTerm.length === 0){
-          filterStockCategories("", statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
+      if (searchTerm.length >= 3) {
+        filterStockCategories(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+          .then((result) => {
+            setFilteredStockCategories(result);
+          })
+          .catch((err) => {
+            console.error("Error filtering stock categories:", err);
+          });
+      } else if (searchTerm.length === 0) {
+        filterStockCategories(
+          "",
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        );
       }
     }, 500); // 500ms debounce time
 
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterStockCategories, defaultSelected]);
+  }, [
+    searchTerm,
+    statusFilter,
+    sortBy,
+    currentPage,
+    filterStockCategories,
+    defaultSelected,
+  ]);
 
   const [formData, setFormData] = useState<StockCategoryForm>({
     name: "",
@@ -275,7 +289,9 @@ const StockCategoryRegistration: React.FC = () => {
                   {category.description || "No description"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {getCompanyName(category.companyId)}
+                  <div className="text-sm text-gray-900">
+                    {category?.companyId?.namePrint || "—"}
+                  </div>
                 </td>
                 {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {getStockGroupName(category.stockGroupId)}
@@ -344,7 +360,8 @@ const StockCategoryRegistration: React.FC = () => {
             <div className="space-y-2 text-sm">
               <div className="flex items-center">
                 <Building2 className="w-4 h-4 mr-2 text-gray-400" />
-                Company: {getCompanyName(category.companyId)}
+                Company:                     {category?.companyId?.namePrint || "—"}
+
               </div>
               {/* <div className="flex items-center">
                 <Layers className="w-4 h-4 mr-2 text-gray-400" />
@@ -375,7 +392,7 @@ const StockCategoryRegistration: React.FC = () => {
       ))}
     </div>
   );
- useEffect(() => {
+  useEffect(() => {
     return () => {
       initialLoading();
     };
@@ -398,7 +415,7 @@ const StockCategoryRegistration: React.FC = () => {
             onClick={() => {
               resetForm();
               setOpen(true);
-               if (defaultSelected && companies.length > 0) {
+              if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
                   companyId: defaultSelected?._id,
@@ -559,11 +576,11 @@ const StockCategoryRegistration: React.FC = () => {
                   onChange={handleChange}
                   required={true}
                 />
-                               <SelectedCompany
-  editing={editingStockCategory}
-  handleSelectChange={handleSelectChange}
-  companyId={formData.companyId}
-/>
+                <SelectedCompany
+                  editing={editingStockCategory}
+                  handleSelectChange={handleSelectChange}
+                  companyId={formData.companyId}
+                />
                 {/* <div className="flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">
                     Company <span className="text-red-500">*</span>
