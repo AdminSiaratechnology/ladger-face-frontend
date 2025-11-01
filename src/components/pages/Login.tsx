@@ -88,22 +88,9 @@ export default function Login() {
     console.log(defaultSelected, "defaultselectes");
     if (!companyId) return;
 
-    try {
-      // Run all API calls in parallel
-      await Promise.all([
-        fetchStockCategory(1, 10, companyId),
-        fetchStockGroup(1, 10, companyId),
-        fetchUnits(1, 10, companyId),
-        fetchGodowns(1,10,companyId),
-        fetchUsers(1,10,companyId),
-        fetchVendors(1,10,companyId),
-      ]);
-    } catch (error) {
-      console.error("Error fetching stock data:", error);
-    } finally {
       setShowCompanyPopup(false);
-      navigate("/");
-    }
+      
+    
   };
 
   useEffect(() => {
@@ -112,7 +99,8 @@ export default function Login() {
         // ✅ Auto-select the only company and set as default
         const singleCompany = companies[0];
         setDefaultCompany(singleCompany);
-        fetchOtherAsync(); // Call fetchOtherAsync here to load other data and navigate
+        // fetchOtherAsync(); // Call fetchOtherAsync here to load other data and navigate
+        navigate("/")
       } else if (companies.length > 1) {
         // ✅ Show popup only when multiple companies exist
         setShowCompanyPopup(true);
@@ -123,11 +111,12 @@ export default function Login() {
     }
   }, [companyLoading, user, loadCompany, companies]);
 
-  console.log(companies);
+
   const setDefaultCompany = useCompanyStore((state) => state.setDefaultCompany);
   const handleSelect = (company) => {
     setDefaultCompany(company);
     setShowCompanyPopup(false);
+    navigate("/");
   };
   const handleEmailLogin = async (e: any) => {
     e.preventDefault();

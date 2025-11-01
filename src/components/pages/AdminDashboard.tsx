@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -40,6 +40,14 @@ import { ImageWithFallback } from "../figma/ImageWithFallback";
 import SalesmanCard from "../dashbord/ModernSalesmanCard";
 import { DashboardCards } from "../dashbord/DashboardCards";
 import HeaderGradient from "../customComponents/HeaderGradint";
+import { useAgentStore } from "../../../store/agentStore";
+import { useStockCategory } from "../../../store/stockCategoryStore";
+import { useStockGroup } from "../../../store/stockGroupStore";
+import { useUOMStore } from "../../../store/uomStore";
+import { useGodownStore } from "../../../store/godownStore";
+import { useUserManagementStore } from "../../../store/userManagementStore";
+import { useVendorStore } from "../../../store/vendorStore";
+import { useCompanyStore } from "../../../store/companyStore";
 
 const salesData = [
   { name: "Jan", sales: 4000, orders: 240 },
@@ -64,7 +72,14 @@ const salesmanPerformance = [
   { name: "David Wilson", sales: 61000, target: 75000, orders: 29 },
 ];
 
+
 export default function AdminDashboard() {
+    const { fetchStockCategory } = useStockCategory();
+    const { fetchStockGroup } = useStockGroup();
+    const { fetchUnits } = useUOMStore();
+    const { fetchUsers } = useUserManagementStore();
+    const { fetchGodowns } = useGodownStore();
+    const { fetchVendors } = useVendorStore();
   const gradient = [
     "bg-gradient-to-r from-teal-500 to-teal-600",
     "bg-gradient-to-r from-green-500 to-green-600",
@@ -208,6 +223,32 @@ export default function AdminDashboard() {
       </div>
     );
   }
+  const fetchOtherAsync = async () => {
+    const { defaultSelected } = useCompanyStore.getState(); // Use getState() to get the latest store value immediately
+    const companyId = defaultSelected?._id;
+    console.log(defaultSelected, "defaultselectes");
+    if (!companyId) return;
+
+    try {
+      // Run all API calls in parallel
+      await Promise.all([
+        fetchStockCategory(1, 10, companyId),
+        fetchStockGroup(1, 10, companyId),
+        fetchUnits(1, 10, companyId),
+        fetchGodowns(1,10,companyId),
+        fetchUsers(1,10,companyId),
+        fetchVendors(1,10,companyId),
+      ]);
+    } catch (error) {
+      console.error("Error fetching stock data:", error);
+    } 
+  };
+
+  useEffect(() => {
+  
+        fetchOtherAsync(); // Call fetchOtherAsync here to load other data and navigate
+     
+  }, []);
 
   return (
     <div className="space-y-6">
