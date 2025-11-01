@@ -216,7 +216,7 @@ const StockGroupRegistration: React.FC = () => {
       updateStockGroup(editingStockGroup._id, formData);
     } else {
       addStockGroup(formData);
-      await fetchStockGroup();
+      await fetchStockGroup(1,10, defaultSelected?._id);
     }
     resetForm();
     setOpen(false);
