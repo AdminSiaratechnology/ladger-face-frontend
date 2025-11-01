@@ -1,11 +1,11 @@
-// Updated companyStore with pagination support
+// Updated companyStore with pagination caching support
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api";
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
-// Types (unchanged, but included for completeness)
+// Types
 export interface Bank {
   id: number;
   accountHolderName: string;
@@ -61,8 +61,14 @@ export interface Company {
   negativeOrder: Boolean;
 }
 
+interface CachedPageData {
+  companies: Company[];
+  pagination: Pagination;
+}
+
 interface CompanyStore {
   companies: Company[];
+  companiesByPage: Record<string, CachedPageData>; // Cache for multiple pages
   pagination: Pagination;
   loading: boolean;
   error: string | null;
@@ -97,6 +103,7 @@ export const useCompanyStore = create<CompanyStore>()(
   persist(
     (set, get) => ({
       companies: [],
+      companiesByPage: {}, // Initialize cache
       loading: true,
       error: null,
       defaultSelected: null,
@@ -110,6 +117,7 @@ export const useCompanyStore = create<CompanyStore>()(
       resetCompanies: async () => {
         set({
           companies: [],
+          companiesByPage: {}, // Clear cache on reset
           defaultSelected: null,
           loading: false,
           error: null,
@@ -123,6 +131,7 @@ export const useCompanyStore = create<CompanyStore>()(
         let cm = get().companies;
         console.log(cm, "cm");
       },
+
       fetchCompanies: async (agentId: string, page = 1, limit = 10) => {
         console.log(
           "Fetching companies for agentId:",
@@ -132,6 +141,22 @@ export const useCompanyStore = create<CompanyStore>()(
           "limit:",
           limit
         );
+
+        // Create cache key
+        const cacheKey = `fetch-${page}-${limit}`;
+        
+        // Check cache first
+        const cached = get().companiesByPage[cacheKey];
+        if (cached) {
+          console.log('Using cached data for fetchCompanies:', cacheKey);
+          set({
+            companies: cached.companies,
+            pagination: cached.pagination,
+            loading: false,
+          });
+          return;
+        }
+
         try {
           set({ loading: true, error: null });
 
@@ -146,7 +171,15 @@ export const useCompanyStore = create<CompanyStore>()(
           });
           console.log("Fetched companies response:", res);
 
+          // Store in cache
           set({
+            companiesByPage: {
+              ...get().companiesByPage,
+              [cacheKey]: {
+                companies: res.data.companies,
+                pagination: res?.data?.pagination,
+              },
+            },
             companies: res.data.companies,
             pagination: res?.data?.pagination,
             loading: false,
@@ -159,6 +192,7 @@ export const useCompanyStore = create<CompanyStore>()(
           });
         }
       },
+
       addCompany: async (companyData) => {
         console.log("Creating new company:", companyData);
         try {
@@ -169,13 +203,15 @@ export const useCompanyStore = create<CompanyStore>()(
 
           const newCompany: Company = res.data;
 
+          // Clear cache when adding new company
           set({
             companies: [...get().companies, newCompany],
+            companiesByPage: {}, // Clear cache to force refresh
             loading: false,
             error: null,
           });
 
-          return newCompany; // ✅ Return the created company
+          return newCompany;
         } catch (error: any) {
           console.log("Error creating company:", error);
           toast.error(
@@ -187,7 +223,7 @@ export const useCompanyStore = create<CompanyStore>()(
             error: error.response?.data?.message || "Failed to create company",
           });
 
-          throw error; // ✅ Optional: rethrow for catch block in handleSubmit
+          throw error;
         }
       },
 
@@ -201,10 +237,12 @@ export const useCompanyStore = create<CompanyStore>()(
 
           const updatedCompany: Company = res.data;
 
+          // Clear cache when updating company
           set({
             companies: get().companies.map((comp) =>
               comp._id === companyId ? updatedCompany : comp
             ),
+            companiesByPage: {}, // Clear cache to force refresh
             loading: false,
             error: null,
           });
@@ -224,8 +262,10 @@ export const useCompanyStore = create<CompanyStore>()(
           const res = await api.deleteCompany(companyId);
           console.log("Deleted company response:", res);
 
+          // Clear cache when deleting company
           set({
             companies: get().companies.filter((comp) => comp._id !== companyId),
+            companiesByPage: {}, // Clear cache to force refresh
             loading: false,
             error: null,
           });
@@ -234,6 +274,7 @@ export const useCompanyStore = create<CompanyStore>()(
             loading: false,
             error: error.response?.data?.message || "Failed to delete company",
           });
+          toast.error(error?.response?.data?.error || "Failed to delete company");
         }
       },
 
@@ -246,6 +287,28 @@ export const useCompanyStore = create<CompanyStore>()(
         limit = 10,
         isLogin = false
       ) => {
+        // Create unique cache key based on all filter parameters
+        const cacheKey = `${page}-${statusFilter}-${searchTerm}-${sortBy}-${limit}`;
+        
+        console.log('filterCompanies called with:', { page, statusFilter, searchTerm, sortBy, limit });
+        console.log('Cache key:', cacheKey);
+        console.log('Available cache keys:', Object.keys(get().companiesByPage));
+        
+        // Check if data exists in cache
+        const cached = get().companiesByPage[cacheKey];
+        if (cached) {
+          console.log('✅ Using cached data for:', cacheKey);
+          set({
+            companies: cached.companies,
+            pagination: cached.pagination,
+            loading: false,
+          });
+          return cached.companies;
+        }
+        
+        console.log('❌ No cache found, fetching from API...');
+
+        // Fetch from API if not cached
         try {
           set({ loading: true, error: null });
 
@@ -264,14 +327,26 @@ export const useCompanyStore = create<CompanyStore>()(
           });
           console.log("Database search response:", res);
 
+          const companies = res.data.companies?.length <= 0 && isLogin
+            ? [...get().companies]
+            : res.data.companies;
+
+          // Store result in cache
           set({
-            companies: res.data.companies?.length <= 0 && isLogin?[...get().companies]:res.data.companies,
+            companiesByPage: {
+              ...get().companiesByPage,
+              [cacheKey]: {
+                companies,
+                pagination: res?.data?.pagination,
+              },
+            },
+            companies,
             pagination: res?.data?.pagination,
             loading: false,
             error: null,
           });
 
-          return res.data.companies;
+          return companies;
         } catch (error: any) {
           set({
             loading: false,
@@ -281,7 +356,9 @@ export const useCompanyStore = create<CompanyStore>()(
           return [];
         }
       },
+
       initialLoading: () => set({ loading: true }),
+      
       setDefaultCompany: async (companyId: Company) => {
         set({ defaultSelected: companyId });
       },
@@ -289,10 +366,10 @@ export const useCompanyStore = create<CompanyStore>()(
 
     {
       name: "company-storage",
-      // getStorage: () => localStorage,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         companies: state.companies,
+        companiesByPage: state.companiesByPage, // Persist cache
         defaultSelected: state.defaultSelected,
         pagination: state.pagination,
       }),
@@ -300,7 +377,7 @@ export const useCompanyStore = create<CompanyStore>()(
   )
 );
 
-// Custom hook to fetch a single company (unchanged)
+// Custom hook to fetch a single company
 export const useGetCompany = (id: string) => {
   const companies = useCompanyStore((state) => state.companies);
   const fetchCompanies = useCompanyStore((state) => state.fetchCompanies);

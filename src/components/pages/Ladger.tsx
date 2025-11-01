@@ -646,7 +646,7 @@ const LedgerRegistration: React.FC = () => {
     deleteLedger(id);
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async(): Promise<void> => {
     if (!formData.ledgerName.trim()) {
       toast.error("Please enter Ledger Name");
       return;
@@ -701,8 +701,8 @@ const LedgerRegistration: React.FC = () => {
       updateLedger({ id: editingLedger._id || "", ledger: ledgerFormData });
       toast.success("ledger updated successfully");
     } else {
-      addLedger(ledgerFormData);
-      fetchLedgers();
+      await addLedger(ledgerFormData);
+      fetchLedgers(currentPage, limit, defaultSelected?._id);
       toast.success("Ledger added successfully");
     }
     setOpen(false);
@@ -1007,7 +1007,7 @@ const LedgerRegistration: React.FC = () => {
                 if (selectedCompany) {
                   setFormData((prev) => ({
                     ...prev,
-                    companyId: selectedCompany._id,
+                    companyID: selectedCompany._id,
                   }));
                 }
               }

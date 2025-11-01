@@ -579,9 +579,14 @@ const CompanyPage: React.FC = () => {
     setOpen(true);
   };
 
-  const handleDeleteCompany = (id: string): void => {
-    deleteCompany(id);
-  };
+const handleDeleteCompany = async(id: string): void => {
+try {
+await deleteCompany(id);
+} catch (error:any) {
+console.error(error,"wrrorwhiledelete")
+toast.error(error?.response?.data?.error||"Failed to perform action");
+}
+};
 
   const handleSubmit = async (): Promise<void> => {
     console.log("first");
@@ -667,25 +672,24 @@ const CompanyPage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (searchTerm.length >= 3) {
-        filterCompanies(
-          searchTerm,
-          statusFilter,
-          sortBy,
-          "68c1503077fd742fa21575df",
-          pagination.page,
-          pagination.limit
-        ).catch((err) => console.error("Error filtering companies:", err));
-      } else if (searchTerm.length === 0) {
-        // Fetch all if search cleared
-        filterCompanies("", statusFilter, sortBy, "68c1503077fd742fa21575df");
-      }
-    }, 500);
+useEffect(() => {
+  console.log("Effect running with currentPage:", currentPage);
+  
+  const handler = setTimeout(() => {
+    if (searchTerm.length >= 3 || searchTerm.length === 0) {
+      filterCompanies(
+        searchTerm,
+        statusFilter,
+        sortBy,
+        "68c1503077fd742fa21575df",
+        currentPage,  // ✅ Use currentPage from local state
+        limit
+      ).catch((err) => console.error("Error filtering companies:", err));
+    }
+  }, 500);
 
-    return () => clearTimeout(handler);
-  }, [searchTerm, statusFilter, sortBy, pagination.page, pagination.limit]);
+  return () => clearTimeout(handler);
+}, [searchTerm, statusFilter, sortBy, currentPage, limit]); // ✅ Watch currentPage, not pagination.page
 
   const stats = useMemo(
     () => ({
@@ -994,11 +998,11 @@ const CompanyPage: React.FC = () => {
     const res = await api.downloadCompanyPDF();
     console.log(res, "pdfresss");
   };
-  useEffect(() => {
-    return () => {
-      initialLoading();
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     initialLoading();
+  //   };
+  // }, []);
   return (
     <>
       <div className="custom-container">

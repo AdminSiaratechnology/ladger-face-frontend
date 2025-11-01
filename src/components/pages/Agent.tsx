@@ -784,7 +784,7 @@ const AgentRegistrationPage: React.FC = () => {
         toast.success("Agent updated successfully");
       } else {
         await addAgent(agentFormData);
-        fetchAgents();
+        fetchAgents(currentPage, limit, defaultSelected?._id);
         toast.success("Agent added successfully");
         setCurrentPage(1);
       }

@@ -686,7 +686,7 @@ const CustomerRegistrationPage: React.FC = () => {
     deleteCustomer(id);
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async(): Promise<void> => {
     console.log(formData);
 
     if (!formData.customerName.trim()) {
@@ -756,8 +756,8 @@ const CustomerRegistrationPage: React.FC = () => {
         customer: customerFormData,
       });
     } else {
-      addCustomer(customerFormData);
-      fetchCustomers();
+      await addCustomer(customerFormData);
+      await fetchCustomers(currentPage, limit, defaultSelected?._id);
     }
     setOpen(false);
     resetForm();

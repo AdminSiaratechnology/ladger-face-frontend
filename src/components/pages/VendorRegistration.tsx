@@ -685,7 +685,7 @@ const VendorRegistrationPage: React.FC = () => {
     deleteVendor(id);
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async():Promise<void> => {
     if (!formData.vendorName.trim()) {
       toast.error("Please enter Vendor Name");
       return;
@@ -750,8 +750,8 @@ const VendorRegistrationPage: React.FC = () => {
     if (editingVendor) {
       updateVendor({ id: editingVendor._id || "", vendor: vendorFormData });
     } else {
-      addVendor(vendorFormData);
-      fetchVendors();
+     await addVendor(vendorFormData);
+     await fetchVendors(currentPage, limit, defaultSelected?._id);
     }
     setOpen(false);
     resetForm();
