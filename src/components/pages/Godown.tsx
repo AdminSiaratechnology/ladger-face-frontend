@@ -284,7 +284,12 @@ const GodownRegistration: React.FC = () => {
       updateGodown(editingGodown._id || "", godownFormData);
     } else {
       addGodown(godownFormData);
-      fetchGodowns();
+      filterGodowns(   searchTerm,
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id);
       setOpen(false);
     }
     setOpen(false);
