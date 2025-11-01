@@ -214,8 +214,10 @@ const StockCategoryRegistration: React.FC = () => {
         stockCategoryId: editingStockCategory._id,
         data: formData,
       });
+      fetchStockCategory(currentPage, limit, defaultSelected?._id);
     } else {
       addStockCategory(formData);
+      fetchStockCategory(currentPage, limit, defaultSelected?._id);
     }
 
     resetForm();
