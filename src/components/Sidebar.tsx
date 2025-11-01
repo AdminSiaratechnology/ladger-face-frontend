@@ -95,7 +95,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     undefined
   );
   const [collapsed, setCollapsed] = useState(false); // 🔹 New: collapse state
-  const {companies} = useCompanyStore();
+  const {companies,defaultSelected} = useCompanyStore();
   // Detect active accordion on route change
   useEffect(() => {
     const activeAccordion = filteredMenuItems.find(
@@ -109,30 +109,37 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   }, [location.pathname]);
 
   // Check if company exists
-  useEffect(() => {
-    const checkCompanyExists = () => {
-      try {
-        const companysData = companies;
-        if (companysData) {
-          const companies = companysData;
-          setHasCompany(Array.isArray(companies) && companies.length > 0);
-        } else {
-          setHasCompany(false);
-        }
-      } catch (error) {
-        console.error("Error reading companies:", error);
+ useEffect(() => {
+  const checkCompanyExists = () => {
+    try {
+      const hasCompanies =
+        Array.isArray(companies) && companies.length > 0;
+      const hasDefaultSelected = Boolean(defaultSelected?._id);
+
+      if (hasCompanies || hasDefaultSelected) {
+        setHasCompany(true);
+      } else {
         setHasCompany(false);
       }
-    };
-    checkCompanyExists();
-    const handleStorageChange = () => checkCompanyExists();
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("companiesUpdated", handleStorageChange);
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("companiesUpdated", handleStorageChange);
-    };
-  }, []);
+    } catch (error) {
+      console.error("Error reading companies:", error);
+      setHasCompany(false);
+    }
+  };
+
+  checkCompanyExists();
+
+  const handleStorageChange = () => checkCompanyExists();
+
+  window.addEventListener("storage", handleStorageChange);
+  window.addEventListener("companiesUpdated", handleStorageChange);
+
+  return () => {
+    window.removeEventListener("storage", handleStorageChange);
+    window.removeEventListener("companiesUpdated", handleStorageChange);
+  };
+}, [companies, defaultSelected]);
+
   // Menu data
   const fullMenuItems: MenuItem[] = [
     {

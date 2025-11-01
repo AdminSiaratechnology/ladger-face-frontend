@@ -275,7 +275,14 @@ const UnitManagement: React.FC = () => {
       toast.success("Unit updated successfully");
     } else {
       addUnit(submitData);
-      fetchUnits();
+       filterUnits(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
       toast.success("Unit added successfully");
     }
     setOpen(false);
