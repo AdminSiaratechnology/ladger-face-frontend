@@ -197,7 +197,7 @@ const ProductPage: React.FC = () => {
   } = useProductStore();
   const { vendors } = useVendorStore();
   const [country] = useState<string>("india");
-const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toISOString().split("T")[0];
   const [formData, setFormData] = useState<ProductForm>({
     code: "",
     name: "",
@@ -751,10 +751,9 @@ const today = new Date().toISOString().split("T")[0];
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                   <div className="text-sm text-gray-900">
-  {product?.companyId?.namePrint || "—"}
-</div>
-
+                    <div className="text-sm text-gray-900">
+                      {product?.companyId?.namePrint || "—"}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
@@ -850,25 +849,25 @@ const today = new Date().toISOString().split("T")[0];
               <div className="flex items-center text-sm">
                 <Building2 className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                 <span className="text-gray-600">
-                  Company: {getCompanyName(product.companyId || "")}
+                  Company:  {product?.companyId?.namePrint || "—"}
                 </span>
               </div>
               <div className="flex items-center text-sm">
                 <Layers className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                 <span className="text-gray-600">
-                  Group: {getStockGroupName(product.stockGroup?.name)}
+                  Group: {getStockGroupName(product?.stockGroup?.name)}
                 </span>
               </div>
               <div className="flex items-center text-sm">
                 <Package className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                 <span className="text-gray-600">
-                  Category: {getCategoryName(product.stockCategory.name)}
+                  Category: {getCategoryName(product?.stockCategory?.name)}
                 </span>
               </div>
               <div className="flex items-center text-sm">
                 <Archive className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                 <span className="text-gray-600">
-                  Unit: {getUnitName(product.unit.name)}
+                  Unit: {getUnitName(product?.unit?.name)}
                 </span>
               </div>
               {product.minimumQuantity && product.minimumQuantity > 0 && (
@@ -1524,11 +1523,11 @@ const today = new Date().toISOString().split("T")[0];
                       </div>
                     )}
                     <DatePickerField
-                    label= "Tax Applicable Date"
-                    name="applicableDate"
-                    value={formData.taxConfiguration.applicableDate}
-                    onChange={handleTaxChange}
-                  />
+                      label="Tax Applicable Date"
+                      name="applicableDate"
+                      value={formData.taxConfiguration.applicableDate}
+                      onChange={handleTaxChange}
+                    />
                   </div>
                 )}
                 {!formData.taxConfiguration.applicable && (
