@@ -209,7 +209,7 @@ export const UserManagement: React.FC = () => {
     deleteUser,
     filterUsers,
     pagination,
-    initialLoading
+    initialLoading,
   } = useUserManagementStore();
 
   useEffect(() => {
@@ -706,7 +706,15 @@ export const UserManagement: React.FC = () => {
       console.log(res?.statusCode, "ressssssssssssss");
 
       if (res && res?.statusCode) {
-        await fetchUsers(currentPage, limit);
+        filterUsers(
+          "",
+          roleFilter,
+          statusFilter,
+          "dateDesc",
+          currentPage,
+          limit,
+          defaultSelected?._id
+        );
         toast.success(
           isEditing ? "User updated successfully" : "User added successfully"
         );
@@ -719,7 +727,7 @@ export const UserManagement: React.FC = () => {
       toast.error("Failed to save user. Please try again.");
     }
   };
-console.log("filteredUsers", filteredUsers)
+  console.log("filteredUsers", filteredUsers);
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setIsEditing(true);
@@ -853,12 +861,12 @@ console.log("filteredUsers", filteredUsers)
   };
 
   useEffect(() => {
-    if(searchTerm2.length >=3 ){
-    filterCompanies(searchTerm2, "active", "dateAsc");}
-    else if (companies.length > 10) {
+    if (searchTerm2.length >= 3) {
+      filterCompanies(searchTerm2, "active", "dateAsc");
+    } else if (companies.length > 10) {
       filterCompanies(searchTerm2, "active", "dateAsc");
     }
-  }, [ searchTerm2]);
+  }, [searchTerm2]);
 
   // ✅ Debounced search
   // useEffect(() => {
@@ -965,7 +973,7 @@ console.log("filteredUsers", filteredUsers)
       </div>
     </div>
   );
- useEffect(() => {
+  useEffect(() => {
     return () => {
       initialLoading();
     };
@@ -1248,8 +1256,9 @@ console.log("filteredUsers", filteredUsers)
                       <TableCell className="text-sm text-gray-600">
                         <div className="flex items-center">
                           <Calendar className="w-3 h-3 mr-1" />
-                          {!user.lastLogin || user.lastLogin === "Never" ? "Never"
-                            :timeAgo(user.lastLogin)}
+                          {!user.lastLogin || user.lastLogin === "Never"
+                            ? "Never"
+                            : timeAgo(user.lastLogin)}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
