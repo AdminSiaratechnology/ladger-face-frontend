@@ -96,15 +96,16 @@ const UnitManagement: React.FC = () => {
     pagination,
     loading,
     error,
+    initialLoading
   } = useUOMStore();
   const { companies, defaultSelected } = useCompanyStore();
 
   useEffect(() => {
     setFilteredUnits(units);
-  },[units])
-  useEffect(() => {
-    fetchUnits(currentPage, limit, defaultSelected?._id);
-  }, [fetchUnits, currentPage, defaultSelected]);
+  }, [units]);
+  // useEffect(() => {
+  //   fetchUnits(currentPage, limit, defaultSelected?._id);
+  // }, [fetchUnits, currentPage, defaultSelected]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -112,18 +113,43 @@ const UnitManagement: React.FC = () => {
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterUnits(searchTerm, statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
-        .then(setFilteredUnits)
-        .catch(console.error);
+      if (searchTerm.length >= 3) {
+        filterUnits(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+          .then(setFilteredUnits)
+          .catch(console.error);
+      } else if (searchTerm.length === 0) {
+        filterUnits(
+          "",
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        );
+      }
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [searchTerm, statusFilter, sortBy, currentPage, filterUnits, defaultSelected]);
-   useEffect(() => {
-     if (defaultSelected) {
-       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
-     }
-   }, [defaultSelected, companies]);
+  }, [
+    searchTerm,
+    statusFilter,
+    sortBy,
+    currentPage,
+    filterUnits,
+    defaultSelected,
+  ]);
+  useEffect(() => {
+    if (defaultSelected) {
+      setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
+    }
+  }, [defaultSelected, companies]);
   const [formData, setFormData] = useState<UnitForm>({
     name: "",
     type: "simple",
@@ -443,6 +469,11 @@ const UnitManagement: React.FC = () => {
       ))}
     </div>
   );
+ useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
 
   return (
     <div className="custom-container">
@@ -459,7 +490,7 @@ const UnitManagement: React.FC = () => {
           <Button
             onClick={() => {
               setOpen(true);
-               if (defaultSelected && companies.length > 0) {
+              if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
                   companyId: defaultSelected?._id,
@@ -749,13 +780,13 @@ const UnitManagement: React.FC = () => {
                 </select>
               </div>
               <div className="flex justify-end mt-6">
-                              <Button
-                                onClick={handleSubmit}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
-                              >
-                                {editingUnit ? "Update Unit" : "Save Unit"}
-                              </Button>
-                            </div>
+                <Button
+                  onClick={handleSubmit}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
+                >
+                  {editingUnit ? "Update Unit" : "Save Unit"}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>

@@ -202,6 +202,7 @@ interface VendorStore {
     page?: number,
     limit?: number
   ) => Promise<Vendor[]>;
+  initialLoading: () => void;
 }
 
 
@@ -215,7 +216,7 @@ export const useVendorStore = create<VendorStore>()(
         limit: 10,
         totalPages: 0
       },
-      loading: false,
+      loading: true,
       error: false,
       errorMessage: null,
 
@@ -343,6 +344,10 @@ export const useVendorStore = create<VendorStore>()(
           });
           return [];
         }
+      },
+
+      initialLoading: () => {
+        set({ loading: true });
       },
     }),
     {

@@ -34,6 +34,8 @@ interface useUserManagementStore {
     page?: number,
     limit?: number
   ) => Promise<any[]>;
+  initialLoading: () => void;
+  resetUserManagement: () => Promise<void>;
 }
 
 // Zustand store with persist
@@ -47,7 +49,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
         limit: 10,
         totalPages: 0,
       },
-      loading: false,
+      loading: true,
       error: null,
 
       fetchUsers: async (page = 1, limit = 10) => {
@@ -58,8 +60,9 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             page: page.toString(),
             limit: limit.toString(),
           });
-          const response = await api.fetchUsers({ queryParams: queryParams.toString() }
-          ); // Adjust api call if needed
+          const response = await api.fetchUsers({
+            queryParams: queryParams.toString(),
+          }); // Adjust api call if needed
           set({
             users: response.data?.[0]?.users || [],
             pagination: response.data?.pagination,
@@ -90,38 +93,33 @@ export const useUserManagementStore = create<useUserManagementStore>()(
           return error;
         }
       },
-     editUser: async (id, userData) => {
-  set({ loading: true });
+      editUser: async (id, userData) => {
+        set({ loading: true });
 
-  try {
-    const response = await api.updateUser(id, userData);
-    const updatedUser = response.data;
+        try {
+          const response = await api.updateUser(id, userData);
+          const updatedUser = response.data;
 
-    console.log(updatedUser, "updated user data");
+          console.log(updatedUser, "updated user data");
 
-let hii=get().users.map((u) =>{
+          let hii = get().users.map((u) => {
+            console.log(u._id, id, "u._id === id");
+            return u._id === id ? updatedUser : "jj";
+          });
+          console.log(hii, "hiiiiiiii");
 
-  console.log(u._id,id,"u._id === id" );
- return u._id === id ? updatedUser : "jj"
-}
-      )
-          console.log(hii,"hiiiiiiii")
-        
+          set({
+            users: get().users.map((u) => (u._id === id ? updatedUser : u)),
+            loading: false,
+          });
+          return response;
 
-    set({
-      users: get().users.map((u) =>
-        u._id === id ? updatedUser : u
-      ),
-      loading: false,
-    });
-    return response;
-
-    // toast.success("User updated successfully");
-  } catch (error: any) {
-    set({ error: error.message, loading: false });
-    toast.error("User update failed");
-  }
-},
+          // toast.success("User updated successfully");
+        } catch (error: any) {
+          set({ error: error.message, loading: false });
+          toast.error("User update failed");
+        }
+      },
 
       deleteUser: async (id) => {
         set({ loading: true });
@@ -155,10 +153,9 @@ let hii=get().users.map((u) =>{
             companyId: companyId?.toLocaleString(),
           });
 
-          const response = await api.fetchUsers(
-            { companyId },
-            { queryParams: queryParams.toString() }
-          ); // Adjust api call
+          const response = await api.fetchUsers({
+            queryParams: queryParams.toString(),
+          }); // Adjust api call
           set({
             users: response.data?.users || [],
             pagination: response.data?.pagination,
@@ -172,6 +169,20 @@ let hii=get().users.map((u) =>{
 
           return [];
         }
+      },
+      initialLoading: () => set({ loading: true }),
+      resetUserManagement: () => {
+        set({
+          users: [],
+          pagination: {
+            total: 0,
+            page: 1,
+            limit: 10,
+            totalPages: 0,
+          },
+          loading: false,
+          error: null,
+        });
       },
     }),
     {

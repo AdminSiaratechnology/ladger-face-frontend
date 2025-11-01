@@ -8,11 +8,11 @@ interface Unit {
   _id?: string;
   name: string;
   type: "simple" | "compound";
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   // Simple unit fields
   symbol?: string;
   decimalPlaces?: number;
-  UQC?:string,
+  UQC?: string;
   // Compound unit fields
   firstUnit?: string;
   conversion?: number;
@@ -34,18 +34,24 @@ interface UnitStore {
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
-  fetchUnits: (page?: number, limit?: number, companyId?:number | string) => Promise<void>;
+  fetchUnits: (
+    page?: number,
+    limit?: number,
+    companyId?: number | string
+  ) => Promise<void>;
   addUnit: (unit: Unit) => Promise<void>;
   updateUnit: (params: { unitId: string; data: Unit }) => Promise<void>;
   deleteUnit: (id: string) => Promise<void>;
   filterUnits: (
     searchTerm: string,
-    statusFilter: 'all' | 'active' | 'inactive',
-    sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
-    companyId?:number | string,
+    statusFilter: "all" | "active" | "inactive",
+    sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
+    companyId?: number | string,
     page?: number,
     limit?: number
   ) => Promise<Unit[]>;
+  initialLoading: () => void;
+  resetUnits: () => Promise<void>;
 }
 
 // ==== Store ====
@@ -57,9 +63,9 @@ export const useUOMStore = create<UnitStore>()(
         total: 0,
         page: 1,
         limit: 10,
-        totalPages: 0
+        totalPages: 0,
       },
-      loading: false,
+      loading: true,
       error: false,
       errorMessage: null,
 
@@ -72,8 +78,11 @@ export const useUOMStore = create<UnitStore>()(
             page: page.toString(),
             limit: limit.toString(),
           });
-          const id  = companyId?.toLocaleString();
-          const result = await api.fetchUOM({companyId:id}, { queryParams: queryParams.toString() }); // Adjust api call
+          const id = companyId?.toLocaleString();
+          const result = await api.fetchUOM(
+            { companyId: id },
+            { queryParams: queryParams.toString() }
+          ); // Adjust api call
           set({
             units: result?.data.units || [],
             pagination: result?.data.pagination,
@@ -111,16 +120,14 @@ export const useUOMStore = create<UnitStore>()(
       },
 
       // Update UOM
-      updateUnit: async ({unitId, data}) => {
+      updateUnit: async ({ unitId, data }) => {
         set({ loading: true, error: false });
-        console.log("dahsdsa",unitId,data)
+        console.log("dahsdsa", unitId, data);
         try {
-          const result = await api.updateUOM({unitId, data});
+          const result = await api.updateUOM({ unitId, data });
           const updatedUnit: Unit = result.data;
           set({
-            units: get().units.map((u) =>
-              u._id === unitId ? updatedUnit : u
-            ),
+            units: get().units.map((u) => (u._id === unitId ? updatedUnit : u)),
             loading: false,
           });
         } catch (error: any) {
@@ -154,8 +161,8 @@ export const useUOMStore = create<UnitStore>()(
 
       filterUnits: async (
         searchTerm: string,
-        statusFilter: 'all' | 'active' | 'inactive',
-        sortBy: 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc',
+        statusFilter: "all" | "active" | "inactive",
+        sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
         page = 1,
         limit = 10,
         companyId
@@ -165,14 +172,17 @@ export const useUOMStore = create<UnitStore>()(
 
           const queryParams = new URLSearchParams({
             search: searchTerm,
-            status: statusFilter !== 'all' ? statusFilter : '',
-            sortBy: sortBy.includes('name') ? 'name' : 'createdAt',
-            sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
+            status: statusFilter !== "all" ? statusFilter : "",
+            sortBy: sortBy.includes("name") ? "name" : "createdAt",
+            sortOrder: sortBy.includes("Desc") ? "desc" : "asc",
             page: page.toString(),
             limit: limit.toString(),
           });
 
-          const result = await api.fetchUOM({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
+          const result = await api.fetchUOM(
+            { companyId },
+            { queryParams: queryParams.toString() }
+          ); // Adjust api call
           console.log("Filter result for units:", result);
 
           set({
@@ -192,11 +202,29 @@ export const useUOMStore = create<UnitStore>()(
           return [];
         }
       },
+
+      initialLoading: () => {
+        set({ loading: true, error: false });
+      },
+      resetUnits: () => {
+        set({
+          units: [],
+          pagination: {
+            total: 0,
+            page: 1,
+            limit: 10,
+            totalPages: 0,
+          },
+          loading: false,
+          error: false,
+          errorMessage: null,
+        });
+      },
     }),
     {
       name: "uom-storage", // storage key
       // getStorage: () => localStorage, // default localStorage
-       storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         units: state.units, // sirf units persist honge
       }),

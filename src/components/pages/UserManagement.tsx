@@ -170,11 +170,12 @@ export const UserManagement: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("basic");
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm2, setSearchTerm2] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "inactive"
   >("all");
-    const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -196,7 +197,7 @@ export const UserManagement: React.FC = () => {
   const [selectedTemplates, setSelectedTemplates] = useState<{
     [companyId: string]: string;
   }>({});
-  
+
   const { defaultSelected, companies, filterCompanies } = useCompanyStore();
   const {
     addUser,
@@ -208,15 +209,16 @@ export const UserManagement: React.FC = () => {
     deleteUser,
     filterUsers,
     pagination,
+    initialLoading
   } = useUserManagementStore();
 
   useEffect(() => {
     setFilteredUsers(users);
   }, [users]);
   // Initial fetch
-  useEffect(() => {
-    fetchUsers(currentPage, limit);
-  }, [fetchUsers, currentPage]);
+  // useEffect(() => {
+  //   fetchUsers(currentPage, limit);
+  // }, [fetchUsers, currentPage]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -226,22 +228,34 @@ export const UserManagement: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      filterUsers(
-        searchTerm,
-        roleFilter,
-        statusFilter,
-        "nameAsc",
-        currentPage,
-        limit,
-        defaultSelected?._id
-      )
-        .then((result) => {
-          setFilteredUsers(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering users:", err);
-          toast.error("Failed to filter users");
-        });
+      if (searchTerm.length >= 3) {
+        filterUsers(
+          searchTerm,
+          roleFilter,
+          statusFilter,
+          "nameAsc",
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+          .then((result) => {
+            setFilteredUsers(result);
+          })
+          .catch((err) => {
+            console.error("Error filtering users:", err);
+            toast.error("Failed to filter users");
+          });
+      } else if (searchTerm.length === 0) {
+        filterUsers(
+          "",
+          roleFilter,
+          statusFilter,
+          "dateDesc",
+          currentPage,
+          limit,
+          defaultSelected?._id
+        );
+      }
     }, 500); // 500ms debounce time
 
     return () => {
@@ -647,63 +661,63 @@ export const UserManagement: React.FC = () => {
     });
   };
 
-const handleSubmit = async (): Promise<void> => {
-  console.log("Form data:", form);
+  const handleSubmit = async (): Promise<void> => {
+    console.log("Form data:", form);
 
-  // --- Validation ---
-  if (!form.name.trim()) {
-    toast.error("Please enter a name");
-    return;
-  }
-  if (!form.email.trim()) {
-    toast.error("Please enter an email address");
-    return;
-  }
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(form.email)) {
-    toast.error("Please enter a valid email address");
-    return;
-  }
-  if (!isEditing && !form.password.trim()) {
-    toast.error("Please enter a password");
-    return;
-  }
+    // --- Validation ---
+    if (!form.name.trim()) {
+      toast.error("Please enter a name");
+      return;
+    }
+    if (!form.email.trim()) {
+      toast.error("Please enter an email address");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    if (!isEditing && !form.password.trim()) {
+      toast.error("Please enter a password");
+      return;
+    }
 
-  // --- Prepare data ---
-  const userData: User = {
-    ...form,
-    id: editingUser?._id || Date.now().toString(),
-    status: form?.status || "active",
-    lastLogin: editingUser?.lastLogin || null,
-    createdAt: editingUser?.createdAt || new Date().toISOString(),
-    createdBy: form.createdBy || "current_user_id", // Replace with actual user ID
-    parent: form.parent || "",
-    clientID: form.clientID || "",
-    company: form.company || "",
+    // --- Prepare data ---
+    const userData: User = {
+      ...form,
+      id: editingUser?._id || Date.now().toString(),
+      status: form?.status || "active",
+      lastLogin: editingUser?.lastLogin || null,
+      createdAt: editingUser?.createdAt || new Date().toISOString(),
+      createdBy: form.createdBy || "current_user_id", // Replace with actual user ID
+      parent: form.parent || "",
+      clientID: form.clientID || "",
+      company: form.company || "",
+    };
+    try {
+      let res;
+      if (isEditing && editingUser) {
+        res = await editUser(editingUser._id || "", userData);
+      } else {
+        res = await addUser(userData);
+      }
+      console.log(res);
+      console.log(res?.statusCode, "ressssssssssssss");
+
+      if (res && res?.statusCode) {
+        toast.success(
+          isEditing ? "User updated successfully" : "User added successfully"
+        );
+        resetForm();
+        setOpen(false);
+        setActiveTab("basic");
+      }
+    } catch (error) {
+      console.error("Error submitting user:", error);
+      toast.error("Failed to save user. Please try again.");
+    }
   };
-  try {
-    let res;
-    if (isEditing && editingUser) {
-      res = await editUser(editingUser._id || "", userData);
-    } else {
-      res = await addUser(userData);
-    }
-    console.log(res)
-    console.log(res?.statusCode,"ressssssssssssss")
-
-    if (res && res?.statusCode) {
-      toast.success(isEditing ? "User updated successfully" : "User added successfully");
-      resetForm();
-      setOpen(false);
-      setActiveTab("basic"); 
-    }
-
-  } catch (error) {
-    console.error("Error submitting user:", error);
-    toast.error("Failed to save user. Please try again.");
-  }
-};
-
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
@@ -838,22 +852,24 @@ const handleSubmit = async (): Promise<void> => {
   };
 
   useEffect(() => {
-    filterCompanies("", "active", "nameAsc", "68c1503077fd742fa21575df");
-  }, [filterCompanies]);
+    if(searchTerm2.length >=3 ){
+    filterCompanies(searchTerm2, "active", "dateAsc");}
+    else if (companies.length > 10) {
+      filterCompanies(searchTerm2, "active", "dateAsc");
+    }
+  }, [ searchTerm2]);
 
   // ✅ Debounced search
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      filterCompanies(
-        searchTerm,
-        "active",
-        "nameAsc",
-        "68c1503077fd742fa21575df"
-      );
-    }, 400);
+  // useEffect(() => {
+  //   const handler = setTimeout(() => {
+  //     filterCompanies(
+  //       searchTerm2,
+  //       "active",
+  //       "dateDesc"      );
+  //   }, 400);
 
-    return () => clearTimeout(handler);
-  }, [searchTerm]);
+  //   return () => clearTimeout(handler);
+  // }, [searchTerm2]);
 
   // ✅ Handle toggle for selecting/unselecting companies
   const toggleCompanySelection = (companyId: string) => {
@@ -947,7 +963,11 @@ const handleSubmit = async (): Promise<void> => {
       </div>
     </div>
   );
-
+ useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
   return (
     <div className="custom-container ">
       {/* Header */}
@@ -1361,22 +1381,22 @@ const handleSubmit = async (): Promise<void> => {
                     placeholder="e.g., 400001"
                   />
                 </div>
-                  <div className="flex flex-col w-1/2 gap-1 mt-4">
-                      <label className="text-sm font-semibold text-gray-700">
-                        Status
-                      </label>
-                      <select
-                        value={form.status}
-                        onChange={(e) =>{
-                          console.log(e.target.value)
-                          handleSelectChange("status", e.target.value)
-                        }}
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                      >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                      </select>
-                    </div>
+                <div className="flex flex-col w-1/2 gap-1 mt-4">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Status
+                  </label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => {
+                      console.log(e.target.value);
+                      handleSelectChange("status", e.target.value);
+                    }}
+                    className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
 
                 {/* Role Selection */}
                 <div className="mb-4 mt-4">
@@ -1446,13 +1466,12 @@ const handleSubmit = async (): Promise<void> => {
                     <Input
                       placeholder="Search company..."
                       className="pl-9"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      value={searchTerm2}
+                      onChange={(e) => setSearchTerm2(e.target.value)}
                       onFocus={() => setShowDropdown(true)}
                     />
                   </div>
 
-                  {/* Compact chips above tabs */}
                   {selectedCompanies.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-2 p-2 bg-gray-50 rounded-lg">
                       <span className="text-xs text-gray-500 font-medium mr-2 self-center">
