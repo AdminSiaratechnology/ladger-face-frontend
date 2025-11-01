@@ -57,7 +57,7 @@ interface StockGroupForm {
   status: "active" | "inactive";
   stockGroupId: string;
   companyId: string;
-  parent: string;
+  parent: string | null;
 }
 
 const StockGroupRegistration: React.FC = () => {
@@ -149,7 +149,7 @@ const StockGroupRegistration: React.FC = () => {
     status: "active",
     stockGroupId: "",
     companyId: "",
-    parent: "",
+    parent: null,
   });
   useEffect(() => {
     if (defaultSelected) {
@@ -184,7 +184,7 @@ const StockGroupRegistration: React.FC = () => {
       status: "active",
       stockGroupId: "",
       companyId: "",
-      parent: "",
+      parent: null,
     });
     setEditingStockGroup(null);
     setActiveTab("basic");
@@ -198,7 +198,7 @@ const StockGroupRegistration: React.FC = () => {
       status: stockGroup.status,
       stockGroupId: stockGroup.stockGroupId || "",
       companyId: stockGroup.companyId || "",
-      parent: stockGroup.parent || "",
+      parent: stockGroup.parent || null,
     });
     setOpen(true);
   };
@@ -215,7 +215,7 @@ const StockGroupRegistration: React.FC = () => {
     if (editingStockGroup) {
       updateStockGroup(editingStockGroup._id, formData);
     } else {
-      addStockGroup(formData);
+     await addStockGroup(formData);
       await fetchStockGroup(1,10, defaultSelected?._id);
     }
     resetForm();

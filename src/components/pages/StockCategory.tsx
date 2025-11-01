@@ -203,7 +203,7 @@ const StockCategoryRegistration: React.FC = () => {
     deleteStockCategory(stockCategoryId);
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async(): Promise<void> => {
     if (!formData.name.trim()) {
       toast.error("Please enter Stock Category Name");
       return;
@@ -216,7 +216,7 @@ const StockCategoryRegistration: React.FC = () => {
       });
       fetchStockCategory(currentPage, limit, defaultSelected?._id);
     } else {
-      addStockCategory(formData);
+      await addStockCategory(formData);
       fetchStockCategory(currentPage, limit, defaultSelected?._id);
     }
 

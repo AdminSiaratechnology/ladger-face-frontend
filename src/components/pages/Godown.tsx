@@ -262,7 +262,7 @@ const GodownRegistration: React.FC = () => {
     deleteGodown(godownId);
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async(): Promise<void> => {
     if (!formData.code.trim()) {
       toast.error("Please enter Godown Code");
       return;
@@ -283,13 +283,8 @@ const GodownRegistration: React.FC = () => {
     if (editingGodown) {
       updateGodown(editingGodown._id || "", godownFormData);
     } else {
-      addGodown(godownFormData);
-      filterGodowns(   searchTerm,
-          statusFilter,
-          sortBy,
-          currentPage,
-          limit,
-          defaultSelected?._id);
+     await addGodown(godownFormData);
+      fetchGodowns(currentPage, limit, defaultSelected?._id);
       setOpen(false);
     }
     setOpen(false);
