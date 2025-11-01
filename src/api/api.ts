@@ -84,8 +84,13 @@ const updateCompany = async (companyId: string, companyData: any) => {
   }
 }
 const deleteCompany = async (companyId: string) => {
-  const res = await apiClient.delete(`/company/delete/${companyId}`);
+  try {
+      const res = await apiClient.delete(`/company/delete/${companyId}`);
   return res.data;
+  } catch (error) {
+    throw error
+  }
+
 }
 // const getCompanyPDF = async () => {
 //   const res = await apiClient.get(`/company/agent/documentation-pdf`);
