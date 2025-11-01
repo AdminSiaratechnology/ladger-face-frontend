@@ -517,7 +517,7 @@ const today = new Date().toISOString().split("T")[0];
       defaultSupplier: product.defaultSupplier || "",
       minimumRate: product.minimumRate || 0,
       maximumRate: product.maximumRate || 0,
-      companyId: product.companyId || "",
+      companyId: product.companyId?._id || "",
       defaultGodown: product.defaultGodown || "",
       productType: product.productType || "",
       taxConfiguration: product.taxConfiguration || {
@@ -751,9 +751,10 @@ const today = new Date().toISOString().split("T")[0];
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {getCompanyName(product?.companyId || "")}
-                    </div>
+                   <div className="text-sm text-gray-900">
+  {product?.companyId?.namePrint || "—"}
+</div>
+
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">

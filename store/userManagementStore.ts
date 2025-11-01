@@ -64,7 +64,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             queryParams: queryParams.toString(),
           }); // Adjust api call if needed
           set({
-            users: response.data?.[0]?.users || [],
+            users: response.data?.users || [],
             pagination: response.data?.pagination,
             loading: false,
           });

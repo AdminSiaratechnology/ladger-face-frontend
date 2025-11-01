@@ -706,6 +706,7 @@ export const UserManagement: React.FC = () => {
       console.log(res?.statusCode, "ressssssssssssss");
 
       if (res && res?.statusCode) {
+        await fetchUsers(currentPage, limit);
         toast.success(
           isEditing ? "User updated successfully" : "User added successfully"
         );
@@ -718,7 +719,7 @@ export const UserManagement: React.FC = () => {
       toast.error("Failed to save user. Please try again.");
     }
   };
-
+console.log("filteredUsers", filteredUsers)
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setIsEditing(true);
@@ -921,6 +922,7 @@ export const UserManagement: React.FC = () => {
   const handleCloseModal = () => {
     setSelectedCompanies([]);
     setSelectedCompanyData([]);
+    setSelectedTemplates([]);
     resetForm();
     setOpen(false);
     setActiveTab("basic");
@@ -1246,9 +1248,8 @@ export const UserManagement: React.FC = () => {
                       <TableCell className="text-sm text-gray-600">
                         <div className="flex items-center">
                           <Calendar className="w-3 h-3 mr-1" />
-                          {user.lastLogin !== "Never"
-                            ? timeAgo(user.lastLogin)
-                            : user.lastLogin}
+                          {!user.lastLogin || user.lastLogin === "Never" ? "Never"
+                            :timeAgo(user.lastLogin)}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
