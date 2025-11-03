@@ -53,7 +53,8 @@ import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
-
+import { useAgentStore } from "../../../store/agentStore";
+import UniversalDetailsModal from "../customComponents/UniversalDetailsModal";
 // Interfaces (adapted from provided Customer interface)
 interface Bank {
   id: number;
@@ -269,7 +270,14 @@ const CustomerRegistrationPage: React.FC = () => {
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { agents } = useAgentStore();
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const handleViewCustomer = (customer: any) => {
+    setSelectedCustomer(customer);
+    setIsModalOpen(true);
+  };
   const limit = 10; // Fixed limit per page
   console.log(filteredCustomers, "dsdhhkfh");
   const {
@@ -282,7 +290,7 @@ const CustomerRegistrationPage: React.FC = () => {
     pagination,
     loading,
     error,
-    initialLoading
+    initialLoading,
   } = useCustomerStore(); // Assuming store exists
   const { defaultSelected, companies } = useCompanyStore();
   console.log(defaultSelected);
@@ -463,7 +471,7 @@ const CustomerRegistrationPage: React.FC = () => {
     }));
   };
 
-  const addBank = (): void => {
+  const addOrUpdateBank = (): void => {
     if (
       !bankForm.accountHolderName ||
       !bankForm.accountNumber ||
@@ -475,11 +483,25 @@ const CustomerRegistrationPage: React.FC = () => {
       return;
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      banks: [...prev.banks, { ...bankForm, id: Date.now() }],
-    }));
+    if (editingBankId !== null) {
+      // Update existing bank
+      setFormData((prev) => ({
+        ...prev,
+        banks: prev.banks.map((bank) =>
+          bank.id === editingBankId ? { ...bankForm, id: editingBankId } : bank
+        ),
+      }));
+      toast.success("Bank updated successfully");
+    } else {
+      // Add new bank
+      setFormData((prev) => ({
+        ...prev,
+        banks: [...prev.banks, { ...bankForm, id: Date.now() }],
+      }));
+      toast.success("Bank added successfully");
+    }
 
+    // Reset form
     setBankForm({
       id: Date.now(),
       accountHolderName: "",
@@ -490,6 +512,7 @@ const CustomerRegistrationPage: React.FC = () => {
       bankName: "",
       branch: "",
     });
+    setEditingBankId(null);
   };
   const editBank = (bank: Bank): void => {
     setBankForm(bank);
@@ -500,6 +523,20 @@ const CustomerRegistrationPage: React.FC = () => {
       ...prev,
       banks: prev.banks.filter((bank) => bank.id !== id),
     }));
+    if (editingBankId === id) {
+      setEditingBankId(null);
+      // Reset bankForm if editing the removed one
+      setBankForm({
+        id: Date.now(),
+        accountHolderName: "",
+        accountNumber: "",
+        ifscCode: "",
+        swiftCode: "",
+        micrNumber: "",
+        bankName: "",
+        branch: "",
+      });
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -667,6 +704,17 @@ const CustomerRegistrationPage: React.FC = () => {
     });
     setEditingCustomer(null);
     setActiveTab("basic");
+    setEditingBankId(null);
+    setBankForm({
+      id: Date.now(),
+      accountHolderName: "",
+      accountNumber: "",
+      ifscCode: "",
+      swiftCode: "",
+      micrNumber: "",
+      bankName: "",
+      branch: "",
+    });
   };
 
   const handleEditCustomer = (customer: Customer): void => {
@@ -686,7 +734,7 @@ const CustomerRegistrationPage: React.FC = () => {
     deleteCustomer(id);
   };
 
-  const handleSubmit = async(): Promise<void> => {
+  const handleSubmit = async (): Promise<void> => {
     console.log(formData);
 
     if (!formData.customerName.trim()) {
@@ -903,8 +951,8 @@ const CustomerRegistrationPage: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {/* <ActionsDropdown customer={customer} /> */}
                   <ActionsDropdown
+                    onView={() => handleViewCustomer(customer)}
                     onEdit={() => handleEditCustomer(customer)}
                     onDelete={() => handleDeleteCustomer(customer._id || "")}
                     module="BusinessManagement"
@@ -959,13 +1007,13 @@ const CustomerRegistrationPage: React.FC = () => {
                 >
                   {customer.status}
                 </Badge>
-                {/* <ActionsDropdown customer={customer} /> */}
-                <ActionsDropdown
-                  onEdit={() => handleEditCustomer(customer)}
-                  onDelete={() => handleDeleteCustomer(customer._id || "")}
-                  module="BusinessManagement"
-                  subModule="CustomerRegistration"
-                />
+              <ActionsDropdown
+                    onView={() => handleViewCustomer(customer)}
+                    onEdit={() => handleEditCustomer(customer)}
+                    onDelete={() => handleDeleteCustomer(customer._id || "")}
+                    module="BusinessManagement"
+                    subModule="CustomerRegistration"
+                  />
               </div>
             </div>
           </CardHeader>
@@ -1108,7 +1156,7 @@ const CustomerRegistrationPage: React.FC = () => {
       setCurrentPage(1);
     }}
   />;
- useEffect(() => {
+  useEffect(() => {
     return () => {
       initialLoading();
     };
@@ -1687,13 +1735,6 @@ const CustomerRegistrationPage: React.FC = () => {
 
             {activeTab === "financialSettings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<CreditCard className="w-4 h-4 text-white" />}
-        title="Financial Settings"
-        gradientFrom="from-blue-400"
-        gradientTo="to-blue-500"
-      />   */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1781,9 +1822,11 @@ const CustomerRegistrationPage: React.FC = () => {
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Agent</option>
-                      <option value="sales">Sales Department</option>
-                      <option value="marketing">Marketing Department</option>
-                      <option value="operations">Operations</option>
+                      {agents.map((agent) => (
+                        <option key={agent} value={agent._id}>
+                          {agent.agentName}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -1946,10 +1989,11 @@ const CustomerRegistrationPage: React.FC = () => {
                     onChange={handleBankChange}
                   />
                   <Button
-                    onClick={addBank}
+                    onClick={addOrUpdateBank}
                     className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
                   >
-                    <Plus className="w-5 h-5 mr-2" /> Add Bank
+                    <Plus className="w-5 h-5 mr-2" />
+                    {editingBankId !== null ? "Update Bank" : "Add Bank"}
                   </Button>
                 </div>
 
@@ -2294,6 +2338,12 @@ const CustomerRegistrationPage: React.FC = () => {
       <ImagePreviewDialog
         viewingImage={viewingImage}
         onClose={() => setViewingImage(null)}
+      />
+      <UniversalDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedCustomer}
+        type="customer"
       />
     </div>
   );

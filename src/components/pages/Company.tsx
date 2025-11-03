@@ -49,7 +49,8 @@ import type { Value } from "@radix-ui/react-select";
 import { SwitchThumb } from "@radix-ui/react-switch";
 import CompanySelectorModal from "../customComponents/CompanySelectorModal";
 import { DatePickerField } from "../customComponents/DatePickerField";
-
+import UniversalCompanyDetailsModal from "../customComponents/UniversalCompanyDetailsModal";
+import imageCompression from "browser-image-compression";
 // Bank interface (unchanged)
 interface Bank {
   id: number;
@@ -154,6 +155,14 @@ const stepIcons = {
   settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />,
 };
 
+// Compression options - adjust as needed (e.g., maxSizeMB: 0.5 for ~500KB limit)_
+const compressionOptions = {
+  maxSizeMB: 1, // Max file size after compression_
+  maxWidthOrHeight: 1920, // Max dimension_
+  useWebWorker: true, // Use web worker for non-blocking_
+  initialQuality: 0.8, // Start with 80% quality_
+};
+
 const CompanyPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
@@ -238,7 +247,13 @@ const CompanyPage: React.FC = () => {
     closingQuantityOrder: false,
     negativeOrder: false,
   });
+  const [selectedCompany, setSelectedCompany] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const handleViewCompany = (company: any) => {
+    setSelectedCompany(company);
+    setIsModalOpen(true);
+  };
   console.log(formData, "jdhhhhhhhhhhh");
 
   const allCountries = useMemo(() => Country.getAllCountries(), []);
@@ -418,15 +433,44 @@ const CompanyPage: React.FC = () => {
     }
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  // Updated logo upload with compression (async)_
+  const handleLogoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
     const file = e.target.files?.[0];
     if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setFormData((prev) => ({
-        ...prev,
-        logoFile: file,
-        logoPreviewUrl: previewUrl,
-      }));
+      // Skip compression for non-images (e.g., PDFs, but logo is image-only)_
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file for the logo.");
+        return;
+      }
+
+      try {
+        toast.info("Compressing image...");
+        console.log("Compressing image...");
+        const compressedFile = await imageCompression(file, compressionOptions);
+        const previewUrl = URL.createObjectURL(compressedFile);
+        setFormData((prev) => ({
+          ...prev,
+          logoFile: compressedFile,
+          logoPreviewUrl: previewUrl,
+        }));
+        toast.success(
+          `Logo compressed from ${Math.round(
+            file.size / 1024
+          )}KB to ${Math.round(compressedFile.size / 1024)}KB`
+        );
+        console.log("hiiiiiiiiiiiiii");
+      } catch (error) {
+        console.error("Compression failed:", error);
+        toast.error("Failed to compress image. Using original file.");
+        const previewUrl = URL.createObjectURL(file);
+        setFormData((prev) => ({
+          ...prev,
+          logoFile: file,
+          logoPreviewUrl: previewUrl,
+        }));
+      }
     }
   };
 
@@ -444,20 +488,40 @@ const CompanyPage: React.FC = () => {
     }));
   };
 
-  const handleDocumentUpload = (
+  // Updated document upload with compression (async)_
+  const handleDocumentUpload = async (
     type: string,
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0];
     if (file) {
-      const previewUrl = URL.createObjectURL(file);
+      // Compress only if it's an image; skip for PDFs_
+      let processedFile = file;
+      let isImage = file.type.startsWith("image/");
+
+      if (isImage) {
+        try {
+          toast.info(`Compressing ${type} image...`);
+          processedFile = await imageCompression(file, compressionOptions);
+          toast.success(
+            `${type} compressed from ${Math.round(
+              file.size / 1024
+            )}KB to ${Math.round(processedFile.size / 1024)}KB`
+          );
+        } catch (error) {
+          console.error("Compression failed:", error);
+          toast.error(`Failed to compress ${type} image. Using original.`);
+        }
+      }
+
+      const previewUrl = URL.createObjectURL(processedFile);
 
       const newDoc: RegistrationDocument = {
         id: Date.now(),
         type,
-        file,
+        file: processedFile,
         previewUrl,
-        fileName: file.name,
+        fileName: processedFile.name,
       };
 
       setFormData((prev) => ({
@@ -469,7 +533,6 @@ const CompanyPage: React.FC = () => {
       }));
     }
   };
-
   const removeDocument = (id: number) => {
     const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
     if (
@@ -579,14 +642,14 @@ const CompanyPage: React.FC = () => {
     setOpen(true);
   };
 
-const handleDeleteCompany = async(id: string): void => {
-try {
-await deleteCompany(id);
-} catch (error:any) {
-console.error(error,"wrrorwhiledelete")
-toast.error(error?.response?.data?.error||"Failed to perform action");
-}
-};
+  const handleDeleteCompany = async (id: string): void => {
+    try {
+      await deleteCompany(id);
+    } catch (error: any) {
+      console.error(error, "wrrorwhiledelete");
+      toast.error(error?.response?.data?.error || "Failed to perform action");
+    }
+  };
 
   const handleSubmit = async (): Promise<void> => {
     console.log("first");
@@ -672,24 +735,24 @@ toast.error(error?.response?.data?.error||"Failed to perform action");
     }
   };
 
-useEffect(() => {
-  console.log("Effect running with currentPage:", currentPage);
-  
-  const handler = setTimeout(() => {
-    if (searchTerm.length >= 3 || searchTerm.length === 0) {
-      filterCompanies(
-        searchTerm,
-        statusFilter,
-        sortBy,
-        "68c1503077fd742fa21575df",
-        currentPage,  // ✅ Use currentPage from local state
-        limit
-      ).catch((err) => console.error("Error filtering companies:", err));
-    }
-  }, 500);
+  useEffect(() => {
+    console.log("Effect running with currentPage:", currentPage);
 
-  return () => clearTimeout(handler);
-}, [searchTerm, statusFilter, sortBy, currentPage, limit]); // ✅ Watch currentPage, not pagination.page
+    const handler = setTimeout(() => {
+      if (searchTerm.length >= 3 || searchTerm.length === 0) {
+        filterCompanies(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          "68c1503077fd742fa21575df",
+          currentPage, // ✅ Use currentPage from local state
+          limit
+        ).catch((err) => console.error("Error filtering companies:", err));
+      }
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm, statusFilter, sortBy, currentPage, limit]); // ✅ Watch currentPage, not pagination.page
 
   const stats = useMemo(
     () => ({
@@ -819,6 +882,7 @@ useEffect(() => {
                 </td>
                 <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-right z-10">
                   <ActionsDropdown
+                    onView={() => handleViewCompany(company)}
                     onEdit={() => handleEditCompany(company)}
                     onDelete={() => handleDeleteCompany(company._id || "")}
                     module="BusinessManagement"
@@ -1540,6 +1604,7 @@ useEffect(() => {
                       name="accountHolderName"
                       value={bankForm.accountHolderName}
                       onChange={handleBankChange}
+                      required
                     />
                     <CustomInputBox
                       label="Account Number"
@@ -1547,6 +1612,7 @@ useEffect(() => {
                       name="accountNumber"
                       value={bankForm.accountNumber}
                       onChange={handleBankChange}
+                      required
                     />
                     <CustomInputBox
                       label="IFSC Code"
@@ -1554,6 +1620,7 @@ useEffect(() => {
                       name="ifscCode"
                       value={bankForm.ifscCode}
                       onChange={handleBankChange}
+                      required
                     />
                     <CustomInputBox
                       label="SWIFT Code"
@@ -1575,6 +1642,7 @@ useEffect(() => {
                       name="bankName"
                       value={bankForm.bankName}
                       onChange={handleBankChange}
+                      required
                     />
                     <CustomInputBox
                       label="Branch"
@@ -1853,7 +1921,7 @@ useEffect(() => {
                       onChange={handleChange}
                     />
 
-                     <DatePickerField
+                    <DatePickerField
                       label="Financial Date"
                       name="financialDate"
                       value={formData.financialDate}
@@ -1950,6 +2018,11 @@ useEffect(() => {
           }}
         />
       )}
+      <UniversalCompanyDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedCompany}
+      />
     </>
   );
 };

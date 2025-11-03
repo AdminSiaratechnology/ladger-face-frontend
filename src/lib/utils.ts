@@ -1,38 +1,36 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 interface CheckPermission {
-  user?:any,
-  module?:string,
-  subModule?:string,
-  type?:string
+  user?: any;
+  companyId?: string; // 👈 added this
+  module?: string;
+  subModule?: string;
+  type?: string;
 }
-
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function checkPermission({ user, companyId, module, subModule, type }: CheckPermission) {
+  if (!user) return false;
+// console.log(user, companyId, module, subModule, type )
+  // 🔓 If user has global/all permissions
+  if (user.allPermissions) return true;
 
-// Utility function to check permissions
-export function checkPermission({user, module, subModule,type}:CheckPermission) {
-  // console.log(user,module,subModule,type,"user,module,subModule,type")
-  // If user has all permissions, allow access
-  if (user.allPermissions) {
-    return true;
-  }
+  // 🧱 Validate access array
+  if (!user.access || user.access.length === 0) return false;
 
-  // Check if user has access array and it's not empty
-  if (!user.access || user.access.length === 0) {
-    return false;
-  }
+  // 🔍 Find access for the selected company
+  const companyAccess = companyId
+    ? user.access.find((a: any) => a.company === companyId)
+    : user.access[0]; // fallback if no companyId provided
 
-  // Check permissions in the access array
-  for (const accessItem of user.access) {
-    const modules = accessItem.modules;
-    
-    if (modules && modules[module] && modules[module][subModule]) {
-      return modules[module][subModule]?.[type] === true;
-    }
-  }
+  if (!companyAccess || !companyAccess.modules) return false;
 
-  return false;
+  const moduleAccess = companyAccess.modules[module];
+  const subModuleAccess = moduleAccess?.[subModule];
+  if (!subModuleAccess) return false;
+
+  // ✅ Check permission type (create/read/update/delete)
+  return subModuleAccess[type] === true;
 }

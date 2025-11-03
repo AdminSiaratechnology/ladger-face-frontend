@@ -56,6 +56,8 @@ import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
+import { useAgentStore } from "../../../store/agentStore";
+import UniversalDetailsModal from "../customComponents/UniversalDetailsModal";
 
 const stepIcons = {
   basic: <Users className="w-2 h-2 md:w-5 md:h-5 " />,
@@ -249,6 +251,7 @@ const VendorRegistrationPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [activeTab, setActiveTab] = useState<string>("basic");
+  const [editingBankId, setEditingBankId] = useState<number | null>(null);
   const [bankForm, setBankForm] = useState<Bank>({
     id: Date.now(),
     accountHolderName: "",
@@ -272,8 +275,15 @@ const VendorRegistrationPage: React.FC = () => {
   const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
+  const [selectedVendor, setSelectedVendor] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { agents } = useAgentStore();
 
+  const handleViewVendor = (vendor: any) => {
+    setSelectedVendor(vendor);
+    setIsModalOpen(true);
+  };
   const {
     fetchVendors,
     addVendor,
@@ -284,7 +294,7 @@ const VendorRegistrationPage: React.FC = () => {
     pagination,
     loading,
     error,
-    initialLoading
+    initialLoading,
   } = useVendorStore(); // Assuming store exists
   const { defaultSelected, companies } = useCompanyStore();
   const getCompanyName = (companyId: string) => {
@@ -465,7 +475,7 @@ const VendorRegistrationPage: React.FC = () => {
     }));
   };
 
-  const addBank = (): void => {
+  const addOrUpdateBank = (): void => {
     if (
       !bankForm.accountHolderName ||
       !bankForm.accountNumber ||
@@ -477,11 +487,25 @@ const VendorRegistrationPage: React.FC = () => {
       return;
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      banks: [...prev.banks, { ...bankForm, id: Date.now() }],
-    }));
+    if (editingBankId !== null) {
+      // Update existing bank
+      setFormData((prev) => ({
+        ...prev,
+        banks: prev.banks.map((bank) =>
+          bank.id === editingBankId ? { ...bankForm, id: editingBankId } : bank
+        ),
+      }));
+      toast.success("Bank updated successfully");
+    } else {
+      // Add new bank
+      setFormData((prev) => ({
+        ...prev,
+        banks: [...prev.banks, { ...bankForm, id: Date.now() }],
+      }));
+      toast.success("Bank added successfully");
+    }
 
+    // Reset form
     setBankForm({
       id: Date.now(),
       accountHolderName: "",
@@ -492,13 +516,31 @@ const VendorRegistrationPage: React.FC = () => {
       bankName: "",
       branch: "",
     });
+    setEditingBankId(null);
   };
-
+  const editBank = (bank: Bank): void => {
+    setBankForm(bank);
+    setEditingBankId(bank.id);
+  };
   const removeBank = (id: number): void => {
     setFormData((prev) => ({
       ...prev,
       banks: prev.banks.filter((bank) => bank.id !== id),
     }));
+    if (editingBankId === id) {
+      setEditingBankId(null);
+      // Reset bankForm if editing the removed one
+      setBankForm({
+        id: Date.now(),
+        accountHolderName: "",
+        accountNumber: "",
+        ifscCode: "",
+        swiftCode: "",
+        micrNumber: "",
+        bankName: "",
+        branch: "",
+      });
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -666,6 +708,17 @@ const VendorRegistrationPage: React.FC = () => {
     });
     setEditingVendor(null);
     setActiveTab("basic");
+    setEditingBankId(null);
+    setBankForm({
+      id: Date.now(),
+      accountHolderName: "",
+      accountNumber: "",
+      ifscCode: "",
+      swiftCode: "",
+      micrNumber: "",
+      bankName: "",
+      branch: "",
+    });
   };
 
   const handleEditVendor = (vendor: Vendor): void => {
@@ -685,7 +738,7 @@ const VendorRegistrationPage: React.FC = () => {
     deleteVendor(id);
   };
 
-  const handleSubmit = async():Promise<void> => {
+  const handleSubmit = async (): Promise<void> => {
     if (!formData.vendorName.trim()) {
       toast.error("Please enter Vendor Name");
       return;
@@ -750,8 +803,8 @@ const VendorRegistrationPage: React.FC = () => {
     if (editingVendor) {
       updateVendor({ id: editingVendor._id || "", vendor: vendorFormData });
     } else {
-     await addVendor(vendorFormData);
-     await fetchVendors(currentPage, limit, defaultSelected?._id);
+      await addVendor(vendorFormData);
+      await fetchVendors(currentPage, limit, defaultSelected?._id);
     }
     setOpen(false);
     resetForm();
@@ -799,22 +852,22 @@ const VendorRegistrationPage: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (searchTerm.length >= 3){
-      filterVendors(
-        searchTerm,
-        statusFilter,
-        sortBy,
-        currentPage,
-        limit,
-        defaultSelected?._id
-      )
-        .then((result) => {
-          setFilteredVendors(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering vendors:", err);
-        });
-      } else if (searchTerm.length === 0){
+      if (searchTerm.length >= 3) {
+        filterVendors(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+          .then((result) => {
+            setFilteredVendors(result);
+          })
+          .catch((err) => {
+            console.error("Error filtering vendors:", err);
+          });
+      } else if (searchTerm.length === 0) {
         filterVendors(
           "",
           statusFilter,
@@ -823,12 +876,12 @@ const VendorRegistrationPage: React.FC = () => {
           limit,
           defaultSelected?._id
         )
-        .then((result) => {
-          setFilteredVendors(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering vendors:", err);
-        });
+          .then((result) => {
+            setFilteredVendors(result);
+          })
+          .catch((err) => {
+            console.error("Error filtering vendors:", err);
+          });
       }
     }, 500); // 500ms debounce time
 
@@ -843,11 +896,6 @@ const VendorRegistrationPage: React.FC = () => {
     filterVendors,
     defaultSelected,
   ]);
-
-  const formatSimpleDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
   // Table View Component
   const header = ["Vendor", "Contact", "Address", "Status", "Actions"];
   const TableView = () => (
@@ -899,8 +947,8 @@ const VendorRegistrationPage: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {/* <ActionsDropdown vendor={vendor} /> */}
                   <ActionsDropdown
+                    onView={()=> handleViewVendor(vendor)}
                     onEdit={() => handleEditVendor(vendor)}
                     onDelete={() => handleDeleteVendor(vendor._id || "")}
                     module="BusinessManagement"
@@ -1086,7 +1134,7 @@ const VendorRegistrationPage: React.FC = () => {
       ))}
     </div>
   );
- useEffect(() => {
+  useEffect(() => {
     return () => {
       initialLoading();
     };
@@ -1717,24 +1765,13 @@ const VendorRegistrationPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Payment Terms
-                    </label>
-                    <select
-                      value={formData.paymentTerms}
-                      onChange={(e) =>
-                        handleSelectChange("paymentTerms", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Payment Terms</option>
-                      <option value="net_30">Net 30</option>
-                      <option value="net_60">Net 60</option>
-                      <option value="immediate">Immediate</option>
-                      <option value="advance">Advance Payment</option>
-                    </select>
-                  </div>
+                  <CustomInputBox
+                    label="Payment Terms"
+                    placeholder="e.g., 30 days"
+                    name="paymentTerms"
+                    value={formData.paymentTerms}
+                    onChange={handleChange}
+                  />
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Agent
@@ -1747,10 +1784,11 @@ const VendorRegistrationPage: React.FC = () => {
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
                       <option value="">Select Agent</option>
-                      <option value="procurement">
-                        Procurement Department
-                      </option>
-                      <option value="operations">Operations</option>
+                      {agents.map((agent) => (
+                        <option key={agent} value={agent._id}>
+                          {agent.agentName}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -1911,10 +1949,11 @@ const VendorRegistrationPage: React.FC = () => {
                     onChange={handleBankChange}
                   />
                   <Button
-                    onClick={addBank}
+                    onClick={addOrUpdateBank}
                     className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
                   >
-                    <Plus className="w-5 h-5 mr-2" /> Add Bank
+                    <Plus className="w-5 h-5 mr-2" />
+                    {editingBankId !== null ? "Update Bank" : "Add Bank"}
                   </Button>
                 </div>
 
@@ -1934,14 +1973,23 @@ const VendorRegistrationPage: React.FC = () => {
                             {bank.accountNumber.slice(-4)}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeBank(bank.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => editBank(bank)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeBank(bank.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2248,6 +2296,12 @@ const VendorRegistrationPage: React.FC = () => {
       <ImagePreviewDialog
         viewingImage={viewingImage}
         onClose={() => setViewingImage(null)}
+      />
+      <UniversalDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedVendor}
+        type="vendor"
       />
     </div>
   );

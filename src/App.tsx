@@ -42,6 +42,7 @@ import ProductSelection from "./components/pages/ProductSelection";
 import CheckoutPage from "./components/pages/CheckoutPage";
 import  AuditLogs  from "./components/pages/AuditLogs";
 import RestoreDeletedPage from "./components/pages/RestoreDeletedPage";
+import { useCompanyStore } from "../store/companyStore";
 
 const Login = React.lazy(() => import("./components/pages/Login"));
 const AdminDashboard = React.lazy(
@@ -117,7 +118,7 @@ function ProtectedRoute({
   allowedRoles?: string[];
 }) {
   const { user, isLoading } = useAuthStore();
-
+  const { defaultSelected } = useCompanyStore();
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -134,6 +135,7 @@ function ProtectedRoute({
   if (module && subModule) {
     const hasPermission = checkPermission({
       user,
+      companyId: defaultSelected?._id,
       module,
       subModule,
       type: "read",
