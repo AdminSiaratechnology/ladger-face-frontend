@@ -51,7 +51,18 @@ export default defineConfig({
       '@radix-ui/react-aspect-ratio@1.1.2': '@radix-ui/react-aspect-ratio',
       '@radix-ui/react-alert-dialog@1.1.6': '@radix-ui/react-alert-dialog',
       '@radix-ui/react-accordion@1.2.3': '@radix-ui/react-accordion',
+      // Add aliases for new deps if needed (e.g., for browser-image-compression if version-pinning)
+      'browser-image-compression': 'browser-image-compression', // Optional: Pin if you want version control
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  optimizeDeps: {
+    include: [
+      'browser-image-compression', // Pre-bundle to fix HMR/dynamic import failures
+      // Add other deps here if they cause similar issues (e.g., from your aliases)
+    ],
+  },
+  server: {
+    // hmr: { overlay: false }, // Uncomment to disable error overlays during dev (optional)
   },
 });

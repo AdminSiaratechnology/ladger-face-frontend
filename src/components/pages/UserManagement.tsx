@@ -54,6 +54,7 @@ import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import SelectedCompany from "../customComponents/SelectedCompany";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
+import UniversalUserDetailsModal from "../customComponents/UniversalUserDetailsModal";
 
 // Interfaces (unchanged from original)
 interface Company {
@@ -192,7 +193,13 @@ export const UserManagement: React.FC = () => {
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
-
+    const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+  
+    const handleViewUser = (user: any) => {
+      setSelectedUser(user);
+      setIsModalOpen(true);
+    };
   const limit = 10; // Fixed limit per page
   const [selectedTemplates, setSelectedTemplates] = useState<{
     [companyId: string]: string;
@@ -727,7 +734,6 @@ export const UserManagement: React.FC = () => {
       toast.error("Failed to save user. Please try again.");
     }
   };
-  console.log("filteredUsers", filteredUsers);
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setIsEditing(true);
@@ -1263,6 +1269,7 @@ export const UserManagement: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <ActionsDropdown
+                        onView={()=> handleViewUser(user)}
                           onEdit={() => handleEditUser(user)}
                           onDelete={() => handleDeleteUser(user._id || "")}
                           module="UserManagement"
@@ -2029,6 +2036,11 @@ export const UserManagement: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <UniversalUserDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedUser}
+        />
     </div>
   );
 };

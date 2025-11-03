@@ -50,6 +50,7 @@ import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
+import UniversalDetailsModal from "../customComponents/UniversalDetailsModal";
 
 // Step icons for multi-step navigation
 const stepIcons = {
@@ -235,10 +236,16 @@ const LedgerRegistration: React.FC = () => {
     filterLedgers,
     pagination,
     loading,
-    initialLoading
+    initialLoading,
   } = useLedgerStore();
   const { companies, defaultSelected } = useCompanyStore();
+  const [selectedLedger, setSelectedLedger] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const handleViewLedger = (ledger: any) => {
+    setSelectedLedger(ledger);
+    setIsModalOpen(true);
+  };
   useEffect(() => {
     setFilteredLedgers(ledgers);
   }, [ledgers]);
@@ -255,25 +262,25 @@ const LedgerRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-            if (searchTerm.length >= 3){
-      filterLedgers(
-        searchTerm,
-        statusFilter,
-        sortBy,
-        currentPage,
-        limit,
-        defaultSelected?._id
-      )
-        .then((result) => {
-          setFilteredLedgers(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering ledgers:", err);
-          toast.error("Error", {
-            description: "Failed to filter ledgers. Please try again.",
+      if (searchTerm.length >= 3) {
+        filterLedgers(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+          .then((result) => {
+            setFilteredLedgers(result);
+          })
+          .catch((err) => {
+            console.error("Error filtering ledgers:", err);
+            toast.error("Error", {
+              description: "Failed to filter ledgers. Please try again.",
+            });
           });
-        });
-      } else if ( searchTerm.length === 0){
+      } else if (searchTerm.length === 0) {
         filterLedgers(
           "",
           statusFilter,
@@ -282,15 +289,15 @@ const LedgerRegistration: React.FC = () => {
           limit,
           defaultSelected?._id
         )
-        .then((result) => {
-          setFilteredLedgers(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering ledgers:", err);
-          toast.error("Error", {
-            description: "Failed to filter ledgers. Please try again.",
+          .then((result) => {
+            setFilteredLedgers(result);
+          })
+          .catch((err) => {
+            console.error("Error filtering ledgers:", err);
+            toast.error("Error", {
+              description: "Failed to filter ledgers. Please try again.",
+            });
           });
-        });
       }
     }, 500);
 
@@ -454,7 +461,7 @@ const LedgerRegistration: React.FC = () => {
     }));
   };
 
-  const addBank = (): void => {
+  const addOrUpdateBank = (): void => {
     if (
       !bankForm.accountHolderName ||
       !bankForm.accountNumber ||
@@ -465,10 +472,26 @@ const LedgerRegistration: React.FC = () => {
       );
       return;
     }
-    setFormData((prev) => ({
-      ...prev,
-      banks: [...prev.banks, { ...bankForm, id: Date.now() }],
-    }));
+
+    if (editingBankId !== null) {
+      // Update existing bank
+      setFormData((prev) => ({
+        ...prev,
+        banks: prev.banks.map((bank) =>
+          bank.id === editingBankId ? { ...bankForm, id: editingBankId } : bank
+        ),
+      }));
+      toast.success("Bank updated successfully");
+    } else {
+      // Add new bank
+      setFormData((prev) => ({
+        ...prev,
+        banks: [...prev.banks, { ...bankForm, id: Date.now() }],
+      }));
+      toast.success("Bank added successfully");
+    }
+
+    // Reset form
     setBankForm({
       id: Date.now(),
       accountHolderName: "",
@@ -479,6 +502,7 @@ const LedgerRegistration: React.FC = () => {
       bankName: "",
       branch: "",
     });
+    setEditingBankId(null);
   };
   const editBank = (bank: Bank): void => {
     setBankForm(bank);
@@ -489,6 +513,20 @@ const LedgerRegistration: React.FC = () => {
       ...prev,
       banks: prev.banks.filter((bank) => bank.id !== id),
     }));
+    if (editingBankId === id) {
+      setEditingBankId(null);
+      // Reset bankForm if editing the removed one
+      setBankForm({
+        id: Date.now(),
+        accountHolderName: "",
+        accountNumber: "",
+        ifscCode: "",
+        swiftCode: "",
+        micrNumber: "",
+        bankName: "",
+        branch: "",
+      });
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -627,6 +665,17 @@ const LedgerRegistration: React.FC = () => {
     });
     setEditingLedger(null);
     setActiveTab("basic");
+    setEditingBankId(null);
+    setBankForm({
+      id: Date.now(),
+      accountHolderName: "",
+      accountNumber: "",
+      ifscCode: "",
+      swiftCode: "",
+      micrNumber: "",
+      bankName: "",
+      branch: "",
+    });
   };
 
   const handleEditLedger = (ledger: Ledger): void => {
@@ -646,7 +695,7 @@ const LedgerRegistration: React.FC = () => {
     deleteLedger(id);
   };
 
-  const handleSubmit = async(): Promise<void> => {
+  const handleSubmit = async (): Promise<void> => {
     if (!formData.ledgerName.trim()) {
       toast.error("Please enter Ledger Name");
       return;
@@ -803,18 +852,13 @@ const LedgerRegistration: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <CheckAccess
-                    module="BusinessManagement"
-                    subModule="Ledger"
-                    type="update"
-                  >
                     <ActionsDropdown
+                      onView={() => handleViewLedger(ledger)}
                       onEdit={() => handleEditLedger(ledger)}
                       onDelete={() => handleDeleteLedger(ledger._id || "")}
                       module="BusinessManagement"
                       subModule="Ledger"
                     />
-                  </CheckAccess>
                 </td>
               </tr>
             ))}
@@ -863,18 +907,12 @@ const LedgerRegistration: React.FC = () => {
                 >
                   {ledger.status}
                 </Badge>
-                <CheckAccess
-                  module="BusinessManagement"
-                  subModule="Ledger"
-                  type="update"
-                >
                   <ActionsDropdown
                     onEdit={() => handleEditLedger(ledger)}
                     onDelete={() => handleDeleteLedger(ledger._id || "")}
                     module="BusinessManagement"
                     subModule="Ledger"
                   />
-                </CheckAccess>
               </div>
             </div>
           </CardHeader>
@@ -979,7 +1017,7 @@ const LedgerRegistration: React.FC = () => {
       ))}
     </div>
   );
- useEffect(() => {
+  useEffect(() => {
     return () => {
       initialLoading();
     };
@@ -1687,10 +1725,11 @@ const LedgerRegistration: React.FC = () => {
                     onChange={handleBankChange}
                   />
                   <Button
-                    onClick={addBank}
+                    onClick={addOrUpdateBank}
                     className="col-span-1 md:col-span-2 h-11 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
                   >
-                    <Plus className="w-5 h-5 mr-2" /> Add Bank
+                    <Plus className="w-5 h-5 mr-2" />
+                    {editingBankId !== null ? "Update Bank" : "Add Bank"}
                   </Button>
                 </div>
 
@@ -2035,6 +2074,12 @@ const LedgerRegistration: React.FC = () => {
       <ImagePreviewDialog
         viewingImage={viewingImage}
         onClose={() => setViewingImage(null)}
+      />
+      <UniversalDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedLedger}
+        type="ledger"
       />
     </div>
   );

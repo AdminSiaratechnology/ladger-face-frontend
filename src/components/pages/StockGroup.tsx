@@ -36,6 +36,7 @@ import TableHeader from "../customComponents/CustomTableHeader";
 import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import SelectedCompany from "../customComponents/SelectedCompany";
+import UniversalInventoryDetailsModal from "../customComponents/UniversalInventoryDetailsModal";
 
 // StockGroup interface (adjusted to match store)
 interface StockGroup {
@@ -78,6 +79,12 @@ const StockGroupRegistration: React.FC = () => {
     []
   );
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [selectedGroup, setSelectedGroup] = useState<StockGroup | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const handleViewGroup = (group: any) => {
+    setSelectedGroup(group);
+    setIsModalOpen(true);
+  };
   const limit = 10; // Fixed limit per page
 
   const {
@@ -110,24 +117,30 @@ const StockGroupRegistration: React.FC = () => {
   // Filtering with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-            if (searchTerm.length >= 3){
-
-      filterStockGroups(
-        searchTerm,
-        statusFilter,
-        sortBy,
-        currentPage,
-        limit,
-        defaultSelected?._id
-      )
-        .then((result) => {
-          setFilteredStockGroups(result);
-        })
-        .catch((err) => {
-          console.error("Error filtering stock groups:", err);
-        });
-      } else if (searchTerm.length === 0){
-        filterStockGroups("", statusFilter, sortBy, currentPage, limit, defaultSelected?._id)
+      if (searchTerm.length >= 3) {
+        filterStockGroups(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        )
+          .then((result) => {
+            setFilteredStockGroups(result);
+          })
+          .catch((err) => {
+            console.error("Error filtering stock groups:", err);
+          });
+      } else if (searchTerm.length === 0) {
+        filterStockGroups(
+          "",
+          statusFilter,
+          sortBy,
+          currentPage,
+          limit,
+          defaultSelected?._id
+        );
       }
     }, 500); // 500ms debounce time
 
@@ -207,7 +220,7 @@ const StockGroupRegistration: React.FC = () => {
     deleteStockGroup(stockGroupId);
   };
 
-  const handleSubmit =async ():Promise<void> => {
+  const handleSubmit = async (): Promise<void> => {
     if (!formData.name.trim()) {
       toast.error("Please enter Stock Group Name");
       return;
@@ -215,8 +228,8 @@ const StockGroupRegistration: React.FC = () => {
     if (editingStockGroup) {
       updateStockGroup(editingStockGroup._id, formData);
     } else {
-     await addStockGroup(formData);
-      await fetchStockGroup(1,10, defaultSelected?._id);
+      await addStockGroup(formData);
+      await fetchStockGroup(1, 10, defaultSelected?._id);
     }
     resetForm();
     setOpen(false);
@@ -268,8 +281,8 @@ const StockGroupRegistration: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {group.parent
-                    ? stockGroups.find((g) => g._id === group.parent)
-                        ?.name || "Unknown"
+                    ? stockGroups.find((g) => g._id === group.parent)?.name ||
+                      "Unknown"
                     : "Primary"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -286,8 +299,10 @@ const StockGroupRegistration: React.FC = () => {
                     {group.status}
                   </Badge>
                 </td>
+              
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <ActionsDropdown
+                    onView={() => handleViewGroup(group)}
                     onEdit={() => handleEditStockGroup(group)}
                     onDelete={() => handleDeleteStockGroup(group._id)}
                     module="InventoryManagement"
@@ -333,8 +348,8 @@ const StockGroupRegistration: React.FC = () => {
                 <Layers className="w-4 h-4 mr-2 text-gray-400" />
                 Parent:{" "}
                 {group.parent
-                  ? stockGroups.find((g) => g._id === group.parent)
-                      ?.name || "Unknown"
+                  ? stockGroups.find((g) => g._id === group.parent)?.name ||
+                    "Unknown"
                   : "Primary"}
               </div>
               <div className="flex items-center">
@@ -355,7 +370,7 @@ const StockGroupRegistration: React.FC = () => {
       ))}
     </div>
   );
- useEffect(() => {
+  useEffect(() => {
     return () => {
       initialLoading();
     };
@@ -575,9 +590,7 @@ const StockGroupRegistration: React.FC = () => {
                 </label>
                 <select
                   value={formData.parent || ""}
-                  onChange={(e) =>
-                    handleSelectChange("parent", e.target.value)
-                  }
+                  onChange={(e) => handleSelectChange("parent", e.target.value)}
                   className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                 >
                   <option value="">Primary (No Parent)</option>
@@ -617,6 +630,12 @@ const StockGroupRegistration: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <UniversalInventoryDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedGroup}
+        type="stockGroup" // or "stockGroup" | "stockCategory" | "unit"
+      />
     </div>
   );
 };

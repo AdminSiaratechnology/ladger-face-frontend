@@ -38,6 +38,7 @@ import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import SelectedCompany from "../customComponents/SelectedCompany";
 import { set } from "react-hook-form";
+import UniversalInventoryDetailsModal from "../customComponents/UniversalInventoryDetailsModal";
 
 // StockCategory interface
 interface StockCategory {
@@ -90,7 +91,13 @@ const StockCategoryRegistration: React.FC = () => {
   } = useStockCategory();
   const { companies, defaultSelected } = useCompanyStore();
   const { stockGroups } = useStockGroup();
-
+  const [selectedCategory, setSelectedCatgeory] =
+    useState<StockCategory | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const handleViewCategory = (category: any) => {
+    setSelectedCatgeory(category);
+    setIsModalOpen(true);
+  };
   useEffect(() => {
     setFilteredStockCategories(stockCategories);
   }, [stockCategories]);
@@ -203,7 +210,7 @@ const StockCategoryRegistration: React.FC = () => {
     deleteStockCategory(stockCategoryId);
   };
 
-  const handleSubmit = async(): Promise<void> => {
+  const handleSubmit = async (): Promise<void> => {
     if (!formData.name.trim()) {
       toast.error("Please enter Stock Category Name");
       return;
@@ -301,7 +308,8 @@ const StockCategoryRegistration: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {category.parent === "primary"
                     ? "Primary"
-                    : getCategoryName(category.parent)}
+                    : category?.parent?.name
+                  }
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatSimpleDate(category.createdAt)}
@@ -316,9 +324,11 @@ const StockCategoryRegistration: React.FC = () => {
                   >
                     {category.status}
                   </Badge>
+      
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <ActionsDropdown
+                    onView={() => handleViewCategory(category)}
                     onEdit={() => handleEditStockCategory(category)}
                     onDelete={() => handleDeleteStockCategory(category._id)}
                     module="InventoryManagement"
@@ -362,8 +372,7 @@ const StockCategoryRegistration: React.FC = () => {
             <div className="space-y-2 text-sm">
               <div className="flex items-center">
                 <Building2 className="w-4 h-4 mr-2 text-gray-400" />
-                Company:                     {category?.companyId?.namePrint || "—"}
-
+                Company: {category?.companyId?.namePrint || "—"}
               </div>
               {/* <div className="flex items-center">
                 <Layers className="w-4 h-4 mr-2 text-gray-400" />
@@ -688,6 +697,12 @@ const StockCategoryRegistration: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+       <UniversalInventoryDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedCategory}
+        type="stockCategory" // or "stockGroup" | "stockCategory" | "unit"
+      />
     </div>
   );
 };

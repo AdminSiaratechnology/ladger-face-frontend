@@ -37,6 +37,7 @@ import MultiStepNav from "../customComponents/MultiStepNav"; // Assuming shared 
 import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import SelectedCompany from "../customComponents/SelectedCompany";
+import UniversalInventoryDetailsModal from "../customComponents/UniversalInventoryDetailsModal";
 
 // Unit interface
 interface Unit {
@@ -85,7 +86,13 @@ const UnitManagement: React.FC = () => {
   const [filteredUnits, setFilteredUnits] = useState<Unit[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10;
-
+  const [selectedUnit, setSelectedUnit] =
+    useState<Unit | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const handleViewUnit = (unit: any) => {
+    setSelectedUnit(unit);
+    setIsModalOpen(true);
+  };
   const {
     fetchUnits,
     units,
@@ -368,6 +375,7 @@ const UnitManagement: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <ActionsDropdown
+                    onView={()=> handleViewUnit(unit)}
                     onEdit={() => handleEditUnit(unit)}
                     onDelete={() => handleDeleteUnit(unit._id)}
                     module="InventoryManagement"
@@ -491,7 +499,7 @@ const UnitManagement: React.FC = () => {
         />
         <CheckAccess
           module="InventoryManagement"
-          subModule="unit"
+          subModule="Unit"
           type="create"
         >
           <Button
@@ -798,6 +806,12 @@ const UnitManagement: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <UniversalInventoryDetailsModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              data={selectedUnit}
+              type="unit" // or "stockGroup" | "stockCategory" | "unit"
+            />
     </div>
   );
 };

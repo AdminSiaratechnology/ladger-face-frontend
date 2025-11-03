@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api"; 
+import { toast } from "sonner";
 
 interface Bank {
   id: number;
@@ -250,6 +251,7 @@ export const useVendorStore = create<VendorStore>()(
         try {
           const result = await api.createVendor(vendor);
           const newVendor: Vendor = result.data;
+          toast.success("Vendor added successfully");
           set({
             vendors: [...get().vendors, newVendor],
             loading: false,
@@ -261,6 +263,7 @@ export const useVendorStore = create<VendorStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to add vendor",
           });
+          toast.error(error?.response?.data?.message || "Failed to add vendor");
         }
       },
 
@@ -268,7 +271,6 @@ export const useVendorStore = create<VendorStore>()(
         set({ loading: true });
         try {
           const result = await api.updateVendor(id, vendor);
-         
           set({
             vendors: get().vendors.map((v) =>{
 
@@ -277,6 +279,7 @@ export const useVendorStore = create<VendorStore>()(
             }),
             loading: false,
           });
+          toast.success("Vendor updated successfully");
         } catch (error: any) {
           set({
             loading: false,
@@ -284,6 +287,7 @@ export const useVendorStore = create<VendorStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to update vendor",
           });
+          toast.error(error?.response?.data?.message || "Failed to update vendor");
         }
       },
 
@@ -295,6 +299,7 @@ export const useVendorStore = create<VendorStore>()(
             vendors: get().vendors.filter((v) => v._id !== id),
             loading: false,
           });
+          toast.success("Vendor deleted successfully");
         } catch (error: any) {
           set({
             loading: false,
@@ -302,6 +307,7 @@ export const useVendorStore = create<VendorStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to delete vendor",
           });
+          toast.error(error?.response?.data?.message || "Failed to delete vendor");
         }
       },
 

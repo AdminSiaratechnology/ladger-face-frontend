@@ -50,6 +50,7 @@ import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
 import { useVendorStore } from "../../../store/vendorStore";
 import { DatePickerField } from "../customComponents/DatePickerField";
+import UniversalProductDetailsModal from "../customComponents/UniversalProductDetailsModal";
 
 // Interfaces
 interface Unit {
@@ -228,6 +229,12 @@ const ProductPage: React.FC = () => {
     remarks: "",
     status: "active",
   });
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const handleViewProduct = (product: any) => {
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
   useEffect(() => {
     if (defaultSelected) {
       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
@@ -779,14 +786,15 @@ const ProductPage: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <CheckAccess
                       module="InventoryManagement"
-                      subModule="product"
+                      subModule="Product"
                       type="update"
                     >
                       <ActionsDropdown
+                        onView={() => handleViewProduct(product)}
                         onEdit={() => handleEditProduct(product)}
                         onDelete={() => handleDeleteProduct(product._id || "")}
                         module="InventoryManagement"
-                        subModule="product"
+                        subModule="Product"
                       />
                     </CheckAccess>
                   </td>
@@ -849,7 +857,7 @@ const ProductPage: React.FC = () => {
               <div className="flex items-center text-sm">
                 <Building2 className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                 <span className="text-gray-600">
-                  Company:  {product?.companyId?.namePrint || "—"}
+                  Company: {product?.companyId?.namePrint || "—"}
                 </span>
               </div>
               <div className="flex items-center text-sm">
@@ -919,7 +927,7 @@ const ProductPage: React.FC = () => {
         />
         <CheckAccess
           module="InventoryManagement"
-          subModule="product"
+          subModule="Product"
           type="create"
         >
           <Button
@@ -1960,6 +1968,11 @@ const ProductPage: React.FC = () => {
         viewingImage={viewingImage}
         onClose={() => setViewingImage(null)}
       />
+      <UniversalProductDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedProduct}
+        />
     </div>
   );
 };

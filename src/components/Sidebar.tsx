@@ -58,32 +58,70 @@ interface SubMenuItem {
 }
 
 // Utility function to check permissions
-function checkPermission(user: any, module: string, subModule: string) {
+// function checkPermission(user: any, module: string, subModule: string) {
+//   if (user.allPermissions) return true;
+//   if (!user.access || user.access.length === 0) return false;
+
+//   for (const accessItem of user.access) {
+//     const modules = accessItem.modules;
+//     console.log(modules);
+//     console.log(modules[module])
+//     console.log(modules[module][subModule])
+//     if (modules && modules[module] && modules[module][subModule]) {
+//       return modules[module][subModule].read === true;
+//     }
+//   }
+//   return false;
+// }
+
+// function hasMenuAccess(user: any, item: MenuItem | SubMenuItem) {
+//   console.log(user.access, "user.access");
+//   console.log(item, "item")
+//   if ('type' in item && item.type === "accordion") {
+//   return true;
+// }
+//   if (item.module && item.subModule)
+//     return checkPermission(user, item.module, item.subModule);
+//   if (item.roles && user?.role)
+//     return item.roles.includes(user.role.toLowerCase());
+//   return false;
+// }
+// ✅ Updated checkPermission
+function checkPermission(user: any, companyId: string, module: string, subModule: string) {
+  if (!user) return false;
   if (user.allPermissions) return true;
   if (!user.access || user.access.length === 0) return false;
 
-  for (const accessItem of user.access) {
-    const modules = accessItem.modules;
-    console.log(modules);
-    console.log(modules[module])
-    console.log(modules[module][subModule])
-    if (modules && modules[module] && modules[module][subModule]) {
-      return modules[module][subModule].read === true;
-    }
-  }
-  return false;
+  // Find access entry for selected company
+  const companyAccess = user.access.find(
+    (accessItem: any) => accessItem.company === companyId
+  );
+  if (!companyAccess || !companyAccess.modules) return false;
+
+  const modules = companyAccess.modules;
+  const hasModule = modules[module];
+  const hasSubModule = hasModule?.[subModule];
+
+  return !!hasSubModule?.read;
 }
 
-function hasMenuAccess(user: any, item: MenuItem | SubMenuItem) {
-  console.log(user.access, "user.access");
-  console.log(item, "item")
-  if ('type' in item && item.type === "accordion") {
-  return true;
-}
-  if (item.module && item.subModule)
-    return checkPermission(user, item.module, item.subModule);
-  if (item.roles && user?.role)
+// ✅ Updated hasMenuAccess
+function hasMenuAccess(user: any, companyId: string, item: MenuItem | SubMenuItem) {
+  if (!user) return false;
+
+  // Accordions always visible (filtered subItems will decide visibility)
+  if ("type" in item && item.type === "accordion") return true;
+
+  // Module-based permissions
+  if (item.module && item.subModule) {
+    return checkPermission(user, companyId, item.module, item.subModule);
+  }
+
+  // Role-based fallback
+  if (item.roles && user.role) {
     return item.roles.includes(user.role.toLowerCase());
+  }
+
   return false;
 }
 
@@ -328,22 +366,23 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const menuItems = hasCompany ? fullMenuItems : limitedMenuItems;
 console.log(menuItems)
-  const filteredMenuItems = menuItems
-    .filter((item) => user && hasMenuAccess(user, item))
-    .map((item) => {
-      console.log(item);
-      if (item.type === "accordion" && item.subItems) {
-        console.log(item.subItems);
-        const filteredSubItems = item.subItems.filter((sub) =>
-          hasMenuAccess(user, sub)
-        );
-        return { ...item, subItems: filteredSubItems };
-      }
-      return item;
-    })
-    .filter((item) =>
-      item.type === "accordion" ? item.subItems?.length > 0 : true
-    );
+ const companyId = defaultSelected?._id;
+
+const filteredMenuItems = menuItems
+  .filter((item) => user && hasMenuAccess(user, companyId, item))
+  .map((item) => {
+    if (item.type === "accordion" && item.subItems) {
+      const filteredSubItems = item.subItems.filter((sub) =>
+        hasMenuAccess(user, companyId, sub)
+      );
+      return { ...item, subItems: filteredSubItems };
+    }
+    return item;
+  })
+  .filter((item) =>
+    item.type === "accordion" ? item.subItems?.length > 0 : true
+  );
+
 console.log(filteredMenuItems)
   const handleLinkClick = () => {
     if (window.innerWidth < 768 && onClose) onClose();

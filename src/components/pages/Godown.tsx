@@ -32,6 +32,7 @@ import SectionHeader from "../customComponents/SectionHeader";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import { set } from "react-hook-form";
+import UniversalInventoryDetailsModal from "../customComponents/UniversalInventoryDetailsModal";
 
 // Godown interface
 interface Godown {
@@ -74,7 +75,12 @@ const GodownRegistration: React.FC = () => {
   >("dateDesc");
   const [filteredGodowns, setFilteredGodowns] = useState<Godown[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-
+  const [selectedGodown, setSelectedGodown] = useState<Godown | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const handleViewGodown = (godown: any) => {
+    setSelectedGodown(godown);
+    setIsModalOpen(true);
+  };
   const limit = 10; // Fixed limit per page
 
   const {
@@ -262,7 +268,7 @@ const GodownRegistration: React.FC = () => {
     deleteGodown(godownId);
   };
 
-  const handleSubmit = async(): Promise<void> => {
+  const handleSubmit = async (): Promise<void> => {
     if (!formData.code.trim()) {
       toast.error("Please enter Godown Code");
       return;
@@ -283,7 +289,7 @@ const GodownRegistration: React.FC = () => {
     if (editingGodown) {
       updateGodown(editingGodown._id || "", godownFormData);
     } else {
-     await addGodown(godownFormData);
+      await addGodown(godownFormData);
       fetchGodowns(currentPage, limit, defaultSelected?._id);
       setOpen(false);
     }
@@ -418,6 +424,7 @@ const GodownRegistration: React.FC = () => {
                     type="update"
                   >
                     <ActionsDropdown
+                      onView={() => handleViewGodown(godown)}
                       onEdit={() => handleEditGodown(godown)}
                       onDelete={() => handleDeleteGodown(godown._id || "")}
                       module="InventoryManagement"
@@ -945,6 +952,12 @@ const GodownRegistration: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <UniversalInventoryDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedGodown}
+        type="godown" // or "stockGroup" | "stockCategory" | "unit"
+      />
     </div>
   );
 };

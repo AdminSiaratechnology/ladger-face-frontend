@@ -28,49 +28,61 @@ const CompanySelectorModal = ({
   onSelect,
   onClose,
   onConfirmNavigate,
-  isLogin=false
+  isLogin = false,
 }: CompanySelectorModalProps) => {
-  const {
-    companies,
-    filterCompanies,
-    loading,
-    pagination,
-  } = useCompanyStore();
+  const { companies, filterCompanies, loading, pagination } = useCompanyStore();
   const { user } = useAuthStore();
 
-  const [selectedId, setSelectedId] = useState<string | null>(
-    defaultSelected || null
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(defaultSelected || null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter] = useState<"all" | "active" | "inactive">("all");
-  const [sortBy] = useState<"nameAsc" | "nameDesc" | "dateDesc" | "dateAsc">(
-    "nameAsc"
-  );
-  console.log(pagination, "GJGJGJGJGJGJGJGJGJGJGJGJGJGJGJGJGJGJGJ")
+  const [sortBy] = useState<"nameAsc" | "nameDesc" | "dateDesc" | "dateAsc">("nameAsc");
+  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
+  const [noRights, setNoRights] = useState(false);
 
-  // useEffect(() => {
-  //   if(user){
-  //   filterCompanies("", statusFilter, sortBy);
-  //   }
-  //   console.log("first")
-  // }, [filterCompanies, statusFilter, sortBy]);
+  // ✅ Filter companies based on permission
+  useEffect(() => {
+    if (!user) return;
 
-  // ✅ Debounced search trigger
-useEffect(() => {
-  const handler = setTimeout(() => {
-    if (user && searchTerm.length >= 3 ) {
-      filterCompanies(searchTerm, statusFilter, sortBy, "", 1, 10, isLogin)
-        .catch((err) => console.error("Error filtering companies:", err));
-    } else if (searchTerm.length === 0 && user && companies.length < Math.min(10, pagination?.total)) {
-      // Optional: fetch all companies again when search is cleared
-      filterCompanies("", statusFilter, sortBy, "", 1, 10, isLogin)
-        .catch((err) => console.error("Error fetching all companies:", err));
+    // case 1 — user has all permissions
+    if (user.allPermissions) {
+      setFilteredCompanies(companies);
+      setNoRights(false);
+      return;
     }
-  }, 500); // ⏳ debounce
 
-  return () => clearTimeout(handler);
-}, [searchTerm, statusFilter, sortBy, filterCompanies]);
+    // case 2 — user has limited access
+    if (Array.isArray(user.access) && user.access.length > 0) {
+      const accessibleCompanyIds = user.access.map((a: any) => a.company);
+      const filtered = companies.filter((c) => accessibleCompanyIds.includes(c._id));
+      setFilteredCompanies(filtered);
+      setNoRights(false);
+      return;
+    }
 
+    // case 3 — no permissions at all
+    setFilteredCompanies([]);
+    setNoRights(true);
+  }, [user, companies]);
+
+  // ✅ Debounced search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (user && searchTerm.length >= 3) {
+        filterCompanies(searchTerm, statusFilter, sortBy, "", 1, 10, isLogin)
+          .catch((err) => console.error("Error filtering companies:", err));
+      } else if (
+        searchTerm.length === 0 &&
+        user &&
+        companies.length < Math.min(10, pagination?.total)
+      ) {
+        filterCompanies("", statusFilter, sortBy, "", 1, 10, isLogin)
+          .catch((err) => console.error("Error fetching all companies:", err));
+      }
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm, statusFilter, sortBy, filterCompanies]);
 
   useEffect(() => {
     setSelectedId(defaultSelected || null);
@@ -84,15 +96,56 @@ useEffect(() => {
     }
   }, [selectedId, companies, onSelect, onConfirmNavigate]);
 
+  // ✅ No-rights view
+  if (noRights) {
+    return (
+    <Dialog open={open} onOpenChange={onClose}>
+  <DialogContent
+    className="max-w-md text-center py-10 px-6 bg-gradient-to-b from-gray-50 to-white border border-gray-200 shadow-lg rounded-2xl"
+    onInteractOutside={(e) => e.preventDefault()} // keep modal fixed
+  >
+    <div className="flex flex-col items-center space-y-5">
+      {/* 🏢 Icon */}
+      <div className="flex items-center justify-center w-16 h-16 rounded-full bg-teal-50 border border-teal-100">
+        <Building2 className="w-8 h-8 text-teal-600" />
+      </div>
+
+      {/* ✨ Title */}
+      <h2 className="text-lg font-semibold text-gray-800">
+        No Access Rights
+      </h2>
+
+      {/* 💬 Message */}
+      <p className="text-gray-600 text-sm leading-relaxed max-w-sm">
+        It seems you don’t have access permissions assigned yet.
+        <br />
+        Please contact your administrator to enable your account.
+      </p>
+
+      {/* ─ Divider */}
+      <div className="w-2/3 h-px bg-gray-100 my-2"></div>
+
+      {/* ✅ Single button */}
+      <Button
+        onClick={onClose}
+        className="bg-teal-600 hover:bg-teal-700 text-white rounded-full px-6 shadow-md"
+      >
+        Got it
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent onInteractOutside={(e)=> {
-        if(isLogin){
-          e.preventDefault()
-        }else {
-          return null
-        }
-      }}>
+      <DialogContent
+        onInteractOutside={(e) => {
+          if (isLogin) e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <CustomFormDialogHeader
             title="Select a Company"
@@ -104,25 +157,26 @@ useEffect(() => {
           />
         </DialogHeader>
 
-        {/* ✅ Search Bar (Triggers backend) */}
+        {/* ✅ Search Bar */}
         <div className="relative mt-2 mb-3">
           <Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
           <Input
-            placeholder="Search company "
+            placeholder="Search company"
             className="pl-9"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
+        {/* ✅ Company List */}
         <ScrollArea className="max-h-[400px] mt-2">
           <div className="pr-4 flex flex-col gap-2">
             {loading ? (
               <p className="text-center text-gray-500 text-sm mt-4">
                 Loading companies...
               </p>
-            ) : companies.length > 0 ? (
-              companies.map((company) => (
+            ) : filteredCompanies.length > 0 ? (
+              filteredCompanies.map((company) => (
                 <CardHeader
                   key={company._id}
                   onClick={() => setSelectedId(company._id)}
