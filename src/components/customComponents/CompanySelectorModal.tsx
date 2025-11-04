@@ -52,13 +52,23 @@ const CompanySelectorModal = ({
     }
 
     // case 2 — user has limited access
-    if (Array.isArray(user.access) && user.access.length > 0) {
-      const accessibleCompanyIds = user.access.map((a: any) => a.company);
-      const filtered = companies.filter((c) => accessibleCompanyIds.includes(c._id));
-      setFilteredCompanies(filtered);
-      setNoRights(false);
-      return;
-    }
+if (Array.isArray(user.access) && user.access.length > 0) {
+  // ✅ Directly map the populated companies
+  const accessibleCompanies = user.access
+    .filter((a: any) => a.company) // safety check
+    .map((a: any) => ({
+      _id: a.company._id,
+      namePrint: a.company.namePrint,
+      nameStreet: a.company.nameStreet,
+      logo: a.company.logo,
+      code: a.company.code,
+    }));
+
+  setFilteredCompanies(accessibleCompanies);
+  setNoRights(false);
+  return;
+}
+
 
     // case 3 — no permissions at all
     setFilteredCompanies([]);
@@ -200,6 +210,11 @@ const CompanySelectorModal = ({
                         {company.nameStreet && (
                           <p className="text-teal-600 text-sm font-medium">
                             {company.nameStreet}
+                          </p>
+                        )}
+                        {company.code && (
+                          <p className="text-gray-500 text-xs mt-1">
+                            Code: {company.code}
                           </p>
                         )}
                       </div>

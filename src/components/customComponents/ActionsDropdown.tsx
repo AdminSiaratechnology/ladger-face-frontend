@@ -21,7 +21,7 @@ const ActionsDropdown = ({
   return (
     <div className="flex items-center gap-2">
       {/* View */}
-      {/* <CheckAccess module={module} subModule={subModule} type="read"> */}
+      <CheckAccess module={module} subModule={subModule} type="read">
         <Button
           variant="ghost"
           size="icon"
@@ -31,7 +31,7 @@ const ActionsDropdown = ({
         >
           <Eye className="h-4 w-4" />
         </Button>
-      {/* </CheckAccess> */}
+      </CheckAccess>
 
       {/* Edit */}
       <CheckAccess module={module} subModule={subModule} type="update">

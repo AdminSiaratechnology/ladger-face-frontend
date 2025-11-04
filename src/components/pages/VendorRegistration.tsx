@@ -876,7 +876,7 @@ const VendorRegistrationPage: React.FC = () => {
     }
 
     if (editingVendor) {
-      updateVendor({ id: editingVendor._id || "", vendor: vendorFormData });
+      await updateVendor({ id: editingVendor._id || "", vendor: vendorFormData });
     } else {
       await addVendor(vendorFormData);
       await fetchVendors(currentPage, limit, defaultSelected?._id);

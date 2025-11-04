@@ -777,6 +777,7 @@ const CustomerRegistrationPage: React.FC = () => {
     setEditingCustomer(customer);
     setFormData({
       ...customer,
+      agent: customer.agent?._id || "",
       logoPreviewUrl: customer.logo || undefined,
       registrationDocs: customer.registrationDocs.map((doc, index) => ({
         id: Date.now() + index,
@@ -794,8 +795,6 @@ const CustomerRegistrationPage: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    console.log(formData);
-
     if (!formData.customerName.trim()) {
       toast.error("Please enter Customer Name");
       return;
@@ -845,18 +844,6 @@ const CustomerRegistrationPage: React.FC = () => {
       customerFormData.append("logo", formData.logoFile);
     }
 
-    // formData.registrationDocs.forEach((doc) => {
-    //   customerFormData.append("registrationDocs", doc.file);
-    // });
-    // customerFormData.append(
-    //   "registrationDocTypes",
-    //   JSON.stringify(formData.registrationDocs.map((doc) => doc.type))
-    // );
-    // customerFormData.append(
-    //   "registrationDocsCount",
-    //   String(formData.registrationDocs.length)
-    // );
-
        const newRegistrationDocs = formData.registrationDocs.filter(
       (doc) => doc.file && doc.file instanceof Blob
     );
@@ -872,7 +859,7 @@ const CustomerRegistrationPage: React.FC = () => {
     }
 
     if (editingCustomer) {
-      updateCustomer({
+     await updateCustomer({
         id: editingCustomer._id || "",
         customer: customerFormData,
       });
@@ -1888,7 +1875,7 @@ const CustomerRegistrationPage: React.FC = () => {
                       Agent
                     </label>
                     <select
-                      value={formData.agent}
+                      value={formData.agent }
                       onChange={(e) =>
                         handleSelectChange("agent", e.target.value)
                       }

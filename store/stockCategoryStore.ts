@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api"; // api functions
+import { toast } from "sonner";
 
 export interface StockCategory {
   id: number;
@@ -100,8 +101,10 @@ export const useStockCategory = create<StockCategoryStore>()(
             stockCategories: [...get().stockCategories, newStockCategory],
             loading: false,
           });
+          toast.success("Stock Category added successfully");
         } catch (err: any) {
           set({ loading: false, error: true, errormessage: err.message });
+          toast.error(err.message || "Failed to add Stock Category");
         }
       },
 
@@ -120,8 +123,10 @@ export const useStockCategory = create<StockCategoryStore>()(
             ),
             loading: false,
           });
+          toast.success("Stock Category updated successfully");
         } catch (err: any) {
           set({ loading: false, error: true, errormessage: err.message });
+          toast.error(err.message || "Failed to update Stock Category");
         }
       },
 
@@ -135,8 +140,10 @@ export const useStockCategory = create<StockCategoryStore>()(
             ),
             loading: false,
           });
+          toast.success("Stock Category deleted successfully");
         } catch (err: any) {
           set({ loading: false, error: true, errormessage: err.message });
+          toast.error(err.message || "Failed to delete Stock Category");
         }
       },
 

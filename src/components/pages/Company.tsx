@@ -249,6 +249,19 @@ const CompanyPage: React.FC = () => {
   });
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Track if user manually changed accountHolderName
+  const [isAccountHolderManuallyEdited, setIsAccountHolderManuallyEdited] =
+    useState(false);
+
+  // When `namePrint` changes, auto-fill bankForm.accountHolderName if user hasn't edited it
+  useEffect(() => {
+    if (!isAccountHolderManuallyEdited && formData.namePrint) {
+      setBankForm((prev) => ({
+        ...prev,
+        accountHolderName: formData.namePrint,
+      }));
+    }
+  }, [formData.namePrint, isAccountHolderManuallyEdited]);
 
   const handleViewCompany = (company: any) => {
     setSelectedCompany(company);
@@ -314,7 +327,6 @@ const CompanyPage: React.FC = () => {
       if (name === "nameStreet" && !isNamePrintManuallyEdited) {
         updated.namePrint = value;
       }
-
       return updated;
     });
   };
@@ -361,6 +373,9 @@ const CompanyPage: React.FC = () => {
       ...prev,
       [name]: newValue,
     }));
+    if (name === "accountHolderName") {
+      setIsAccountHolderManuallyEdited(true); // ✅ user edited manually
+    }
   };
 
   const addOrUpdateBank = (): void => {

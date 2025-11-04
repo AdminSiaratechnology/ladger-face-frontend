@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api";
+import { toast } from "sonner";
 
 export interface StockGroup {
   _id: string;
@@ -105,8 +106,10 @@ export const useStockGroup = create<StockGroupStore>()(
             loading: false,
             error: false,
           });
+          toast.success("Stock Group added successfully");
         } catch (error) {
           set({ loading: false, error: true, errormessage: error.message });
+          toast.error(error.message || "Failed to add Stock Group");
         }
       },
       updateStockGroup: async (stockGroupId, stockGroupData) => {
@@ -127,10 +130,11 @@ export const useStockGroup = create<StockGroupStore>()(
             loading: false,
             error: false,
           });
-
+          toast.success("Stock Group updated successfully");
           console.log(res, "update stockgroup");
         } catch (error) {
           set({ loading: false, error: true, errormessage: error.message });
+          toast.error(error.message || "Failed to update Stock Group");
         }
       },
       deleteStockGroup: async (stockGroupId: string) => {
@@ -148,6 +152,7 @@ export const useStockGroup = create<StockGroupStore>()(
             loading: false,
             error: false,
           });
+          toast.success("Stock Group deleted successfully");
         } catch (error) {
           set({
             loading: false,
@@ -155,6 +160,9 @@ export const useStockGroup = create<StockGroupStore>()(
             errormessage:
               error.response?.data?.message || "Failed to delete stockGroup",
           });
+          toast.error(
+            error?.response?.data?.message || "Failed to delete stockGroup"
+          );
         }
       },
       filterStockGroups: async (

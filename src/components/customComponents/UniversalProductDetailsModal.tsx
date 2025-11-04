@@ -105,7 +105,7 @@ const UniversalProductDetailsModal: React.FC<
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="custom-dialog-container p-4 ">
+      <DialogContent className="custom-dialog-container p-0">
         <DialogHeader className="bg-gradient-to-r from-blue-200 to-blue-500 border-b border-gray-200 rounded-t-xl shadow-sm p-4 mb-3">
           <div className="flex items-center justify-between">
             <div>

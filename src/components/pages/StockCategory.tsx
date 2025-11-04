@@ -76,6 +76,7 @@ const StockCategoryRegistration: React.FC = () => {
   >([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     fetchStockCategory,
@@ -211,24 +212,32 @@ const StockCategoryRegistration: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    if (!formData.name.trim()) {
-      toast.error("Please enter Stock Category Name");
-      return;
-    }
+    if (isSubmitting) return; // ⛔ prevent multiple rapid clicks
+    setIsSubmitting(true);
+    try {
+      if (!formData.name.trim()) {
+        toast.error("Please enter Stock Category Name");
+        return;
+      }
 
-    if (editingStockCategory) {
-      updateStockCategory({
-        stockCategoryId: editingStockCategory._id,
-        data: formData,
-      });
-      fetchStockCategory(currentPage, limit, defaultSelected?._id);
-    } else {
-      await addStockCategory(formData);
-      fetchStockCategory(currentPage, limit, defaultSelected?._id);
-    }
+      if (editingStockCategory) {
+        await updateStockCategory({
+          stockCategoryId: editingStockCategory._id,
+          data: formData,
+        });
+        fetchStockCategory(currentPage, limit, defaultSelected?._id);
+      } else {
+        await addStockCategory(formData);
+        fetchStockCategory(currentPage, limit, defaultSelected?._id);
+      }
 
-    resetForm();
-    setOpen(false);
+      resetForm();
+      setOpen(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Statistics calculations
@@ -308,8 +317,7 @@ const StockCategoryRegistration: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {category.parent === "primary"
                     ? "Primary"
-                    : category?.parent?.name
-                  }
+                    : category?.parent?.name}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatSimpleDate(category.createdAt)}
@@ -324,7 +332,6 @@ const StockCategoryRegistration: React.FC = () => {
                   >
                     {category.status}
                   </Badge>
-      
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <ActionsDropdown
@@ -614,32 +621,12 @@ const StockCategoryRegistration: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {/* <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Stock Group
-                  </label>
-                  <select
-                    value={formData.stockGroupId}
-                    onChange={(e) =>
-                      handleSelectChange("stockGroupId", e.target.value)
-                    }
-                    className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                  >
-                    <option value="">Select Stock Group</option>
-                    {stockGroups.map((group) => (
-                      <option key={group._id} value={group._id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
-                </div> */}
-
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-semibold text-gray-700">
                     Parent Category
                   </label>
                   <select
-                    value={formData.parent}
+                    value={formData.parent?._id || formData.parent || ""}
                     onChange={(e) =>
                       handleSelectChange("parent", e.target.value)
                     }
@@ -688,16 +675,23 @@ const StockCategoryRegistration: React.FC = () => {
               <div className="flex justify-end mt-6">
                 <Button
                   onClick={handleSubmit}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
+                  disabled={isSubmitting}
+                  className={`${
+                    isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+                  } bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base`}
                 >
-                  {editingStockCategory ? "Update Category" : "Save Category"}
+                  {isSubmitting
+                    ? "Saving..."
+                    : editingStockCategory
+                    ? "Update Category"
+                    : "Save Category"}
                 </Button>
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-       <UniversalInventoryDetailsModal
+      <UniversalInventoryDetailsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         data={selectedCategory}

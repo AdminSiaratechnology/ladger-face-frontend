@@ -287,7 +287,7 @@ const GodownRegistration: React.FC = () => {
     });
 
     if (editingGodown) {
-      updateGodown(editingGodown._id || "", godownFormData);
+      await updateGodown(editingGodown._id || "", godownFormData);
     } else {
       await addGodown(godownFormData);
       fetchGodowns(currentPage, limit, defaultSelected?._id);

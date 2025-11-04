@@ -1,5 +1,5 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 interface CheckPermission {
   user?: any;
   companyId?: string; // 👈 added this
@@ -8,12 +8,18 @@ interface CheckPermission {
   type?: string;
 }
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-export function checkPermission({ user, companyId, module, subModule, type }: CheckPermission) {
+export function checkPermission({
+  user,
+  companyId,
+  module,
+  subModule,
+  type,
+}: CheckPermission) {
   if (!user) return false;
-// console.log(user, companyId, module, subModule, type )
+  // console.log(user, companyId, module, subModule, type )
   // 🔓 If user has global/all permissions
   if (user.allPermissions) return true;
 
@@ -31,6 +37,10 @@ export function checkPermission({ user, companyId, module, subModule, type }: Ch
   const subModuleAccess = moduleAccess?.[subModule];
   if (!subModuleAccess) return false;
 
-  // ✅ Check permission type (create/read/update/delete)
+  if (type?.includes("|")) {
+    const types = type.split("|").map((t) => t.trim());
+    return types.some((t) => subModuleAccess[t]);
+  }
+
   return subModuleAccess[type] === true;
 }

@@ -86,9 +86,10 @@ const UnitManagement: React.FC = () => {
   const [filteredUnits, setFilteredUnits] = useState<Unit[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10;
-  const [selectedUnit, setSelectedUnit] =
-    useState<Unit | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleViewUnit = (unit: any) => {
     setSelectedUnit(unit);
     setIsModalOpen(true);
@@ -103,7 +104,7 @@ const UnitManagement: React.FC = () => {
     pagination,
     loading,
     error,
-    initialLoading
+    initialLoading,
   } = useUOMStore();
   const { companies, defaultSelected } = useCompanyStore();
 
@@ -223,77 +224,85 @@ const UnitManagement: React.FC = () => {
     deleteUnit(id);
   };
 
-  const handleSubmit = (): void => {
-    if (!formData.name.trim()) {
-      toast.error("Please enter Unit Name");
-      return;
-    }
-    if (!formData.companyId) {
-      toast.error("Please select Company");
-      return;
-    }
+  const handleSubmit = async (): Promise<void> => {
+    if (isSubmitting) return; // ⛔ prevent multiple rapid clicks
+    setIsSubmitting(true);
+    try {
+      if (!formData.name.trim()) {
+        toast.error("Please enter Unit Name");
+        return;
+      }
+      if (!formData.companyId) {
+        toast.error("Please select Company");
+        return;
+      }
 
-    if (formData.type === "simple") {
-      if (!formData.symbol.trim()) {
-        toast.error("Please enter Symbol for Simple unit");
-        return;
+      if (formData.type === "simple") {
+        if (!formData.symbol.trim()) {
+          toast.error("Please enter Symbol for Simple unit");
+          return;
+        }
+        if (formData.decimalPlaces < 0) {
+          toast.error("Decimal Places cannot be negative");
+          return;
+        }
+      } else {
+        if (!formData.firstUnit || !formData.secondUnit) {
+          toast.error(
+            "Please select both First and Second Units for Compound unit"
+          );
+          return;
+        }
+        if (formData.firstUnit === formData.secondUnit) {
+          toast.error("First and Second Units cannot be the same");
+          return;
+        }
+        if (formData.conversion <= 0) {
+          toast.error("Conversion factor must be positive");
+          return;
+        }
       }
-      if (formData.decimalPlaces < 0) {
-        toast.error("Decimal Places cannot be negative");
-        return;
-      }
-    } else {
-      if (!formData.firstUnit || !formData.secondUnit) {
-        toast.error(
-          "Please select both First and Second Units for Compound unit"
-        );
-        return;
-      }
-      if (formData.firstUnit === formData.secondUnit) {
-        toast.error("First and Second Units cannot be the same");
-        return;
-      }
-      if (formData.conversion <= 0) {
-        toast.error("Conversion factor must be positive");
-        return;
-      }
-    }
 
-    const submitData = {
-      name: formData.name,
-      type: formData.type,
-      status: formData.status,
-      companyId: formData.companyId,
-      ...(formData.type === "simple"
-        ? {
-            symbol: formData.symbol,
-            decimalPlaces: formData.decimalPlaces,
-            UQC: formData.UQC,
-          }
-        : {
-            firstUnit: formData.firstUnit,
-            conversion: formData.conversion,
-            secondUnit: formData.secondUnit,
-          }),
-    };
+      const submitData = {
+        name: formData.name,
+        type: formData.type,
+        status: formData.status,
+        companyId: formData.companyId,
+        ...(formData.type === "simple"
+          ? {
+              symbol: formData.symbol,
+              decimalPlaces: formData.decimalPlaces,
+              UQC: formData.UQC,
+            }
+          : {
+              firstUnit: formData.firstUnit,
+              conversion: formData.conversion,
+              secondUnit: formData.secondUnit,
+            }),
+      };
 
-    if (editingUnit) {
-      updateUnit({ unitId: editingUnit._id, data: submitData });
-      toast.success("Unit updated successfully");
-    } else {
-      addUnit(submitData);
-       filterUnits(
+      if (editingUnit) {
+        await updateUnit({ unitId: editingUnit._id, data: submitData });
+        toast.success("Unit updated successfully");
+      } else {
+        await addUnit(submitData);
+        filterUnits(
           searchTerm,
           statusFilter,
           sortBy,
           currentPage,
           limit,
           defaultSelected?._id
-        )
-      toast.success("Unit added successfully");
+        );
+        toast.success("Unit added successfully");
+      }
+      setOpen(false);
+      resetForm();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
-    setOpen(false);
-    resetForm();
   };
 
   // Get simple units for compound dropdowns
@@ -375,7 +384,7 @@ const UnitManagement: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <ActionsDropdown
-                    onView={()=> handleViewUnit(unit)}
+                    onView={() => handleViewUnit(unit)}
                     onEdit={() => handleEditUnit(unit)}
                     onDelete={() => handleDeleteUnit(unit._id)}
                     module="InventoryManagement"
@@ -484,7 +493,7 @@ const UnitManagement: React.FC = () => {
       ))}
     </div>
   );
- useEffect(() => {
+  useEffect(() => {
     return () => {
       initialLoading();
     };
@@ -653,25 +662,6 @@ const UnitManagement: React.FC = () => {
               <div className="mt-6">
                 <SelectedCompany />
               </div>
-              {/* <div className="mt-6 flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Company <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.companyId}
-                    onChange={(e) =>
-                      handleSelectChange("companyId", e.target.value)
-                    }
-                    className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                  >
-                    <option value="">Select Company</option>
-                    {companies.map((company) => (
-                      <option key={company._id} value={company._id}>
-                        {company.namePrint}
-                      </option>
-                    ))}
-                  </select>
-                </div> */}
 
               <div className="mt-6 flex flex-col gap-1">
                 <label className="text-sm font-semibold text-gray-700">
@@ -797,9 +787,16 @@ const UnitManagement: React.FC = () => {
               <div className="flex justify-end mt-6">
                 <Button
                   onClick={handleSubmit}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
+                  disabled={isSubmitting}
+                  className={`${
+                    isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+                  } bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base`}
                 >
-                  {editingUnit ? "Update Unit" : "Save Unit"}
+                   {isSubmitting
+                    ? "Saving..."
+                    : editingUnit
+                    ? "Update Unit"
+                    : "Save Unit"}
                 </Button>
               </div>
             </div>
@@ -807,11 +804,11 @@ const UnitManagement: React.FC = () => {
         </DialogContent>
       </Dialog>
       <UniversalInventoryDetailsModal
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              data={selectedUnit}
-              type="unit" // or "stockGroup" | "stockCategory" | "unit"
-            />
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedUnit}
+        type="unit" // or "stockGroup" | "stockCategory" | "unit"
+      />
     </div>
   );
 };
