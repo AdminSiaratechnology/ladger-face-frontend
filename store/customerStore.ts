@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api";
+import { toast } from "sonner";
 interface Bank {
   id: number;
   accountHolderName: string;
@@ -259,6 +260,7 @@ export const useCustomerStore = create<CustomerStore>()(
         try {
           const result = await api.createCustomer(customer);
           const newCustomer: Customer = result.data;
+          toast.success("Customer added successfully");
           set({
             customers: [...get().customers, newCustomer],
             loading: false,
@@ -270,6 +272,7 @@ export const useCustomerStore = create<CustomerStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to add customer",
           });
+          toast.error(error?.response?.data?.message || "Failed to add customer");
         }
       },
 
@@ -285,6 +288,7 @@ export const useCustomerStore = create<CustomerStore>()(
             }),
             loading: false,
           });
+          toast.success("Customer updated successfully");
         } catch (error: any) {
           set({
             loading: false,
@@ -292,6 +296,9 @@ export const useCustomerStore = create<CustomerStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to update customer",
           });
+          toast.error(
+            error?.response?.data?.message || "Failed to update customer"
+          );
         }
       },
 
@@ -303,6 +310,7 @@ export const useCustomerStore = create<CustomerStore>()(
             customers: get().customers.filter((c) => c._id !== id),
             loading: false,
           });
+          toast.success("Customer deleted successfully");
         } catch (error: any) {
           set({
             loading: false,
@@ -310,6 +318,9 @@ export const useCustomerStore = create<CustomerStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to delete customer",
           });
+          toast.error(
+            error?.response?.data?.message || "Failed to delete customer"
+          );
         }
       },
 

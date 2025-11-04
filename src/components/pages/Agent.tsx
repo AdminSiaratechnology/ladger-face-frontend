@@ -845,14 +845,6 @@ const AgentRegistrationPage: React.FC = () => {
       toast.error("Please enter a valid email address");
       return;
     }
-    if (!formData.country) {
-      toast.error("Please select Country");
-      return;
-    }
-    if (!formData.zipCode.trim()) {
-      toast.error("Please enter Zip/Pincode");
-      return;
-    }
 
     const agentFormData = new FormData();
     Object.keys(formData).forEach((key) => {
@@ -917,7 +909,7 @@ const AgentRegistrationPage: React.FC = () => {
         toast.success("Agent updated successfully");
       } else {
         await addAgent(agentFormData);
-        fetchAgents(currentPage, limit, defaultSelected?._id);
+        fetchAgents(currentPage, limit,  defaultSelected?._id);
         toast.success("Agent added successfully");
         setCurrentPage(1);
       }

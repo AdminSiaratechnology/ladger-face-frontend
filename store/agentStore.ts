@@ -208,6 +208,7 @@ export const useAgentStore = create<AgentStore>()(
           });
 
           const result = await api.fetchAgents({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
+          console.log("first")
           set({
             agents: result?.data?.agents || [],
             pagination: result?.data?.pagination,

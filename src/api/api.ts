@@ -24,9 +24,7 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-
-
-//Create user Api 
+//Create user Api
 
 const createUser = async (userData: any) => {
   console.log("Creating user with data:", userData);
@@ -34,14 +32,16 @@ const createUser = async (userData: any) => {
   return res.data;
 };
 
-//Fetch users for agent 
+//Fetch users for agent
 
-const fetchUsers=async({queryParams}:{queryParams:string})=>{
+const fetchUsers = async ({ queryParams }: { queryParams: string }) => {
   console.log("fewtching usersss ");
-  const res=await apiClient.get(`/user-management/client/allUsers?${queryParams}`)
-  console.log(res,"fetched users response")
-  return res.data
-}
+  const res = await apiClient.get(
+    `/user-management/client/allUsers?${queryParams}`
+  );
+  console.log(res, "fetched users response");
+  return res.data;
+};
 
 // API functions
 const createCompany = async (companyData: any) => {
@@ -50,48 +50,58 @@ const createCompany = async (companyData: any) => {
   const res = await apiClient.post("/company/create", companyData);
   return res.data;
 };
-const updateUser=async(id,user)=>{
-  const res=await apiClient.patch(`/auth/updateUser/${id}`,user)
-  return res.data
-
-}
-const deleteUserStatus=async(id:string)=>{
-const res=await apiClient.delete(`/auth/deleteUser/${id}`)
-return res.data
-}
-const getCompanies = async ({agentId,queryParams}:{agentId:string,queryParams:string}) => {
-  console.log(queryParams,"queryParams")
+const updateUser = async (id, user) => {
+  const res = await apiClient.patch(`/auth/updateUser/${id}`, user);
+  return res.data;
+};
+const deleteUserStatus = async (id: string) => {
+  const res = await apiClient.delete(`/auth/deleteUser/${id}`);
+  return res.data;
+};
+const getCompanies = async ({
+  agentId,
+  queryParams,
+}: {
+  agentId: string;
+  queryParams: string;
+}) => {
+  console.log(queryParams, "queryParams");
   try {
     console.log("Fetching companies...");
     const res = await apiClient.get(`/company/agent/companies?${queryParams}`);
     console.log("Fetched companies:", res.data);
     return res.data;
   } catch (err: any) {
-    console.error("Error fetching companies:", err.response?.data || err.message);
+    console.error(
+      "Error fetching companies:",
+      err.response?.data || err.message
+    );
     throw err;
   }
 };
 const updateCompany = async (companyId: string, companyData: any) => {
- 
   try {
-    
-  
-  const res=await apiClient.put(`/company/update/${companyId}`,companyData)
-  return res.data
+    const res = await apiClient.put(
+      `/company/update/${companyId}`,
+      companyData
+    );
+    return res.data;
   } catch (err: any) {
-    console.error("Error fetching companies:", err.response?.data || err.message);
+    console.error(
+      "Error fetching companies:",
+      err.response?.data || err.message
+    );
     throw err;
   }
-}
+};
 const deleteCompany = async (companyId: string) => {
   try {
-      const res = await apiClient.delete(`/company/delete/${companyId}`);
-  return res.data;
+    const res = await apiClient.delete(`/company/delete/${companyId}`);
+    return res.data;
   } catch (error) {
-    throw error
+    throw error;
   }
-
-}
+};
 // const getCompanyPDF = async () => {
 //   const res = await apiClient.get(`/company/agent/documentation-pdf`);
 //   return res;
@@ -99,15 +109,12 @@ const deleteCompany = async (companyId: string) => {
 const downloadCompanyPDF = async () => {
   const token = localStorage.getItem("token");
   try {
-    const res = await axios.get(
-      `${baseUrl}company/agent/companies/doc/pdf`,
-      {
-        responseType: "blob", 
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const res = await axios.get(`${baseUrl}company/agent/companies/doc/pdf`, {
+      responseType: "blob",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     // 👇 Convert blob into a downloadable file
     const blob = new Blob([res.data], { type: "application/pdf" });
@@ -127,53 +134,72 @@ const getProducts = async () => {
   return res.data;
 };
 
+//godowns
+const getGodowns = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: any }
+) => {
+  console.log(queryParams, "quearyparmsgodiwn");
 
-//godowns 
-const getGodowns=async({companyId}:{companyId:string},{queryParams}:{queryParams:any})=>{
-  console.log(queryParams,"quearyparmsgodiwn")
-
-  const res=await apiClient.get(`/godowns/${companyId}?${queryParams}`)
-  return res?.data
-}
-const addGodowns=async(godown:any)=>{
-  const res=await apiClient.post("/godowns",godown)
-  return res?.data
-}
-const updateGodown=async({id, godown}:{id:string,godown:any})=>{
-  const res=await apiClient.put(`/godowns/${id}`,godown)
-  return res?.data
-}
-const deleteGodown=async(id:string)=>{
-  const res=await apiClient.delete(`/godowns/${id}`)
-  return res?.data
-}
+  const res = await apiClient.get(`/godowns/${companyId}?${queryParams}`);
+  return res?.data;
+};
+const addGodowns = async (godown: any) => {
+  const res = await apiClient.post("/godowns", godown);
+  return res?.data;
+};
+const updateGodown = async ({ id, godown }: { id: string; godown: any }) => {
+  const res = await apiClient.put(`/godowns/${id}`, godown);
+  return res?.data;
+};
+const deleteGodown = async (id: string) => {
+  const res = await apiClient.delete(`/godowns/${id}`);
+  return res?.data;
+};
 
 //stockgroup apis
 
-const getStockGroup=async({companyId}:{companyId:string},{queryParams}:{queryParams:string})=>{
-  const res=await apiClient.get(`/stock-groups/${companyId}?${queryParams}`);
-  return res?.data
-}
-const createSockGroup=async(data:any)=>{
-  const res=await apiClient.post("/stock-groups",data);
-  return res?.data
-}
-const updateStockGroup=async({stockGroupId,stockGroupData}:{stockGroupId:string,stockGroupData:any})=>{
-  console.log("hihih",stockGroupId,stockGroupData)
-  const res=await apiClient.put(`/stock-groups/${stockGroupId}`,stockGroupData)
-  return res?.data
-}
-const deleteStockGroup=async(stockGroupId:string)=>{
-  console.log("hihih",stockGroupId)
-  const res=await apiClient.delete(`/stock-groups/${stockGroupId}`)
-  return res?.data
-}
+const getStockGroup = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }
+) => {
+  const res = await apiClient.get(`/stock-groups/${companyId}?${queryParams}`);
+  return res?.data;
+};
+const createSockGroup = async (data: any) => {
+  const res = await apiClient.post("/stock-groups", data);
+  return res?.data;
+};
+const updateStockGroup = async ({
+  stockGroupId,
+  stockGroupData,
+}: {
+  stockGroupId: string;
+  stockGroupData: any;
+}) => {
+  console.log("hihih", stockGroupId, stockGroupData);
+  const res = await apiClient.put(
+    `/stock-groups/${stockGroupId}`,
+    stockGroupData
+  );
+  return res?.data;
+};
+const deleteStockGroup = async (stockGroupId: string) => {
+  console.log("hihih", stockGroupId);
+  const res = await apiClient.delete(`/stock-groups/${stockGroupId}`);
+  return res?.data;
+};
 
 //getStockCategory routes
 
-const getStockCategory = async ({companyId}:{companyId:string},{queryParams}:{queryParams:any}) => {
-  console.log(queryParams,"queryParams")
-  const res = await apiClient.get(`/stock-categories/${companyId}?${queryParams}`);
+const getStockCategory = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: any }
+) => {
+  console.log(queryParams, "queryParams");
+  const res = await apiClient.get(
+    `/stock-categories/${companyId}?${queryParams}`
+  );
   return res?.data;
 };
 
@@ -182,7 +208,13 @@ const createStockCategory = async (data: any) => {
   return res?.data;
 };
 
-const updateStockCategory = async ({ stockCategoryId, data }: { stockCategoryId: string; data: any }) => {
+const updateStockCategory = async ({
+  stockCategoryId,
+  data,
+}: {
+  stockCategoryId: string;
+  data: any;
+}) => {
   const res = await apiClient.put(`/stock-categories/${stockCategoryId}`, data);
   return res?.data;
 };
@@ -194,7 +226,10 @@ const deleteStockCategory = async (stockCategoryId: string) => {
 
 //getStockCategory routes
 
-const fetchUOM = async ({companyId}:{companyId:string},{queryParams}:{queryParams:any}) => {
+const fetchUOM = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: any }
+) => {
   const res = await apiClient.get(`/units/${companyId}?${queryParams}`);
   return res?.data;
 };
@@ -203,8 +238,7 @@ const createUOM = async (data: any) => {
   const res = await apiClient.post("/units", data);
   return res?.data;
 };
-const updateUOM = async ({ unitId,data }: { unitId: string; data: any }) => {
-  
+const updateUOM = async ({ unitId, data }: { unitId: string; data: any }) => {
   const res = await apiClient.put(`/units/${unitId}`, data);
   return res?.data;
 };
@@ -213,19 +247,22 @@ const deleteUOM = async (id: string) => {
   return res?.data;
 };
 
-const fetchProducts = async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
+const fetchProducts = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }
+) => {
   const res = await apiClient.get(`/products/${companyId}?${queryParams}`);
-  console.log(res,"ressfetchproduct")
+  console.log(res, "ressfetchproduct");
   return res.data;
 };
 
-const createProduct = async (product:any) => {
-  console.log(product,"createProductcreateProduct")
+const createProduct = async (product: any) => {
+  console.log(product, "createProductcreateProduct");
   const res = await apiClient.post("/products", product);
   return res.data;
 };
 
-const updateProduct = async ({id, product}:{id:string,product:any}) => {
+const updateProduct = async ({ id, product }: { id: string; product: any }) => {
   const res = await apiClient.put(`/products/${id}`, product);
   return res.data;
 };
@@ -236,8 +273,13 @@ const deleteProduct = async (id: number) => {
 };
 
 // Fetch all customers
-const fetchCustomers =  async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
-  const res = await apiClient.get(`/agent/customers/${companyId}?${queryParams}}`);
+const fetchCustomers = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }
+) => {
+  const res = await apiClient.get(
+    `/agent/customers/${companyId}?${queryParams}}`
+  );
   // console.log(res, "fetchCustomers response");
   return res.data;
 };
@@ -251,13 +293,16 @@ const createCustomer = async (customer: any) => {
 
 // Update customer by ID
 const updateCustomer = async (id: number | string, customer: any) => {
-  try{
-  console.log(id, customer, "updateCustomer payload");
-  const res = await apiClient.put(`/agent/customers/${id}`, customer);
-  console.log(res.data,"ressss")
-  return res.data;
+  try {
+    console.log(id, customer, "updateCustomer payload");
+    const res = await apiClient.put(`/agent/customers/${id}`, customer);
+    console.log(res.data, "ressss");
+    return res.data;
   } catch (err: any) {
-    console.error("Error fetching companies:", err.response?.data || err.message);
+    console.error(
+      "Error fetching companies:",
+      err.response?.data || err.message
+    );
     throw err;
   }
 };
@@ -269,7 +314,10 @@ const deleteCustomer = async (id: number | string) => {
 };
 
 // Fetch all vendors
-const fetchVendors = async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
+const fetchVendors = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }
+) => {
   const res = await apiClient.get(`/agent/vendors/${companyId}?${queryParams}`);
   // console.log(res, "fetchVendors response");
   return res.data;
@@ -284,13 +332,16 @@ const createVendor = async (vendor: any) => {
 
 // Update vendor by ID
 const updateVendor = async (id: number | string, vendor: any) => {
-  try{
-  console.log(id, vendor, "updateVendor payload");
-  const res = await apiClient.put(`/agent/vendors/${id}`, vendor);
-  console.log(res.data,"ressss")
-  return res.data;
+  try {
+    console.log(id, vendor, "updateVendor payload");
+    const res = await apiClient.put(`/agent/vendors/${id}`, vendor);
+    console.log(res.data, "ressss");
+    return res.data;
   } catch (err: any) {
-    console.error("Error fetching companies:", err.response?.data || err.message);
+    console.error(
+      "Error fetching companies:",
+      err.response?.data || err.message
+    );
     throw err;
   }
 };
@@ -302,7 +353,10 @@ const deleteVendor = async (id: number | string) => {
 };
 
 // Fetch all agents
-const fetchAgents = async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
+const fetchAgents = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }
+) => {
   const res = await apiClient.get(`/agent/agents/${companyId}?${queryParams}`);
   // console.log(res, "fetchAgents response");
   return res.data;
@@ -317,13 +371,16 @@ const createAgent = async (agent: any) => {
 
 // Update agent by ID
 const updateAgent = async (id: number | string, agent: any) => {
-  try{
-  console.log(id, agent, "updateAgent payload");
-  const res = await apiClient.put(`/agent/agents/${id}`, agent);
-  console.log(res.data,"ressss")
-  return res.data;
+  try {
+    console.log(id, agent, "updateAgent payload");
+    const res = await apiClient.put(`/agent/agents/${id}`, agent);
+    console.log(res.data, "ressss");
+    return res.data;
   } catch (err: any) {
-    console.error("Error fetching companies:", err.response?.data || err.message);
+    console.error(
+      "Error fetching companies:",
+      err.response?.data || err.message
+    );
     throw err;
   }
 };
@@ -335,7 +392,10 @@ const deleteAgent = async (id: number | string) => {
 };
 
 // Fetch all ledgers
-const fetchLedgers = async ({companyId}:{companyId:string},{queryParams}:{queryParams:string}) => {
+const fetchLedgers = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }
+) => {
   const res = await apiClient.get(`/agent/ledgers/${companyId}?${queryParams}`);
   return res.data;
 };
@@ -406,69 +466,82 @@ export interface GetAuditLogsOptions {
   limit?: number;
 }
 
-
-export const getAuditLogs = async (params:string) => {
+export const getAuditLogs = async (params: string) => {
   try {
-   
-
-    
-
     const response = await apiClient.get(`/auditLog/client?${params}`);
 
     const data = response;
-    return data 
-
+    return data;
   } catch (error: any) {
-    console.error("❌ Failed to fetch audit logs:", error.response?.data || error.message);
+    console.error(
+      "❌ Failed to fetch audit logs:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
-export const getAuditLogsDetail = async (params:string) => {
+export const getAuditLogsDetail = async (params: string) => {
   try {
-   
-
-    
-
     const response = await apiClient.get(`/auditLog/client/all?${params}`);
 
     const data = response;
-    return data 
-
+    return data;
   } catch (error: any) {
-    console.error("❌ Failed to fetch audit logs:", error.response?.data || error.message);
+    console.error(
+      "❌ Failed to fetch audit logs:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
-export const getAuditLogsByID = async (id:string) => {
+export const getAuditLogsByID = async (id: string) => {
   try {
-   
-
-    
-
     const response = await apiClient.get(`/auditLog/client/detail/${id}`);
 
     const data = response;
-    return data 
-
+    return data;
   } catch (error: any) {
-    console.error("❌ Failed to fetch audit logs:", error.response?.data || error.message);
+    console.error(
+      "❌ Failed to fetch audit logs:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
-export const restoreRecord=async({module, referenceId,id}:{module:string, referenceId:string,id:string})=>{
+export const restoreRecord = async ({
+  module,
+  referenceId,
+  id,
+}: {
+  module: string;
+  referenceId: string;
+  id: string;
+}) => {
   try {
-    console.log(module, referenceId,id,"module, referenceId,idR")
-    const response=await apiClient.patch("/auditLog/client/restore",{module, referenceId,id})
-    console.log(response,"response")
-    
+    console.log(module, referenceId, id, "module, referenceId,idR");
+    const response = await apiClient.patch("/auditLog/client/restore", {
+      module,
+      referenceId,
+      id,
+    });
+    console.log(response, "response");
   } catch (error) {
-    throw error
+    throw error;
   }
-}
+};
 
-
-
-
+export const updateProfile = async (profileData: any) => {
+  try {
+    const response = await apiClient.put("/user-management/profile/update", profileData);
+    return response.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to update profile:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
 
 // Export API
 const api = {
@@ -487,10 +560,10 @@ const api = {
   updateGodown,
   deleteGodown,
   createSockGroup,
- getStockGroup,
-updateStockGroup,
-deleteStockGroup,
-getStockCategory,
+  getStockGroup,
+  updateStockGroup,
+  deleteStockGroup,
+  getStockCategory,
   createStockCategory,
   updateStockCategory,
   deleteStockCategory,
@@ -506,20 +579,23 @@ getStockCategory,
   createCustomer,
   updateCustomer,
   deleteCustomer,
-  fetchVendors,createVendor,
+  fetchVendors,
+  createVendor,
   updateVendor,
   deleteVendor,
   fetchAgents,
   createAgent,
   updateAgent,
   deleteAgent,
-  fetchLedgers, createLedger, updateLedger, deleteLedger ,
+  fetchLedgers,
+  createLedger,
+  updateLedger,
+  deleteLedger,
   getAuditLogs,
   getAuditLogsDetail,
   getAuditLogsByID,
-  restoreRecord
-
-
-}
+  restoreRecord,
+  updateProfile,
+};
 
 export default api;

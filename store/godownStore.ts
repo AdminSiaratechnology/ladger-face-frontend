@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api"; // Assuming same api import
+import { toast } from "sonner";
 
 // Types
 export interface Godown {
@@ -122,12 +123,16 @@ export const useGodownStore = create<GodownStore>()(
             loading: false,
             error: null,
           });
+          toast.success("Godown created successfully");
         } catch (error: any) {
           console.log("Error creating godown:", error);
           set({
             loading: false,
             error: error.response?.data?.message || "Failed to create godown",
           });
+          toast.error(
+            error?.response?.data?.message || "Failed to create godown"
+          );
         }
       },
 
@@ -151,11 +156,15 @@ export const useGodownStore = create<GodownStore>()(
             loading: false,
             error: null,
           });
+          toast.success("Godown updated successfully");
         } catch (error: any) {
           set({
             loading: false,
             error: error.response?.data?.message || "Failed to update godown",
           });
+          toast.error(
+            error?.response?.data?.message || "Failed to update godown"
+          );
         }
       },
 

@@ -792,7 +792,7 @@ const LedgerRegistration: React.FC = () => {
         ledgerFormData.append(key, String(value));
       }
     });
-    ledgerFormData.append("companyID", formData.companyId);
+    // ledgerFormData.append("companyID", formData.companyId);
     ledgerFormData.append("banks", JSON.stringify(formData.banks));
     if (formData.logoFile) {
       ledgerFormData.append("logo", formData.logoFile);
