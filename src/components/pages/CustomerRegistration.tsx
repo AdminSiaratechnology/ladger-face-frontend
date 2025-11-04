@@ -55,6 +55,7 @@ import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
 import { useAgentStore } from "../../../store/agentStore";
 import UniversalDetailsModal from "../customComponents/UniversalDetailsModal";
+import imageCompression from "browser-image-compression";
 // Interfaces (adapted from provided Customer interface)
 interface Bank {
   id: number;
@@ -239,6 +240,13 @@ const stepIcons = {
   tax: <FileText className="w-2 h-2 md:w-5 md:h-5 " />,
   bank: <Building2 className="w-2 h-2 md:w-5 md:h-5 " />,
   settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5 " />,
+};
+
+const compressionOptions = {
+  maxSizeMB: 1, // Max file size after compression_
+  maxWidthOrHeight: 1920, // Max dimension_
+  useWebWorker: true, // Use web worker for non-blocking_
+  initialQuality: 0.8, // Start with 80% quality_
 };
 
 const CustomerRegistrationPage: React.FC = () => {
@@ -539,17 +547,46 @@ const CustomerRegistrationPage: React.FC = () => {
     }
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleLogoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
     const file = e.target.files?.[0];
     if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setFormData((prev) => ({
-        ...prev,
-        logoFile: file,
-        logoPreviewUrl: previewUrl,
-      }));
+      // Skip compression for non-images (e.g., PDFs, but logo is image-only)_
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file for the logo.");
+        return;
+      }
+
+      try {
+        toast.info("Compressing image...");
+        console.log("Compressing image...");
+        const compressedFile = await imageCompression(file, compressionOptions);
+        const previewUrl = URL.createObjectURL(compressedFile);
+        setFormData((prev) => ({
+          ...prev,
+          logoFile: compressedFile,
+          logoPreviewUrl: previewUrl,
+        }));
+        toast.success(
+          `Logo compressed from ${Math.round(
+            file.size / 1024
+          )}KB to ${Math.round(compressedFile.size / 1024)}KB`
+        );
+        console.log("hiiiiiiiiiiiiii");
+      } catch (error) {
+        console.error("Compression failed:", error);
+        toast.error("Failed to compress image. Using original file.");
+        const previewUrl = URL.createObjectURL(file);
+        setFormData((prev) => ({
+          ...prev,
+          logoFile: file,
+          logoPreviewUrl: previewUrl,
+        }));
+      }
     }
   };
+
 
   const removeLogo = (): void => {
     if (
@@ -565,32 +602,51 @@ const CustomerRegistrationPage: React.FC = () => {
     }));
   };
 
-  const handleDocumentUpload = (
-    type: string,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const previewUrl = URL.createObjectURL(file);
-
-      const newDoc: RegistrationDocument = {
-        id: Date.now(),
-        type,
-        file,
-        previewUrl,
-        fileName: file.name,
+     // Updated document upload with compression (async)_
+      const handleDocumentUpload = async (
+        type: string,
+        e: React.ChangeEvent<HTMLInputElement>
+      ) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          // Compress only if it's an image; skip for PDFs_
+          let processedFile = file;
+          let isImage = file.type.startsWith("image/");
+    
+          if (isImage) {
+            try {
+              toast.info(`Compressing ${type} image...`);
+              processedFile = await imageCompression(file, compressionOptions);
+              toast.success(
+                `${type} compressed from ${Math.round(
+                  file.size / 1024
+                )}KB to ${Math.round(processedFile.size / 1024)}KB`
+              );
+            } catch (error) {
+              console.error("Compression failed:", error);
+              toast.error(`Failed to compress ${type} image. Using original.`);
+            }
+          }
+    
+          const previewUrl = URL.createObjectURL(processedFile);
+    
+          const newDoc: RegistrationDocument = {
+            id: Date.now(),
+            type,
+            file: processedFile,
+            previewUrl,
+            fileName: processedFile.name,
+          };
+    
+          setFormData((prev) => ({
+            ...prev,
+            registrationDocs: [
+              ...prev.registrationDocs.filter((doc) => doc.type !== type),
+              newDoc,
+            ],
+          }));
+        }
       };
-
-      setFormData((prev) => ({
-        ...prev,
-        registrationDocs: [
-          ...prev.registrationDocs.filter((doc) => doc.type !== type),
-          newDoc,
-        ],
-      }));
-    }
-  };
-
   const removeDocument = (id: number) => {
     const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
     if (
@@ -722,9 +778,12 @@ const CustomerRegistrationPage: React.FC = () => {
     setFormData({
       ...customer,
       logoPreviewUrl: customer.logo || undefined,
-      registrationDocs: customer.registrationDocs.map((doc) => ({
-        ...doc,
-        previewUrl: doc.file, // Assuming file is URL or base64, adjust if needed
+      registrationDocs: customer.registrationDocs.map((doc, index) => ({
+        id: Date.now() + index,
+        type: doc.type,
+        file: null, // No File for existing
+        fileName: doc.fileName,
+        previewUrl: doc.file, // Use URL as preview for existing images
       })),
     });
     setOpen(true);
@@ -786,17 +845,31 @@ const CustomerRegistrationPage: React.FC = () => {
       customerFormData.append("logo", formData.logoFile);
     }
 
-    formData.registrationDocs.forEach((doc) => {
-      customerFormData.append("registrationDocs", doc.file);
+    // formData.registrationDocs.forEach((doc) => {
+    //   customerFormData.append("registrationDocs", doc.file);
+    // });
+    // customerFormData.append(
+    //   "registrationDocTypes",
+    //   JSON.stringify(formData.registrationDocs.map((doc) => doc.type))
+    // );
+    // customerFormData.append(
+    //   "registrationDocsCount",
+    //   String(formData.registrationDocs.length)
+    // );
+
+       const newRegistrationDocs = formData.registrationDocs.filter(
+      (doc) => doc.file && doc.file instanceof Blob
+    );
+
+    newRegistrationDocs.forEach((doc) => {
+      customerFormData.append("registrationDocs", doc.file!);
     });
-    customerFormData.append(
-      "registrationDocTypes",
-      JSON.stringify(formData.registrationDocs.map((doc) => doc.type))
-    );
-    customerFormData.append(
-      "registrationDocsCount",
-      String(formData.registrationDocs.length)
-    );
+        if (newRegistrationDocs.length > 0) {
+      customerFormData.append(
+        "registrationDocTypes",
+        JSON.stringify(newRegistrationDocs.map((doc) => doc.type))
+      );
+    }
 
     if (editingCustomer) {
       updateCustomer({

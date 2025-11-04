@@ -51,6 +51,7 @@ import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
 import UniversalDetailsModal from "../customComponents/UniversalDetailsModal";
+import imageCompression from "browser-image-compression";
 
 // Step icons for multi-step navigation
 const stepIcons = {
@@ -194,6 +195,14 @@ interface LedgerForm {
   notes: string;
   registrationDocs: RegistrationDocument[];
 }
+
+const compressionOptions = {
+  maxSizeMB: 1, // Max file size after compression_
+  maxWidthOrHeight: 1920, // Max dimension_
+  useWebWorker: true, // Use web worker for non-blocking_
+  initialQuality: 0.8, // Start with 80% quality_
+};
+
 
 const LedgerRegistration: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
@@ -529,17 +538,46 @@ const LedgerRegistration: React.FC = () => {
     }
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setFormData((prev) => ({
-        ...prev,
-        logoFile: file,
-        logoPreviewUrl: previewUrl,
-      }));
-    }
-  };
+   // Updated logo upload with compression (async)_
+    const handleLogoUpload = async (
+      e: React.ChangeEvent<HTMLInputElement>
+    ): Promise<void> => {
+      const file = e.target.files?.[0];
+      if (file) {
+        // Skip compression for non-images (e.g., PDFs, but logo is image-only)_
+        if (!file.type.startsWith("image/")) {
+          toast.error("Please select an image file for the logo.");
+          return;
+        }
+  
+        try {
+          toast.info("Compressing image...");
+          console.log("Compressing image...");
+          const compressedFile = await imageCompression(file, compressionOptions);
+          const previewUrl = URL.createObjectURL(compressedFile);
+          setFormData((prev) => ({
+            ...prev,
+            logoFile: compressedFile,
+            logoPreviewUrl: previewUrl,
+          }));
+          toast.success(
+            `Logo compressed from ${Math.round(
+              file.size / 1024
+            )}KB to ${Math.round(compressedFile.size / 1024)}KB`
+          );
+          console.log("hiiiiiiiiiiiiii");
+        } catch (error) {
+          console.error("Compression failed:", error);
+          toast.error("Failed to compress image. Using original file.");
+          const previewUrl = URL.createObjectURL(file);
+          setFormData((prev) => ({
+            ...prev,
+            logoFile: file,
+            logoPreviewUrl: previewUrl,
+          }));
+        }
+      }
+    };
 
   const removeLogo = (): void => {
     if (
@@ -555,29 +593,51 @@ const LedgerRegistration: React.FC = () => {
     }));
   };
 
-  const handleDocumentUpload = (
-    type: string,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      const newDoc: RegistrationDocument = {
-        id: Date.now(),
-        type,
-        file,
-        previewUrl,
-        fileName: file.name,
-      };
-      setFormData((prev) => ({
-        ...prev,
-        registrationDocs: [
-          ...prev.registrationDocs.filter((doc) => doc.type !== type),
-          newDoc,
-        ],
-      }));
-    }
-  };
+// Updated document upload with compression (async)_
+    const handleDocumentUpload = async (
+      type: string,
+      e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        // Compress only if it's an image; skip for PDFs_
+        let processedFile = file;
+        let isImage = file.type.startsWith("image/");
+  
+        if (isImage) {
+          try {
+            toast.info(`Compressing ${type} image...`);
+            processedFile = await imageCompression(file, compressionOptions);
+            toast.success(
+              `${type} compressed from ${Math.round(
+                file.size / 1024
+              )}KB to ${Math.round(processedFile.size / 1024)}KB`
+            );
+          } catch (error) {
+            console.error("Compression failed:", error);
+            toast.error(`Failed to compress ${type} image. Using original.`);
+          }
+        }
+  
+        const previewUrl = URL.createObjectURL(processedFile);
+  
+        const newDoc: RegistrationDocument = {
+          id: Date.now(),
+          type,
+          file: processedFile,
+          previewUrl,
+          fileName: processedFile.name,
+        };
+  
+        setFormData((prev) => ({
+          ...prev,
+          registrationDocs: [
+            ...prev.registrationDocs.filter((doc) => doc.type !== type),
+            newDoc,
+          ],
+        }));
+      }
+    };
 
   const removeDocument = (id: number) => {
     const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
@@ -683,9 +743,12 @@ const LedgerRegistration: React.FC = () => {
     setFormData({
       ...ledger,
       logoPreviewUrl: ledger.logo || undefined,
-      registrationDocs: ledger.registrationDocs.map((doc) => ({
-        ...doc,
-        previewUrl: doc.previewUrl, // Assuming previewUrl is URL or base64
+     registrationDocs: ledger.registrationDocs.map((doc, index) => ({
+        id: Date.now() + index,
+        type: doc.type,
+        file: null, // No File for existing
+        fileName: doc.fileName,
+        previewUrl: doc.file, // Use URL as preview for existing images
       })),
     });
     setOpen(true);
@@ -734,17 +797,32 @@ const LedgerRegistration: React.FC = () => {
     if (formData.logoFile) {
       ledgerFormData.append("logo", formData.logoFile);
     }
-    formData.registrationDocs.forEach((doc) => {
-      ledgerFormData.append("registrationDocs", doc.file);
+    // formData.registrationDocs.forEach((doc) => {
+    //   ledgerFormData.append("registrationDocs", doc.file);
+    // });
+    // ledgerFormData.append(
+    //   "registrationDocTypes",
+    //   JSON.stringify(formData.registrationDocs.map((doc) => doc.type))
+    // );
+    // ledgerFormData.append(
+    //   "registrationDocsCount",
+    //   String(formData.registrationDocs.length)
+    // );
+
+       const newRegistrationDocs = formData.registrationDocs.filter(
+      (doc) => doc.file && doc.file instanceof Blob
+    );
+
+    newRegistrationDocs.forEach((doc) => {
+      ledgerFormData.append("registrationDocs", doc.file!);
     });
-    ledgerFormData.append(
-      "registrationDocTypes",
-      JSON.stringify(formData.registrationDocs.map((doc) => doc.type))
-    );
-    ledgerFormData.append(
-      "registrationDocsCount",
-      String(formData.registrationDocs.length)
-    );
+
+    if (newRegistrationDocs.length > 0) {
+      ledgerFormData.append(
+        "registrationDocTypes",
+        JSON.stringify(newRegistrationDocs.map((doc) => doc.type))
+      );
+    }
 
     if (editingLedger) {
       updateLedger({ id: editingLedger._id || "", ledger: ledgerFormData });
