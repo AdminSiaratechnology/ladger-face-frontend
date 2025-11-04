@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api";
+import { toast } from "sonner";
 
 interface TaxConfiguration {
   applicable: boolean;
@@ -135,6 +136,7 @@ export const useProductStore = create<ProductStore>()(
             products: [...get().products, result?.data],
             loading: false,
           });
+          toast.success("Product added successfully"); 
         } catch (error: any) {
           set({
             loading: false,
@@ -142,6 +144,7 @@ export const useProductStore = create<ProductStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to add product",
           });
+          toast.error(error?.response?.data?.message || "Failed to add product");
         }
       },
 
@@ -157,6 +160,7 @@ export const useProductStore = create<ProductStore>()(
             ),
             loading: false,
           });
+          toast.success("Product updated successfully");
         } catch (error: any) {
           set({
             loading: false,
@@ -164,6 +168,7 @@ export const useProductStore = create<ProductStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to update product",
           });
+          toast.error(error?.response?.data?.message || "Failed to update product");
         }
       },
 
@@ -176,6 +181,7 @@ export const useProductStore = create<ProductStore>()(
             products: get().products.filter((p) => p?._id !== id),
             loading: false,
           });
+          toast.success("Product deleted successfully");
         } catch (error: any) {
           set({
             loading: false,
@@ -183,6 +189,7 @@ export const useProductStore = create<ProductStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to delete product",
           });
+          toast.error(error?.response?.data?.message || "Failed to delete product");
         }
       },
 

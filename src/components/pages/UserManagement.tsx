@@ -193,13 +193,13 @@ export const UserManagement: React.FC = () => {
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
-    const [selectedUser, setSelectedUser] = useState<any>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-  
-    const handleViewUser = (user: any) => {
-      setSelectedUser(user);
-      setIsModalOpen(true);
-    };
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleViewUser = (user: any) => {
+    setSelectedUser(user);
+    setIsModalOpen(true);
+  };
   const limit = 10; // Fixed limit per page
   const [selectedTemplates, setSelectedTemplates] = useState<{
     [companyId: string]: string;
@@ -222,11 +222,6 @@ export const UserManagement: React.FC = () => {
   useEffect(() => {
     setFilteredUsers(users);
   }, [users]);
-  // Initial fetch
-  // useEffect(() => {
-  //   fetchUsers(currentPage, limit);
-  // }, [fetchUsers, currentPage]);
-
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -874,18 +869,6 @@ export const UserManagement: React.FC = () => {
     }
   }, [searchTerm2]);
 
-  // ✅ Debounced search
-  // useEffect(() => {
-  //   const handler = setTimeout(() => {
-  //     filterCompanies(
-  //       searchTerm2,
-  //       "active",
-  //       "dateDesc"      );
-  //   }, 400);
-
-  //   return () => clearTimeout(handler);
-  // }, [searchTerm2]);
-
   // ✅ Handle toggle for selecting/unselecting companies
   const toggleCompanySelection = (companyId: string) => {
     const existing = selectedCompanies.includes(companyId);
@@ -979,11 +962,12 @@ export const UserManagement: React.FC = () => {
       </div>
     </div>
   );
-  useEffect(() => {
-    return () => {
-      initialLoading();
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     initialLoading();
+  //   };
+  // }, []);
+  console.log(companies)
   return (
     <div className="custom-container ">
       {/* Header */}
@@ -1269,7 +1253,7 @@ export const UserManagement: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <ActionsDropdown
-                        onView={()=> handleViewUser(user)}
+                          onView={() => handleViewUser(user)}
                           onEdit={() => handleEditUser(user)}
                           onDelete={() => handleDeleteUser(user._id || "")}
                           module="UserManagement"
@@ -1515,7 +1499,7 @@ export const UserManagement: React.FC = () => {
                   )}
 
                   {showDropdown && (
-                    <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-[300px] overflow-hidden">
+                    <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-[300px] overflow-scroll">
                       <ScrollArea className="max-h-[300px] p-2">
                         {loading ? (
                           <p className="text-center text-gray-500 text-sm mt-4">
@@ -2040,7 +2024,7 @@ export const UserManagement: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         data={selectedUser}
-        />
+      />
     </div>
   );
 };

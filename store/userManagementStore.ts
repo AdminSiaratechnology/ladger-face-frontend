@@ -11,9 +11,13 @@ interface Pagination {
   limit: number;
   totalPages: number;
 }
-
+interface CachedPageData {
+  users: any[];
+  pagination: Pagination;
+}
 interface useUserManagementStore {
   users: any[];
+  usersByPage: Record<string, CachedPageData>;
   pagination: Pagination;
   loading: boolean;
   error: string | null | boolean;
@@ -43,6 +47,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
   persist(
     (set, get) => ({
       users: [],
+      usersByPage: {},
       pagination: {
         total: 0,
         page: 1,
@@ -56,6 +61,17 @@ export const useUserManagementStore = create<useUserManagementStore>()(
         set({ loading: true });
         try {
           console.log("Fetching users...");
+          const cacheKey = `fetch-${page}-${limit}`;
+          const cached = get().usersByPage[cacheKey];
+          if (cached) {
+            console.log("Using cached data for users page:", cacheKey);
+            set({
+              users: cached.users,
+              pagination: cached.pagination,
+              loading: false,
+            });
+            return;
+          }
           const queryParams = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
@@ -64,6 +80,10 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             queryParams: queryParams.toString(),
           }); // Adjust api call if needed
           set({
+            usersByPage: { ...get().usersByPage, [cacheKey]: {
+              users: response.data?.users || [],
+              pagination: response.data?.pagination,
+            }},
             users: response.data?.users || [],
             pagination: response.data?.pagination,
             loading: false,
@@ -82,6 +102,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
           // Update persisted state with new user
           set((state) => ({
             users: [...state.users, response?.data],
+            usersByPage: {},
             loading: false,
           }));
 
@@ -89,7 +110,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
         } catch (error: any) {
           console.error("Error creating user:", error);
           set({ loading: false });
-          toast.error("User update failed");
+          toast.error("User add failed");
           return error;
         }
       },
@@ -110,6 +131,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
 
           set({
             users: get().users.map((u) => (u._id === id ? updatedUser : u)),
+            usersByPage: {},
             loading: false,
           });
           return response;
@@ -140,6 +162,17 @@ export const useUserManagementStore = create<useUserManagementStore>()(
         limit = 10,
         companyId: string
       ) => {
+        const cacheKey = `filter-${searchTerm}-${roleFilter}-${statusFilter}-${sortBy}-${page}-${limit}-${companyId}`;
+        const cached = get().usersByPage[cacheKey];
+        if (cached) {
+          console.log("Using cached data for filterUsers:", cacheKey);
+          set({
+            users: cached.users,
+            pagination: cached.pagination,
+            loading: false,
+          });
+          return cached.users;
+        }
         set({ loading: true });
         try {
           const queryParams = new URLSearchParams({
@@ -157,6 +190,10 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             queryParams: queryParams.toString(),
           }); // Adjust api call
           set({
+            usersByPage: { ...get().usersByPage, [cacheKey]: {
+              users: response.data?.users || [],
+              pagination: response.data?.pagination,
+            }},
             users: response.data?.users || [],
             pagination: response.data?.pagination,
             loading: false,

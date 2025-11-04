@@ -101,8 +101,8 @@ function checkPermission(user: any, companyId: string, module: string, subModule
   const modules = companyAccess.modules;
   const hasModule = modules[module];
   const hasSubModule = hasModule?.[subModule];
-
-  return !!hasSubModule?.read;
+const { create, read, update, delete: del } = hasSubModule;
+  return !!(create || read || update || del);
 }
 
 // ✅ Updated hasMenuAccess
@@ -191,7 +191,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: "/company",
       icon: LayoutDashboard,
       label: "Company",
-      roles: ["admin", "agent", "salesman"],
+      roles: ["admin", "agent"],
       type: "link",
     },
     {
@@ -345,7 +345,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: "/company",
       icon: LayoutDashboard,
       label: "Company",
-      roles: ["admin", "agent", "salesman"],
+      roles: ["admin", "agent"],
       type: "link",
     },
     {

@@ -31,10 +31,11 @@ import { useStockGroup } from "../../../store/stockGroupStore";
 import { useGodownStore } from "../../../store/godownStore";
 import { useUserManagementStore } from "../../../store/userManagementStore";
 
-
 import CompanySelectorModal from "../customComponents/CompanySelectorModal";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { useVendorStore } from "../../../store/vendorStore";
+import { useAgentStore } from "../../../store/agentStore";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -45,12 +46,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { user, logout } = useAuthStore();
   const { defaultSelected, companies, resetCompanies } = useCompanyStore();
-  const { resetStore} = useAuditLogStore();
-  const {resetSrockCategories } = useStockCategory();
-  const { resetStockGroup } = useStockGroup();
-  const { resetUnits} = useUOMStore();
-  const { resetGodown} = useGodownStore();
-  const { resetUserManagement} = useUserManagementStore();
+  const { resetStore } = useAuditLogStore();
+  const { resetSrockCategories, fetchStockCategory } = useStockCategory();
+  const { resetStockGroup, fetchStockGroup } = useStockGroup();
+  const { resetUnits, fetchUnits } = useUOMStore();
+  const { resetGodown, fetchGodowns } = useGodownStore();
+  const { resetUserManagement, fetchUsers } = useUserManagementStore();
+  const { fetchVendors } = useVendorStore();
+  const { fetchAgents } = useAgentStore();
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
 
@@ -59,7 +62,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   console.log(defaultSelected);
   console.log(companies);
-  const company = defaultSelected
+  const company = defaultSelected;
   // console.log(company.namePrint);
   const notifications = [
     {
@@ -130,20 +133,37 @@ export default function Header({ onMenuClick }: HeaderProps) {
       document.removeEventListener("keydown", handleEscapeKey);
     };
   }, [showLogout]);
-
+  const fetchOtherAsync = async () => {
+    const companyId = defaultSelected?._id;
+    console.log(defaultSelected, "defaultselectes");
+    if (!companyId) return;
+    try {
+      await Promise.all([
+        fetchStockCategory(1, 10, companyId),
+        fetchStockGroup(1, 10, companyId),
+        fetchUnits(1, 10, companyId),
+        fetchGodowns(1, 10, companyId),
+        fetchUsers(1, 10, companyId),
+        fetchVendors(1, 10, companyId),
+        fetchAgents(1, 10, companyId),
+      ]);
+    } catch (error) {
+      console.error("Error fetching stock data:", error);
+    }
+  };
+  useEffect(() => {
+    fetchOtherAsync();
+  }, [defaultSelected]);
   const handleLogout = () => {
     setShowLogout(false);
     logout();
     resetCompanies();
-    resetUnits()
-    resetStockGroup()
-    resetSrockCategories(),
-    resetGodown()
-    resetStore()
-    resetUserManagement()
-    
-
-  }
+    resetUnits();
+    resetStockGroup();
+    resetSrockCategories(), resetGodown();
+    resetStore();
+    resetUserManagement();
+  };
   return (
     <>
       <header className="bg-white shadow-sm border-b border-gray-200 px-3 sm:px-4 py-1">
@@ -325,7 +345,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               {showLogout && (
                 <div className="absolute top-full right-0 mt-1 w-full z-50">
                   <div className="bg-white flex flex-col rounded-md shadow-lg border border-gray-200 py-1 animate-in fade-in-0 zoom-in-95">
-                    <Link 
+                    <Link
                       to="/profile"
                       className="w-full flex items-center gap-3 px-3 py-2 text-sm text-blue-700 hover:bg-gray-50 transition-colors duration-150"
                     >

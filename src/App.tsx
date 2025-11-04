@@ -134,12 +134,14 @@ function ProtectedRoute({
 
   // If specific module and subModule are provided, check permissions
   if (module && subModule) {
+    const permissionTypes = ["read", "create", "update", "delete"];
+
     const hasPermission = checkPermission({
       user,
       companyId: defaultSelected?._id,
       module,
       subModule,
-      type: "read",
+      type: permissionTypes.join(" | "),
     });
     if (!hasPermission) {
       return <UnauthorizedAccess />;
@@ -213,11 +215,16 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-<Route
-path="/profile"
-element={ <AppLayout>
-<ProfilePage/> </AppLayout>}
-/>
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+              <AppLayout>
+                <ProfilePage />{" "}
+              </AppLayout>
+              </ProtectedRoute>
+            }
+          />
           {/* Company - admin only */}
           <Route
             path="/company"
@@ -335,7 +342,7 @@ element={ <AppLayout>
           <Route
             path="/vendor-registration"
             element={
-              <ProtectedRoute module="BusinessManagement" subModule="Vendor">
+              <ProtectedRoute>
                 <AppLayout>
                   <VendorRegistration />
                 </AppLayout>
@@ -348,8 +355,6 @@ element={ <AppLayout>
             path="/customer-registration"
             element={
               <ProtectedRoute
-                module="BusinessManagement"
-                subModule="CustomerRegistration"
               >
                 <AppLayout>
                   <CustomerRegistration />
@@ -362,7 +367,7 @@ element={ <AppLayout>
           <Route
             path="/ladger-registration"
             element={
-              <ProtectedRoute allowedRoles={["admin"]}>
+              <ProtectedRoute module="BusinessManagement" subModule="Ledger">
                 <AppLayout>
                   <Ladger />
                 </AppLayout>
@@ -374,7 +379,7 @@ element={ <AppLayout>
           <Route
             path="/product"
             element={
-              <ProtectedRoute allowedRoles={["admin"]}>
+              <ProtectedRoute module="InventoryManagement" subModule="Product">
                 <AppLayout>
                   <Product />
                 </AppLayout>
@@ -398,7 +403,7 @@ element={ <AppLayout>
           <Route
             path="/stock-category"
             element={
-              <ProtectedRoute allowedRoles={["admin"]}>
+              <ProtectedRoute module="InventoryManagement" subModule="StockCategory">
                 <AppLayout>
                   <StockCategory />
                 </AppLayout>
@@ -410,7 +415,7 @@ element={ <AppLayout>
           <Route
             path="/stock-group"
             element={
-              <ProtectedRoute allowedRoles={["admin"]}>
+              <ProtectedRoute module="InventoryManagement" subModule="StockGroup">
                 <AppLayout>
                   <StockGroup />
                 </AppLayout>
@@ -434,7 +439,7 @@ element={ <AppLayout>
           <Route
             path="/UOM"
             element={
-              <ProtectedRoute allowedRoles={["admin"]}>
+              <ProtectedRoute module="InventoryManagement" subModule="Unit">
                 <AppLayout>
                   <UOM />
                 </AppLayout>
@@ -446,7 +451,7 @@ element={ <AppLayout>
           <Route
             path="/agent"
             element={
-              <ProtectedRoute allowedRoles={["admin"]}>
+              <ProtectedRoute module="BusinessManagement" subModule="Agent">
                 <AppLayout>
                   <Agent />
                 </AppLayout>

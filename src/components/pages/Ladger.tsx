@@ -825,7 +825,7 @@ const LedgerRegistration: React.FC = () => {
     }
 
     if (editingLedger) {
-      updateLedger({ id: editingLedger._id || "", ledger: ledgerFormData });
+      await updateLedger({ id: editingLedger._id || "", ledger: ledgerFormData });
       toast.success("ledger updated successfully");
     } else {
       await addLedger(ledgerFormData);

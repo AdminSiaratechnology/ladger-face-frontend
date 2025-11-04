@@ -86,6 +86,7 @@ const StockGroupRegistration: React.FC = () => {
     setIsModalOpen(true);
   };
   const limit = 10; // Fixed limit per page
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     fetchStockGroup,
@@ -221,18 +222,26 @@ const StockGroupRegistration: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    if (!formData.name.trim()) {
-      toast.error("Please enter Stock Group Name");
-      return;
+    if (isSubmitting) return; // ⛔ prevent multiple rapid clicks
+    setIsSubmitting(true);
+    try {
+      if (!formData.name.trim()) {
+        toast.error("Please enter Stock Group Name");
+        return;
+      }
+      if (editingStockGroup) {
+        await updateStockGroup(editingStockGroup._id, formData);
+      } else {
+        await addStockGroup(formData);
+        await fetchStockGroup(1, 10, defaultSelected?._id);
+      }
+      resetForm();
+      setOpen(false);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    } finally {
+      setIsSubmitting(false);
     }
-    if (editingStockGroup) {
-      updateStockGroup(editingStockGroup._id, formData);
-    } else {
-      await addStockGroup(formData);
-      await fetchStockGroup(1, 10, defaultSelected?._id);
-    }
-    resetForm();
-    setOpen(false);
   };
 
   // Statistics calculations
@@ -299,7 +308,7 @@ const StockGroupRegistration: React.FC = () => {
                     {group.status}
                   </Badge>
                 </td>
-              
+
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <ActionsDropdown
                     onView={() => handleViewGroup(group)}
@@ -534,12 +543,6 @@ const StockGroupRegistration: React.FC = () => {
 
           <div className="space-y-6 py-4">
             <div className="bg-white p-4 rounded-lg">
-              {/* <SectionHeader
-        icon={<Layers className="w-4 h-4 text-white" />}
-        title="Group Information"
-        gradientFrom="from-pink-400"
-        gradientTo="to-Pink-500"
-      />   */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <CustomInputBox
                   placeholder="Group Name *"
@@ -549,25 +552,6 @@ const StockGroupRegistration: React.FC = () => {
                   label="Group Name"
                 />
                 <SelectedCompany />
-                {/* <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Company <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.companyId}
-                    onChange={(e) =>
-                      handleSelectChange("companyId", e.target.value)
-                    }
-                    className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                  >
-                    <option value="">Select Company</option>
-                    {companies.map((company) => (
-                      <option key={company._id} value={company._id}>
-                        {company.namePrint}
-                      </option>
-                    ))}
-                  </select>
-                </div> */}
               </div>
 
               <div className="mb-4">
@@ -621,9 +605,16 @@ const StockGroupRegistration: React.FC = () => {
               <div className="flex justify-end mt-6">
                 <Button
                   onClick={handleSubmit}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
+                  disabled={isSubmitting}
+                  className={`${
+                    isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+                  } bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base`}
                 >
-                  {editingStockGroup ? "Update Group" : "Save Group"}
+                  {isSubmitting
+                    ? "Saving..."
+                    : editingStockGroup
+                    ? "Update Group"
+                    : "Save Group"}
                 </Button>
               </div>
             </div>
