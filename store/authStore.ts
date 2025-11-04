@@ -14,6 +14,7 @@ interface AuthState {
   error: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
+  updateUser: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -71,7 +72,11 @@ export const useAuthStore = create<AuthState>()(
           error: null,
         });
       },
+      updateUser: (user: User) => {
+        set({ user });
+      }
     }),
+
     {
       name: 'auth-storage', // name for the localStorage key
       partialize: (state) => ({

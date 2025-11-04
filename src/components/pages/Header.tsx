@@ -9,6 +9,7 @@ import {
   LogOut,
   Building,
   ChevronDown,
+  User,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -33,6 +34,7 @@ import { useUserManagementStore } from "../../../store/userManagementStore";
 
 import CompanySelectorModal from "../customComponents/CompanySelectorModal";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -322,7 +324,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
               {/* Dropdown */}
               {showLogout && (
                 <div className="absolute top-full right-0 mt-1 w-full z-50">
-                  <div className="bg-white rounded-md shadow-lg border border-gray-200 py-1 animate-in fade-in-0 zoom-in-95">
+                  <div className="bg-white flex flex-col rounded-md shadow-lg border border-gray-200 py-1 animate-in fade-in-0 zoom-in-95">
+                    <Link 
+                      to="/profile"
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-blue-700 hover:bg-gray-50 transition-colors duration-150"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>Profile</span>
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"

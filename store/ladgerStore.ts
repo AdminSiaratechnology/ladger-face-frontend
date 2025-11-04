@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api"; // Adjust the import path as needed
+import { toast } from "sonner";
 
 // Define interfaces for Ledger
 interface Bank {
@@ -249,12 +250,14 @@ export const useLedgerStore = create<LedgerStore>()(
             ledgers: get().ledgers.filter((l) => l._id !== id),
             loading: false,
           });
+          toast.success("Ledger deleted successfully");
         } catch (error: any) {
           set({
             loading: false,
             error: true,
             errorMessage: error?.response?.data?.message || "Failed to delete ledger",
           });
+          toast.error(error?.response?.data?.message || "Failed to delete ledger");
         }
       },
 
