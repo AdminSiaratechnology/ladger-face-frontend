@@ -28,7 +28,7 @@ export function checkPermission({
 
   // 🔍 Find access for the selected company
   const companyAccess = companyId
-    ? user.access.find((a: any) => a.company === companyId)
+    ? user.access.find((a: any) => a.company?._id === companyId)
     : user.access[0]; // fallback if no companyId provided
 
   if (!companyAccess || !companyAccess.modules) return false;

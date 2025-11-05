@@ -94,13 +94,14 @@ function checkPermission(user: any, companyId: string, module: string, subModule
 
   // Find access entry for selected company
   const companyAccess = user.access.find(
-    (accessItem: any) => accessItem.company === companyId
+    (accessItem: any) => accessItem?.company?._id === companyId
   );
   if (!companyAccess || !companyAccess.modules) return false;
 
   const modules = companyAccess.modules;
   const hasModule = modules[module];
   const hasSubModule = hasModule?.[subModule];
+  //  return !!hasSubModule?.read;
 const { create, read, update, delete: del } = hasSubModule;
   return !!(create || read || update || del);
 }
