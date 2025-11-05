@@ -1,8 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -33,10 +29,14 @@ const CompanySelectorModal = ({
   const { companies, filterCompanies, loading, pagination } = useCompanyStore();
   const { user } = useAuthStore();
 
-  const [selectedId, setSelectedId] = useState<string | null>(defaultSelected || null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    defaultSelected || null
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter] = useState<"all" | "active" | "inactive">("all");
-  const [sortBy] = useState<"nameAsc" | "nameDesc" | "dateDesc" | "dateAsc">("nameAsc");
+  const [sortBy] = useState<"nameAsc" | "nameDesc" | "dateDesc" | "dateAsc">(
+    "nameAsc"
+  );
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
   const [noRights, setNoRights] = useState(false);
 
@@ -52,23 +52,22 @@ const CompanySelectorModal = ({
     }
 
     // case 2 — user has limited access
-if (Array.isArray(user.access) && user.access.length > 0) {
-  // ✅ Directly map the populated companies
-  const accessibleCompanies = user.access
-    .filter((a: any) => a.company) // safety check
-    .map((a: any) => ({
-      _id: a.company._id,
-      namePrint: a.company.namePrint,
-      nameStreet: a.company.nameStreet,
-      logo: a.company.logo,
-      code: a.company.code,
-    }));
+    if (Array.isArray(user.access) && user.access.length > 0) {
+      // ✅ Directly map the populated companies
+      const accessibleCompanies = user.access
+        .filter((a: any) => a.company) // safety check
+        .map((a: any) => ({
+          _id: a.company._id,
+          namePrint: a.company.namePrint,
+          nameStreet: a.company.nameStreet,
+          logo: a.company.logo,
+          code: a.company.code,
+        }));
 
-  setFilteredCompanies(accessibleCompanies);
-  setNoRights(false);
-  return;
-}
-
+      setFilteredCompanies(accessibleCompanies);
+      setNoRights(false);
+      return;
+    }
 
     // case 3 — no permissions at all
     setFilteredCompanies([]);
@@ -78,16 +77,24 @@ if (Array.isArray(user.access) && user.access.length > 0) {
   // ✅ Debounced search
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (user && searchTerm.length >= 3) {
-        filterCompanies(searchTerm, statusFilter, sortBy, "", 1, 10, isLogin)
-          .catch((err) => console.error("Error filtering companies:", err));
+      if (user && (searchTerm.length >= 3 || searchTerm.length === 0)) {
+        filterCompanies(
+          searchTerm,
+          statusFilter,
+          sortBy,
+          "",
+          1,
+          10,
+          isLogin
+        ).catch((err) => console.error("Error filtering companies:", err));
       } else if (
         searchTerm.length === 0 &&
         user &&
         companies.length < Math.min(10, pagination?.total)
       ) {
-        filterCompanies("", statusFilter, sortBy, "", 1, 10, isLogin)
-          .catch((err) => console.error("Error fetching all companies:", err));
+        filterCompanies("", statusFilter, sortBy, "", 1, 10, isLogin).catch(
+          (err) => console.error("Error fetching all companies:", err)
+        );
       }
     }, 500);
 
@@ -99,8 +106,11 @@ if (Array.isArray(user.access) && user.access.length > 0) {
   }, [defaultSelected]);
 
   const handleConfirm = useCallback(() => {
+
     const selectedCompany = companies.find((c) => c._id === selectedId);
+    console.log(selectedCompany, "selectedCompany");
     if (selectedCompany) {
+      console.log("second");
       onSelect(selectedCompany);
       if (onConfirmNavigate) onConfirmNavigate();
     }
@@ -109,43 +119,42 @@ if (Array.isArray(user.access) && user.access.length > 0) {
   // ✅ No-rights view
   if (noRights) {
     return (
-    <Dialog open={open} onOpenChange={onClose}>
-  <DialogContent
-    className="max-w-md text-center py-10 px-6 bg-gradient-to-b from-gray-50 to-white border border-gray-200 shadow-lg rounded-2xl"
-    onInteractOutside={(e) => e.preventDefault()} // keep modal fixed
-  >
-    <div className="flex flex-col items-center space-y-5">
-      {/* 🏢 Icon */}
-      <div className="flex items-center justify-center w-16 h-16 rounded-full bg-teal-50 border border-teal-100">
-        <Building2 className="w-8 h-8 text-teal-600" />
-      </div>
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent
+          className="max-w-md text-center py-10 px-6 bg-gradient-to-b from-gray-50 to-white border border-gray-200 shadow-lg rounded-2xl"
+          onInteractOutside={(e) => e.preventDefault()} // keep modal fixed
+        >
+          <div className="flex flex-col items-center space-y-5">
+            {/* 🏢 Icon */}
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-teal-50 border border-teal-100">
+              <Building2 className="w-8 h-8 text-teal-600" />
+            </div>
 
-      {/* ✨ Title */}
-      <h2 className="text-lg font-semibold text-gray-800">
-        No Access Rights
-      </h2>
+            {/* ✨ Title */}
+            <h2 className="text-lg font-semibold text-gray-800">
+              No Access Rights
+            </h2>
 
-      {/* 💬 Message */}
-      <p className="text-gray-600 text-sm leading-relaxed max-w-sm">
-        It seems you don’t have access permissions assigned yet.
-        <br />
-        Please contact your administrator to enable your account.
-      </p>
+            {/* 💬 Message */}
+            <p className="text-gray-600 text-sm leading-relaxed max-w-sm">
+              It seems you don’t have access permissions assigned yet.
+              <br />
+              Please contact your administrator to enable your account.
+            </p>
 
-      {/* ─ Divider */}
-      <div className="w-2/3 h-px bg-gray-100 my-2"></div>
+            {/* ─ Divider */}
+            <div className="w-2/3 h-px bg-gray-100 my-2"></div>
 
-      {/* ✅ Single button */}
-      <Button
-        onClick={onClose}
-        className="bg-teal-600 hover:bg-teal-700 text-white rounded-full px-6 shadow-md"
-      >
-        Got it
-      </Button>
-    </div>
-  </DialogContent>
-</Dialog>
-
+            {/* ✅ Single button */}
+            <Button
+              onClick={onClose}
+              className="bg-teal-600 hover:bg-teal-700 text-white rounded-full px-6 shadow-md"
+            >
+              Got it
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
@@ -191,7 +200,9 @@ if (Array.isArray(user.access) && user.access.length > 0) {
                   key={company._id}
                   onClick={() => setSelectedId(company._id)}
                   className={`bg-gradient-to-r from-teal-50 to-teal-100 pb-4 hover:from-teal-100 hover:to-teal-200 capitalize cursor-pointer ${
-                    selectedId === company._id ? "from-teal-100 to-teal-300" : ""
+                    selectedId === company._id
+                      ? "from-teal-100 to-teal-300"
+                      : ""
                   }`}
                 >
                   <div className="flex items-start justify-between">
