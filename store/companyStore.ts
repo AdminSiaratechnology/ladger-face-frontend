@@ -61,14 +61,8 @@ export interface Company {
   negativeOrder: Boolean;
 }
 
-interface CachedPageData {
-  companies: Company[];
-  pagination: Pagination;
-}
-
 interface CompanyStore {
   companies: Company[];
-  companiesByPage: Record<string, CachedPageData>; // Cache for multiple pages
   pagination: Pagination;
   loading: boolean;
   error: string | null;
@@ -103,7 +97,6 @@ export const useCompanyStore = create<CompanyStore>()(
   persist(
     (set, get) => ({
       companies: [],
-      companiesByPage: {}, // Initialize cache
       loading: true,
       error: null,
       defaultSelected: null,
@@ -117,7 +110,6 @@ export const useCompanyStore = create<CompanyStore>()(
       resetCompanies: async () => {
         set({
           companies: [],
-          companiesByPage: {}, // Clear cache on reset
           defaultSelected: null,
           loading: false,
           error: null,
@@ -127,36 +119,9 @@ export const useCompanyStore = create<CompanyStore>()(
             limit: 10,
             totalPages: 0,
           },
-        });
-        let cm = get().companies;
-        console.log(cm, "cm");
-      },
+        });      },
 
       fetchCompanies: async (agentId: string, page = 1, limit = 10) => {
-        console.log(
-          "Fetching companies for agentId:",
-          agentId,
-          "page:",
-          page,
-          "limit:",
-          limit
-        );
-
-        // Create cache key
-        const cacheKey = `fetch-${page}-${limit}`;
-        
-        // Check cache first
-        const cached = get().companiesByPage[cacheKey];
-        if (cached) {
-          console.log('Using cached data for fetchCompanies:', cacheKey);
-          set({
-            companies: cached.companies,
-            pagination: cached.pagination,
-            loading: false,
-          });
-          return;
-        }
-
         try {
           set({ loading: true, error: null });
 
@@ -169,17 +134,7 @@ export const useCompanyStore = create<CompanyStore>()(
             agentId,
             queryParams: queryParams.toString(),
           });
-          console.log("Fetched companies response:", res);
-
-          // Store in cache
           set({
-            companiesByPage: {
-              ...get().companiesByPage,
-              [cacheKey]: {
-                companies: res.data.companies,
-                pagination: res?.data?.pagination,
-              },
-            },
             companies: res.data.companies,
             pagination: res?.data?.pagination,
             loading: false,
@@ -194,26 +149,20 @@ export const useCompanyStore = create<CompanyStore>()(
       },
 
       addCompany: async (companyData) => {
-        console.log("Creating new company:", companyData);
         try {
           set({ loading: true, error: null });
 
           const res = await api.createCompany(companyData);
-          console.log("Created company response:", res);
-
           const newCompany: Company = res.data;
 
-          // Clear cache when adding new company
           set({
             companies: [...get().companies, newCompany],
-            companiesByPage: {}, // Clear cache to force refresh
             loading: false,
             error: null,
           });
 
           return newCompany;
         } catch (error: any) {
-          console.log("Error creating company:", error);
           toast.error(
             `Error creating company: ${error?.response?.data?.error}`
           );
@@ -228,21 +177,17 @@ export const useCompanyStore = create<CompanyStore>()(
       },
 
       updateCompany: async ({ companyId, companyData }) => {
-        console.log("Updating company:", companyId, companyData);
         try {
           set({ loading: true, error: null });
 
           const res = await api.updateCompany(companyId, companyData);
-          console.log("Updated company response:", res);
 
           const updatedCompany: Company = res.data;
 
-          // Clear cache when updating company
           set({
             companies: get().companies.map((comp) =>
               comp._id === companyId ? updatedCompany : comp
             ),
-            companiesByPage: {}, // Clear cache to force refresh
             loading: false,
             error: null,
           });
@@ -255,17 +200,12 @@ export const useCompanyStore = create<CompanyStore>()(
       },
 
       deleteCompany: async (companyId) => {
-        console.log("Deleting company:", companyId);
         try {
           set({ loading: true, error: null });
 
           const res = await api.deleteCompany(companyId);
-          console.log("Deleted company response:", res);
-
-          // Clear cache when deleting company
           set({
             companies: get().companies.filter((comp) => comp._id !== companyId),
-            companiesByPage: {}, // Clear cache to force refresh
             loading: false,
             error: null,
           });
@@ -287,28 +227,6 @@ export const useCompanyStore = create<CompanyStore>()(
         limit = 10,
         isLogin = false
       ) => {
-        // Create unique cache key based on all filter parameters
-        const cacheKey = `${page}-${statusFilter}-${searchTerm}-${sortBy}-${limit}`;
-        
-        console.log('filterCompanies called with:', { page, statusFilter, searchTerm, sortBy, limit });
-        console.log('Cache key:', cacheKey);
-        console.log('Available cache keys:', Object.keys(get().companiesByPage));
-        
-        // Check if data exists in cache
-        const cached = get().companiesByPage[cacheKey];
-        if (cached) {
-          console.log('✅ Using cached data for:', cacheKey);
-          set({
-            companies: cached.companies,
-            pagination: cached.pagination,
-            loading: false,
-          });
-          return cached.companies;
-        }
-        
-        console.log('❌ No cache found, fetching from API...');
-
-        // Fetch from API if not cached
         try {
           set({ loading: true, error: null });
 
@@ -325,21 +243,12 @@ export const useCompanyStore = create<CompanyStore>()(
             agentId,
             queryParams: queryParams.toString(),
           });
-          console.log("Database search response:", res);
 
           const companies = res.data.companies?.length <= 0 && isLogin
             ? [...get().companies]
             : res.data.companies;
 
-          // Store result in cache
           set({
-            companiesByPage: {
-              ...get().companiesByPage,
-              [cacheKey]: {
-                companies,
-                pagination: res?.data?.pagination,
-              },
-            },
             companies,
             pagination: res?.data?.pagination,
             loading: false,
@@ -369,7 +278,6 @@ export const useCompanyStore = create<CompanyStore>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         companies: state.companies,
-        companiesByPage: state.companiesByPage, // Persist cache
         defaultSelected: state.defaultSelected,
         pagination: state.pagination,
       }),

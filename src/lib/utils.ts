@@ -19,7 +19,6 @@ export function checkPermission({
   type,
 }: CheckPermission) {
   if (!user) return false;
-  // console.log(user, companyId, module, subModule, type )
   // 🔓 If user has global/all permissions
   if (user.allPermissions) return true;
 

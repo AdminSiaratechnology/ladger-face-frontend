@@ -187,7 +187,6 @@ export const useLedgerStore = create<LedgerStore>()(
           });
 
           const result = await api.fetchLedgers({companyId}, { queryParams: queryParams.toString() });
-          console.log(result, "fetch result of ledgers");
           set({
             ledgers: result?.data?.ledgers || [],
             pagination: result?.data?.pagination || {
@@ -216,12 +215,15 @@ export const useLedgerStore = create<LedgerStore>()(
             ledgers: [...get().ledgers, newLedger],
             loading: false,
           });
+                toast.success("Ledger added successfully");
+
         } catch (error: any) {
           set({
             loading: false,
             error: true,
             errorMessage: error?.response?.data?.message || "Failed to add ledger",
           });
+          toast.error(error?.response?.data?.message || "Failed to add ledger");
         }
       },
 
@@ -233,12 +235,14 @@ export const useLedgerStore = create<LedgerStore>()(
             ledgers: get().ledgers.map((l) => (l._id === id ? result?.data : l)),
             loading: false,
           });
+          toast.success("Ledger updated successfully");
         } catch (error: any) {
           set({
             loading: false,
             error: true,
             errorMessage: error?.response?.data?.message || "Failed to update ledger",
           });
+          toast.error(error?.response?.data?.message || "Failed to update ledger");
         }
       },
 

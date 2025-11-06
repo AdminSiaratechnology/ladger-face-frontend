@@ -208,13 +208,11 @@ export const useAgentStore = create<AgentStore>()(
           });
 
           const result = await api.fetchAgents({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
-          console.log("first")
           set({
             agents: result?.data?.agents || [],
             pagination: result?.data?.pagination,
             loading: false,
           });
-          console.log(result?.data,"result?.data?")
         } catch (error: any) {
           set({
             loading: false,
@@ -252,7 +250,6 @@ export const useAgentStore = create<AgentStore>()(
           set({
             agents: get().agents.map((a) =>{
 
-           console.log(id,result,a,"idresult")
             return   a?._id == id ? result?.data : a
             }),
             loading: false,
@@ -306,8 +303,6 @@ export const useAgentStore = create<AgentStore>()(
           });
 
           const result = await api.fetchAgents({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
-          console.log("Filter result for agents:", result);
-
           set({
             agents: result?.data?.agents || [],
             pagination: result?.data?.pagination,

@@ -146,7 +146,6 @@ export const useAuditLogStore = create<AuditLogStore>()(
           });
 
           const result = await api.getAuditLogsDetail(params.toString());
-          console.log(result?.data?.data?.auditLogs,"resultttt")
           set({
             auditEventsDetail: result?.data?.data?.auditLogs || [],
             pagination: result?.data?.data?.pagination || {
@@ -158,7 +157,6 @@ export const useAuditLogStore = create<AuditLogStore>()(
             loading: false,
           });
         } catch (error: any) {
-          console.error("❌ Failed to fetch all audit logs:", error);
           set({
             loading: false,
             error: true,
@@ -193,16 +191,13 @@ export const useAuditLogStore = create<AuditLogStore>()(
 
       //restore record
       restoreRecord:async({module, referenceId,id})=>{
-        console.log(module, referenceId,id,"module, referenceId,id")
         set({ loading: true, error: false ,singleAuditEvent:null});
         try {
           const result=await api.restoreRecord({module, referenceId,id})
-          console.log(result,"restoredresult")
             toast.success("Record restored successfully");
          
           
         } catch (error) {
-          console.log(error,"errorrr")
           toast.error(error?.response?.data?.message ||
               "Failed perform restore",)
           set({

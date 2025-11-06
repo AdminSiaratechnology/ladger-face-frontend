@@ -40,7 +40,7 @@ interface Godown {
   _id?: string;
   code: string;
   name: string;
-  parent: string;
+  parent: string | null;
   address: string;
   state: string;
   city: string;
@@ -154,7 +154,7 @@ const GodownRegistration: React.FC = () => {
     id: 0,
     code: "",
     name: "",
-    parent: "primary",
+    parent: null,
     address: "",
     state: "",
     city: "",
@@ -212,6 +212,8 @@ const GodownRegistration: React.FC = () => {
   };
 
   const handleSelectChange = (name: keyof Godown, value: string): void => {
+    const normalizedValue =
+      name === "parent" && (value === "" || value === "null") ? null : value;
     if (name === "country") {
       setFormData((prev) => ({
         ...prev,
@@ -238,7 +240,7 @@ const GodownRegistration: React.FC = () => {
       id: 0,
       code: "",
       name: "",
-      parent: godowns.length > 0 ? godowns[0].code : "primary",
+      parent: null,
       address: "",
       state: "",
       city: "",
@@ -288,6 +290,7 @@ const GodownRegistration: React.FC = () => {
 
     if (editingGodown) {
       await updateGodown(editingGodown._id || "", godownFormData);
+      fetchGodowns(currentPage, limit, defaultSelected?._id);
     } else {
       await addGodown(godownFormData);
       fetchGodowns(currentPage, limit, defaultSelected?._id);
@@ -355,9 +358,9 @@ const GodownRegistration: React.FC = () => {
                             Primary
                           </Badge>
                         )}
-                        {godown.parent !== "primary" && (
+                        {godown.parent !== null && (
                           <span className="text-xs text-gray-500">
-                            Parent: {godown.parent}
+                            Parent: {godown?.parent?.name}
                           </span>
                         )}
                       </div>
@@ -492,10 +495,12 @@ const GodownRegistration: React.FC = () => {
 
           <CardContent className="p-6 space-y-4">
             <div className="space-y-3">
-              {godown.parent !== "primary" && (
+              {godown.parent !== null && (
                 <div className="flex items-center text-sm">
                   <Warehouse className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">Parent: {godown.parent}</span>
+                  <span className="text-gray-600">
+                    Parent: {godown?.parent?.name}
+                  </span>
                 </div>
               )}
 
@@ -731,7 +736,6 @@ const GodownRegistration: React.FC = () => {
                 setActiveTab(nextTab);
               }
               if (activeTab === "basic") {
-                console.log(formData);
                 if (!formData.code || !formData.name) {
                   toast.error("Please enter Godown Code and Name");
                   return;
@@ -770,17 +774,17 @@ const GodownRegistration: React.FC = () => {
                       Parent Godown
                     </label>
                     <select
-                      value={formData.parent}
-                      onChange={(e) =>
-                        handleSelectChange("parent", e.target.value)
-                      }
+                      value={formData.parent?._id || null}
+                      onChange={(e) => {
+                        handleSelectChange("parent", e.target.value);
+                      }}
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
-                      <option value="primary">Primary (No Parent)</option>
+                      <option value="">Primary (No Parent)</option>
                       {godowns
                         ?.filter((g) => g._id !== editingGodown?._id)
                         .map((godown) => (
-                          <option key={godown._id} value={godown.code}>
+                          <option key={godown._id} value={godown._id}>
                             {godown.name}
                           </option>
                         ))}

@@ -142,8 +142,6 @@ const ProductSelection = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
-
-  // 🔹 Fetch products on mount & when page changes
   useEffect(() => {
     fetchProducts(currentPage, pagination.limit || 10, defaultSelected?._id);
   }, [fetchProducts, currentPage, pagination.limit, defaultSelected]);
@@ -154,6 +152,13 @@ const ProductSelection = () => {
     setCart(newCart);
     setShowReview(true); // open drawer
   };
+  useEffect(() => {
+    console.log(defaultSelected?._id, company?._id);
+    if (defaultSelected && company && defaultSelected._id !== company._id) {
+      console.log("first");
+      navigate(-1); 
+    }
+  }, [defaultSelected]);
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (searchTerm.trim()) {
@@ -166,7 +171,7 @@ const ProductSelection = () => {
           defaultSelected?._id
         );
       } else {
-        fetchProducts(currentPage, 10, defaultSelected);
+        fetchProducts(currentPage, 10, defaultSelected?._id);
       }
     }, 500);
 

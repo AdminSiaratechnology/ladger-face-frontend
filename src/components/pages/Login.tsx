@@ -65,8 +65,6 @@ export default function Login() {
   const navigate = useNavigate();
   const [loadCompany, setLoadCompany] = useState(false);
 
-  console.log(user, "usuario en login");
-
   useEffect(() => {
     const fetchCompaniesAsync = async () => {
       await fetchCompanies("", 1, 10);
@@ -76,8 +74,6 @@ export default function Login() {
       // fetchAgents(1, 10, defaultSelected?._id);
     };
     if (user) {
-      console.log(user, "userrrrrrrrr");
-
       fetchCompaniesAsync();
     }
   }, [user, navigate, fetchCompanies]);
@@ -85,7 +81,6 @@ export default function Login() {
   const fetchOtherAsync = async () => {
     const { defaultSelected } = useCompanyStore.getState(); // Use getState() to get the latest store value immediately
     const companyId = defaultSelected?._id;
-    console.log(defaultSelected, "defaultselectes");
     if (!companyId) return;
 
       setShowCompanyPopup(false);
@@ -126,7 +121,6 @@ export default function Login() {
       return;
     }
     const success = await login({ email, password });
-    console.log(success, "succcccc", user);
     if (success) {
       toast.success("Login successful!");
       if (!companyLoading && companies.length === 0) {

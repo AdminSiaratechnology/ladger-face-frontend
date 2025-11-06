@@ -616,10 +616,6 @@ export const UserManagement: React.FC = () => {
     permissionType: keyof Permission,
     value: boolean | string[]
   ): void => {
-    console.log(
-      `🔧 Changing permission for company ${companyId} → ${moduleName}.${subModuleName}.${permissionType} =`,
-      value
-    );
     setForm((prev) => {
       const updatedAccess = prev.access.map((a) => {
         if (a.company !== companyId) return a;
@@ -664,8 +660,6 @@ export const UserManagement: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    console.log("Form data:", form);
-
     // --- Validation ---
     if (!form.name.trim()) {
       toast.error("Please enter a name");
@@ -704,8 +698,6 @@ export const UserManagement: React.FC = () => {
       } else {
         res = await addUser(userData);
       }
-      console.log(res);
-      console.log(res?.statusCode, "ressssssssssssss");
 
       if (res && res?.statusCode) {
         filterUsers(
@@ -732,8 +724,6 @@ export const UserManagement: React.FC = () => {
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setIsEditing(true);
-    console.log("Editing user:", user);
-
     // ✅ Preselected company IDs
     const preselectedCompanies = user.access.map(
       (a) => a.company._id || a.company
@@ -962,12 +952,11 @@ export const UserManagement: React.FC = () => {
       </div>
     </div>
   );
-  // useEffect(() => {
-  //   return () => {
-  //     initialLoading();
-  //   };
-  // }, []);
-  console.log(companies)
+  useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
   return (
     <div className="custom-container ">
       {/* Header */}
@@ -1389,7 +1378,6 @@ export const UserManagement: React.FC = () => {
                   <select
                     value={form.status}
                     onChange={(e) => {
-                      console.log(e.target.value);
                       handleSelectChange("status", e.target.value);
                     }}
                     className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"

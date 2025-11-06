@@ -71,7 +71,6 @@ export const useUOMStore = create<UnitStore>()(
 
       // Fetch all UOM
       fetchUnits: async (page = 1, limit = 10, companyId) => {
-        console.log("Fetching units page:", page, "limit:", limit);
         set({ loading: true, error: false });
         try {
           const queryParams = new URLSearchParams({
@@ -122,7 +121,6 @@ export const useUOMStore = create<UnitStore>()(
       // Update UOM
       updateUnit: async ({ unitId, data }) => {
         set({ loading: true, error: false });
-        console.log("dahsdsa", unitId, data);
         try {
           const result = await api.updateUOM({ unitId, data });
           const updatedUnit: Unit = result.data;
@@ -183,7 +181,6 @@ export const useUOMStore = create<UnitStore>()(
             { companyId },
             { queryParams: queryParams.toString() }
           ); // Adjust api call
-          console.log("Filter result for units:", result);
 
           set({
             units: result?.data.units || [],

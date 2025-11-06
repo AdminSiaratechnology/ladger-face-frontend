@@ -60,10 +60,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   // Ref for the logout dropdown container
   const logoutDropdownRef = useRef<HTMLDivElement>(null);
 
-  console.log(defaultSelected);
-  console.log(companies);
   const company = defaultSelected;
-  // console.log(company.namePrint);
   const notifications = [
     {
       id: 1,
@@ -135,7 +132,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
   }, [showLogout]);
   const fetchOtherAsync = async () => {
     const companyId = defaultSelected?._id;
-    console.log(defaultSelected, "defaultselectes");
     if (!companyId) return;
     try {
       await Promise.all([

@@ -108,9 +108,7 @@ const CompanySelectorModal = ({
   const handleConfirm = useCallback(() => {
 
     const selectedCompany = companies.find((c) => c._id === selectedId);
-    console.log(selectedCompany, "selectedCompany");
     if (selectedCompany) {
-      console.log("second");
       onSelect(selectedCompany);
       if (onConfirmNavigate) onConfirmNavigate();
     }

@@ -202,9 +202,7 @@ const RestoreDeletedPage: React.FC = () => {
         event.module,
         event.details || '',
         event.ipAddress || 'N/A'
-      ];
-      console.log(isDetail,"isDetail")
-      
+      ];      
 
       if (isDetail) {
         baseRow.splice(2, 0, event.performedBy?.role || ''); // Insert role after Actor
@@ -216,18 +214,15 @@ const RestoreDeletedPage: React.FC = () => {
           JSON.stringify( event.referenceId?.auditLogs )|| ''
 
         );
-        console.log(event.referenceId?._id,"event.referenceId?._id")
       }
 
       return baseRow;
     });
-    console.log(csvRows,"events",events)
 
     const csvContent = [
       csvHeaders.join(","),
       ...csvRows.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(","))
     ].join("\n");
-    console.log(csvContent,"csvContent")
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -262,7 +257,6 @@ const RestoreDeletedPage: React.FC = () => {
 
   const confirmRestore = async () => {
     if (!selectedEventForRestore) return;
-    console.log(selectedEventForRestore,"selectedEventForRestore")
     try {
       await restoreRecord({
         module: selectedEventForRestore.module,

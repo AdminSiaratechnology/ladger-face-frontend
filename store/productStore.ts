@@ -128,7 +128,6 @@ export const useProductStore = create<ProductStore>()(
 
       // ✅ Add product
       addProduct: async (product) => {
-        console.log(product,"addproduct")
         set({ loading: true });
         try {
           const result = await api.createProduct(product);
@@ -150,7 +149,6 @@ export const useProductStore = create<ProductStore>()(
 
       // ✅ Update product
       updateProduct: async ({ id, product }) => {
-        console.log(id,product,"ppeppepepepepep")
         set({ loading: true });
         try {
           const result = await api.updateProduct({id, product});
@@ -215,8 +213,6 @@ export const useProductStore = create<ProductStore>()(
           });
 
           const result = await api.fetchProducts({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
-          console.log("Filter result for products:", result);
-
           set({
             products: result?.data?.items || [],
             pagination: result?.data?.pagination,

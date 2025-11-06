@@ -11,13 +11,9 @@ interface Pagination {
   limit: number;
   totalPages: number;
 }
-interface CachedPageData {
-  users: any[];
-  pagination: Pagination;
-}
+
 interface useUserManagementStore {
   users: any[];
-  usersByPage: Record<string, CachedPageData>;
   pagination: Pagination;
   loading: boolean;
   error: string | null | boolean;
@@ -47,7 +43,6 @@ export const useUserManagementStore = create<useUserManagementStore>()(
   persist(
     (set, get) => ({
       users: [],
-      usersByPage: {},
       pagination: {
         total: 0,
         page: 1,
@@ -60,18 +55,6 @@ export const useUserManagementStore = create<useUserManagementStore>()(
       fetchUsers: async (page = 1, limit = 10) => {
         set({ loading: true });
         try {
-          console.log("Fetching users...");
-          const cacheKey = `fetch-${page}-${limit}`;
-          const cached = get().usersByPage[cacheKey];
-          if (cached) {
-            console.log("Using cached data for users page:", cacheKey);
-            set({
-              users: cached.users,
-              pagination: cached.pagination,
-              loading: false,
-            });
-            return;
-          }
           const queryParams = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
@@ -80,10 +63,6 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             queryParams: queryParams.toString(),
           }); // Adjust api call if needed
           set({
-            usersByPage: { ...get().usersByPage, [cacheKey]: {
-              users: response.data?.users || [],
-              pagination: response.data?.pagination,
-            }},
             users: response.data?.users || [],
             pagination: response.data?.pagination,
             loading: false,
@@ -97,12 +76,10 @@ export const useUserManagementStore = create<useUserManagementStore>()(
         try {
           set({ loading: true });
           const response = await api.createUser(user);
-          console.log("User created response:", response);
 
           // Update persisted state with new user
           set((state) => ({
             users: [...state.users, response?.data],
-            usersByPage: {},
             loading: false,
           }));
 
@@ -121,17 +98,12 @@ export const useUserManagementStore = create<useUserManagementStore>()(
           const response = await api.updateUser(id, userData);
           const updatedUser = response.data;
 
-          console.log(updatedUser, "updated user data");
-
           let hii = get().users.map((u) => {
-            console.log(u._id, id, "u._id === id");
             return u._id === id ? updatedUser : "jj";
           });
-          console.log(hii, "hiiiiiiii");
 
           set({
             users: get().users.map((u) => (u._id === id ? updatedUser : u)),
-            usersByPage: {},
             loading: false,
           });
           return response;
@@ -147,7 +119,6 @@ export const useUserManagementStore = create<useUserManagementStore>()(
         set({ loading: true });
         try {
           const response = await api.deleteUserStatus(id);
-          console.log(response, "deleteresomnse");
         } catch (error: any) {
           set({ loading: false, error: error.message });
         }
@@ -162,17 +133,6 @@ export const useUserManagementStore = create<useUserManagementStore>()(
         limit = 10,
         companyId: string
       ) => {
-        const cacheKey = `filter-${searchTerm}-${roleFilter}-${statusFilter}-${sortBy}-${page}-${limit}-${companyId}`;
-        const cached = get().usersByPage[cacheKey];
-        if (cached) {
-          console.log("Using cached data for filterUsers:", cacheKey);
-          set({
-            users: cached.users,
-            pagination: cached.pagination,
-            loading: false,
-          });
-          return cached.users;
-        }
         set({ loading: true });
         try {
           const queryParams = new URLSearchParams({
@@ -190,15 +150,10 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             queryParams: queryParams.toString(),
           }); // Adjust api call
           set({
-            usersByPage: { ...get().usersByPage, [cacheKey]: {
-              users: response.data?.users || [],
-              pagination: response.data?.pagination,
-            }},
             users: response.data?.users || [],
             pagination: response.data?.pagination,
             loading: false,
           });
-          console.log(response.data.users, ".data?.data?.users");
 
           return response.data?.users || [];
         } catch (error: any) {

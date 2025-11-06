@@ -54,7 +54,7 @@ interface StockCategory {
 interface StockCategoryForm {
   name: string;
   description: string;
-  parent: string;
+  parent: string | null;
   status: string;
   companyId: string;
 }
@@ -77,7 +77,7 @@ const StockCategoryRegistration: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const limit = 10; // Fixed limit per page
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [showProgress, setShowProgress] = useState(false);
   const {
     fetchStockCategory,
     addStockCategory,
@@ -114,7 +114,6 @@ const StockCategoryRegistration: React.FC = () => {
 
   // Filtering with debounce
   useEffect(() => {
-    console.log("first, sttausfilter", statusFilter);
     const handler = setTimeout(() => {
       if (searchTerm.length >= 3) {
         filterStockCategories(
@@ -158,7 +157,7 @@ const StockCategoryRegistration: React.FC = () => {
   const [formData, setFormData] = useState<StockCategoryForm>({
     name: "",
     description: "",
-    parent: "primary",
+    parent: null,
     status: "active",
     companyId: "",
   });
@@ -188,7 +187,7 @@ const StockCategoryRegistration: React.FC = () => {
     setFormData({
       name: "",
       description: "",
-      parent: "primary",
+      parent: null,
       status: "active",
       companyId: "",
     });
@@ -214,6 +213,7 @@ const StockCategoryRegistration: React.FC = () => {
   const handleSubmit = async (): Promise<void> => {
     if (isSubmitting) return; // ⛔ prevent multiple rapid clicks
     setIsSubmitting(true);
+    setShowProgress(true);
     try {
       if (!formData.name.trim()) {
         toast.error("Please enter Stock Category Name");
@@ -237,6 +237,7 @@ const StockCategoryRegistration: React.FC = () => {
       console.error(error);
     } finally {
       setIsSubmitting(false);
+      setShowProgress(false);
     }
   };
 
@@ -245,7 +246,7 @@ const StockCategoryRegistration: React.FC = () => {
     () => ({
       totalCategories: pagination?.total || 0,
       primaryCategories: filteredStockCategories.filter(
-        (c) => c.parent === "primary"
+        (c) => c.parent === null
       ).length,
       activeCategories:
         statusFilter === "active"
@@ -563,6 +564,12 @@ const StockCategoryRegistration: React.FC = () => {
         }}
       >
         <DialogContent className="custom-dialog-container">
+           {showProgress && (
+        <div className="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-blue-500 animate-progressFlow" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-white/50 to-blue-400/0 animate-shimmer" />
+        </div>
+      )}
           <CustomFormDialogHeader
             title={
               editingStockCategory
@@ -576,7 +583,7 @@ const StockCategoryRegistration: React.FC = () => {
             }
           />
 
-          <div className="space-y-6 py-4">
+          <div className="">
             <div className="bg-white p-4 rounded-lg">
               {/* <SectionHeader
                 icon={<Package className="w-4 h-4 text-white" />}
@@ -632,7 +639,7 @@ const StockCategoryRegistration: React.FC = () => {
                     }
                     className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                   >
-                    <option value="primary">Primary (No Parent)</option>
+                    <option value={null}>Primary (No Parent)</option>
                     {stockCategories
                       .filter((c) => c._id !== editingStockCategory?._id)
                       .map((category) => (

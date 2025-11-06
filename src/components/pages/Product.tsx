@@ -244,7 +244,6 @@ const ProductPage: React.FC = () => {
     // Cleanup when leaving the page_
     return () => {
       resetProductStore();
-      console.log("🧹 Stock state reset on page leave 🚀");
     };
   }, [resetProductStore]);
   useEffect(() => {
@@ -259,7 +258,6 @@ const ProductPage: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, sortBy]);
-  console.log(products, "products");
 
   // Filtering with debounce
   useEffect(() => {
@@ -558,17 +556,10 @@ const ProductPage: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    console.log(
-      "Submitting form with data:",
-      formData,
-      "and opening quantities:",
-      openingQuantities
-    );
     if (!formData.code.trim()) {
       toast.error("Please enter Product Code");
       return;
     }
-    // console.log('Form data after validation:', formData);
     if (!formData.name.trim()) {
       toast.error("Please enter Product Name");
       return;
@@ -669,7 +660,6 @@ const ProductPage: React.FC = () => {
 
   const getMaintainBatchStatus = (companyId: string) => {
     const company = companies?.find((c) => c._id === companyId);
-    // console.log("Selected company:", company);
     return company ? company?.maintainBatch : false;
   };
 
@@ -714,7 +704,6 @@ const ProductPage: React.FC = () => {
 
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredProducts.map((product) => {
-              console.log("Rendering product:", product);
               return (
                 <tr
                   key={product._id}
