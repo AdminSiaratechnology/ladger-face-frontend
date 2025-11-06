@@ -384,7 +384,7 @@ const filteredMenuItems = menuItems
     item.type === "accordion" ? item.subItems?.length > 0 : true
   );
 
-console.log(filteredMenuItems)
+
   const handleLinkClick = () => {
     if (window.innerWidth < 768 && onClose) onClose();
   };

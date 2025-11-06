@@ -202,7 +202,7 @@ const AuditLogsPage: React.FC = () => {
         event.details || '',
         event.ipAddress || 'N/A'
       ];
-      console.log(isDetail,"isDetail")
+   
       
 
       if (isDetail) {
@@ -215,18 +215,18 @@ const AuditLogsPage: React.FC = () => {
           JSON.stringify( event.referenceId?.auditLogs )|| ''
 
         );
-        console.log(event.referenceId?._id,"event.referenceId?._id")
+       
       }
 
       return baseRow;
     });
-    console.log(csvRows,"events",events)
+
 
     const csvContent = [
       csvHeaders.join(","),
       ...csvRows.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(","))
     ].join("\n");
-    console.log(csvContent,"csvContent")
+ 
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -333,7 +333,7 @@ const AuditLogsPage: React.FC = () => {
     // Cleanup when leaving the page
     return () => {
       resetStore()
-      console.log("Stock state reset on page leave 🚀");
+
     };
   }, [resetStore]);
 

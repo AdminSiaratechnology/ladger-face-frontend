@@ -19,7 +19,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
   placeholder = "Select an option",
   required = false,
 }) => {
-  console.log(options,"optionsssss")
+
   return (
     <div className="flex flex-col gap-1">
       <label

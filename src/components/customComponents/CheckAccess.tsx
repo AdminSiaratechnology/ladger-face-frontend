@@ -13,7 +13,7 @@ export const CheckAccess = ({ children, module, subModule, type }: CheckAccessPr
   const { user, isLoading } = useAuthStore();
   const { defaultSelected } = useCompanyStore(); // ✅ get selected company
   const companyId = defaultSelected?._id;
-// console.log("companyId", companyId)
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
@@ -26,7 +26,7 @@ export const CheckAccess = ({ children, module, subModule, type }: CheckAccessPr
       subModule,
       type,
     });
-// console.log(hasPermission)
+
     if (!hasPermission) {
       return null; // 🚫 Hide if no access
     }
