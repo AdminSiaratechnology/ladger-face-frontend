@@ -226,7 +226,7 @@ export default function AdminDashboard() {
   const fetchOtherAsync = async () => {
     const { defaultSelected } = useCompanyStore.getState(); // Use getState() to get the latest store value immediately
     const companyId = defaultSelected?._id;
-    console.log(defaultSelected, "defaultselectes");
+  
     if (!companyId) return;
 
     try {

@@ -46,7 +46,7 @@ export default function CheckoutPage() {
     };
 
     // TODO: send orderData to your API
-    console.log("Order Data:", orderData);
+
     alert("Order placed successfully!");
     navigate("/orders");
   };
