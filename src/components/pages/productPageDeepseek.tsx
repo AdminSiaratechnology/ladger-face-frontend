@@ -142,7 +142,6 @@ const ProductPage: React.FC = () => {
   const {godowns}=useGodownStore()
   const {units}=useUOMStore()
   const {fetchProducts,addProduct,updateProduct,deleteProduct}=useProductStore()
-  console.log(companies,"comapnyyyyys")
 
 
   // Simulated country from backend - can be replaced with actual backend call
@@ -421,7 +420,6 @@ const ProductPage: React.FC = () => {
     { id: "settings", label: "Settings" },
   ];
 
-  console.log(stockCategories,"stockctegoryyyy")
   // Get unique parent options from stock categories and groups
   const categoryParents = [
     ...new Set(stockCategories.map((cat) => cat.parent)),

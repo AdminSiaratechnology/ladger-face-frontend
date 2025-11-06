@@ -87,7 +87,7 @@ const StockGroupRegistration: React.FC = () => {
   };
   const limit = 10; // Fixed limit per page
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [showProgress, setShowProgress] = useState(false);
   const {
     fetchStockGroup,
     addStockGroup,
@@ -181,15 +181,19 @@ const StockGroupRegistration: React.FC = () => {
     }));
   };
 
-  const handleSelectChange = (
-    name: keyof StockGroupForm,
-    value: string
-  ): void => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+const handleSelectChange = (
+  name: keyof StockGroupForm,
+  value: string
+): void => {
+  const normalizedValue =
+    name === "parent" && (value === "" || value === "null") ? null : value;
+
+  setFormData((prev) => ({
+    ...prev,
+    [name]: normalizedValue, // ✅ use normalizedValue instead of value
+  }));
+};
+
 
   const resetForm = () => {
     setFormData({
@@ -224,6 +228,7 @@ const StockGroupRegistration: React.FC = () => {
   const handleSubmit = async (): Promise<void> => {
     if (isSubmitting) return; // ⛔ prevent multiple rapid clicks
     setIsSubmitting(true);
+    setShowProgress(true);
     try {
       if (!formData.name.trim()) {
         toast.error("Please enter Stock Group Name");
@@ -241,6 +246,7 @@ const StockGroupRegistration: React.FC = () => {
       console.error("Error submitting form:", error);
     } finally {
       setIsSubmitting(false);
+      setShowProgress(false);
     }
   };
 
@@ -530,6 +536,12 @@ const StockGroupRegistration: React.FC = () => {
         }}
       >
         <DialogContent className="custom-dialog-container">
+          {showProgress && (
+            <div className="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-50 overflow-hidden">
+              <div className="absolute inset-0 bg-blue-500 animate-progressFlow" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-white/50 to-blue-400/0 animate-shimmer" />
+            </div>
+          )}
           <CustomFormDialogHeader
             title={
               editingStockGroup ? "Edit Stock Group" : "Add New Stock Group"
@@ -541,7 +553,7 @@ const StockGroupRegistration: React.FC = () => {
             }
           />
 
-          <div className="space-y-6 py-4">
+          <div className="">
             <div className="bg-white p-4 rounded-lg">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <CustomInputBox
@@ -573,7 +585,7 @@ const StockGroupRegistration: React.FC = () => {
                   Parent Group
                 </label>
                 <select
-                  value={formData.parent || ""}
+                  value={formData.parent || null}
                   onChange={(e) => handleSelectChange("parent", e.target.value)}
                   className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                 >

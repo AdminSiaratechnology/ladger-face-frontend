@@ -287,7 +287,6 @@ const CustomerRegistrationPage: React.FC = () => {
     setIsModalOpen(true);
   };
   const limit = 10; // Fixed limit per page
-  console.log(filteredCustomers, "dsdhhkfh");
   const {
     fetchCustomers,
     addCustomer,
@@ -301,7 +300,6 @@ const CustomerRegistrationPage: React.FC = () => {
     initialLoading,
   } = useCustomerStore(); // Assuming store exists
   const { defaultSelected, companies } = useCompanyStore();
-  console.log(defaultSelected);
   const [formData, setFormData] = useState<CustomerForm>({
     customerType: "individual",
     customerCode: "",
@@ -560,7 +558,6 @@ const CustomerRegistrationPage: React.FC = () => {
 
       try {
         toast.info("Compressing image...");
-        console.log("Compressing image...");
         const compressedFile = await imageCompression(file, compressionOptions);
         const previewUrl = URL.createObjectURL(compressedFile);
         setFormData((prev) => ({
@@ -573,7 +570,6 @@ const CustomerRegistrationPage: React.FC = () => {
             file.size / 1024
           )}KB to ${Math.round(compressedFile.size / 1024)}KB`
         );
-        console.log("hiiiiiiiiiiiiii");
       } catch (error) {
         console.error("Compression failed:", error);
         toast.error("Failed to compress image. Using original file.");
@@ -586,7 +582,6 @@ const CustomerRegistrationPage: React.FC = () => {
       }
     }
   };
-
 
   const removeLogo = (): void => {
     if (
@@ -602,51 +597,51 @@ const CustomerRegistrationPage: React.FC = () => {
     }));
   };
 
-     // Updated document upload with compression (async)_
-      const handleDocumentUpload = async (
-        type: string,
-        e: React.ChangeEvent<HTMLInputElement>
-      ) => {
-        const file = e.target.files?.[0];
-        if (file) {
-          // Compress only if it's an image; skip for PDFs_
-          let processedFile = file;
-          let isImage = file.type.startsWith("image/");
-    
-          if (isImage) {
-            try {
-              toast.info(`Compressing ${type} image...`);
-              processedFile = await imageCompression(file, compressionOptions);
-              toast.success(
-                `${type} compressed from ${Math.round(
-                  file.size / 1024
-                )}KB to ${Math.round(processedFile.size / 1024)}KB`
-              );
-            } catch (error) {
-              console.error("Compression failed:", error);
-              toast.error(`Failed to compress ${type} image. Using original.`);
-            }
-          }
-    
-          const previewUrl = URL.createObjectURL(processedFile);
-    
-          const newDoc: RegistrationDocument = {
-            id: Date.now(),
-            type,
-            file: processedFile,
-            previewUrl,
-            fileName: processedFile.name,
-          };
-    
-          setFormData((prev) => ({
-            ...prev,
-            registrationDocs: [
-              ...prev.registrationDocs.filter((doc) => doc.type !== type),
-              newDoc,
-            ],
-          }));
+  // Updated document upload with compression (async)_
+  const handleDocumentUpload = async (
+    type: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Compress only if it's an image; skip for PDFs_
+      let processedFile = file;
+      let isImage = file.type.startsWith("image/");
+
+      if (isImage) {
+        try {
+          toast.info(`Compressing ${type} image...`);
+          processedFile = await imageCompression(file, compressionOptions);
+          toast.success(
+            `${type} compressed from ${Math.round(
+              file.size / 1024
+            )}KB to ${Math.round(processedFile.size / 1024)}KB`
+          );
+        } catch (error) {
+          console.error("Compression failed:", error);
+          toast.error(`Failed to compress ${type} image. Using original.`);
         }
+      }
+
+      const previewUrl = URL.createObjectURL(processedFile);
+
+      const newDoc: RegistrationDocument = {
+        id: Date.now(),
+        type,
+        file: processedFile,
+        previewUrl,
+        fileName: processedFile.name,
       };
+
+      setFormData((prev) => ({
+        ...prev,
+        registrationDocs: [
+          ...prev.registrationDocs.filter((doc) => doc.type !== type),
+          newDoc,
+        ],
+      }));
+    }
+  };
   const removeDocument = (id: number) => {
     const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
     if (
@@ -844,14 +839,14 @@ const CustomerRegistrationPage: React.FC = () => {
       customerFormData.append("logo", formData.logoFile);
     }
 
-       const newRegistrationDocs = formData.registrationDocs.filter(
+    const newRegistrationDocs = formData.registrationDocs.filter(
       (doc) => doc.file && doc.file instanceof Blob
     );
 
     newRegistrationDocs.forEach((doc) => {
       customerFormData.append("registrationDocs", doc.file!);
     });
-        if (newRegistrationDocs.length > 0) {
+    if (newRegistrationDocs.length > 0) {
       customerFormData.append(
         "registrationDocTypes",
         JSON.stringify(newRegistrationDocs.map((doc) => doc.type))
@@ -859,7 +854,7 @@ const CustomerRegistrationPage: React.FC = () => {
     }
 
     if (editingCustomer) {
-     await updateCustomer({
+      await updateCustomer({
         id: editingCustomer._id || "",
         customer: customerFormData,
       });
@@ -925,7 +920,6 @@ const CustomerRegistrationPage: React.FC = () => {
         )
           .then((result) => {
             setFilteredCustomers(result);
-            console.log(result);
           })
           .catch((err) => {
             console.error("Error filtering customers:", err);
@@ -1067,13 +1061,13 @@ const CustomerRegistrationPage: React.FC = () => {
                 >
                   {customer.status}
                 </Badge>
-              <ActionsDropdown
-                    onView={() => handleViewCustomer(customer)}
-                    onEdit={() => handleEditCustomer(customer)}
-                    onDelete={() => handleDeleteCustomer(customer._id || "")}
-                    module="BusinessManagement"
-                    subModule="CustomerRegistration"
-                  />
+                <ActionsDropdown
+                  onView={() => handleViewCustomer(customer)}
+                  onEdit={() => handleEditCustomer(customer)}
+                  onDelete={() => handleDeleteCustomer(customer._id || "")}
+                  module="BusinessManagement"
+                  subModule="CustomerRegistration"
+                />
               </div>
             </div>
           </CardHeader>
@@ -1875,7 +1869,7 @@ const CustomerRegistrationPage: React.FC = () => {
                       Agent
                     </label>
                     <select
-                      value={formData.agent }
+                      value={formData.agent}
                       onChange={(e) =>
                         handleSelectChange("agent", e.target.value)
                       }
@@ -1903,29 +1897,18 @@ const CustomerRegistrationPage: React.FC = () => {
 
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <CustomInputBox
-                    label="Tax ID/Registration Number"
-                    placeholder="e.g., 1234567890"
-                    name="taxId"
-                    value={formData.taxId}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                  <CustomInputBox
-                    label="VAT Number"
-                    placeholder="e.g., VAT123456"
-                    name="vatNumber"
-                    value={formData.vatNumber}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                </div>
-
-                {/* Show extra fields only if country is India */}
-                {formData.country?.toLowerCase() === "india" && (
+                {formData.country?.toLowerCase() === "india" ? (
                   <>
+                    {/* India-specific fields (no VAT or TAN) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <CustomInputBox
+                        label="Tax ID/Registration Number"
+                        placeholder="e.g., 1234567890"
+                        name="taxId"
+                        value={formData.taxId}
+                        onChange={handleChange}
+                        maxLength={15}
+                      />
                       <CustomInputBox
                         label="GST Number"
                         placeholder="e.g., 22AAAAA0000A1Z5"
@@ -1943,6 +1926,14 @@ const CustomerRegistrationPage: React.FC = () => {
                         maxLength={10}
                       />
                       <CustomInputBox
+                        label="MSME Number"
+                        placeholder="e.g., MSME-XX-00-0000000"
+                        name="msmeRegistration"
+                        value={formData.msmeRegistration}
+                        onChange={handleChange}
+                        maxLength={20}
+                      />
+                      <CustomInputBox
                         label="TAN Number"
                         placeholder="e.g., ABCD12345E"
                         name="tanNumber"
@@ -1950,17 +1941,8 @@ const CustomerRegistrationPage: React.FC = () => {
                         onChange={handleChange}
                         maxLength={10}
                       />
-                      <CustomInputBox
-                        label="MSME Number"
-                        placeholder="e.g., UDYAM-XX-00-0000000"
-                        name="msmeRegistration"
-                        value={formData.msmeRegistration}
-                        onChange={handleChange}
-                        maxLength={20}
-                      />
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      {/* Tax Category beside TAN */}
                       <div className="flex flex-col gap-1">
                         <label className="text-sm font-semibold text-gray-700">
                           Tax Category
@@ -1979,6 +1961,20 @@ const CustomerRegistrationPage: React.FC = () => {
                           <option value="out_of_scope">Out of Scope</option>
                         </select>
                       </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Non-India fields (only VAT and TAN) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <CustomInputBox
+                        label="VAT Number"
+                        placeholder="e.g., VAT123456"
+                        name="vatNumber"
+                        value={formData.vatNumber}
+                        onChange={handleChange}
+                        maxLength={15}
+                      />
                     </div>
                   </>
                 )}

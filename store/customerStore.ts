@@ -225,16 +225,15 @@ export const useCustomerStore = create<CustomerStore>()(
       errorMessage: null,
 
       fetchCustomers: async (page = 1, limit = 10, companyId?:string|number) => {
-        console.log("first, ", companyId);
+        console.log(companyId,"dddddddddddddd")
         set({ loading: true, error: false });
         try {
           const queryParams = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
           });
-          const id = companyId?.toLocaleString();
           const result = await api.fetchCustomers(
-            { companyId: id },
+            { companyId: companyId},
             {
               queryParams: queryParams.toString(),
             }
@@ -244,7 +243,6 @@ export const useCustomerStore = create<CustomerStore>()(
             pagination: result?.data?.pagination,
             loading: false,
           });
-          console.log(result?.data?.customers, "result?.data?");
         } catch (error: any) {
           set({
             loading: false,
@@ -283,7 +281,6 @@ export const useCustomerStore = create<CustomerStore>()(
 
           set({
             customers: get().customers.map((c) => {
-              console.log(id, result, c, "idresult");
               return c?.["_id"] == id ? result?.data : c;
             }),
             loading: false,
@@ -350,8 +347,6 @@ export const useCustomerStore = create<CustomerStore>()(
               queryParams: queryParams.toString(),
             }
           ); // Adjust api call
-          console.log("Filter result for customers:", result);
-
           set({
             customers: result?.data?.customers || [],
             pagination: result?.data?.pagination,

@@ -69,20 +69,17 @@ export const useStockGroup = create<StockGroupStore>()(
       error: false,
       errormessage: null,
       fetchStockGroup: async (page = 1, limit = 10, companyId) => {
-        console.log("fetching stock groups page:", page, "limit:", limit);
         set({ loading: true });
         try {
           const queryParams = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
           });
-          console.log(queryParams, "quearpaaaa");
           const id = companyId?.toLocaleString();
           const result = await api.getStockGroup(
             { companyId: id },
             { queryParams: queryParams.toString() }
           ); // Adjust if needed
-          console.log(result, "fetch result of stockgroup");
           if (result?.statusCode == 200) {
             set({
               loading: false,
@@ -98,7 +95,6 @@ export const useStockGroup = create<StockGroupStore>()(
         set({ loading: true });
         try {
           const result = await api.createSockGroup(stockGroupData);
-          console.log(result, "add stockgroup");
           const newStockGroup: StockGroup = result.data;
 
           set({
@@ -113,7 +109,6 @@ export const useStockGroup = create<StockGroupStore>()(
         }
       },
       updateStockGroup: async (stockGroupId, stockGroupData) => {
-        console.log("updatingggg", stockGroupId, stockGroupData);
 
         set({ loading: true });
         try {
@@ -131,19 +126,16 @@ export const useStockGroup = create<StockGroupStore>()(
             error: false,
           });
           toast.success("Stock Group updated successfully");
-          console.log(res, "update stockgroup");
         } catch (error) {
           set({ loading: false, error: true, errormessage: error.message });
           toast.error(error.message || "Failed to update Stock Group");
         }
       },
       deleteStockGroup: async (stockGroupId: string) => {
-        console.log("delete22", stockGroupId);
         try {
           set({ loading: true, error: null });
 
           const res = await api.deleteStockGroup(stockGroupId);
-          console.log("Deleted stockGroup response:", res);
 
           set({
             stockGroups: get().stockGroups.filter(
@@ -189,7 +181,6 @@ export const useStockGroup = create<StockGroupStore>()(
             { companyId },
             { queryParams: queryParams.toString() }
           ); // Adjust api call
-          console.log("Database search response for stockGroups:", res);
 
           set({
             stockGroups: res.data.stockGroups,

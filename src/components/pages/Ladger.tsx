@@ -89,7 +89,7 @@ interface Ledger {
   ledgerCode: string;
   ledgerName: string;
   shortName: string;
-  companyId: string;
+  companyID: string;
   ledgerGroup: string;
   industryType: string;
   territory: string;
@@ -145,7 +145,7 @@ interface LedgerForm {
   ledgerCode: string;
   ledgerName: string;
   shortName: string;
-  companyId: string;
+  companyID: string;
   ledgerGroup: string;
   industryType: string;
   territory: string;
@@ -202,7 +202,6 @@ const compressionOptions = {
   useWebWorker: true, // Use web worker for non-blocking_
   initialQuality: 0.8, // Start with 80% quality_
 };
-
 
 const LedgerRegistration: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
@@ -327,7 +326,7 @@ const LedgerRegistration: React.FC = () => {
     ledgerCode: "",
     ledgerName: "",
     shortName: "",
-    companyId: "",
+    companyID: "",
     ledgerGroup: "",
     industryType: "",
     territory: "",
@@ -355,6 +354,7 @@ const LedgerRegistration: React.FC = () => {
     tanNumber: "",
     taxCategory: "",
     taxTemplate: "",
+    msmeRegistration: "",
     withholdingTaxCategory: "",
     isTaxExempt: false,
     reverseCharge: false,
@@ -377,7 +377,7 @@ const LedgerRegistration: React.FC = () => {
   });
   useEffect(() => {
     if (defaultSelected) {
-      setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
+      setFormData((prev) => ({ ...prev, companyID: defaultSelected?._id }));
     }
   }, [defaultSelected, companies]);
   // Country, State, City Data
@@ -538,46 +538,44 @@ const LedgerRegistration: React.FC = () => {
     }
   };
 
-   // Updated logo upload with compression (async)_
-    const handleLogoUpload = async (
-      e: React.ChangeEvent<HTMLInputElement>
-    ): Promise<void> => {
-      const file = e.target.files?.[0];
-      if (file) {
-        // Skip compression for non-images (e.g., PDFs, but logo is image-only)_
-        if (!file.type.startsWith("image/")) {
-          toast.error("Please select an image file for the logo.");
-          return;
-        }
-  
-        try {
-          toast.info("Compressing image...");
-          console.log("Compressing image...");
-          const compressedFile = await imageCompression(file, compressionOptions);
-          const previewUrl = URL.createObjectURL(compressedFile);
-          setFormData((prev) => ({
-            ...prev,
-            logoFile: compressedFile,
-            logoPreviewUrl: previewUrl,
-          }));
-          toast.success(
-            `Logo compressed from ${Math.round(
-              file.size / 1024
-            )}KB to ${Math.round(compressedFile.size / 1024)}KB`
-          );
-          console.log("hiiiiiiiiiiiiii");
-        } catch (error) {
-          console.error("Compression failed:", error);
-          toast.error("Failed to compress image. Using original file.");
-          const previewUrl = URL.createObjectURL(file);
-          setFormData((prev) => ({
-            ...prev,
-            logoFile: file,
-            logoPreviewUrl: previewUrl,
-          }));
-        }
+  // Updated logo upload with compression (async)_
+  const handleLogoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Skip compression for non-images (e.g., PDFs, but logo is image-only)_
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file for the logo.");
+        return;
       }
-    };
+
+      try {
+        toast.info("Compressing image...");
+        const compressedFile = await imageCompression(file, compressionOptions);
+        const previewUrl = URL.createObjectURL(compressedFile);
+        setFormData((prev) => ({
+          ...prev,
+          logoFile: compressedFile,
+          logoPreviewUrl: previewUrl,
+        }));
+        toast.success(
+          `Logo compressed from ${Math.round(
+            file.size / 1024
+          )}KB to ${Math.round(compressedFile.size / 1024)}KB`
+        );
+      } catch (error) {
+        console.error("Compression failed:", error);
+        toast.error("Failed to compress image. Using original file.");
+        const previewUrl = URL.createObjectURL(file);
+        setFormData((prev) => ({
+          ...prev,
+          logoFile: file,
+          logoPreviewUrl: previewUrl,
+        }));
+      }
+    }
+  };
 
   const removeLogo = (): void => {
     if (
@@ -593,51 +591,51 @@ const LedgerRegistration: React.FC = () => {
     }));
   };
 
-// Updated document upload with compression (async)_
-    const handleDocumentUpload = async (
-      type: string,
-      e: React.ChangeEvent<HTMLInputElement>
-    ) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        // Compress only if it's an image; skip for PDFs_
-        let processedFile = file;
-        let isImage = file.type.startsWith("image/");
-  
-        if (isImage) {
-          try {
-            toast.info(`Compressing ${type} image...`);
-            processedFile = await imageCompression(file, compressionOptions);
-            toast.success(
-              `${type} compressed from ${Math.round(
-                file.size / 1024
-              )}KB to ${Math.round(processedFile.size / 1024)}KB`
-            );
-          } catch (error) {
-            console.error("Compression failed:", error);
-            toast.error(`Failed to compress ${type} image. Using original.`);
-          }
+  // Updated document upload with compression (async)_
+  const handleDocumentUpload = async (
+    type: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Compress only if it's an image; skip for PDFs_
+      let processedFile = file;
+      let isImage = file.type.startsWith("image/");
+
+      if (isImage) {
+        try {
+          toast.info(`Compressing ${type} image...`);
+          processedFile = await imageCompression(file, compressionOptions);
+          toast.success(
+            `${type} compressed from ${Math.round(
+              file.size / 1024
+            )}KB to ${Math.round(processedFile.size / 1024)}KB`
+          );
+        } catch (error) {
+          console.error("Compression failed:", error);
+          toast.error(`Failed to compress ${type} image. Using original.`);
         }
-  
-        const previewUrl = URL.createObjectURL(processedFile);
-  
-        const newDoc: RegistrationDocument = {
-          id: Date.now(),
-          type,
-          file: processedFile,
-          previewUrl,
-          fileName: processedFile.name,
-        };
-  
-        setFormData((prev) => ({
-          ...prev,
-          registrationDocs: [
-            ...prev.registrationDocs.filter((doc) => doc.type !== type),
-            newDoc,
-          ],
-        }));
       }
-    };
+
+      const previewUrl = URL.createObjectURL(processedFile);
+
+      const newDoc: RegistrationDocument = {
+        id: Date.now(),
+        type,
+        file: processedFile,
+        previewUrl,
+        fileName: processedFile.name,
+      };
+
+      setFormData((prev) => ({
+        ...prev,
+        registrationDocs: [
+          ...prev.registrationDocs.filter((doc) => doc.type !== type),
+          newDoc,
+        ],
+      }));
+    }
+  };
 
   const removeDocument = (id: number) => {
     const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
@@ -675,7 +673,7 @@ const LedgerRegistration: React.FC = () => {
       ledgerCode: "",
       ledgerName: "",
       shortName: "",
-      companyId: "",
+      companyID: "",
       ledgerGroup: "",
       industryType: "",
       territory: "",
@@ -703,6 +701,7 @@ const LedgerRegistration: React.FC = () => {
       tanNumber: "",
       taxCategory: "",
       taxTemplate: "",
+      msmeRegistration: "",
       withholdingTaxCategory: "",
       isTaxExempt: false,
       reverseCharge: false,
@@ -743,7 +742,7 @@ const LedgerRegistration: React.FC = () => {
     setFormData({
       ...ledger,
       logoPreviewUrl: ledger.logo || undefined,
-     registrationDocs: ledger.registrationDocs.map((doc, index) => ({
+      registrationDocs: ledger.registrationDocs.map((doc, index) => ({
         id: Date.now() + index,
         type: doc.type,
         file: null, // No File for existing
@@ -809,7 +808,7 @@ const LedgerRegistration: React.FC = () => {
     //   String(formData.registrationDocs.length)
     // );
 
-       const newRegistrationDocs = formData.registrationDocs.filter(
+    const newRegistrationDocs = formData.registrationDocs.filter(
       (doc) => doc.file && doc.file instanceof Blob
     );
 
@@ -825,12 +824,13 @@ const LedgerRegistration: React.FC = () => {
     }
 
     if (editingLedger) {
-      await updateLedger({ id: editingLedger._id || "", ledger: ledgerFormData });
-      toast.success("ledger updated successfully");
+      await updateLedger({
+        id: editingLedger._id || "",
+        ledger: ledgerFormData,
+      });
     } else {
       await addLedger(ledgerFormData);
       fetchLedgers(currentPage, limit, defaultSelected?._id);
-      toast.success("Ledger added successfully");
     }
     setOpen(false);
     resetForm();
@@ -930,13 +930,13 @@ const LedgerRegistration: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                    <ActionsDropdown
-                      onView={() => handleViewLedger(ledger)}
-                      onEdit={() => handleEditLedger(ledger)}
-                      onDelete={() => handleDeleteLedger(ledger._id || "")}
-                      module="BusinessManagement"
-                      subModule="Ledger"
-                    />
+                  <ActionsDropdown
+                    onView={() => handleViewLedger(ledger)}
+                    onEdit={() => handleEditLedger(ledger)}
+                    onDelete={() => handleDeleteLedger(ledger._id || "")}
+                    module="BusinessManagement"
+                    subModule="Ledger"
+                  />
                 </td>
               </tr>
             ))}
@@ -985,12 +985,12 @@ const LedgerRegistration: React.FC = () => {
                 >
                   {ledger.status}
                 </Badge>
-                  <ActionsDropdown
-                    onEdit={() => handleEditLedger(ledger)}
-                    onDelete={() => handleDeleteLedger(ledger._id || "")}
-                    module="BusinessManagement"
-                    subModule="Ledger"
-                  />
+                <ActionsDropdown
+                  onEdit={() => handleEditLedger(ledger)}
+                  onDelete={() => handleDeleteLedger(ledger._id || "")}
+                  module="BusinessManagement"
+                  subModule="Ledger"
+                />
               </div>
             </div>
           </CardHeader>
@@ -1117,15 +1117,10 @@ const LedgerRegistration: React.FC = () => {
               resetForm();
               setOpen(true);
               if (defaultSelected && companies.length > 0) {
-                const selectedCompany = companies.find(
-                  (c) => c._id === defaultSelected?._id
-                );
-                if (selectedCompany) {
-                  setFormData((prev) => ({
-                    ...prev,
-                    companyID: selectedCompany._id,
-                  }));
-                }
+                setFormData((prev) => ({
+                  ...prev,
+                  companyID: defaultSelected?._id,
+                }));
               }
               setOpen(true);
             }}
@@ -1648,31 +1643,20 @@ const LedgerRegistration: React.FC = () => {
                 />
               </div>
             )}
-
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <CustomInputBox
-                    label="Tax ID/Registration Number"
-                    placeholder="e.g., 1234567890"
-                    name="taxId"
-                    value={formData.taxId}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                  <CustomInputBox
-                    label="VAT Number"
-                    placeholder="e.g., VAT123456"
-                    name="vatNumber"
-                    value={formData.vatNumber}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                </div>
-
-                {formData.country?.toLowerCase() === "india" && (
+                {formData.country?.toLowerCase() === "india" ? (
                   <>
+                    {/* India-specific fields (no VAT or TAN) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <CustomInputBox
+                        label="Tax ID/Registration Number"
+                        placeholder="e.g., 1234567890"
+                        name="taxId"
+                        value={formData.taxId}
+                        onChange={handleChange}
+                        maxLength={15}
+                      />
                       <CustomInputBox
                         label="GST Number"
                         placeholder="e.g., 22AAAAA0000A1Z5"
@@ -1690,6 +1674,14 @@ const LedgerRegistration: React.FC = () => {
                         maxLength={10}
                       />
                       <CustomInputBox
+                        label="MSME Number"
+                        placeholder="e.g., MSME-XX-00-0000000"
+                        name="msmeRegistration"
+                        value={formData.msmeRegistration}
+                        onChange={handleChange}
+                        maxLength={20}
+                      />
+                      <CustomInputBox
                         label="TAN Number"
                         placeholder="e.g., ABCD12345E"
                         name="tanNumber"
@@ -1697,17 +1689,8 @@ const LedgerRegistration: React.FC = () => {
                         onChange={handleChange}
                         maxLength={10}
                       />
-                      <CustomInputBox
-                        label="MSME Number"
-                        placeholder="e.g., UDYAM-XX-00-0000000"
-                        name="msmeRegistration"
-                        value={formData.msmeRegistration}
-                        onChange={handleChange}
-                        maxLength={20}
-                      />
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      {/* Tax Category beside TAN */}
                       <div className="flex flex-col gap-1">
                         <label className="text-sm font-semibold text-gray-700">
                           Tax Category
@@ -1726,6 +1709,20 @@ const LedgerRegistration: React.FC = () => {
                           <option value="out_of_scope">Out of Scope</option>
                         </select>
                       </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Non-India fields (only VAT and TAN) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <CustomInputBox
+                        label="VAT Number"
+                        placeholder="e.g., VAT123456"
+                        name="vatNumber"
+                        value={formData.vatNumber}
+                        onChange={handleChange}
+                        maxLength={15}
+                      />
                     </div>
                   </>
                 )}

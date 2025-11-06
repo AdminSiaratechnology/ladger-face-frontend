@@ -551,7 +551,7 @@ const VendorRegistrationPage: React.FC = () => {
     }
   };
 
- const handleLogoUpload = async (
+  const handleLogoUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
   ): Promise<void> => {
     const file = e.target.files?.[0];
@@ -564,7 +564,6 @@ const VendorRegistrationPage: React.FC = () => {
 
       try {
         toast.info("Compressing image...");
-        console.log("Compressing image...");
         const compressedFile = await imageCompression(file, compressionOptions);
         const previewUrl = URL.createObjectURL(compressedFile);
         setFormData((prev) => ({
@@ -577,7 +576,6 @@ const VendorRegistrationPage: React.FC = () => {
             file.size / 1024
           )}KB to ${Math.round(compressedFile.size / 1024)}KB`
         );
-        console.log("hiiiiiiiiiiiiii");
       } catch (error) {
         console.error("Compression failed:", error);
         toast.error("Failed to compress image. Using original file.");
@@ -605,52 +603,51 @@ const VendorRegistrationPage: React.FC = () => {
     }));
   };
 
-  
-     // Updated document upload with compression (async)_
-      const handleDocumentUpload = async (
-        type: string,
-        e: React.ChangeEvent<HTMLInputElement>
-      ) => {
-        const file = e.target.files?.[0];
-        if (file) {
-          // Compress only if it's an image; skip for PDFs_
-          let processedFile = file;
-          let isImage = file.type.startsWith("image/");
-    
-          if (isImage) {
-            try {
-              toast.info(`Compressing ${type} image...`);
-              processedFile = await imageCompression(file, compressionOptions);
-              toast.success(
-                `${type} compressed from ${Math.round(
-                  file.size / 1024
-                )}KB to ${Math.round(processedFile.size / 1024)}KB`
-              );
-            } catch (error) {
-              console.error("Compression failed:", error);
-              toast.error(`Failed to compress ${type} image. Using original.`);
-            }
-          }
-    
-          const previewUrl = URL.createObjectURL(processedFile);
-    
-          const newDoc: RegistrationDocument = {
-            id: Date.now(),
-            type,
-            file: processedFile,
-            previewUrl,
-            fileName: processedFile.name,
-          };
-    
-          setFormData((prev) => ({
-            ...prev,
-            registrationDocs: [
-              ...prev.registrationDocs.filter((doc) => doc.type !== type),
-              newDoc,
-            ],
-          }));
+  // Updated document upload with compression (async)_
+  const handleDocumentUpload = async (
+    type: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Compress only if it's an image; skip for PDFs_
+      let processedFile = file;
+      let isImage = file.type.startsWith("image/");
+
+      if (isImage) {
+        try {
+          toast.info(`Compressing ${type} image...`);
+          processedFile = await imageCompression(file, compressionOptions);
+          toast.success(
+            `${type} compressed from ${Math.round(
+              file.size / 1024
+            )}KB to ${Math.round(processedFile.size / 1024)}KB`
+          );
+        } catch (error) {
+          console.error("Compression failed:", error);
+          toast.error(`Failed to compress ${type} image. Using original.`);
         }
+      }
+
+      const previewUrl = URL.createObjectURL(processedFile);
+
+      const newDoc: RegistrationDocument = {
+        id: Date.now(),
+        type,
+        file: processedFile,
+        previewUrl,
+        fileName: processedFile.name,
       };
+
+      setFormData((prev) => ({
+        ...prev,
+        registrationDocs: [
+          ...prev.registrationDocs.filter((doc) => doc.type !== type),
+          newDoc,
+        ],
+      }));
+    }
+  };
 
   const removeDocument = (id: number) => {
     const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
@@ -782,8 +779,8 @@ const VendorRegistrationPage: React.FC = () => {
     setEditingVendor(vendor);
     setFormData({
       ...vendor,
-       logoPreviewUrl: vendor.logo || undefined,
-     registrationDocs: vendor.registrationDocs.map((doc, index) => ({
+      logoPreviewUrl: vendor.logo || undefined,
+      registrationDocs: vendor.registrationDocs.map((doc, index) => ({
         id: Date.now() + index,
         type: doc.type,
         file: null, // No File for existing
@@ -860,7 +857,7 @@ const VendorRegistrationPage: React.FC = () => {
     //   String(formData.registrationDocs.length)
     // );
 
-          const newRegistrationDocs = formData.registrationDocs.filter(
+    const newRegistrationDocs = formData.registrationDocs.filter(
       (doc) => doc.file && doc.file instanceof Blob
     );
 
@@ -876,7 +873,10 @@ const VendorRegistrationPage: React.FC = () => {
     }
 
     if (editingVendor) {
-      await updateVendor({ id: editingVendor._id || "", vendor: vendorFormData });
+      await updateVendor({
+        id: editingVendor._id || "",
+        vendor: vendorFormData,
+      });
     } else {
       await addVendor(vendorFormData);
       await fetchVendors(currentPage, limit, defaultSelected?._id);
@@ -1023,7 +1023,7 @@ const VendorRegistrationPage: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <ActionsDropdown
-                    onView={()=> handleViewVendor(vendor)}
+                    onView={() => handleViewVendor(vendor)}
                     onEdit={() => handleEditVendor(vendor)}
                     onDelete={() => handleDeleteVendor(vendor._id || "")}
                     module="BusinessManagement"
@@ -1880,27 +1880,18 @@ const VendorRegistrationPage: React.FC = () => {
 
             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <CustomInputBox
-                    label="Tax ID/Registration Number"
-                    placeholder="e.g., 1234567890"
-                    name="taxId"
-                    value={formData.taxId}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                  <CustomInputBox
-                    label="VAT Number"
-                    placeholder="e.g., VAT123456"
-                    name="vatNumber"
-                    value={formData.vatNumber}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                </div>
-                {formData.country?.toLowerCase() === "india" && (
+                {formData.country?.toLowerCase() === "india" ? (
                   <>
+                    {/* India-specific fields (no VAT or TAN) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <CustomInputBox
+                        label="Tax ID/Registration Number"
+                        placeholder="e.g., 1234567890"
+                        name="taxId"
+                        value={formData.taxId}
+                        onChange={handleChange}
+                        maxLength={15}
+                      />
                       <CustomInputBox
                         label="GST Number"
                         placeholder="e.g., 22AAAAA0000A1Z5"
@@ -1918,6 +1909,14 @@ const VendorRegistrationPage: React.FC = () => {
                         maxLength={10}
                       />
                       <CustomInputBox
+                        label="MSME Number"
+                        placeholder="e.g., MSME-XX-00-0000000"
+                        name="msmeRegistration"
+                        value={formData.msmeRegistration}
+                        onChange={handleChange}
+                        maxLength={20}
+                      />
+                      <CustomInputBox
                         label="TAN Number"
                         placeholder="e.g., ABCD12345E"
                         name="tanNumber"
@@ -1925,17 +1924,8 @@ const VendorRegistrationPage: React.FC = () => {
                         onChange={handleChange}
                         maxLength={10}
                       />
-                      <CustomInputBox
-                        label="MSME Number"
-                        placeholder="e.g., UDYAM-XX-00-0000000"
-                        name="msmeRegistration"
-                        value={formData.msmeRegistration}
-                        onChange={handleChange}
-                        maxLength={20}
-                      />
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      {/* Tax Category beside TAN */}
                       <div className="flex flex-col gap-1">
                         <label className="text-sm font-semibold text-gray-700">
                           Tax Category
@@ -1954,6 +1944,20 @@ const VendorRegistrationPage: React.FC = () => {
                           <option value="out_of_scope">Out of Scope</option>
                         </select>
                       </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Non-India fields (only VAT and TAN) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <CustomInputBox
+                        label="VAT Number"
+                        placeholder="e.g., VAT123456"
+                        name="vatNumber"
+                        value={formData.vatNumber}
+                        onChange={handleChange}
+                        maxLength={15}
+                      />
                     </div>
                   </>
                 )}

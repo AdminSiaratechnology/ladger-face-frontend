@@ -267,7 +267,6 @@ const CompanyPage: React.FC = () => {
     setSelectedCompany(company);
     setIsModalOpen(true);
   };
-  console.log(formData, "jdhhhhhhhhhhh");
 
   const allCountries = useMemo(() => Country.getAllCountries(), []);
 
@@ -462,7 +461,6 @@ const CompanyPage: React.FC = () => {
 
       try {
         toast.info("Compressing image...");
-        console.log("Compressing image...");
         const compressedFile = await imageCompression(file, compressionOptions);
         const previewUrl = URL.createObjectURL(compressedFile);
         setFormData((prev) => ({
@@ -475,7 +473,6 @@ const CompanyPage: React.FC = () => {
             file.size / 1024
           )}KB to ${Math.round(compressedFile.size / 1024)}KB`
         );
-        console.log("hiiiiiiiiiiiiii");
       } catch (error) {
         console.error("Compression failed:", error);
         toast.error("Failed to compress image. Using original file.");
@@ -667,7 +664,6 @@ const CompanyPage: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    console.log("first");
     if (!formData.namePrint.trim()) {
       toast.error("Please enter Company Name (Print)");
       return;
@@ -751,7 +747,6 @@ const CompanyPage: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log("Effect running with currentPage:", currentPage);
 
     const handler = setTimeout(() => {
       if (searchTerm.length >= 3 || searchTerm.length === 0) {
@@ -1075,13 +1070,12 @@ const CompanyPage: React.FC = () => {
 
   const downloadPDF = async () => {
     const res = await api.downloadCompanyPDF();
-    console.log(res, "pdfresss");
   };
-  // useEffect(() => {
-  //   return () => {
-  //     initialLoading();
-  //   };
-  // }, []);
+  useEffect(() => {
+    return () => {
+      initialLoading();
+    };
+  }, []);
   return (
     <>
       <div className="custom-container">
@@ -1561,22 +1555,6 @@ const CompanyPage: React.FC = () => {
                           onChange={handleChange}
                           maxLength={20}
                         />
-                        <CustomInputBox
-                          label="VAT Number"
-                          placeholder="e.g., ABCD12345E"
-                          name="vatNumber"
-                          value={formData.vatNumber}
-                          onChange={handleChange}
-                          maxLength={10}
-                        />
-                        <CustomInputBox
-                          label="TAN Number"
-                          placeholder="e.g., ABCD12345E"
-                          name="tanNumber"
-                          value={formData.tanNumber}
-                          onChange={handleChange}
-                          maxLength={10}
-                        />
                       </>
                     ) : (
                       <>
@@ -1781,7 +1759,7 @@ const CompanyPage: React.FC = () => {
                       Registration Documents
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {["GST", "PAN", "TAN", "MSME", "UDYAM"].map((docType) => {
+                      {["GST", "PAN", "TAN", "MSME", "UDYAM","Other"].map((docType) => {
                         const existingDoc = formData.registrationDocs.find(
                           (doc) => doc.type === docType
                         );

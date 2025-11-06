@@ -22,8 +22,8 @@ const InfoRow = ({ label, value }: { label: string; value: any }) => {
 };
 
 const SectionTitle = ({ title }: { title: string }) => (
- <div className="flex items-center mb-2 bg-gradient-to-r from-blue-50 to-blue-100">
-        <div className="w-1 h-4 bg-blue-500 rounded mr-3"></div>
+  <div className="flex items-center mb-2 bg-gradient-to-r from-blue-50 to-blue-100">
+    <div className="w-1 h-4 bg-blue-500 rounded mr-3"></div>
     <h3 className="text-base font-semibold text-gray-900">{title}</h3>
   </div>
 );
@@ -203,13 +203,15 @@ const UniversalUserDetailsModal: React.FC<UniversalUserDetailsModalProps> = ({
             </Card>
           ))}
 
-          <div className="text-xs text-gray-500 border-t pt-3">
+          <div className="text-xs text-gray-500 pt-3">
             {data.createdAt && (
-              <div>Created: {new Date(data.createdAt).toLocaleString()}</div>
+              <div className="p-2">
+                Created: {new Date(data.createdAt).toLocaleString()}
+              </div>
             )}
-            {data.updatedAt && (
+            {/* {data.updatedAt && (
               <div>Updated: {new Date(data.updatedAt).toLocaleString()}</div>
-            )}
+            )} */}
           </div>
         </div>
       </DialogContent>

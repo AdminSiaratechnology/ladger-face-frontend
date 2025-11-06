@@ -361,6 +361,7 @@ const AgentRegistrationPage: React.FC = () => {
     taxTemplate: "",
     withholdingTaxCategory: "",
     isTaxExempt: false,
+    msmeRegistration: "",
     reverseCharge: false,
     bankName: "",
     branchName: "",
@@ -403,7 +404,6 @@ const AgentRegistrationPage: React.FC = () => {
       }
     }
   }, [defaultSelected]);
-  console.log(formData);
   const allCountries = useMemo(() => Country.getAllCountries(), []);
 
   const availableStates = useMemo(() => {
@@ -575,7 +575,7 @@ const AgentRegistrationPage: React.FC = () => {
     }
   };
 
- // Updated logo upload with compression (async)_
+  // Updated logo upload with compression (async)_
   const handleLogoUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
   ): Promise<void> => {
@@ -589,7 +589,6 @@ const AgentRegistrationPage: React.FC = () => {
 
       try {
         toast.info("Compressing image...");
-        console.log("Compressing image...");
         const compressedFile = await imageCompression(file, compressionOptions);
         const previewUrl = URL.createObjectURL(compressedFile);
         setFormData((prev) => ({
@@ -602,7 +601,6 @@ const AgentRegistrationPage: React.FC = () => {
             file.size / 1024
           )}KB to ${Math.round(compressedFile.size / 1024)}KB`
         );
-        console.log("hiiiiiiiiiiiiii");
       } catch (error) {
         console.error("Compression failed:", error);
         toast.error("Failed to compress image. Using original file.");
@@ -630,51 +628,51 @@ const AgentRegistrationPage: React.FC = () => {
     }));
   };
 
-   // Updated document upload with compression (async)_
-    const handleDocumentUpload = async (
-      type: string,
-      e: React.ChangeEvent<HTMLInputElement>
-    ) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        // Compress only if it's an image; skip for PDFs_
-        let processedFile = file;
-        let isImage = file.type.startsWith("image/");
-  
-        if (isImage) {
-          try {
-            toast.info(`Compressing ${type} image...`);
-            processedFile = await imageCompression(file, compressionOptions);
-            toast.success(
-              `${type} compressed from ${Math.round(
-                file.size / 1024
-              )}KB to ${Math.round(processedFile.size / 1024)}KB`
-            );
-          } catch (error) {
-            console.error("Compression failed:", error);
-            toast.error(`Failed to compress ${type} image. Using original.`);
-          }
+  // Updated document upload with compression (async)_
+  const handleDocumentUpload = async (
+    type: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Compress only if it's an image; skip for PDFs_
+      let processedFile = file;
+      let isImage = file.type.startsWith("image/");
+
+      if (isImage) {
+        try {
+          toast.info(`Compressing ${type} image...`);
+          processedFile = await imageCompression(file, compressionOptions);
+          toast.success(
+            `${type} compressed from ${Math.round(
+              file.size / 1024
+            )}KB to ${Math.round(processedFile.size / 1024)}KB`
+          );
+        } catch (error) {
+          console.error("Compression failed:", error);
+          toast.error(`Failed to compress ${type} image. Using original.`);
         }
-  
-        const previewUrl = URL.createObjectURL(processedFile);
-  
-        const newDoc: RegistrationDocument = {
-          id: Date.now(),
-          type,
-          file: processedFile,
-          previewUrl,
-          fileName: processedFile.name,
-        };
-  
-        setFormData((prev) => ({
-          ...prev,
-          registrationDocs: [
-            ...prev.registrationDocs.filter((doc) => doc.type !== type),
-            newDoc,
-          ],
-        }));
       }
-    };
+
+      const previewUrl = URL.createObjectURL(processedFile);
+
+      const newDoc: RegistrationDocument = {
+        id: Date.now(),
+        type,
+        file: processedFile,
+        previewUrl,
+        fileName: processedFile.name,
+      };
+
+      setFormData((prev) => ({
+        ...prev,
+        registrationDocs: [
+          ...prev.registrationDocs.filter((doc) => doc.type !== type),
+          newDoc,
+        ],
+      }));
+    }
+  };
 
   const removeDocument = (id: number) => {
     const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
@@ -746,6 +744,7 @@ const AgentRegistrationPage: React.FC = () => {
       tanNumber: "",
       taxCategory: "",
       taxTemplate: "",
+      msmeRegistration: "",
       withholdingTaxCategory: "",
       isTaxExempt: false,
       reverseCharge: false,
@@ -792,7 +791,7 @@ const AgentRegistrationPage: React.FC = () => {
     setFormData({
       ...agent,
       logoPreviewUrl: agent.logo || undefined,
-     registrationDocs: agent.registrationDocs.map((doc, index) => ({
+      registrationDocs: agent.registrationDocs.map((doc, index) => ({
         id: Date.now() + index,
         type: doc.type,
         file: null, // No File for existing
@@ -827,7 +826,6 @@ const AgentRegistrationPage: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    console.log(formData);
     if (!formData.agentName.trim()) {
       toast.error("Please enter Agent Name");
       return;
@@ -888,7 +886,7 @@ const AgentRegistrationPage: React.FC = () => {
     //   "registrationDocsCount",
     //   String(formData.registrationDocs.length)
     // );
-      const newRegistrationDocs = formData.registrationDocs.filter(
+    const newRegistrationDocs = formData.registrationDocs.filter(
       (doc) => doc.file && doc.file instanceof Blob
     );
 
@@ -909,7 +907,7 @@ const AgentRegistrationPage: React.FC = () => {
         toast.success("Agent updated successfully");
       } else {
         await addAgent(agentFormData);
-        fetchAgents(currentPage, limit,  defaultSelected?._id);
+        fetchAgents(currentPage, limit, defaultSelected?._id);
         toast.success("Agent added successfully");
         setCurrentPage(1);
       }
@@ -1013,13 +1011,13 @@ const AgentRegistrationPage: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                    <ActionsDropdown
-                      onView={() => handleViewAgent(agent)}
-                      onEdit={() => handleEditAgent(agent)}
-                      onDelete={() => handleDeleteAgent(agent._id || "")}
-                      module="BusinessManagement"
-                      subModule="Agent"
-                    />
+                  <ActionsDropdown
+                    onView={() => handleViewAgent(agent)}
+                    onEdit={() => handleEditAgent(agent)}
+                    onDelete={() => handleDeleteAgent(agent._id || "")}
+                    module="BusinessManagement"
+                    subModule="Agent"
+                  />
                 </td>
               </tr>
             ))}
@@ -1074,12 +1072,12 @@ const AgentRegistrationPage: React.FC = () => {
                   type="update"
                 >
                   <ActionsDropdown
-                      onView={() => handleViewAgent(agent)}
-                      onEdit={() => handleEditAgent(agent)}
-                      onDelete={() => handleDeleteAgent(agent._id || "")}
-                      module="BusinessManagement"
-                      subModule="Agent"
-                    />
+                    onView={() => handleViewAgent(agent)}
+                    onEdit={() => handleEditAgent(agent)}
+                    onDelete={() => handleDeleteAgent(agent._id || "")}
+                    module="BusinessManagement"
+                    subModule="Agent"
+                  />
                 </CheckAccess>
               </div>
             </div>
@@ -1783,30 +1781,20 @@ const AgentRegistrationPage: React.FC = () => {
               </div>
             )}
 
-            {activeTab === "tax" && (
+             {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <CustomInputBox
-                    label="Tax ID/Registration Number"
-                    placeholder="e.g., 1234567890"
-                    name="taxId"
-                    value={formData.taxId}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                  <CustomInputBox
-                    label="VAT Number"
-                    placeholder="e.g., VAT123456"
-                    name="vatNumber"
-                    value={formData.vatNumber}
-                    onChange={handleChange}
-                    maxLength={15}
-                  />
-                </div>
-
-                {formData.country?.toLowerCase() === "india" && (
+                {formData.country?.toLowerCase() === "india" ? (
                   <>
+                    {/* India-specific fields (no VAT or TAN) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <CustomInputBox
+                        label="Tax ID/Registration Number"
+                        placeholder="e.g., 1234567890"
+                        name="taxId"
+                        value={formData.taxId}
+                        onChange={handleChange}
+                        maxLength={15}
+                      />
                       <CustomInputBox
                         label="GST Number"
                         placeholder="e.g., 22AAAAA0000A1Z5"
@@ -1824,6 +1812,14 @@ const AgentRegistrationPage: React.FC = () => {
                         maxLength={10}
                       />
                       <CustomInputBox
+                        label="MSME Number"
+                        placeholder="e.g., MSME-XX-00-0000000"
+                        name="msmeRegistration"
+                        value={formData.msmeRegistration}
+                        onChange={handleChange}
+                        maxLength={20}
+                      />
+                      <CustomInputBox
                         label="TAN Number"
                         placeholder="e.g., ABCD12345E"
                         name="tanNumber"
@@ -1831,17 +1827,8 @@ const AgentRegistrationPage: React.FC = () => {
                         onChange={handleChange}
                         maxLength={10}
                       />
-                      <CustomInputBox
-                        label="MSME Number"
-                        placeholder="e.g., UDYAM-XX-00-0000000"
-                        name="msmeRegistration"
-                        value={formData.msmeRegistration}
-                        onChange={handleChange}
-                        maxLength={20}
-                      />
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      {/* Tax Category beside TAN */}
                       <div className="flex flex-col gap-1">
                         <label className="text-sm font-semibold text-gray-700">
                           Tax Category
@@ -1862,6 +1849,20 @@ const AgentRegistrationPage: React.FC = () => {
                       </div>
                     </div>
                   </>
+                ) : (
+                  <>
+                    {/* Non-India fields (only VAT and TAN) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <CustomInputBox
+                        label="VAT Number"
+                        placeholder="e.g., VAT123456"
+                        name="vatNumber"
+                        value={formData.vatNumber}
+                        onChange={handleChange}
+                        maxLength={15}
+                      />
+                    </div>
+                  </>
                 )}
 
                 <CustomStepNavigation
@@ -1873,7 +1874,6 @@ const AgentRegistrationPage: React.FC = () => {
                 />
               </div>
             )}
-
             {activeTab === "bank" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">

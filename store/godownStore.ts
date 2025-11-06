@@ -70,7 +70,6 @@ export const useGodownStore = create<GodownStore>()(
       },
 
       fetchGodowns: async (page = 1, limit = 10, companyId) => {
-        console.log("Fetching godowns page:", page, "limit:", limit);
 
         try {
           set({ loading: true, error: null });
@@ -86,9 +85,6 @@ export const useGodownStore = create<GodownStore>()(
               queryParams: queryParams.toString(),
             }
           );
-
-          console.log("Fetched godowns response:", res?.data);
-
           set({
             godowns: res?.data?.records || [],
             pagination: res?.data?.pagination || {
@@ -109,12 +105,10 @@ export const useGodownStore = create<GodownStore>()(
       },
 
       addGodown: async (godownData) => {
-        console.log("Creating new godown:", godownData);
         try {
           set({ loading: true, error: null });
 
           const res = await api.addGodowns(godownData);
-          console.log("Created godown response:", res);
 
           const newGodown: Godown = res.data;
 
@@ -125,7 +119,6 @@ export const useGodownStore = create<GodownStore>()(
           });
           toast.success("Godown created successfully");
         } catch (error: any) {
-          console.log("Error creating godown:", error);
           set({
             loading: false,
             error: error.response?.data?.message || "Failed to create godown",
@@ -137,7 +130,6 @@ export const useGodownStore = create<GodownStore>()(
       },
 
       updateGodown: async (godownId, godownData) => {
-        console.log("Updating godown:", godownId, godownData);
         try {
           set({ loading: true, error: null });
 
@@ -145,7 +137,6 @@ export const useGodownStore = create<GodownStore>()(
             id: godownId,
             godown: godownData,
           });
-          console.log("Updated godown response:", res);
 
           const updatedGodown: Godown = res.data;
 
@@ -169,23 +160,24 @@ export const useGodownStore = create<GodownStore>()(
       },
 
       deleteGodown: async (godownId) => {
-        console.log("Deleting godown:", godownId);
         try {
           set({ loading: true, error: null });
 
           await api.deleteGodown(godownId);
-          console.log("Deleted godown successfully");
-
           set({
             godowns: get().godowns.filter((g) => g._id !== godownId),
             loading: false,
             error: null,
           });
+          toast.success("Godown deleted successfully");
         } catch (error: any) {
           set({
             loading: false,
             error: error.response?.data?.message || "Failed to delete godown",
           });
+          toast.error(
+            error?.response?.data?.message || "Failed to delete godown"
+          );
         }
       },
 
@@ -215,9 +207,6 @@ export const useGodownStore = create<GodownStore>()(
               queryParams: queryParams.toString(),
             }
           );
-
-          console.log("Database search response for godowns:", res);
-
           set({
             godowns: res?.data?.records || [],
             pagination: res?.data?.pagination || {

@@ -235,7 +235,6 @@ export const useVendorStore = create<VendorStore>()(
             pagination: result?.data?.pagination,
             loading: false,
           });
-          console.log(result?.data,"result?.data?")
         } catch (error: any) {
           set({
             loading: false,
@@ -273,8 +272,6 @@ export const useVendorStore = create<VendorStore>()(
           const result = await api.updateVendor(id, vendor);
           set({
             vendors: get().vendors.map((v) =>{
-
-           console.log(id,result,v,"idresult")
             return   v?._id == id ? result?.data : v
             }),
             loading: false,
@@ -332,8 +329,6 @@ export const useVendorStore = create<VendorStore>()(
           });
 
           const result = await api.fetchVendors({companyId}, { queryParams: queryParams.toString() }); // Adjust api call
-          console.log("Filter result for vendors:", result);
-
           set({
             vendors: result?.data?.vendors || [],
             pagination: result?.data?.pagination,

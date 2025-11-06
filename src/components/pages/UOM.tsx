@@ -89,7 +89,7 @@ const UnitManagement: React.FC = () => {
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [showProgress, setShowProgress] = useState(false);
   const handleViewUnit = (unit: any) => {
     setSelectedUnit(unit);
     setIsModalOpen(true);
@@ -227,6 +227,7 @@ const UnitManagement: React.FC = () => {
   const handleSubmit = async (): Promise<void> => {
     if (isSubmitting) return; // ⛔ prevent multiple rapid clicks
     setIsSubmitting(true);
+    setShowProgress(true);
     try {
       if (!formData.name.trim()) {
         toast.error("Please enter Unit Name");
@@ -302,6 +303,7 @@ const UnitManagement: React.FC = () => {
       toast.error(error.message);
     } finally {
       setIsSubmitting(false);
+      setShowProgress(false);
     }
   };
 
@@ -640,6 +642,12 @@ const UnitManagement: React.FC = () => {
         }}
       >
         <DialogContent className="custom-dialog-container">
+          {showProgress && (
+            <div className="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-50 overflow-hidden">
+              <div className="absolute inset-0 bg-blue-500 animate-progressFlow" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-white/50 to-blue-400/0 animate-shimmer" />
+            </div>
+          )}
           <CustomFormDialogHeader
             title={editingUnit ? "Edit Unit" : "Add New Unit"}
             subtitle={
@@ -649,21 +657,20 @@ const UnitManagement: React.FC = () => {
             }
           />
 
-          <div className="space-y-6 py-4">
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-              <CustomInputBox
-                label="Unit Name "
-                placeholder="e.g., Meter"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required={true}
-              />
-              <div className="mt-6">
+          <div className="bg-white rounded-xl shadow-sm ">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <SelectedCompany />
-              </div>
+                <CustomInputBox
+                  label="Unit Name"
+                  placeholder="e.g., Meter"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required={true}
+                />
 
-              <div className="mt-6 flex flex-col gap-1">
+              {/* Unit Type and Status - Side by Side */}
+              <div className="flex flex-col gap-1">
                 <label className="text-sm font-semibold text-gray-700">
                   Unit Type <span className="text-red-500">*</span>
                 </label>
@@ -676,11 +683,28 @@ const UnitManagement: React.FC = () => {
                   <option value="compound">Compound</option>
                 </select>
               </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-semibold text-gray-700">
+                  Status
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => handleSelectChange("status", e.target.value)}
+                  className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+
+              {/* Conditional Fields Based on Unit Type */}
               {formData.type === "simple" ? (
                 <>
-                  <div className="mt-6">
+                  {/* Simple Unit Fields */}
+                  <div className="flex flex-col gap-1">
                     <CustomInputBox
-                      label="Symbol "
+                      label="Symbol"
                       placeholder="e.g., m"
                       name="symbol"
                       value={formData.symbol}
@@ -688,7 +712,8 @@ const UnitManagement: React.FC = () => {
                       required={true}
                     />
                   </div>
-                  <div className="mt-6">
+
+                  <div className="flex flex-col gap-1">
                     <CustomInputBox
                       label="Decimal Places"
                       placeholder="e.g., 2"
@@ -698,7 +723,8 @@ const UnitManagement: React.FC = () => {
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1 mt-6">
+
+                  <div className="md:col-span-2 flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       UQC
                     </label>
@@ -720,6 +746,7 @@ const UnitManagement: React.FC = () => {
                 </>
               ) : (
                 <>
+                  {/* Compound Unit Fields */}
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       First Unit *
@@ -739,16 +766,20 @@ const UnitManagement: React.FC = () => {
                       ))}
                     </select>
                   </div>
-                  <CustomInputBox
-                    label="Conversion *"
-                    placeholder="e.g., 1000"
-                    name="conversion"
-                    type="number"
-                    value={formData.conversion}
-                    onChange={handleChange}
-                    required={true}
-                  />
+
                   <div className="flex flex-col gap-1">
+                    <CustomInputBox
+                      label="Conversion *"
+                      placeholder="e.g., 1000"
+                      name="conversion"
+                      type="number"
+                      value={formData.conversion}
+                      onChange={handleChange}
+                      required={true}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Second Unit *
                     </label>
@@ -771,20 +802,9 @@ const UnitManagement: React.FC = () => {
                   </div>
                 </>
               )}
-              <div className="flex flex-col gap-1 mt-6">
-                <label className="text-sm font-semibold text-gray-700">
-                  Status
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => handleSelectChange("status", e.target.value)}
-                  className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-              <div className="flex justify-end mt-6">
+
+              {/* Submit Button - Full Width */}
+              <div className="md:col-span-2 flex justify-end">
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
@@ -792,7 +812,7 @@ const UnitManagement: React.FC = () => {
                     isSubmitting ? "opacity-70 cursor-not-allowed" : ""
                   } bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base`}
                 >
-                   {isSubmitting
+                  {isSubmitting
                     ? "Saving..."
                     : editingUnit
                     ? "Update Unit"

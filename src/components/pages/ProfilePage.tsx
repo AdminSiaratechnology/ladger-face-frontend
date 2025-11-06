@@ -123,7 +123,6 @@ const ProfilePage: React.FC = () => {
 
       // Call API with FormData
       const response = await api.updateProfile(formData);
-      console.log("Profile update response:", response);
       // Update the user in the store
       updateUser(response.data);
 

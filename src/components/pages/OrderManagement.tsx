@@ -233,12 +233,12 @@ export default function OrderManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const { companies, defaultSelected } = useCompanyStore();
   const { customers, filterCustomers, loading } = useCustomerStore();
-  const company = companies.find((c) => c._id === defaultSelected);
+  const company = defaultSelected;
   const selectedCustomer = customers.find((c) => c._id === selectedCustomerId);
   const itemsPerPage = 10;
   const navigate = useNavigate();
   useEffect(() => {
-    filterCustomers("", "all", "nameAsc", 1, 100);
+    filterCustomers("", "all", "nameAsc", 1, 100, defaultSelected?._id);
   }, [filterCustomers]);
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -612,6 +612,7 @@ export default function OrderManagement() {
 
   const handleFinish = () => {
     if (!selectedCustomer) return;
+    console.log("company:", company);
 
     navigate("/select-products", {
       state: {
@@ -1070,13 +1071,6 @@ export default function OrderManagement() {
             subtitle="Follow the steps to set up your order"
           />
 
-          <MultiStepNav
-            steps={tabs}
-            currentStep={activeTab}
-            onStepChange={setActiveTab}
-            stepIcons={stepIcons}
-          />
-
           <div className="flex-1 overflow-y-auto px-2">
             <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 space-y-6">
               {/* -------------------- Step 1: Select Route -------------------- */}
@@ -1116,11 +1110,11 @@ export default function OrderManagement() {
                   </h2>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
-<div className="flex flex-col gap-0.5">
-  <span className="font-medium">Contact</span>
-  <span>{selectedCustomer?.customerName || "N/A"}</span>
-  <span>{selectedCustomer?.phoneNumber || "N/A"}</span>
-</div>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium">Contact</span>
+                      <span>{selectedCustomer?.customerName || "N/A"}</span>
+                      <span>{selectedCustomer?.phoneNumber || "N/A"}</span>
+                    </div>
 
                     {/* <div>
                       <span className="font-medium">Short Name: </span>

@@ -151,13 +151,13 @@ const UniversalProductDetailsModal: React.FC<
           )}
 
           {/* Meta info */}
-          <div className="text-xs text-gray-500 border-t pt-3">
+          <div className="text-xs text-gray-500 pt-3">
             {createdAt && (
-              <div>Created: {new Date(createdAt).toLocaleString()}</div>
+              <div className="p-2">Created: {new Date(createdAt).toLocaleString()}</div>
             )}
-            {updatedAt && (
+            {/* {updatedAt && (
               <div>Updated: {new Date(updatedAt).toLocaleString()}</div>
-            )}
+            )} */}
           </div>
         </div>
       </DialogContent>

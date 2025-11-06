@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { useCustomerStore } from "../../../store/customerStore";
 import { useCompanyStore } from "../../../store/companyStore";
+import { useAuthStore } from "../../../store/authStore";
 
 interface CustomerDropdownProps {
   selectedCustomerId: string;
@@ -12,29 +13,33 @@ export default function CustomerDropdown({
   selectedCustomerId,
   setSelectedCustomerId,
 }: CustomerDropdownProps) {
-  const { customers, fetchCustomers, pagination, loading } = useCustomerStore();
+  const { customers, fetchCustomers, pagination, loading, filterCustomers } = useCustomerStore();
+  const { user } = useAuthStore();
   const { companies, defaultSelected } = useCompanyStore();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Debounced search
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      fetchCustomers(1, 20, search);
-      setPage(1);
-    }, 400);
-    return () => clearTimeout(handler);
-  }, [search]);
-
   // Initial load
   useEffect(() => {
     if (defaultSelected) {
-      fetchCustomers(1, 20, search, defaultSelected?._id); // page, limit, search, companyId
-      setPage(1);
+      if (user.allPermissions === false) {
+        // ✅ Fetch ONLY his registered customer
+        filterCustomers(
+          user.email,
+          "all",
+          "nameAsc",
+          1,
+          20,
+          defaultSelected?._id
+        );
+      } else {
+        // ✅ Normal full list
+        filterCustomers("", "all", "nameAsc", 1, 20, defaultSelected?._id);
+      }
     }
-  }, [defaultSelected, search]);
+  }, [defaultSelected]);
 
   // Infinite scroll
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -46,7 +51,7 @@ export default function CustomerDropdown({
     ) {
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchCustomers(nextPage, 20, search, defaultSelected?._id);
+      fetchCustomers(nextPage, 20, defaultSelected?._id);
     }
   };
 
@@ -68,8 +73,6 @@ export default function CustomerDropdown({
 
   return (
     <div className="flex flex-col gap-2 relative" ref={dropdownRef}>
-      {/* <label className="text-sm font-medium text-gray-700">Customer</label> */}
-
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}

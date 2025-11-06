@@ -68,7 +68,6 @@ export const useStockCategory = create<StockCategoryStore>()(
       errormessage: null,
 
       fetchStockCategory: async (page = 1, limit = 10, companyId) => {
-        console.log("Fetching stock categories page:", page, "limit:", limit);
         set({ loading: true, error: false });
         try {
           const queryParams = new URLSearchParams({
@@ -111,7 +110,6 @@ export const useStockCategory = create<StockCategoryStore>()(
       updateStockCategory: async ({ stockCategoryId, data }) => {
         set({ loading: true, error: false });
         try {
-          console.log(stockCategoryId, data, "stockCategoryId, data");
           const result = await api.updateStockCategory({
             stockCategoryId,
             data,
@@ -166,12 +164,10 @@ export const useStockCategory = create<StockCategoryStore>()(
             page: page.toString(),
             limit: limit.toString(),
           });
-          console.log(queryParams);
           const result = await api.getStockCategory(
             { companyId },
             { queryParams: queryParams.toString() }
           ); // Adjust api call
-          console.log("Filter result:", result);
 
           set({
             stockCategories: result.data.categories,
