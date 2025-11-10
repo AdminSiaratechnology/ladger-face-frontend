@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Edit2 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
+import api from "../../api/api";
+import { toast } from "sonner";
 
 export default function CheckoutPage() {
   const location = useLocation();
@@ -36,19 +38,39 @@ export default function CheckoutPage() {
   };
 
   // Place order
-  const handlePayment = () => {
+  const handlePayment = async () => {
+    console.log(cart);
     const orderData = {
-      cart,
-      customer: selectedCustomer,
-      deliveryAddress,
-      totalAmount: totalAmount + 50,
-      paymentMethod: selectedPaymentMethod,
+      companyId: company?._id,
+      customerId: selectedCustomer?._id,
+      orderSource: "website",
+
+      shippingAddress: {
+        street: deliveryAddress.addressLine1 || "",
+        line2: "",
+        city: deliveryAddress.city || "",
+        state: deliveryAddress.state || "",
+        postalCode: deliveryAddress.zipCode || "",
+        country: "India",
+      },
+
+      items: cart.map((item: any) => ({
+        productId: item._id,
+        quantity: item.quantity,
+        price: item.minimumRate,
+        total: item.minimumRate * item.quantity,
+        discount: 0,
+      })),
     };
 
-    // TODO: send orderData to your API
-
-    alert("Order placed successfully!");
-    navigate("/orders");
+    try {
+      const result = await api.createOrder(orderData);
+      toast.success("Order placed successfully!");
+      navigate("/orders");
+    } catch (err) {
+      console.error("Order failed", err);
+      toast.error("Failed to place order");
+    }
   };
 
   return (
@@ -57,11 +79,10 @@ export default function CheckoutPage() {
       <div className="flex items-center gap-3 border-b pb-3 mb-4">
         <div>
           <h1 className="text-2xl font-semibold text-teal-600">New Order</h1>
-         <h1 className="text-teal-900 font-bold">
-  {selectedCustomer?.customerName}
-  {selectedRoute && ` • ${selectedRoute}`}
-</h1>
-
+          <h1 className="text-teal-900 font-bold">
+            {selectedCustomer?.customerName}
+            {selectedRoute && ` • ${selectedRoute}`}
+          </h1>
         </div>
       </div>
 
@@ -120,7 +141,7 @@ export default function CheckoutPage() {
                   .filter(Boolean)
                   .join(", ")}
               </p>
-              <p>📞 {deliveryAddress.phone || "N/A"}</p>
+              {/* <p>📞 {deliveryAddress.phone || "N/A"}</p> */}
             </div>
           ) : (
             <>
@@ -160,13 +181,13 @@ export default function CheckoutPage() {
                   value={deliveryAddress.zipCode}
                   onChange={handleChange}
                 />
-                <CustomInputBox
+                {/* <CustomInputBox
                   label="Phone"
                   name="phone"
                   placeholder="Phone"
                   value={deliveryAddress.phone}
                   onChange={handleChange}
-                />
+                /> */}
               </div>
 
               <div className="flex justify-end gap-2 mt-4">
@@ -202,18 +223,19 @@ export default function CheckoutPage() {
               </span>
               <span>₹{totalAmount.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between">
+            {/* <div className="flex justify-between">
               <span>Delivery</span>
               <span>₹50.00</span>
-            </div>
+            </div> */}
             <div className="flex justify-between font-semibold border-t pt-2 text-gray-800">
               <span>Total</span>
-              <span>₹{(totalAmount + 50).toFixed(2)}</span>
+              {/* <span>₹{(totalAmount + 50).toFixed(2)}</span> */}
+              <span>₹{totalAmount.toFixed(2)}</span>
             </div>
           </div>
 
           {/* Payment Method */}
-          <div className="mt-4">
+          {/* <div className="mt-4">
             <h3 className="font-semibold text-gray-700 mb-1">Payment Method</h3>
             <select
               value={selectedPaymentMethod}
@@ -224,7 +246,7 @@ export default function CheckoutPage() {
               <option>Credit / Debit Card</option>
               <option>UPI / Wallet</option>
             </select>
-          </div>
+          </div> */}
 
           <Button
             className="w-full mt-4 bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 rounded-lg"
