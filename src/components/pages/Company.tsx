@@ -51,6 +51,7 @@ import CompanySelectorModal from "../customComponents/CompanySelectorModal";
 import { DatePickerField } from "../customComponents/DatePickerField";
 import UniversalCompanyDetailsModal from "../customComponents/UniversalCompanyDetailsModal";
 import imageCompression from "browser-image-compression";
+import ToggleSwitch from "../customComponents/ToggleSwitch";
 // Bank interface (unchanged)
 interface Bank {
   id: number;
@@ -97,6 +98,7 @@ interface Company {
   createdAt: string;
   registrationDocs: RegistrationDocument[];
   status: "active" | "inactive";
+  autoApprove: boolean;
 }
 
 // Form interface (updated with new fields)
@@ -135,6 +137,7 @@ interface CompanyForm {
   maintainBatch?: boolean;
   closingQuantityOrder?: boolean;
   negativeOrder?: boolean;
+  autoApprove?: boolean;
 }
 
 // Registration document interface (unchanged)
@@ -246,6 +249,7 @@ const CompanyPage: React.FC = () => {
     maintainBatch: false,
     closingQuantityOrder: false,
     negativeOrder: false,
+    autoApprove: false,
   });
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -614,6 +618,7 @@ const CompanyPage: React.FC = () => {
       maintainBatch: false,
       closingQuantityOrder: false,
       negativeOrder: false,
+      autoApprove: false,
     });
     setEditingCompany(null);
     setActiveTab("basic");
@@ -747,7 +752,6 @@ const CompanyPage: React.FC = () => {
   };
 
   useEffect(() => {
-
     const handler = setTimeout(() => {
       if (searchTerm.length >= 3 || searchTerm.length === 0) {
         filterCompanies(
@@ -1759,123 +1763,129 @@ const CompanyPage: React.FC = () => {
                       Registration Documents
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {["GST", "PAN", "TAN", "MSME", "UDYAM","Other"].map((docType) => {
-                        const existingDoc = formData.registrationDocs.find(
-                          (doc) => doc.type === docType
-                        );
+                      {["GST", "PAN", "TAN", "MSME", "UDYAM", "Other"].map(
+                        (docType) => {
+                          const existingDoc = formData.registrationDocs.find(
+                            (doc) => doc.type === docType
+                          );
 
-                        return (
-                          <div
-                            key={docType}
-                            className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
-                          >
-                            <p className="text-sm font-semibold text-gray-700 mb-3">
-                              {docType} Document
-                            </p>
-                            <input
-                              type="file"
-                              id={`${docType.toLowerCase()}-doc`}
-                              className="hidden"
-                              onChange={(e) => handleDocumentUpload(docType, e)}
-                              accept="image/*,.pdf"
-                            />
+                          return (
+                            <div
+                              key={docType}
+                              className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner relative"
+                            >
+                              <p className="text-sm font-semibold text-gray-700 mb-3">
+                                {docType} Document
+                              </p>
+                              <input
+                                type="file"
+                                id={`${docType.toLowerCase()}-doc`}
+                                className="hidden"
+                                onChange={(e) =>
+                                  handleDocumentUpload(docType, e)
+                                }
+                                accept="image/*,.pdf"
+                              />
 
-                            {/* Show upload button only if no document exists */}
-                            {!existingDoc && (
-                              <label
-                                htmlFor={`${docType.toLowerCase()}-doc`}
-                                className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
-                              >
-                                <Upload className="w-6 h-6 text-blue-500" />
-                                <p className="text-sm text-gray-600">Upload</p>
-                              </label>
-                            )}
+                              {/* Show upload button only if no document exists */}
+                              {!existingDoc && (
+                                <label
+                                  htmlFor={`${docType.toLowerCase()}-doc`}
+                                  className="cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50 transition-colors p-4 rounded-lg"
+                                >
+                                  <Upload className="w-6 h-6 text-blue-500" />
+                                  <p className="text-sm text-gray-600">
+                                    Upload
+                                  </p>
+                                </label>
+                              )}
 
-                            {/* Show document preview if document exists */}
-                            {existingDoc && (
-                              <div className="mt-4 w-full">
-                                <p className="text-xs text-gray-500 truncate mb-2 text-center">
-                                  {existingDoc.fileName}
-                                </p>
+                              {/* Show document preview if document exists */}
+                              {existingDoc && (
+                                <div className="mt-4 w-full">
+                                  <p className="text-xs text-gray-500 truncate mb-2 text-center">
+                                    {existingDoc.fileName}
+                                  </p>
 
-                                {/* Show image preview for image files */}
-                                {existingDoc.previewUrl &&
-                                  !existingDoc.fileName
-                                    ?.toLowerCase()
-                                    .endsWith(".pdf") && (
-                                    <img
-                                      src={existingDoc.previewUrl}
-                                      alt={`${docType} document`}
-                                      className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
-                                      onClick={() =>
-                                        setViewingImage(existingDoc)
-                                      }
-                                    />
-                                  )}
+                                  {/* Show image preview for image files */}
+                                  {existingDoc.previewUrl &&
+                                    !existingDoc.fileName
+                                      ?.toLowerCase()
+                                      .endsWith(".pdf") && (
+                                      <img
+                                        src={existingDoc.previewUrl}
+                                        alt={`${docType} document`}
+                                        className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-75"
+                                        onClick={() =>
+                                          setViewingImage(existingDoc)
+                                        }
+                                      />
+                                    )}
 
-                                {/* Show PDF preview for PDF files */}
-                                {existingDoc.previewUrl &&
-                                  existingDoc.fileName
-                                    ?.toLowerCase()
-                                    .endsWith(".pdf") && (
-                                    <div
-                                      className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200"
-                                      onClick={() =>
-                                        window.open(
-                                          existingDoc.previewUrl,
-                                          "_blank"
-                                        )
-                                      }
-                                    >
-                                      <FileText className="w-8 h-8 text-red-500 mb-2" />
+                                  {/* Show PDF preview for PDF files */}
+                                  {existingDoc.previewUrl &&
+                                    existingDoc.fileName
+                                      ?.toLowerCase()
+                                      .endsWith(".pdf") && (
+                                      <div
+                                        className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200"
+                                        onClick={() =>
+                                          window.open(
+                                            existingDoc.previewUrl,
+                                            "_blank"
+                                          )
+                                        }
+                                      >
+                                        <FileText className="w-8 h-8 text-red-500 mb-2" />
+                                        <p className="text-xs text-gray-600">
+                                          View PDF Document
+                                        </p>
+                                      </div>
+                                    )}
+
+                                  {/* Show file icon for other file types */}
+                                  {!existingDoc.previewUrl && (
+                                    <div className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center">
+                                      <File className="w-8 h-8 text-gray-400 mb-2" />
                                       <p className="text-xs text-gray-600">
-                                        View PDF Document
+                                        Document Uploaded
                                       </p>
                                     </div>
                                   )}
 
-                                {/* Show file icon for other file types */}
-                                {!existingDoc.previewUrl && (
-                                  <div className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center">
-                                    <File className="w-8 h-8 text-gray-400 mb-2" />
-                                    <p className="text-xs text-gray-600">
-                                      Document Uploaded
-                                    </p>
+                                  {/* Action buttons */}
+                                  <div className="flex gap-2 mt-3 justify-center">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        document
+                                          .getElementById(
+                                            `${docType.toLowerCase()}-doc`
+                                          )
+                                          ?.click()
+                                      }
+                                    >
+                                      <Edit className="w-4 h-4 mr-1" />
+                                      Replace
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() =>
+                                        removeDocument(existingDoc.id)
+                                      }
+                                    >
+                                      <X className="w-4 h-4 mr-1" />
+                                      Remove
+                                    </Button>
                                   </div>
-                                )}
-
-                                {/* Action buttons */}
-                                <div className="flex gap-2 mt-3 justify-center">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      document
-                                        .getElementById(
-                                          `${docType.toLowerCase()}-doc`
-                                        )
-                                        ?.click()
-                                    }
-                                  >
-                                    <Edit className="w-4 h-4 mr-1" />
-                                    Replace
-                                  </Button>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() =>
-                                      removeDocument(existingDoc.id)
-                                    }
-                                  >
-                                    <X className="w-4 h-4 mr-1" />
-                                    Remove
-                                  </Button>
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                              )}
+                            </div>
+                          );
+                        }
+                      )}
                     </div>
                   </div>
 
@@ -1921,48 +1931,6 @@ const CompanyPage: React.FC = () => {
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="flex flex-wrap justify-between border px-2 py-2 mb-6">
-                    <CheckboxWithLabel
-                      title="Maintain Godown"
-                      onChange={(e) =>
-                        handleCheckSelectChange(
-                          "maintainGodown",
-                          e.target.checked
-                        )
-                      }
-                      checked={formData.maintainGodown}
-                    />
-                    <CheckboxWithLabel
-                      title="Maintain Batch"
-                      onChange={(e) =>
-                        handleCheckSelectChange(
-                          "maintainBatch",
-                          e.target.checked
-                        )
-                      }
-                      checked={formData.maintainBatch}
-                    />
-                    <CheckboxWithLabel
-                      title="Closing Quantity Order"
-                      onChange={(e) =>
-                        handleCheckSelectChange(
-                          "closingQuantityOrder",
-                          e.target.checked
-                        )
-                      }
-                      checked={formData.closingQuantityOrder}
-                    />
-                    <CheckboxWithLabel
-                      title="Negative Order"
-                      onChange={(e) =>
-                        handleCheckSelectChange(
-                          "negativeOrder",
-                          e.target.checked
-                        )
-                      }
-                      checked={formData.negativeOrder}
-                    />
-                  </div>
                   <div className="mb-6">
                     <label className="text-sm font-semibold text-gray-700 mb-2">
                       Internal Notes
@@ -1972,8 +1940,49 @@ const CompanyPage: React.FC = () => {
                       name="notes"
                       value={formData.notes}
                       onChange={handleChange}
-                      rows={4}
+                      rows={2}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
+                    />
+                  </div>
+                  <div className="flex flex-wrap justify-between border px-2 py-3 mb-6 gap-3">
+                    <ToggleSwitch
+                      title="Maintain Godown"
+                      checked={formData.maintainGodown}
+                      onChange={(value) =>
+                        handleCheckSelectChange("maintainGodown", value)
+                      }
+                    />
+
+                    <ToggleSwitch
+                      title="Maintain Batch"
+                      checked={formData.maintainBatch}
+                      onChange={(value) =>
+                        handleCheckSelectChange("maintainBatch", value)
+                      }
+                    />
+
+                    <ToggleSwitch
+                      title="Closing Quantity Order"
+                      checked={formData.closingQuantityOrder}
+                      onChange={(value) =>
+                        handleCheckSelectChange("closingQuantityOrder", value)
+                      }
+                    />
+
+                    <ToggleSwitch
+                      title="Negative Order"
+                      checked={formData.negativeOrder}
+                      onChange={(value) =>
+                        handleCheckSelectChange("negativeOrder", value)
+                      }
+                    />
+
+                    <ToggleSwitch
+                      title="Auto Approve"
+                      checked={formData.autoApprove}
+                      onChange={(value) =>
+                        handleCheckSelectChange("autoApprove", value)
+                      }
                     />
                   </div>
 

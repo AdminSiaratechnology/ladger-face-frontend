@@ -709,7 +709,7 @@ const ProductPage: React.FC = () => {
                   key={product._id}
                   className="hover:bg-gray-50 transition-colors duration-200"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="py-4">
                     <div className="flex items-center">
                       <Package className="h-10 w-10 text-teal-600 mr-3" />
                       <div>
@@ -727,7 +727,7 @@ const ProductPage: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className=" py-4  whitespace-nowrap">
                     <div className="text-sm text-gray-900 space-y-1">
                       <div className="flex items-center">
                         <Archive className="w-3 h-3 text-gray-400 mr-2" />

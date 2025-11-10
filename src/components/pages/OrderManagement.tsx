@@ -68,7 +68,12 @@ import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 import MultiStepNav from "../customComponents/MultiStepNav";
 import { useCompanyStore } from "../../../store/companyStore";
 import { useCustomerStore } from "../../../store/customerStore";
+import { useOrderStore } from "../../../store/orderStore";
 import CustomerDropdown from "../customComponents/CustomerSelector";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
+import OrderDetailsModal from "../customComponents/OrderDetailsModal";
+import OrderEditModal from "../customComponents/OrderEditModal";
+import StatusDropdown from "../customComponents/StatusDropdown";
 interface OrderItem {
   id: number;
   name: string;
@@ -98,132 +103,12 @@ interface Order {
   trackingNumber?: string;
 }
 
-const mockOrders: Order[] = [
-  {
-    id: "ORD-001",
-    customerName: "John Smith",
-    customerEmail: "john@example.com",
-    customerPhone: "+91 9876543210",
-    items: [
-      {
-        id: 1,
-        name: "Premium Laptop",
-        quantity: 1,
-        unitPrice: 85000,
-        total: 85000,
-      },
-      {
-        id: 2,
-        name: "Wireless Mouse",
-        quantity: 2,
-        unitPrice: 2500,
-        total: 5000,
-      },
-    ],
-    subtotal: 90000,
-    tax: 16200,
-    total: 106200,
-    status: "confirmed",
-    paymentStatus: "paid",
-    paymentMethod: "card",
-    orderDate: "2024-08-30",
-    deliveryDate: "2024-09-05",
-    address: "123 Business Park",
-    area: "Mumbai",
-    pincode: "400001",
-    assignedSalesman: "Alice Johnson",
-    trackingNumber: "TRK123456789",
-  },
-  {
-    id: "ORD-002",
-    customerName: "Sarah Davis",
-    customerEmail: "sarah@example.com",
-    customerPhone: "+91 9876543211",
-    items: [
-      {
-        id: 3,
-        name: "Office Chair",
-        quantity: 5,
-        unitPrice: 12000,
-        total: 60000,
-      },
-    ],
-    subtotal: 60000,
-    tax: 7200,
-    total: 67200,
-    status: "pending",
-    paymentStatus: "pending",
-    paymentMethod: "bank_transfer",
-    orderDate: "2024-08-31",
-    address: "456 Corporate Tower",
-    area: "Delhi",
-    pincode: "110001",
-    assignedSalesman: "Bob Smith",
-  },
-  {
-    id: "ORD-003",
-    customerName: "Mike Wilson",
-    customerEmail: "mike@example.com",
-    customerPhone: "+91 9876543212",
-    items: [
-      {
-        id: 4,
-        name: "Standing Desk",
-        quantity: 2,
-        unitPrice: 25000,
-        total: 50000,
-      },
-    ],
-    subtotal: 50000,
-    tax: 6000,
-    total: 56000,
-    status: "shipped",
-    paymentStatus: "paid",
-    paymentMethod: "upi",
-    orderDate: "2024-08-29",
-    deliveryDate: "2024-09-03",
-    address: "789 Tech Hub",
-    area: "Bangalore",
-    pincode: "560001",
-    assignedSalesman: "Carol Davis",
-    trackingNumber: "TRK987654321",
-  },
-  {
-    id: "ORD-004",
-    customerName: "Emma Brown",
-    customerEmail: "emma@example.com",
-    customerPhone: "+91 9876543213",
-    items: [
-      {
-        id: 5,
-        name: 'Monitor 27"',
-        quantity: 3,
-        unitPrice: 18000,
-        total: 54000,
-      },
-    ],
-    subtotal: 54000,
-    tax: 9720,
-    total: 63720,
-    status: "delivered",
-    paymentStatus: "paid",
-    paymentMethod: "upi",
-    orderDate: "2024-08-25",
-    deliveryDate: "2024-08-28",
-    address: "321 Tech Park",
-    area: "Pune",
-    pincode: "411001",
-    assignedSalesman: "David Lee",
-    trackingNumber: "TRK456789123",
-  },
-];
-
 export default function OrderManagement() {
   const [open, setOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("route");
   const [selectedRoute, setSelectedRoute] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
-  const [orders] = useState<Order[]>(mockOrders);
+  // const [orders] = useState<Order[]>(mockOrders);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
@@ -237,15 +122,34 @@ export default function OrderManagement() {
   const selectedCustomer = customers.find((c) => c._id === selectedCustomerId);
   const itemsPerPage = 10;
   const navigate = useNavigate();
+  const { fetchOrders, orders, pagination } = useOrderStore();
+  const [selectedItem, setSelectedItem] = useState<Order | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const updateOrderStatus = useOrderStore((s) => s.updateOrderStatus);
+  const updateOrder = useOrderStore((s) => s.updateOrder);
+
+  const handleViewOrder = (order: Order) => {
+    setSelectedItem(order);
+    setIsModalOpen(true);
+  };
+  useEffect(() => {
+    fetchOrders(defaultSelected?._id, 1, 10);
+  }, [defaultSelected]);
+
   useEffect(() => {
     filterCustomers("", "all", "nameAsc", 1, 100, defaultSelected?._id);
   }, [filterCustomers]);
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
+      console.log(order, "order");
       const matchesSearch =
-        order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
+        order.customerId?.customerName
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        order.customerId?.emailAddress
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase());
       const matchesStatus =
         statusFilter === "all" || order.status === statusFilter;
       const matchesPayment =
@@ -334,49 +238,6 @@ export default function OrderManagement() {
     ],
     [orders]
   );
-  const tabs = [
-    { id: "route", label: "Select Route" },
-    { id: "customer", label: "Choose Customer" },
-  ];
-  const stepIcons = {
-    route: <Users className="w-2 h-2 md:w-5 md:h-5" />,
-    customer: <Users className="w-2 h-2 md:w-5 md:h-5" />,
-  };
-  const ActionsDropdown = ({ order }: { order: Order }) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 hover:bg-gray-100"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => {
-            setSelectedOrder(order);
-            setIsOrderDialogOpen(true);
-          }}
-        >
-          <Eye className="w-4 h-4 mr-2" />
-          View Details
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <CheckCircle className="w-4 h-4 mr-2" />
-          Update Status
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Truck className="w-4 h-4 mr-2" />
-          Track Order
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
@@ -389,18 +250,18 @@ export default function OrderManagement() {
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Customer
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {/* <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Amount
-              </th>
+              </th> */}
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Payment
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {/* <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Progress
-              </th>
+              </th> */}
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
@@ -414,8 +275,10 @@ export default function OrderManagement() {
               >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
-                    <p className="font-medium text-gray-900">{order.id}</p>
-                    <p className="text-sm text-gray-600">{order.orderDate}</p>
+                    <p className="font-medium text-gray-900">
+                      {order?.orderCode}
+                    </p>
+                    <p className="text-sm text-gray-600">{order?.createdAt}</p>
                     {order.trackingNumber && (
                       <p className="text-xs text-teal-600">
                         {order.trackingNumber}
@@ -426,17 +289,20 @@ export default function OrderManagement() {
                 <td className="px-6 py-4">
                   <div>
                     <p className="font-medium text-gray-900">
-                      {order.customerName}
+                      {order?.customerId?.customerName}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {order.customerEmail}
+                      {order?.customerId?.emailAddress}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {order.area}, {order.pincode}
+                      {order.shippingAddress?.street},{" "}
+                      {order.shippingAddress?.line2},
+                      {order.shippingAddress?.city} -{" "}
+                      {order.shippingAddress?.postalCode}
                     </p>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                {/* <td className="px-6 py-4 whitespace-nowrap">
                   <div>
                     <p className="font-medium text-gray-900">
                       ₹{order.total.toLocaleString()}
@@ -445,19 +311,26 @@ export default function OrderManagement() {
                       {order.items.length} items
                     </p>
                   </div>
-                </td>
+                </td> */}
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {getStatusBadge(order.status)}
+                  <StatusDropdown
+                    onStatusChange={(newStatus) => {
+                      updateOrderStatus(order._id, newStatus);
+                    }}
+                    orderId={order._id}
+                    status={order.status}
+                  />
                 </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="space-y-1">
-                    {getPaymentBadge(order.paymentStatus)}
+                    {getPaymentBadge(order?.payment?.status)}
                     <p className="text-xs text-gray-600 capitalize">
-                      {order.paymentMethod.replace("_", " ")}
+                      {order.payment?.mode.replace("_", " ")}
                     </p>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                {/* <td className="px-6 py-4 whitespace-nowrap">
                   <div className="w-24">
                     <Progress
                       value={getOrderProgress(order.status)}
@@ -467,9 +340,15 @@ export default function OrderManagement() {
                       {getOrderProgress(order.status)}%
                     </p>
                   </div>
-                </td>
+                </td> */}
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown order={order} />
+                  <ActionsDropdown
+                    onView={() => handleViewOrder(order)}
+                    onEdit={() => {
+                      setSelectedItem(order);
+                      setShowEditModal(true);
+                    }}
+                  />
                 </td>
               </tr>
             ))}
@@ -483,20 +362,26 @@ export default function OrderManagement() {
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
       {paginatedOrders.map((order) => (
         <Card
-          key={order.id}
+          key={order._id}
           className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden"
         >
+          {/* HEADER */}
           <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 pb-4">
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle className="text-xl font-bold text-gray-800 mb-1">
-                  {order.id}
+                  {order.orderCode}
                 </CardTitle>
+
                 <p className="text-blue-600 font-medium">
-                  {order.customerName}
+                  {order?.customerId?.customerName}
                 </p>
-                <p className="text-sm text-gray-600 mt-1">{order.orderDate}</p>
+
+                <p className="text-sm text-gray-600 mt-1">
+                  {new Date(order.createdAt).toLocaleDateString()}
+                </p>
               </div>
+
               <div className="flex items-center gap-2">
                 {getStatusBadge(order.status)}
                 <ActionsDropdown order={order} />
@@ -504,25 +389,38 @@ export default function OrderManagement() {
             </div>
           </CardHeader>
 
+          {/* BODY */}
           <CardContent className="p-6 space-y-4">
             <div className="space-y-3">
+              {/* Email */}
               <div className="flex items-center text-sm">
                 <User className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">{order.customerEmail}</span>
-              </div>
-
-              <div className="flex items-center text-sm">
-                <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">{order.customerPhone}</span>
-              </div>
-
-              <div className="flex items-center text-sm">
-                <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                 <span className="text-gray-600">
-                  {order.area}, {order.pincode}
+                  {order?.customerId?.emailAddress}
                 </span>
               </div>
 
+              {/* Phone — if exists */}
+              {order?.customerId?.mobileNumber && (
+                <div className="flex items-center text-sm">
+                  <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                  <span className="text-gray-600">
+                    {order.customerId.mobileNumber}
+                  </span>
+                </div>
+              )}
+
+              {/* Address */}
+              <div className="flex items-center text-sm">
+                <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                <span className="text-gray-600">
+                  {order.shippingAddress?.street},{" "}
+                  {order.shippingAddress?.line2}, {order.shippingAddress?.city}{" "}
+                  - {order.shippingAddress?.postalCode}
+                </span>
+              </div>
+
+              {/* Items */}
               <div className="flex items-center text-sm">
                 <Package className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                 <span className="text-gray-600">
@@ -530,23 +428,18 @@ export default function OrderManagement() {
                 </span>
               </div>
 
-              <div className="flex items-center text-sm">
-                <DollarSign className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600 font-semibold">
-                  ₹{order.total.toLocaleString()}
-                </span>
-              </div>
-
+              {/* Payment */}
               <div className="flex items-center text-sm">
                 <CreditCard className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
                 <div className="flex items-center gap-2">
-                  {getPaymentBadge(order.paymentStatus)}
+                  {getPaymentBadge(order.payment?.status)}
                   <span className="text-xs text-gray-500 capitalize">
-                    ({order.paymentMethod.replace("_", " ")})
+                    ({order.payment?.mode?.replace("_", " ")})
                   </span>
                 </div>
               </div>
 
+              {/* Tracking Number */}
               {order.trackingNumber && (
                 <div className="flex items-center text-sm">
                   <Truck className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
@@ -555,15 +448,16 @@ export default function OrderManagement() {
               )}
             </div>
 
-            <div className="pt-3">
-              <Progress
-                value={getOrderProgress(order.status)}
-                className="h-3 bg-gray-200 [&>[role=progressbar]]:bg-green-500 bg-amber-400"
-              />
-              <p className="text-xs text-gray-600 mt-1 text-right">
-                {getOrderProgress(order.status)}% Complete
-              </p>
-            </div>
+            {/* PROGRESS */}
+            {/* <div className="pt-3">
+            <Progress
+              value={getOrderProgress(order.status)}
+              className="h-3 bg-gray-200 [&>[role=progressbar]]:bg-green-500"
+            />
+            <p className="text-xs text-gray-600 mt-1 text-right">
+              {getOrderProgress(order.status)}% Complete
+            </p>
+          </div> */}
           </CardContent>
         </Card>
       ))}
@@ -1198,6 +1092,33 @@ export default function OrderManagement() {
           </div>
         </DialogContent>
       </Dialog>
+      <OrderDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedItem}
+      />
+      <OrderEditModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        data={selectedItem}
+        onSave={async (updated) => {
+          try {
+            if (!selectedItem?._id) return;
+
+            await updateOrder(selectedItem._id, updated);
+
+            toast.success("Order updated successfully");
+
+            // ✅ optional: refresh list
+            // await fetchOrders(defaultSelected?._id);
+
+            // ✅ update selected item locally so modal shows updated values next time
+            setSelectedItem(updated);
+          } catch (err) {
+            console.error("Update failed", err);
+          }
+        }}
+      />
     </div>
   );
 }

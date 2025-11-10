@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useProductStore } from "../../../store/productStore";
+import { useStockItemStore } from "../../../store/stockItemStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { Button } from "../ui/button";
 import { useCompanyStore } from "../../../store/companyStore";
-
+import api from "../../../src/api/api";
+import { toast } from "sonner";
 const safeName = (value: any) => {
   if (!value) return "-";
   if (typeof value === "object") return value?.name || value?.symbol || "-";
   return value;
 };
 
-// Product Card Component with Image Carousel
+// ✅ Product Card Component
 const ProductCard = ({
   product,
   images,
@@ -44,20 +45,18 @@ const ProductCard = ({
           loading="lazy"
         />
 
-        {/* Navigation Arrows - Show on hover if multiple images */}
         {images.length > 1 && (
           <>
             <button
               onClick={prevImage}
               className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              aria-label="Previous image"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
+
             <button
               onClick={nextImage}
               className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              aria-label="Next image"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -77,13 +76,13 @@ const ProductCard = ({
         )}
       </div>
 
-      {/* 📦 Product Details */}
+      {/* Product Details */}
       <div className="p-2 flex-1 flex flex-col">
         <h3 className="font-semibold text-gray-800 text-sm truncate">
           {product.name}
         </h3>
         <p className="text-gray-500 text-xs">Code: {product.code || "N/A"}</p>
-        <p className="text-gray-600 text-xs">Unit: {safeName(product.unit)}</p>
+        {/* <p className="text-gray-600 text-xs">Unit: {safeName(product.unit)}</p> */}
         <p className="text-gray-600 text-xs">
           Stock Group: {safeName(product.stockGroup)}
         </p>
@@ -91,19 +90,19 @@ const ProductCard = ({
           Stock Category: {safeName(product.stockCategory)}
         </p>
 
-        {product?.minimumRate !== undefined && (
+        {product.minimumRate !== undefined && (
           <p className="text-teal-700 font-medium mt-2 text-sm">
             ₹{Number(product.minimumRate).toLocaleString()}
           </p>
         )}
 
-        {/* Cart Controls */}
+        {/* Add / Increase Buttons */}
         <div className="mt-auto pt-3">
           {inCart ? (
             <div className="flex items-center justify-between gap-3 py-2 bg-teal-50 border rounded-md">
               <button
                 onClick={() => onDecrease(product._id)}
-                className=" text-gray-800 font-bold px-3  rounded"
+                className=" text-gray-800 font-bold px-3 rounded"
               >
                 –
               </button>
@@ -135,84 +134,166 @@ const ProductSelection = () => {
   const location = useLocation();
   const { selectedCustomer, selectedRoute, company } = location.state || {};
   const { defaultSelected } = useCompanyStore();
-  const { fetchProducts, filterProducts, products, pagination } =
-    useProductStore();
+
+  // ✅ Use stockItemStore instead of productStore
+  const { fetchStockItems, filterStockItems, stockItems, pagination } =
+    useStockItemStore();
+
   const [cart, setCart] = useState<any[]>([]);
   const [showReview, setShowReview] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+
   const navigate = useNavigate();
   useEffect(() => {
-    fetchProducts(currentPage, pagination.limit || 10, defaultSelected?._id);
-  }, [fetchProducts, currentPage, pagination.limit, defaultSelected]);
+    fetchStockItems(currentPage, pagination.limit || 10, defaultSelected?._id);
+  }, [fetchStockItems, currentPage, pagination.limit, defaultSelected]);
 
-  // 🔹 Add product to cart
-  const handleAddToCart = (product: any) => {
-    const newCart = [...cart, { ...product, quantity: 1 }];
-    setCart(newCart);
-    setShowReview(true); // open drawer
-  };
   useEffect(() => {
-    console.log(defaultSelected?._id, company?._id);
     if (defaultSelected && company && defaultSelected._id !== company._id) {
-      console.log("first");
-      navigate(-1); 
+      navigate(-1);
     }
   }, [defaultSelected]);
+
+  // ✅ Search & Filter
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (searchTerm.trim()) {
-        filterProducts(
+        filterStockItems(
           searchTerm,
-          "all",
+          "",
           "nameAsc",
+          defaultSelected?._id, // ✅ Option A order
           currentPage,
-          10,
-          defaultSelected?._id
+          10
         );
       } else {
-        fetchProducts(currentPage, 10, defaultSelected?._id);
+        fetchStockItems(currentPage, 10, defaultSelected?._id);
       }
     }, 500);
 
     return () => clearTimeout(delayDebounce);
   }, [searchTerm, currentPage, defaultSelected]);
+  useEffect(() => {
+    const loadCart = async () => {
+      if (!defaultSelected?._id) return;
+
+      try {
+        const serverCart = await api.fetchCart({
+          companyId: defaultSelected._id,
+        });
+
+        const normalized = serverCart.cart.map((c: any) => ({
+          _id: c.product._id,
+          name: c.product.ItemName,
+          code: c.product.ItemCode,
+          stockGroup: c.product.Group,
+          stockCategory: c.product.Category,
+          minimumRate: c.product.Price,
+          quantity: c.quantity,
+          images: c.product.productId?.images ?? [],
+        }));
+
+        setCart(normalized);
+        if (normalized.length > 0) setShowReview(true);
+      } catch (err) {
+        console.error("Failed to load cart", err);
+      }
+    };
+
+    loadCart();
+  }, [defaultSelected?._id]);
+
+  // ✅ Handle Search Input
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
   };
-  // 🔹 Increase quantity
-  const handleIncrease = (productId: string) => {
-    setCart(
-      cart.map((item) =>
-        item._id === productId ? { ...item, quantity: item.quantity + 1 } : item
-      )
-    );
+
+  // ✅ Add to Cart
+  const handleAddToCart = async (product: any) => {
+    const newItem = {
+      productId: product._id,
+      quantity: 1,
+    };
+
+    // Update local cart instantly
+    setCart((prev) => [...prev, { ...product, quantity: 1 }]);
+    setShowReview(true);
+
+    try {
+      await api.addCart(newItem, defaultSelected?._id);
+    } catch (err) {
+      console.error("Failed to sync cart with server", err);
+    }
   };
 
-  // 🔹 Decrease quantity
-  const handleDecrease = (productId: string) => {
+  // ✅ Increase Quantity
+  const handleIncrease = async (productId: string) => {
+    const updatedCart = cart.map((item) =>
+      item._id === productId ? { ...item, quantity: item.quantity + 1 } : item
+    );
+
+    setCart(updatedCart);
+
+    const product = updatedCart.find((i) => i._id === productId);
+    if (!product) return;
+
+    try {
+      await api.addCart(
+        {
+          productId,
+          quantity: product.quantity,
+        },
+        defaultSelected?._id
+      );
+    } catch (err) {
+      console.error("Failed to sync increase", err);
+    }
+  };
+
+  // ✅ Decrease Quantity
+  const handleDecrease = async (productId: string) => {
     const updated = cart
       .map((item) =>
         item._id === productId ? { ...item, quantity: item.quantity - 1 } : item
       )
       .filter((item) => item.quantity > 0);
+
     setCart(updated);
+
+    // Hide drawer if nothing left
     if (updated.length === 0) setShowReview(false);
+
+    const product = updated.find((i) => i._id === productId);
+
+    try {
+      await api.addCart(
+        {
+          productId,
+          quantity: product ? product.quantity : 0, // if removed
+        },
+        defaultSelected?._id
+      );
+    } catch (err) {
+      console.error("Failed to sync decrease", err);
+    }
   };
 
-  // 🔹 Calculate total
+  // ✅ Total Amount
   const totalAmount = cart.reduce(
     (sum, item) => sum + (item.minimumRate || 0) * item.quantity,
     0
   );
 
+  // ✅ Navigate to checkout
   const handleContinue = () => {
     navigate("/checkout", {
       state: { cart, selectedCustomer, selectedRoute, company, totalAmount },
     });
   };
 
+  // ✅ Pagination Component
   const PaginationControls = () => (
     <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm border">
       <div className="text-sm text-gray-600">
@@ -227,10 +308,8 @@ const ProductSelection = () => {
           size="sm"
           onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
           disabled={currentPage === 1}
-          className="flex items-center gap-1"
         >
-          <ChevronLeft className="w-4 h-4" />
-          Previous
+          <ChevronLeft className="w-4 h-4" /> Previous
         </Button>
 
         <span className="text-sm text-gray-600">
@@ -246,19 +325,42 @@ const ProductSelection = () => {
             )
           }
           disabled={currentPage === pagination.totalPages}
-          className="flex items-center gap-1"
         >
-          Next
-          <ChevronRight className="w-4 h-4" />
+          Next <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
     </div>
   );
 
+  // ✅ Normalize StockItems → Product format
+  const normalizedItems = stockItems?.map((item: any) => ({
+    _id: item._id,
+    name: item.ItemName,
+    code: item.ItemCode,
+    stockGroup: item.Group,
+    stockCategory: item.Category,
+    minimumRate: item.Price,
+
+    images: item.productId?.images?.map((img: any) => img.fileUrl) ?? [], // ✅ fallback
+  }));
+  const handleClearCart = async () => {
+    try {
+      setCart([]);
+      setShowReview(false);
+
+      await api.clearCart(defaultSelected?._id);
+
+      toast.success("Cart cleared");
+    } catch (err) {
+      toast.error("Failed to clear cart");
+      console.error(err);
+    }
+  };
+
   return (
     <div className="pb-24">
       {/* Header */}
-      <div className=" border-gray-200 pb-2 flex items-center justify-between">
+      <div className="border-gray-200 pb-2 flex items-center justify-between">
         <div className="text-xl text-gray-600">
           <span className="text-xl font-semibold text-teal-500">New Order</span>
           <h1 className="text-teal-900 font-bold">
@@ -266,6 +368,7 @@ const ProductSelection = () => {
             {selectedRoute && ` • ${selectedRoute}`}
           </h1>
         </div>
+
         <div className="relative" onClick={() => setShowReview(true)}>
           <ShoppingCart className="w-7 h-7 text-teal-500 cursor-pointer" />
           {cart.length > 0 && (
@@ -275,7 +378,8 @@ const ProductSelection = () => {
           )}
         </div>
       </div>
-      {/* 🔍 Search Bar */}
+
+      {/* Search Bar */}
       <div className="flex w-full mb-4 mt-2">
         <input
           type="text"
@@ -286,21 +390,21 @@ const ProductSelection = () => {
         />
       </div>
 
-      {/* Main Layout: Products + Review Drawer */}
+      {/* Main Layout */}
       <div className="flex relative transition-all duration-500 shadow-sm p-2 gap-8">
-        {/* 🧩 Product Section */}
+        {/* Product Section */}
         <motion.div
           animate={{ width: showReview ? "calc(100% - 400px)" : "100%" }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           className="transition-all pr-4"
         >
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {products.map((product) => {
+            {normalizedItems.map((product) => {
               const inCart = cart.find((item) => item._id === product._id);
 
-              // Use real images if available, otherwise use demo images
-              const productImages =
-                product.images && product.images.length > 0
+              // fallback demo images
+              const finalImages =
+                product.images.length > 0
                   ? product.images
                   : [
                       "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop",
@@ -312,7 +416,7 @@ const ProductSelection = () => {
                 <ProductCard
                   key={product._id}
                   product={product}
-                  images={productImages}
+                  images={finalImages}
                   inCart={inCart}
                   onAddToCart={handleAddToCart}
                   onIncrease={handleIncrease}
@@ -321,10 +425,11 @@ const ProductSelection = () => {
               );
             })}
           </div>
+
           {pagination.total > 0 && <PaginationControls />}
         </motion.div>
 
-        {/* 🧾 Review Drawer (Right Side) */}
+        {/* ✅ Review Drawer for Desktop */}
         <AnimatePresence>
           {showReview && (
             <motion.div
@@ -341,10 +446,7 @@ const ProductSelection = () => {
 
                 <button
                   onClick={() => setShowReview(false)}
-                  className="absolute top-0 right-0 -mt-1 -mr-1 w-4 h-4 flex items-center justify-center 
-             text-gray-500 hover:text-white border border-gray-300 rounded-full cursor-pointer 
-             text-[10px] leading-none hover:bg-teal-500 transition-all duration-150 shadow-sm"
-                  aria-label="Close"
+                  className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center text-gray-500 hover:text-white border border-gray-300 rounded-full text-[10px] leading-none hover:bg-teal-500 transition-all duration-150 shadow-sm"
                 >
                   ✕
                 </button>
@@ -364,6 +466,7 @@ const ProductSelection = () => {
                         ₹{item.minimumRate?.toFixed(2)} × {item.quantity}
                       </p>
                     </div>
+
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleDecrease(item._id)}
@@ -383,6 +486,17 @@ const ProductSelection = () => {
                 ))}
               </div>
 
+             <div className="flex justify-end mt-3">
+  <button
+    onClick={handleClearCart}
+    className="px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 
+              rounded-lg text-sm font-medium transition-all shadow-sm cursor-pointer"
+  >
+    Clear Cart
+  </button>
+</div>
+
+
               <div className="border-t pt-3 mt-3">
                 <div className="flex justify-between text-gray-700 font-semibold">
                   <span>Total</span>
@@ -400,7 +514,7 @@ const ProductSelection = () => {
           )}
         </AnimatePresence>
 
-        {/* 📱 Drawer for Mobile */}
+        {/* ✅ Mobile Drawer */}
         <AnimatePresence>
           {showReview && (
             <motion.div
@@ -434,6 +548,7 @@ const ProductSelection = () => {
                         ₹{item.minimumRate?.toFixed(2)} × {item.quantity}
                       </p>
                     </div>
+
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleDecrease(item._id)}
@@ -451,6 +566,15 @@ const ProductSelection = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="flex justify-between mt-3">
+                <button
+                  onClick={handleClearCart}
+                  className="text-red-600 text-sm hover:underline"
+                >
+                  Clear Cart
+                </button>
               </div>
 
               <div className="border-t pt-3 mt-3">

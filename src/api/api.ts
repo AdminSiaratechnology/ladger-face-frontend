@@ -1,6 +1,5 @@
 import axios from "axios";
 import baseUrl from "../lib/constant";
-console.log("Base URL:", baseUrl);
 
 // Create axios instance
 const apiClient = axios.create({
@@ -27,7 +26,6 @@ apiClient.interceptors.request.use((config) => {
 //Create user Api
 
 const createUser = async (userData: any) => {
-  console.log("Creating user with data:", userData);
   const res = await apiClient.post("/auth/register", userData);
   return res.data;
 };
@@ -35,17 +33,14 @@ const createUser = async (userData: any) => {
 //Fetch users for agent
 
 const fetchUsers = async ({ queryParams }: { queryParams: string }) => {
-  console.log("fewtching usersss ");
   const res = await apiClient.get(
     `/user-management/client/allUsers?${queryParams}`
   );
-  console.log(res, "fetched users response");
   return res.data;
 };
 
 // API functions
 const createCompany = async (companyData: any) => {
-  console.log("Creating company with data:", companyData);
   // return companyData;
   const res = await apiClient.post("/company/create", companyData);
   return res.data;
@@ -65,11 +60,8 @@ const getCompanies = async ({
   agentId: string;
   queryParams: string;
 }) => {
-  console.log(queryParams, "queryParams");
   try {
-    console.log("Fetching companies...");
     const res = await apiClient.get(`/company/agent/companies?${queryParams}`);
-    console.log("Fetched companies:", res.data);
     return res.data;
   } catch (err: any) {
     console.error(
@@ -87,10 +79,6 @@ const updateCompany = async (companyId: string, companyData: any) => {
     );
     return res.data;
   } catch (err: any) {
-    console.error(
-      "Error fetching companies:",
-      err.response?.data || err.message
-    );
     throw err;
   }
 };
@@ -139,8 +127,6 @@ const getGodowns = async (
   { companyId }: { companyId: string },
   { queryParams }: { queryParams: any }
 ) => {
-  console.log(queryParams, "quearyparmsgodiwn");
-
   const res = await apiClient.get(`/godowns/${companyId}?${queryParams}`);
   return res?.data;
 };
@@ -177,7 +163,6 @@ const updateStockGroup = async ({
   stockGroupId: string;
   stockGroupData: any;
 }) => {
-  console.log("hihih", stockGroupId, stockGroupData);
   const res = await apiClient.put(
     `/stock-groups/${stockGroupId}`,
     stockGroupData
@@ -185,7 +170,6 @@ const updateStockGroup = async ({
   return res?.data;
 };
 const deleteStockGroup = async (stockGroupId: string) => {
-  console.log("hihih", stockGroupId);
   const res = await apiClient.delete(`/stock-groups/${stockGroupId}`);
   return res?.data;
 };
@@ -196,7 +180,6 @@ const getStockCategory = async (
   { companyId }: { companyId: string },
   { queryParams }: { queryParams: any }
 ) => {
-  console.log(queryParams, "queryParams");
   const res = await apiClient.get(
     `/stock-categories/${companyId}?${queryParams}`
   );
@@ -252,12 +235,10 @@ const fetchProducts = async (
   { queryParams }: { queryParams: string }
 ) => {
   const res = await apiClient.get(`/products/${companyId}?${queryParams}`);
-  console.log(res, "ressfetchproduct");
   return res.data;
 };
 
 const createProduct = async (product: any) => {
-  console.log(product, "createProductcreateProduct");
   const res = await apiClient.post("/products", product);
   return res.data;
 };
@@ -286,7 +267,6 @@ const fetchCustomers = async (
 
 //Create a new customer
 const createCustomer = async (customer: any) => {
-  console.log(customer, "createCustomer payload");
   const res = await apiClient.post("/agent/customers", customer);
   return res.data;
 };
@@ -294,15 +274,9 @@ const createCustomer = async (customer: any) => {
 // Update customer by ID
 const updateCustomer = async (id: number | string, customer: any) => {
   try {
-    console.log(id, customer, "updateCustomer payload");
     const res = await apiClient.put(`/agent/customers/${id}`, customer);
-    console.log(res.data, "ressss");
     return res.data;
   } catch (err: any) {
-    console.error(
-      "Error fetching companies:",
-      err.response?.data || err.message
-    );
     throw err;
   }
 };
@@ -325,7 +299,6 @@ const fetchVendors = async (
 
 //Create a new vendor
 const createVendor = async (vendor: any) => {
-  console.log(vendor, "createVendor payload");
   const res = await apiClient.post("/agent/vendors", vendor);
   return res.data;
 };
@@ -333,9 +306,7 @@ const createVendor = async (vendor: any) => {
 // Update vendor by ID
 const updateVendor = async (id: number | string, vendor: any) => {
   try {
-    console.log(id, vendor, "updateVendor payload");
     const res = await apiClient.put(`/agent/vendors/${id}`, vendor);
-    console.log(res.data, "ressss");
     return res.data;
   } catch (err: any) {
     console.error(
@@ -364,7 +335,6 @@ const fetchAgents = async (
 
 //Create a new agent
 const createAgent = async (agent: any) => {
-  console.log(agent, "createAgent payload");
   const res = await apiClient.post("/agent/agents", agent);
   return res.data;
 };
@@ -372,15 +342,9 @@ const createAgent = async (agent: any) => {
 // Update agent by ID
 const updateAgent = async (id: number | string, agent: any) => {
   try {
-    console.log(id, agent, "updateAgent payload");
     const res = await apiClient.put(`/agent/agents/${id}`, agent);
-    console.log(res.data, "ressss");
     return res.data;
   } catch (err: any) {
-    console.error(
-      "Error fetching companies:",
-      err.response?.data || err.message
-    );
     throw err;
   }
 };
@@ -402,7 +366,6 @@ const fetchLedgers = async (
 
 // Create a new ledger
 const createLedger = async (ledger: any) => {
-  console.log(ledger, "createLedger payload");
   const res = await apiClient.post("/agent/ledgers", ledger);
   return res.data;
 };
@@ -410,12 +373,9 @@ const createLedger = async (ledger: any) => {
 // Update ledger by ID
 const updateLedger = async (id: number | string, ledger: any) => {
   try {
-    console.log(id, ledger, "updateLedger payload");
     const res = await apiClient.put(`/agent/ledgers/${id}`, ledger);
-    console.log(res.data, "ressss");
     return res.data;
   } catch (err: any) {
-    console.error("Error updating ledger:", err.response?.data || err.message);
     throw err;
   }
 };
@@ -425,6 +385,118 @@ const deleteLedger = async (id: number | string) => {
   const res = await apiClient.delete(`/agent/ledgers/${id}`);
   return res.data;
 };
+
+const fetchStockItems = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }
+) => {
+  try {
+    const res = await apiClient.get(
+      `/stock-items/stockItem/${companyId}?${queryParams}`
+    );
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to fetch stock items:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+const fetchOrders = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }
+) => {
+  try {
+    const res = await apiClient.get(
+      `/order/orderByCompany/${companyId}?${queryParams}`
+    );
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to fetch orders:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+const createOrder = async (orderData: any) => {
+  try {
+    const res = await apiClient.post("/order/create", orderData);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to create order:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+const updateOrderStatus = async ({
+  orderId,
+  status,
+}: {
+  orderId: string;
+  status: string;
+}) => {
+  try {
+    const res = await apiClient.patch(`/order/${orderId}/status`, { status });
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to update order status:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+const updateOrder = async (orderId: string, orderData: any) => {
+  try {
+    const res = await apiClient.patch(`/order/${orderId}/shipping`, orderData);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to update order:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+const addCart = async (cartData: any, companyId: string) => {
+  try {
+    const res = await apiClient.post(`/cart/add/${companyId}`, { ...cartData });
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to add cart:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+const fetchCart = async ({ companyId }: { companyId: string }) => {
+  try {
+    const res = await apiClient.get(`/cart/${companyId}`);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to fetch cart:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const clearCart = async (companyId: string) => {
+  return await apiClient.delete(`/cart/clear/${companyId}`);
+};
+
 export interface PerformedBy {
   _id: string;
   name?: string;
@@ -518,13 +590,11 @@ export const restoreRecord = async ({
   id: string;
 }) => {
   try {
-    console.log(module, referenceId, id, "module, referenceId,idR");
     const response = await apiClient.patch("/auditLog/client/restore", {
       module,
       referenceId,
       id,
     });
-    console.log(response, "response");
   } catch (error) {
     throw error;
   }
@@ -532,7 +602,10 @@ export const restoreRecord = async ({
 
 export const updateProfile = async (profileData: any) => {
   try {
-    const response = await apiClient.put("/user-management/profile/update", profileData);
+    const response = await apiClient.put(
+      "/user-management/profile/update",
+      profileData
+    );
     return response.data;
   } catch (error) {
     console.error(
@@ -596,6 +669,14 @@ const api = {
   getAuditLogsByID,
   restoreRecord,
   updateProfile,
+  fetchStockItems,
+  fetchOrders,
+  createOrder,
+  addCart,
+  fetchCart,
+  updateOrderStatus,
+  updateOrder,
+  clearCart,
 };
 
 export default api;

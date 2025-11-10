@@ -106,8 +106,7 @@ const CompanySelectorModal = ({
   }, [defaultSelected]);
 
   const handleConfirm = useCallback(() => {
-
-    const selectedCompany = companies.find((c) => c._id === selectedId);
+    const selectedCompany = selectedId;
     if (selectedCompany) {
       onSelect(selectedCompany);
       if (onConfirmNavigate) onConfirmNavigate();
@@ -196,7 +195,7 @@ const CompanySelectorModal = ({
               filteredCompanies.map((company) => (
                 <CardHeader
                   key={company._id}
-                  onClick={() => setSelectedId(company._id)}
+                  onClick={() => setSelectedId(company)}
                   className={`bg-gradient-to-r from-teal-50 to-teal-100 pb-4 hover:from-teal-100 hover:to-teal-200 capitalize cursor-pointer ${
                     selectedId === company._id
                       ? "from-teal-100 to-teal-300"
