@@ -615,6 +615,110 @@ export const updateProfile = async (profileData: any) => {
     throw error;
   }
 };
+const getStateWiseSales = async (companyId: string) => {
+  const res = await apiClient.get(`/order/state-wise/${companyId}`);
+  return res.data;
+};
+
+const getPartyWiseSales = async (companyId: string) => {
+  const res = await apiClient.get(`/order/party-wise/${companyId}`);
+  return res.data;
+};
+
+const getSalesmanWiseSales=async ({companyId, period = 'month'}:{companyId: string, period?: string}) => {
+  const res=await apiClient.get(`/order/salesman-wise-sales/${companyId}?period=${period}`);
+  return res.data;
+};
+
+const getTodaySales = async (companyId: string) => {
+  const res = await apiClient.get(`/order/today/${companyId}`);
+  return res.data;
+};
+
+const getMonthlyComparison = async (companyId: string) => {
+  const res = await apiClient.get(`/order/monthly-comparison/${companyId}`);
+  return res.data;
+};
+
+const getTopCustomers = async (companyId: string) => {
+  const res = await apiClient.get(`/order/top-customers/${companyId}`);
+  return res.data;
+};
+
+const getTopProducts = async (companyId: string, period: TimePeriod = 'month') => {
+  const params = `?period=${period}`;
+  const res = await apiClient.get(`/order/top-products/${companyId}${params}`);
+  return res.data;
+};
+
+const getDateRangeSales = async (companyId: string, fromDate: string, toDate: string) => {
+  const res = await apiClient.get(`/order/date-range/${companyId}?fromDate=${fromDate}&toDate=${toDate}`);
+  return res.data;
+};
+
+const getMyOrders = async (companyId: string) => {
+  try {
+    const res = await apiClient.get(`/order/my-orders/${companyId}`);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to fetch my orders:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+}
+
+const getOrdersByUser = async (companyId: string ) => {
+  try {
+    const res = await apiClient.get(`/order/orders-by-user/${companyId}`);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to fetch orders by user:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+}
+
+
+const getSalesmanPersonalStats=async ({companyId, period = 'month'}:{companyId: string, period?: string}) => {
+  try {
+    const res=await apiClient.get(`/order/salesman-personal-stats/${companyId}?period=${period}`);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to fetch personal stats:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+const getCustomerSalesStats=async ({companyId, period = 'month'}:{companyId: string, period?: string}) => {
+  try {
+    const res=await apiClient.get(`/order/salesman-personal-stats/${companyId}?period=${period}`);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to fetch personal stats:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+const getSalesTrend=async (companyId: string) => {
+  try {
+    const res=await apiClient.get(`/order/sales-trend/${companyId}`);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "❌ Failed to fetch sales trend:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
 
 // Export API
 const api = {
@@ -677,6 +781,19 @@ const api = {
   updateOrderStatus,
   updateOrder,
   clearCart,
+  getStateWiseSales,
+ getPartyWiseSales,
+ getSalesmanWiseSales,
+ getTodaySales,
+ getMonthlyComparison,
+ getTopCustomers,
+ getTopProducts,
+ getDateRangeSales,
+ getMyOrders,
+ getOrdersByUser,
+ getSalesmanPersonalStats,
+ getCustomerSalesStats,
+ getSalesTrend
 };
 
 export default api;

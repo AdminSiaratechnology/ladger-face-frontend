@@ -370,8 +370,8 @@ console.log(menuItems)
  const companyId = defaultSelected?._id;
 
 const filteredMenuItems = menuItems
-  .filter((item) => user && hasMenuAccess(user, companyId, item))
-  .map((item) => {
+  .filter((item) => user && hasMenuAccess(user, companyId, item) || item.label === "Dashboard")
+  .map((item) => { 
     if (item.type === "accordion" && item.subItems) {
       const filteredSubItems = item.subItems.filter((sub) =>
         hasMenuAccess(user, companyId, sub)

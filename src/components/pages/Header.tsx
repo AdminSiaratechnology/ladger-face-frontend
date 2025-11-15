@@ -159,6 +159,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     resetSrockCategories(), resetGodown();
     resetStore();
     resetUserManagement();
+    localStorage.clear();
   };
   return (
     <>

@@ -24,7 +24,7 @@ export default function CustomerDropdown({
   // Initial load
   useEffect(() => {
     if (defaultSelected) {
-      if (user.allPermissions === false) {
+      if (user.allPermissions === false && user.role === "Customer") {
         // ✅ Fetch ONLY his registered customer
         filterCustomers(
           user.email,
