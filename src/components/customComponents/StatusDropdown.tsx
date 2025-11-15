@@ -7,7 +7,6 @@ import {
 
 import { Badge } from "../ui/badge";
 import { useState } from "react";
-import api from "../../api/api";
 import { toast } from "sonner";
 import { checkPermission } from "../../lib/utils";
 import { useAuthStore } from "../../../store/authStore";
@@ -48,7 +47,7 @@ const StatusDropdown = ({ orderId, status, onStatusChange }) => {
 
     try {
       setLoading(true);
-      await api.updateOrderStatus({ orderId, status: newStatus });
+      // await api.updateOrderStatus({ orderId, status: newStatus });
       onStatusChange(newStatus);
       toast.success(`Status updated to "${newStatus}"`);
     } catch (err: any) {

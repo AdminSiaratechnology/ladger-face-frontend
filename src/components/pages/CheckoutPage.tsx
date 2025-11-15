@@ -31,6 +31,7 @@ export default function CheckoutPage() {
   // State for payment method
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState("Cash on Delivery");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Handle form changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,6 +40,8 @@ export default function CheckoutPage() {
 
   // Place order
   const handlePayment = async () => {
+    if (isSubmitting) return; // ⛔ prevent multiple rapid clicks
+    setIsSubmitting(true);
     console.log(cart);
     const orderData = {
       companyId: company?._id,
@@ -70,6 +73,8 @@ export default function CheckoutPage() {
     } catch (err) {
       console.error("Order failed", err);
       toast.error("Failed to place order");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -249,10 +254,14 @@ export default function CheckoutPage() {
           </div> */}
 
           <Button
-            className="w-full mt-4 bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 rounded-lg"
+            disabled={isSubmitting}
+            className={`${
+              isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+            } bg-blue-500 hover:bg-blue-600 text-white w-full mt-4  font-semibold py-2 rounded-l hover:shadow-xl transition-all text-sm md:text-base`}
             onClick={handlePayment}
+            //  className="w-full mt-4 bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 rounded-lg"
           >
-            Place Order →
+            {isSubmitting ? "Saving..." : "Place Order"}{" "}
           </Button>
         </div>
       </div>

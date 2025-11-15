@@ -143,6 +143,8 @@ const ProductSelection = () => {
   const [showReview, setShowReview] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+const [selectedCategory, setSelectedCategory] = useState("");
+const [selectedGroup, setSelectedGroup] = useState("");
 
   const navigate = useNavigate();
   useEffect(() => {
@@ -356,6 +358,28 @@ const ProductSelection = () => {
       console.error(err);
     }
   };
+// ✅ Extract unique stock categories & groups
+const uniqueCategories = [
+  ...new Set(normalizedItems.map((i) => i.stockCategory)),
+];
+
+const uniqueGroups = [...new Set(normalizedItems.map((i) => i.stockGroup))];
+const categoryOptions = uniqueCategories.map((c) => ({
+  label: c,
+  value: c,
+}));
+
+const groupOptions = uniqueGroups.map((g) => ({
+  label: g,
+  value: g,
+}));
+const filteredItems = normalizedItems.filter((i) => {
+  const matchCategory =
+    !selectedCategory || i.stockCategory === selectedCategory;
+  const matchGroup = !selectedGroup || i.stockGroup === selectedGroup;
+
+  return matchCategory && matchGroup;
+});
 
   return (
     <div className="pb-24">
@@ -380,15 +404,50 @@ const ProductSelection = () => {
       </div>
 
       {/* Search Bar */}
-      <div className="flex w-full mb-4 mt-2">
-        <input
-          type="text"
-          placeholder="Search products..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          className="w-full sm:w-1/2 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-        />
-      </div>
+   <div className="flex w-full mb-4 mt-2 gap-3">
+  
+  {/* Search */}
+  <input
+    type="text"
+    placeholder="Search products..."
+    value={searchTerm}
+    onChange={handleSearchChange}
+    className="w-full sm:w-1/2 border border-gray-300 rounded-lg px-3 py-2 text-sm
+      focus:outline-none focus:ring-2 focus:ring-teal-500"
+  />
+
+  {/* Category Filter */}
+  <select
+    value={selectedCategory}
+    onChange={(e) => setSelectedCategory(e.target.value)}
+    className="border border-gray-300 rounded-lg px-3 py-2 text-sm 
+      focus:outline-none focus:ring-2 focus:ring-teal-500"
+  >
+    <option value="">All Categories</option>
+    {uniqueCategories.map((cat) => (
+      <option key={cat} value={cat}>
+        {cat}
+      </option>
+    ))}
+  </select>
+
+  {/* Group Filter */}
+  <select
+    value={selectedGroup}
+    onChange={(e) => setSelectedGroup(e.target.value)}
+    className="border border-gray-300 rounded-lg px-3 py-2 text-sm 
+      focus:outline-none focus:ring-2 focus:ring-teal-500"
+  >
+    <option value="">All Groups</option>
+    {uniqueGroups.map((grp) => (
+      <option key={grp} value={grp}>
+        {grp}
+      </option>
+    ))}
+  </select>
+  
+</div>
+
 
       {/* Main Layout */}
       <div className="flex relative transition-all duration-500 shadow-sm p-2 gap-8">
@@ -399,7 +458,7 @@ const ProductSelection = () => {
           className="transition-all pr-4"
         >
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {normalizedItems.map((product) => {
+            {filteredItems.map((product) => {
               const inCart = cart.find((item) => item._id === product._id);
 
               // fallback demo images
@@ -486,16 +545,15 @@ const ProductSelection = () => {
                 ))}
               </div>
 
-             <div className="flex justify-end mt-3">
-  <button
-    onClick={handleClearCart}
-    className="px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 
+              <div className="flex justify-end mt-3">
+                <button
+                  onClick={handleClearCart}
+                  className="px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 
               rounded-lg text-sm font-medium transition-all shadow-sm cursor-pointer"
-  >
-    Clear Cart
-  </button>
-</div>
-
+                >
+                  Clear Cart
+                </button>
+              </div>
 
               <div className="border-t pt-3 mt-3">
                 <div className="flex justify-between text-gray-700 font-semibold">
