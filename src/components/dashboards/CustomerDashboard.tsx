@@ -49,7 +49,24 @@ export default function CustomerDashboard() {
   useEffect(() => {
     fetchCoreData();
   }, [companyId, customerId]);
-
+if (!defaultSelected) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center max-w-md p-6">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+            <Building className="w-8 h-8 text-blue-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            No Company Selected
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Please add or select a company to view the dashboard and access
+            analytics.
+          </p>
+        </div>
+      </div>
+    );
+  }
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">

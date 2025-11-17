@@ -60,6 +60,7 @@ interface Pagination {
   totalRecords: number;
   currentPage: number;
   totalPages: number;
+  limit: number;
 }
 
 interface OrderStore {
@@ -94,37 +95,49 @@ export const useOrderStore = create<OrderStore>()(
       },
 
       // ✅ FETCH ORDERS (Matches your API response format)
-      fetchOrders: async (companyId, page = 1, limit = 10, search = "") => {
-        try {
-          set({ loading: true, error: null });
+    fetchOrders: async (companyId, page = 1, limit = 10, filters: any = {}) => {
+  try {
+    set({ loading: true, error: null });
 
-          const queryParams = new URLSearchParams({
-            page: page.toString(),
-            limit: limit.toString(),
-            search,
-          });
+    // Create URLSearchParams with basic pagination
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
 
-          const response = await api.fetchOrders(
-            { companyId },
-            { queryParams: queryParams.toString() }
-          );
+    // Add individual filters as separate query parameters
+    if (filters.search) {
+      queryParams.append('search', filters.search);
+    }
+    if (filters.status && filters.status !== 'all') {
+      queryParams.append('status', filters.status);
+    }
+    if (filters.paymentStatus && filters.paymentStatus !== 'all') {
+      queryParams.append('paymentStatus', filters.paymentStatus);
+    }
 
-          set({
-            orders: response.orders || [],
-            pagination: {
-              totalRecords: response.totalRecords,
-              currentPage: response.currentPage,
-              totalPages: response.totalPages,
-            },
-            loading: false,
-          });
-        } catch (err: any) {
-          set({
-            loading: false,
-            error: err?.response?.data?.message || "Failed to fetch orders",
-          });
-        }
+    const response = await api.fetchOrders(
+      { companyId },
+      { queryParams: queryParams.toString() }
+    );
+
+    set({
+      orders: response.orders || [],
+      pagination: {
+        totalRecords: response.totalRecords,
+        currentPage: response.currentPage,
+        totalPages: response.totalPages,
+        limit: response.limit,
       },
+      loading: false,
+    });
+  } catch (err: any) {
+    set({
+      loading: false,
+      error: err?.response?.data?.message || "Failed to fetch orders",
+    });
+  }
+},
 
       // ✅ CREATE ORDER
       createOrder: async (orderData) => {
@@ -194,6 +207,56 @@ export const useOrderStore = create<OrderStore>()(
           toast.error(err?.response?.data?.message || "Failed to update order");
 
           throw err;
+        }
+      },
+      filterOrders: async (
+        searchTerm: string,
+        statusFilter: "all" | "active" | "inactive",
+        sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
+        companyId: string,
+        page = 1,
+        limit = 10,
+        isLogin = false
+      ) => {
+        try {
+          set({ loading: true, error: null });
+
+          const queryParams = new URLSearchParams({
+            search: searchTerm,
+            status: statusFilter !== "all" ? statusFilter : "",
+            sortBy: sortBy.includes("name") ? "name" : "createdAt",
+            sortOrder: sortBy.includes("Desc") ? "desc" : "asc",
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+
+          const res = await api.fetchOrders(
+            {
+              companyId,
+            },
+            { queryParams: queryParams.toString() }
+          );
+
+          const orders =
+            res.data.orders?.length <= 0 && isLogin
+              ? [...get().orders]
+              : res.data.orders;
+
+          set({
+            orders: orders || [],
+            pagination: {
+              totalRecords: res.data.totalRecords,
+              currentPage: res.data.currentPage,
+              totalPages: res.data.totalPages,
+            },
+            loading: false,
+            error: null,
+          });
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: error.response?.data?.message || "Failed to fetch orders",
+          });
         }
       },
       // ✅ RESET
