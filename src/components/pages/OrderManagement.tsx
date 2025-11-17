@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -140,6 +140,36 @@ export default function OrderManagement() {
   useEffect(() => {
     filterCustomers("", "all", "nameAsc", 1, 100, defaultSelected?._id);
   }, [filterCustomers]);
+  // Fetch orders with filters and pagination
+  const fetchFilteredOrders = useCallback(
+    (page: number = 1) => {
+      const filters = {
+        search: searchTerm,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        paymentStatus: paymentFilter !== "all" ? paymentFilter : undefined,
+      };
+
+      fetchOrders(defaultSelected?._id, page, 10, filters);
+    },
+    [defaultSelected, searchTerm, statusFilter, paymentFilter, fetchOrders]
+  );
+
+  // Debounced search to avoid too many API calls
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchFilteredOrders(1);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [fetchFilteredOrders]);
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    fetchFilteredOrders(newPage);
+  };
+
+  // Use the orders directly from store (they're already paginated from backend)
+  const displayedOrders = orders;
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       console.log(order, "order");
@@ -268,7 +298,7 @@ export default function OrderManagement() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedOrders.map((order) => (
+            {displayedOrders.map((order) => (
               <tr
                 key={order.id}
                 className="hover:bg-gray-50 transition-colors duration-200"
@@ -467,31 +497,32 @@ export default function OrderManagement() {
   const PaginationControls = () => (
     <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
       <div className="text-sm text-gray-600">
-        Showing {(currentPage - 1) * itemsPerPage + 1} -{" "}
-        {Math.min(currentPage * itemsPerPage, filteredOrders.length)} of{" "}
-        {filteredOrders.length} orders
+        Showing {(pagination.currentPage - 1) * pagination.limit + 1} -{" "}
+        {Math.min(
+          pagination.currentPage * pagination.limit,
+          pagination.totalRecords
+        )}{" "}
+        of {pagination.totalRecords} orders
       </div>
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-          disabled={currentPage === 1}
+          onClick={() => handlePageChange(pagination.currentPage - 1)}
+          disabled={pagination.currentPage === 1}
           className="flex items-center gap-1"
         >
           <ChevronLeft className="w-4 h-4" />
           Previous
         </Button>
         <span className="text-sm text-gray-600">
-          Page {currentPage} of {totalPages}
+          Page {pagination.currentPage} of {pagination.totalPages}
         </span>
         <Button
           variant="outline"
           size="sm"
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-          }
-          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(pagination.currentPage + 1)}
+          disabled={pagination.currentPage === pagination.totalPages}
           className="flex items-center gap-1"
         >
           Next
@@ -593,7 +624,7 @@ export default function OrderManagement() {
               <option value="delivered">Delivered</option>
               <option value="cancelled">Cancelled</option>
             </select>
-            <select
+            {/* <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
@@ -603,7 +634,7 @@ export default function OrderManagement() {
               <option value="partial">Partial</option>
               <option value="paid">Paid</option>
               <option value="refunded">Refunded</option>
-            </select>
+            </select> */}
             {(searchTerm ||
               statusFilter !== "all" ||
               paymentFilter !== "all") && (

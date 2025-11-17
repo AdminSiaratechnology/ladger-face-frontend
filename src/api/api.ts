@@ -259,7 +259,7 @@ const fetchCustomers = async (
   { queryParams }: { queryParams: string }
 ) => {
   const res = await apiClient.get(
-    `/agent/customers/${companyId}?${queryParams}}`
+    `/customers/${companyId}?${queryParams}}`
   );
   // console.log(res, "fetchCustomers response");
   return res.data;
@@ -267,14 +267,14 @@ const fetchCustomers = async (
 
 //Create a new customer
 const createCustomer = async (customer: any) => {
-  const res = await apiClient.post("/agent/customers", customer);
+  const res = await apiClient.post("/customers", customer);
   return res.data;
 };
 
 // Update customer by ID
 const updateCustomer = async (id: number | string, customer: any) => {
   try {
-    const res = await apiClient.put(`/agent/customers/${id}`, customer);
+    const res = await apiClient.put(`/customers/${id}`, customer);
     return res.data;
   } catch (err: any) {
     throw err;
@@ -283,7 +283,7 @@ const updateCustomer = async (id: number | string, customer: any) => {
 
 // Delete customer by ID
 const deleteCustomer = async (id: number | string) => {
-  const res = await apiClient.delete(`/agent/customers/${id}`);
+  const res = await apiClient.delete(`/customers/${id}`);
   return res.data;
 };
 
