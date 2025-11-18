@@ -30,6 +30,7 @@ interface StockGroupStore {
   loading: boolean;
   error: boolean;
   errormessage: null | string;
+  counts: any;
   fetchStockGroup: (
     page?: number,
     limit?: number,
@@ -68,6 +69,7 @@ export const useStockGroup = create<StockGroupStore>()(
       loading: true,
       error: false,
       errormessage: null,
+      counts: null,
       fetchStockGroup: async (page = 1, limit = 10, companyId) => {
         set({ loading: true });
         try {
@@ -85,6 +87,7 @@ export const useStockGroup = create<StockGroupStore>()(
               loading: false,
               stockGroups: result.data.stockGroups,
               pagination: result.data.pagination,
+              counts: result.data.counts,
             });
           }
         } catch (error) {
@@ -185,6 +188,7 @@ export const useStockGroup = create<StockGroupStore>()(
           set({
             stockGroups: res.data.stockGroups,
             pagination: res?.data?.pagination,
+            results: res?.data?.counts,
             loading: false,
             error: null,
           });
@@ -210,6 +214,7 @@ export const useStockGroup = create<StockGroupStore>()(
             limit: 10,
             totalPages: 0,
           },
+          counts: null,
           loading: false,
           error: false,
           errormessage: null,
@@ -222,6 +227,7 @@ export const useStockGroup = create<StockGroupStore>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         stockGroups: state.stockGroups,
+        counts: state.counts,
       }),
     }
   )

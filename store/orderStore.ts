@@ -68,7 +68,7 @@ interface OrderStore {
   pagination: Pagination;
   loading: boolean;
   error: string | null;
-
+  counts: any;
   fetchOrders: (
     companyId: string,
     page?: number,
@@ -88,6 +88,7 @@ export const useOrderStore = create<OrderStore>()(
       orders: [],
       loading: false,
       error: null,
+      counts: null,
       pagination: {
         totalRecords: 0,
         currentPage: 1,
@@ -129,6 +130,7 @@ export const useOrderStore = create<OrderStore>()(
         totalPages: response.totalPages,
         limit: response.limit,
       },
+      counts: response.counts,
       loading: false,
     });
   } catch (err: any) {
@@ -249,6 +251,7 @@ export const useOrderStore = create<OrderStore>()(
               currentPage: res.data.currentPage,
               totalPages: res.data.totalPages,
             },
+            counts: res.data.counts,
             loading: false,
             error: null,
           });
@@ -277,6 +280,7 @@ export const useOrderStore = create<OrderStore>()(
       partialize: (state) => ({
         orders: state.orders,
         pagination: state.pagination,
+        counts: state.counts,
       }),
     }
   )

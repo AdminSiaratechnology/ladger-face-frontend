@@ -190,6 +190,7 @@ interface VendorStore {
   pagination: Pagination;
   loading: boolean;
   error: boolean;
+  counts: any;
   errorMessage: string | null;
   fetchVendors: (page?: number, limit?: number, companyId?: number | string) => Promise<void>;
   addVendor: (vendor: FormData) => Promise<void>;
@@ -217,6 +218,7 @@ export const useVendorStore = create<VendorStore>()(
         limit: 10,
         totalPages: 0
       },
+      counts: null,
       loading: true,
       error: false,
       errorMessage: null,
@@ -234,6 +236,7 @@ export const useVendorStore = create<VendorStore>()(
             vendors: result?.data?.vendors || [],
             pagination: result?.data?.pagination,
             loading: false,
+            counts: result?.data?.counts,
           });
         } catch (error: any) {
           set({
@@ -333,6 +336,7 @@ export const useVendorStore = create<VendorStore>()(
             vendors: result?.data?.vendors || [],
             pagination: result?.data?.pagination,
             loading: false,
+            counts: result?.data?.counts,
           });
 
           return result?.data?.vendors || [];
@@ -356,6 +360,7 @@ export const useVendorStore = create<VendorStore>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         vendors: state.vendors,
+        counts: state.counts,
       }),
     }
   )

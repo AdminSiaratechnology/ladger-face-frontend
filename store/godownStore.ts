@@ -35,6 +35,7 @@ interface GodownStore {
   pagination: Pagination;
   loading: boolean;
   error: string | null;
+  counts: any;
   fetchGodowns: (
     page?: number,
     limit?: number,
@@ -62,6 +63,7 @@ export const useGodownStore = create<GodownStore>()(
       godowns: [],
       loading: true,
       error: null,
+      counts: null,
       pagination: {
         total: 0,
         page: 1,
@@ -93,6 +95,7 @@ export const useGodownStore = create<GodownStore>()(
               limit,
               totalPages: 0,
             },
+            counts: res?.data?.counts,
             loading: false,
             error: null,
           });
@@ -215,6 +218,7 @@ export const useGodownStore = create<GodownStore>()(
               limit,
               totalPages: 0,
             },
+            counts: res?.data?.counts,
             loading: false,
             error: null,
           });
@@ -240,6 +244,7 @@ export const useGodownStore = create<GodownStore>()(
             limit: 10,
             totalPages: 0,
           },
+          counts: null,
         });
       },
     }),
@@ -248,6 +253,7 @@ export const useGodownStore = create<GodownStore>()(
       getStorage: () => localStorage,
       partialize: (state) => ({
         godowns: state.godowns,
+        counts: state.counts,
       }),
     }
   )

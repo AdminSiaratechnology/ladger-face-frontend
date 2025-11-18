@@ -34,6 +34,7 @@ interface UnitStore {
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
+  counts: any;
   fetchUnits: (
     page?: number,
     limit?: number,
@@ -68,6 +69,7 @@ export const useUOMStore = create<UnitStore>()(
       loading: true,
       error: false,
       errorMessage: null,
+      counts: null,
 
       // Fetch all UOM
       fetchUnits: async (page = 1, limit = 10, companyId) => {
@@ -85,6 +87,7 @@ export const useUOMStore = create<UnitStore>()(
           set({
             units: result?.data.units || [],
             pagination: result?.data.pagination,
+            counts: result?.data.counts,
             loading: false,
             error: false,
           });
@@ -185,6 +188,7 @@ export const useUOMStore = create<UnitStore>()(
           set({
             units: result?.data.units || [],
             pagination: result?.data.pagination,
+            counts: result?.data.counts,
             loading: false,
           });
 
@@ -212,6 +216,7 @@ export const useUOMStore = create<UnitStore>()(
             limit: 10,
             totalPages: 0,
           },
+          counts: null,
           loading: false,
           error: false,
           errorMessage: null,
@@ -224,6 +229,7 @@ export const useUOMStore = create<UnitStore>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         units: state.units, // sirf units persist honge
+        counts: state.counts,
       }),
     }
   )

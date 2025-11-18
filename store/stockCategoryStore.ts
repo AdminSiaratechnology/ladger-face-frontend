@@ -29,7 +29,7 @@ interface StockCategoryStore {
   loading: boolean;
   error: boolean;
   errormessage: null | string;
-
+  counts: any;
   fetchStockCategory: (
     page?: number,
     limit?: number,
@@ -66,6 +66,7 @@ export const useStockCategory = create<StockCategoryStore>()(
       loading: true,
       error: false,
       errormessage: null,
+      counts: null,
 
       fetchStockCategory: async (page = 1, limit = 10, companyId) => {
         set({ loading: true, error: false });
@@ -83,6 +84,7 @@ export const useStockCategory = create<StockCategoryStore>()(
             set({
               stockCategories: result.data?.categories,
               pagination: result.data.pagination,
+              counts: result.data.counts,
               loading: false,
             });
           }
@@ -172,6 +174,7 @@ export const useStockCategory = create<StockCategoryStore>()(
           set({
             stockCategories: result.data.categories,
             pagination: result.data.pagination,
+            counts: result.data.counts,
             loading: false,
           });
 
@@ -194,6 +197,7 @@ export const useStockCategory = create<StockCategoryStore>()(
             limit: 10,
             totalPages: 0,
           },
+          counts: null,
           loading: false,
           error: false,
           errormessage: null,

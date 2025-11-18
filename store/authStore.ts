@@ -3,16 +3,23 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { User, LoginResponse, LoginCredentials } from "../src/types/auth";
 import baseUrl from "../src/lib/constant";
-import { useCompanyStore } from "./companyStore";
-
+import api from "../src/api/api";
+import { useCompanyStore } from "../store/companyStore";
+import { useStockCategory } from "../store/stockCategoryStore";
+import { useStockGroup } from "../store/stockgroupStore";
+import { useUOMStore } from "../store/uomStore";
+import { useGodownStore } from "../store/godownStore";
+import { useUserManagementStore } from "../store/userManagementStore";
 interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  newDeviceLogin?: boolean;
+  setNewDeviceLogin: (value: boolean) => void;
   login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (user: User) => void;
 }
 
@@ -60,30 +67,49 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () => {
-        // ✅ Clear auth store
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-          error: null,
-        });
+      logout: async () => {
+        try {
+          const id = useAuthStore.getState().user?._id!;
+          await api.handleLogout(id);
+          useCompanyStore.getState().resetCompanies();
+          useStockCategory.getState().resetSrockCategories();
+          useStockGroup.getState().resetStockGroup();
+          useUOMStore.getState().resetUnits();
+          useGodownStore.getState().resetGodown();
+          useUserManagementStore.getState().resetUserManagement();
 
-        // ✅ Clear all other Zustand storages
-        localStorage.removeItem("auth-storage");
-        localStorage.removeItem("company-storage");
-        localStorage.removeItem("stockCategory-storage");
-        localStorage.removeItem("stockgroup-storage");
-        localStorage.removeItem("uom-storage");
-        localStorage.removeItem("godown-storage");
-        localStorage.removeItem("user-management-storage");
-        localStorage.removeItem("vendor-storage");
-        localStorage.removeItem("agent-storage");
-        localStorage.removeItem("ledger-storage");
-        localStorage.removeItem("customer-storage");
-        localStorage.removeItem("product-storage");
-        localStorage.removeItem("route-storage");
-        localStorage.removeItem("order-storage");
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            error: null,
+            newDeviceLogin: false,
+          });
+          window.location.href = "/login";
+
+          localStorage.clear();
+        } catch (error) {
+          console.error("Logout failed:", error);
+        } finally {
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            error: null,
+            newDeviceLogin: false,
+          });
+          useCompanyStore.getState().resetCompanies();
+          useStockCategory.getState().resetSrockCategories();
+          useStockGroup.getState().resetStockGroup();
+          useUOMStore.getState().resetUnits();
+          useGodownStore.getState().resetGodown();
+          useUserManagementStore.getState().resetUserManagement();
+          localStorage.clear();
+          window.location.href = "/login";
+        }
+      },
+      setNewDeviceLogin: (value: boolean) => {
+        set({ newDeviceLogin: value });
       },
 
       updateUser: (user: User) => {
@@ -97,6 +123,7 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
+        newDeviceLogin: state.newDeviceLogin,
       }),
     }
   )

@@ -170,6 +170,7 @@ interface AgentStore {
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
+  counts: any;
   fetchAgents: (page?: number, limit?: number,companyId?:number |string ) => Promise<void>;
   addAgent: (agent: FormData) => Promise<void>;
   updateAgent: (params: { id: string; agent: FormData }) => Promise<void>;
@@ -198,6 +199,7 @@ export const useAgentStore = create<AgentStore>()(
       loading: true,
       error: false,
       errorMessage: null,
+      counts: null,
 
       fetchAgents: async (page = 1, limit = 10,companyId) => {
         set({ loading: true, error: false });
@@ -212,6 +214,7 @@ export const useAgentStore = create<AgentStore>()(
             agents: result?.data?.agents || [],
             pagination: result?.data?.pagination,
             loading: false,
+            counts: result?.data?.counts
           });
         } catch (error: any) {
           set({
@@ -307,6 +310,7 @@ export const useAgentStore = create<AgentStore>()(
             agents: result?.data?.agents || [],
             pagination: result?.data?.pagination,
             loading: false,
+            counts: result?.data?.counts
           });
 
           return result?.data?.agents || [];
@@ -331,6 +335,7 @@ export const useAgentStore = create<AgentStore>()(
        storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         agents: state.agents,
+        counts: state.counts,
       }),
     }
   )

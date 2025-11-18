@@ -303,6 +303,7 @@ const VendorRegistrationPage: React.FC = () => {
     loading,
     error,
     initialLoading,
+    counts,
   } = useVendorStore(); // Assuming store exists
   const { defaultSelected, companies } = useCompanyStore();
   const getCompanyName = (companyId: string) => {
@@ -888,15 +889,9 @@ const VendorRegistrationPage: React.FC = () => {
   const stats = useMemo(
     () => ({
       totalVendors: pagination?.total,
-      gstRegistered: filteredVendors?.filter((c) => c.gstNumber?.trim() !== "")
-        .length,
-      msmeRegistered: filteredVendors?.filter(
-        (c) => c.msmeRegistration?.trim() !== ""
-      ).length,
-      activeVendors:
-        statusFilter === "active"
-          ? pagination?.total
-          : filteredVendors?.filter((c) => c.status === "active").length,
+      gstRegistered: counts?.gstRegistered,
+      msmeRegistered: counts?.msmeRegistered,
+      activeVendors: counts?.activeVendors,
     }),
     [filteredVendors, pagination, statusFilter]
   );

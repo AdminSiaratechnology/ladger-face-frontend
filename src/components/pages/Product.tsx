@@ -192,6 +192,7 @@ const ProductPage: React.FC = () => {
     products,
     filterProducts,
     pagination,
+    counts,
     loading,
     resetProductStore,
     initialLoading,
@@ -668,14 +669,9 @@ const ProductPage: React.FC = () => {
   const stats = useMemo(
     () => ({
       totalProducts: pagination?.total || 0,
-      activeProducts:
-        statusFilter === "active"
-          ? pagination?.total
-          : filteredProducts?.filter((p) => p.status === "active").length || 0,
-      batchProducts: filteredProducts?.filter((p) => p.batch).length || 0,
-      taxableProducts:
-        filteredProducts?.filter((p) => p.taxConfiguration?.applicable)
-          .length || 0,
+      activeProducts:counts?.activeProducts,
+      batchProducts: counts?.batchManagedProducts,
+      taxableProducts: counts?.taxableProducts,
     }),
     [filteredProducts, pagination, statusFilter]
   );

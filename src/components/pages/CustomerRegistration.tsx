@@ -298,6 +298,7 @@ const CustomerRegistrationPage: React.FC = () => {
     loading,
     error,
     initialLoading,
+    counts,
   } = useCustomerStore(); // Assuming store exists
   const { defaultSelected, companies } = useCompanyStore();
   const [formData, setFormData] = useState<CustomerForm>({
@@ -869,16 +870,9 @@ const CustomerRegistrationPage: React.FC = () => {
   const stats = useMemo(
     () => ({
       totalCustomers: pagination?.total,
-      gstRegistered: filteredCustomers?.filter(
-        (c) => c.gstNumber?.trim() !== ""
-      ).length,
-      msmeRegistered: filteredCustomers?.filter(
-        (c) => c.msmeRegistration?.trim() !== ""
-      ).length,
-      activeCustomers:
-        statusFilter === "active"
-          ? pagination?.total
-          : filteredCustomers?.filter((c) => c.status === "active").length,
+      gstRegistered: counts?.gstRegistered,
+      msmeRegistered: counts?.msmeRegistered,
+      activeCustomers: counts?.activeCustomers,
     }),
     [filteredCustomers, pagination, statusFilter]
   );
@@ -1552,7 +1546,7 @@ const CustomerRegistrationPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
+                  {/* <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Sales Person
                     </label>
@@ -1568,8 +1562,26 @@ const CustomerRegistrationPage: React.FC = () => {
                       <option value="jane">Jane Doe</option>
                       <option value="mike">Mike Johnson</option>
                     </select>
+                  </div> */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Agent
+                    </label>
+                    <select
+                      value={formData.agent}
+                      onChange={(e) =>
+                        handleSelectChange("agent", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Agent</option>
+                      {agents.map((agent) => (
+                        <option key={agent} value={agent._id}>
+                          {agent.agentName}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Customer Status
@@ -1864,25 +1876,6 @@ const CustomerRegistrationPage: React.FC = () => {
                     value={formData.paymentTerms}
                     onChange={handleChange}
                   />
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Agent
-                    </label>
-                    <select
-                      value={formData.agent}
-                      onChange={(e) =>
-                        handleSelectChange("agent", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Agent</option>
-                      {agents.map((agent) => (
-                        <option key={agent} value={agent._id}>
-                          {agent.agentName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
 
                 <CustomStepNavigation

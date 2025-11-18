@@ -86,6 +86,7 @@ const GodownRegistration: React.FC = () => {
   const {
     godowns,
     pagination,
+    counts,
     loading,
     fetchGodowns,
     addGodown,
@@ -304,16 +305,9 @@ const GodownRegistration: React.FC = () => {
   const stats = useMemo(
     () => ({
       totalGodowns: pagination?.total || 0,
-      primaryGodowns: filteredGodowns?.filter((g) => g.isPrimary).length || 0,
-      activeGodowns:
-        statusFilter === "active"
-          ? pagination?.total
-          : filteredGodowns?.filter((g) => g.status === "active").length || 0,
-      totalCapacity:
-        filteredGodowns?.reduce(
-          (sum, godown) => sum + (parseInt(godown.capacity) || 0),
-          0
-        ) || 0,
+      primaryGodowns: counts?.totalPrimary,
+      activeGodowns: counts?.totalActive,
+      totalCapacity: counts?.totalCapacity,
     }),
     [filteredGodowns, pagination, statusFilter]
   );

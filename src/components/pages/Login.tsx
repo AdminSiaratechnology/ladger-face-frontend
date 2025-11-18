@@ -38,6 +38,7 @@ import { useUserManagementStore } from "../../../store/userManagementStore";
 import { useVendorStore } from "../../../store/vendorStore";
 
 export default function Login() {
+  const deviceId = navigator.userAgent;
   // const { user, login, loading } = useAuth();
   const { login, isLoading: loading, user } = useAuthStore();
   const {
@@ -120,7 +121,7 @@ export default function Login() {
       // setError('Too many failed attempts. Please try again later.');
       return;
     }
-    const success = await login({ email, password });
+    const success = await login({ email, password, deviceId });
     if (success) {
       toast.success("Login successful!");
       if (!companyLoading && companies.length === 0) {
@@ -522,7 +523,7 @@ export default function Login() {
                   </div>
                 </TabsContent>
               </Tabs>
-
+{/* 
               <div className="mt-3 md:mt-6 p-3 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg border border-slate-200">
                 <p className="text-slate-600 text-xs text-center">
                   <span className="font-semibold bg-gradient-to-r from-teal-600 to-indigo-600 bg-clip-text text-transparent">
@@ -537,7 +538,7 @@ export default function Login() {
                     password123
                   </span>
                 </p>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

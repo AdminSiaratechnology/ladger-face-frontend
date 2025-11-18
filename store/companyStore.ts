@@ -65,6 +65,7 @@ interface CompanyStore {
   companies: Company[];
   pagination: Pagination;
   loading: boolean;
+  counts: any;
   error: string | null;
   defaultSelected: string | null;
   resetCompanies: () => Promise<void>;
@@ -99,6 +100,7 @@ export const useCompanyStore = create<CompanyStore>()(
       companies: [],
       loading: true,
       error: null,
+      counts: null,
       defaultSelected: null,
       pagination: {
         total: 0,
@@ -113,6 +115,7 @@ export const useCompanyStore = create<CompanyStore>()(
           defaultSelected: null,
           loading: false,
           error: null,
+          counts: null,
           pagination: {
             total: 0,
             page: 1,
@@ -137,6 +140,7 @@ export const useCompanyStore = create<CompanyStore>()(
           set({
             companies: res.data.companies,
             pagination: res?.data?.pagination,
+            counts: res?.data?.counts,
             loading: false,
             error: null,
           });
@@ -251,6 +255,7 @@ export const useCompanyStore = create<CompanyStore>()(
           set({
             companies,
             pagination: res?.data?.pagination,
+            counts: res?.data?.counts,
             loading: false,
             error: null,
           });
@@ -278,6 +283,7 @@ export const useCompanyStore = create<CompanyStore>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         companies: state.companies,
+        counts: state.counts,
         defaultSelected: state.defaultSelected,
         pagination: state.pagination,
       }),

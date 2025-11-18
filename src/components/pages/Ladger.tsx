@@ -245,6 +245,7 @@ const LedgerRegistration: React.FC = () => {
     pagination,
     loading,
     initialLoading,
+    counts
   } = useLedgerStore();
   const { companies, defaultSelected } = useCompanyStore();
   const [selectedLedger, setSelectedLedger] = useState<any>(null);
@@ -839,15 +840,9 @@ const LedgerRegistration: React.FC = () => {
   const stats = useMemo(
     () => ({
       totalLedgers: pagination?.total || 0,
-      activeLedgers:
-        statusFilter === "active"
-          ? pagination?.total
-          : filteredLedgers.filter((c) => c.status === "active").length,
-      gstRegistered: filteredLedgers.filter((c) => c.gstNumber?.trim() !== "")
-        .length,
-      individualAccounts: filteredLedgers.filter(
-        (c) => c.ledgerType === "individual"
-      ).length,
+      activeLedgers: counts?.activeLedgers,
+      gstRegistered: counts?.gstRegistered,
+      msmeRegistered: counts?.msmeRegistered,
     }),
     [filteredLedgers, pagination, statusFilter]
   );
@@ -1177,9 +1172,9 @@ const LedgerRegistration: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm font-medium">
-                  Individual Accounts
+                  MSME Registered
                 </p>
-                <p className="text-2xl font-bold">{stats.individualAccounts}</p>
+                <p className="text-2xl font-bold">{stats.msmeRegistered}</p>
               </div>
               <Target className="w-6 h-6 text-purple-200" />
             </div>

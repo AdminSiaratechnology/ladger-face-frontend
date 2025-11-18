@@ -85,6 +85,7 @@ const StockCategoryRegistration: React.FC = () => {
     deleteStockCategory,
     stockCategories,
     pagination,
+    counts,
     loading,
     error,
     filterStockCategories,
@@ -245,18 +246,9 @@ const StockCategoryRegistration: React.FC = () => {
   const stats = useMemo(
     () => ({
       totalCategories: pagination?.total || 0,
-      primaryCategories: filteredStockCategories.filter(
-        (c) => c.parent === null
-      ).length,
-      activeCategories:
-        statusFilter === "active"
-          ? pagination?.total || 0
-          : filteredStockCategories.filter((c) => c.status === "active").length,
-      inactiveCategories:
-        statusFilter === "inactive"
-          ? pagination?.total || 0
-          : filteredStockCategories.filter((c) => c.status === "inactive")
-              .length,
+      primaryCategories: counts?.totalPrimary,
+      activeCategories: counts?.totalActive,
+      inactiveCategories: counts?.totalInactive,
     }),
     [filteredStockCategories, pagination, statusFilter]
   );

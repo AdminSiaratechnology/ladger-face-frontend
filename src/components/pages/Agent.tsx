@@ -266,6 +266,7 @@ const AgentRegistrationPage: React.FC = () => {
     agents,
     filterAgents,
     pagination,
+    counts,
     loading,
     initialLoading,
   } = useAgentStore(); // Assuming the store is implemented
@@ -924,12 +925,9 @@ const AgentRegistrationPage: React.FC = () => {
   const stats = useMemo(
     () => ({
       totalAgents: pagination?.total || 0,
-      gstRegistered:
-        filteredAgents.filter((c) => c.gstNumber?.trim() !== "").length || 0,
-      activeAgents:
-        filteredAgents.filter((c) => c.status === "active").length || 0,
-      topPerformers:
-        filteredAgents.filter((c) => c.performanceRating >= 4).length || 0,
+      gstRegistered: counts?.gstRegistered,
+      activeAgents: counts?.activeAgents,
+      msmeRegistered: counts?.msmeRegistered,
     }),
     [filteredAgents, pagination, statusFilter]
   );
@@ -1281,9 +1279,9 @@ const AgentRegistrationPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm font-medium">
-                  Top Performers
+                  MSME Registered
                 </p>
-                <p className="text-2xl font-bold">{stats.topPerformers}</p>
+                <p className="text-2xl font-bold">{stats.msmeRegistered}</p>
               </div>
               <Target className="w-6 h-6 text-purple-200" />
             </div>

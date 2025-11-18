@@ -122,7 +122,7 @@ export default function OrderManagement() {
   const selectedCustomer = customers.find((c) => c._id === selectedCustomerId);
   const itemsPerPage = 10;
   const navigate = useNavigate();
-  const { fetchOrders, orders, pagination } = useOrderStore();
+  const { fetchOrders, orders, pagination, counts } = useOrderStore();
   const [selectedItem, setSelectedItem] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -243,25 +243,25 @@ export default function OrderManagement() {
     () => [
       {
         label: "Total Orders",
-        value: orders.length,
+        value: pagination?.totalRecords,
         color: "text-blue-600",
         bgColor: "from-blue-500 to-blue-600",
       },
       {
         label: "Pending",
-        value: orders.filter((o) => o.status === "pending").length,
+        value: counts?.pending,
         color: "text-yellow-600",
         bgColor: "from-yellow-500 to-yellow-600",
       },
       {
-        label: "Shipped",
-        value: orders.filter((o) => o.status === "shipped").length,
+        label: "Completed",
+        value: counts?.completed,
         color: "text-purple-600",
         bgColor: "from-purple-500 to-purple-600",
       },
       {
-        label: "Delivered",
-        value: orders.filter((o) => o.status === "delivered").length,
+        label: "Approved",
+        value: counts?.approved,
         color: "text-green-600",
         bgColor: "from-green-500 to-green-600",
       },
@@ -606,7 +606,7 @@ export default function OrderManagement() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
-                placeholder="Search by order ID, customer name, or email..."
+                placeholder="Search by customer name"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -619,10 +619,9 @@ export default function OrderManagement() {
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="shipped">Shipped</option>
-              <option value="delivered">Delivered</option>
+              <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
+              <option value="approved">Approved</option>
             </select>
             {/* <select
               value={paymentFilter}
