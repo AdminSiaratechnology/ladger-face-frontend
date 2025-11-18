@@ -70,6 +70,7 @@ interface ProductStore {
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
+  counts: any;
   fetchProducts: (page?: number, limit?: number, companyId?:number |string ) => Promise<void>;
   addProduct: (product: FormData) => Promise<void>;
   updateProduct: (params: { id: string; product: FormData }) => Promise<void>;
@@ -99,7 +100,7 @@ export const useProductStore = create<ProductStore>()(
       loading: true,
       error: false,
       errorMessage: null,
-
+      counts: null,
       // ✅ Fetch products with pagination
       fetchProducts: async (page = 1, limit = 10, companyId) => {
         set({ loading: true, error: false });
@@ -114,6 +115,7 @@ export const useProductStore = create<ProductStore>()(
           set({
             products: result?.data?.items || [],
             pagination: result?.data?.pagination,
+            counts: result?.data?.counts,
             loading: false,
           });
         } catch (error: any) {
@@ -217,6 +219,7 @@ export const useProductStore = create<ProductStore>()(
             products: result?.data?.items || [],
             pagination: result?.data?.pagination,
             loading: false,
+            counts: result?.data?.counts
           });
 
           return result?.data?.items || [];
@@ -241,6 +244,7 @@ export const useProductStore = create<ProductStore>()(
         limit: 10,
         totalPages: 0
       },
+      counts: null,
       loading: false,
       error: false,
       errorMessage: null})
@@ -251,6 +255,7 @@ export const useProductStore = create<ProductStore>()(
       getStorage: () => localStorage,
       partialize: (state) => ({
         products: state.products,
+        counts: state.counts,
       }),
     }
   )

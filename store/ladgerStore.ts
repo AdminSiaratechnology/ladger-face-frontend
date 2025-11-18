@@ -149,6 +149,7 @@ interface LedgerStore {
   loading: boolean;
   error: boolean;
   errorMessage: string | null;
+  counts: any;
   fetchLedgers: (page?: number, limit?: number, companyId?: number | string) => Promise<void>;
   addLedger: (ledger: FormData) => Promise<void>;
   updateLedger: (params: { id: string; ledger: FormData }) => Promise<void>;
@@ -177,7 +178,7 @@ export const useLedgerStore = create<LedgerStore>()(
       loading: true,
       error: false,
       errorMessage: null,
-
+      counts: null,
       fetchLedgers: async (page = 1, limit = 10,companyId) => {
         set({ loading: true, error: false });
         try {
@@ -195,6 +196,7 @@ export const useLedgerStore = create<LedgerStore>()(
               limit: 10,
               totalPages: 0,
             },
+            counts: result?.data?.counts,
             loading: false,
           });
         } catch (error: any) {
@@ -294,6 +296,7 @@ export const useLedgerStore = create<LedgerStore>()(
               limit: 10,
               totalPages: 0,
             },
+            counts: result?.data?.counts,
             loading: false,
           });
 
@@ -318,6 +321,7 @@ export const useLedgerStore = create<LedgerStore>()(
        storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         ledgers: state.ledgers,
+        counts: state.counts,
       }),
     }
   )

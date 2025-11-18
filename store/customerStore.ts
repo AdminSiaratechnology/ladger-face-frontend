@@ -189,6 +189,7 @@ interface CustomerStore {
   pagination: Pagination;
   loading: boolean;
   error: boolean;
+  counts: any;
   errorMessage: string | null;
   companyId?: number | string;
   fetchCustomers: (
@@ -223,7 +224,7 @@ export const useCustomerStore = create<CustomerStore>()(
       loading: true,
       error: false,
       errorMessage: null,
-
+      counts: null,
       fetchCustomers: async (page = 1, limit = 10, companyId?:string|number) => {
         console.log(companyId,"dddddddddddddd")
         set({ loading: true, error: false });
@@ -242,6 +243,7 @@ export const useCustomerStore = create<CustomerStore>()(
             customers: result?.data?.customers || [],
             pagination: result?.data?.pagination,
             loading: false,
+            counts: result?.data?.counts,
           });
         } catch (error: any) {
           set({
@@ -351,6 +353,7 @@ export const useCustomerStore = create<CustomerStore>()(
             customers: result?.data?.customers || [],
             pagination: result?.data?.pagination,
             loading: false,
+            counts: result?.data?.counts,
           });
 
           return result?.data?.customers || [];
@@ -371,6 +374,7 @@ export const useCustomerStore = create<CustomerStore>()(
       getStorage: () => localStorage,
       partialize: (state) => ({
         customers: state.customers,
+        counts: state.counts,
       }),
     }
   )

@@ -1,7 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, use } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import {
@@ -23,10 +22,8 @@ import {
   Edit,
   File,
 } from "lucide-react";
-
 import { Country, State, City } from "country-state-city";
 import CustomInputBox from "../customComponents/CustomInputBox";
-
 import { useCompanyStore } from "../../../store/companyStore";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
@@ -63,8 +60,23 @@ interface Bank {
   bankName: string;
   branch: string;
 }
-
-// Company interface (updated with new fields)
+// Branding image interface
+interface BrandingImage {
+  type: string;
+  file: string;
+  fileName: string;
+  description?: string;
+}
+// Branding image form interface
+interface BrandingImageForm {
+  id: number;
+  type: "banner";
+  file?: File;
+  fileName: string;
+  previewUrl?: string;
+  description?: string;
+}
+// Company interface (updated with brandingImages)
 interface Company {
   id: number;
   _id?: string;
@@ -97,11 +109,11 @@ interface Company {
   financialDate?: string;
   createdAt: string;
   registrationDocs: RegistrationDocument[];
+  brandingImages?: BrandingImage[];
   status: "active" | "inactive";
   autoApprove: boolean;
 }
-
-// Form interface (updated with new fields)
+// Form interface (updated with brandingImages)
 interface CompanyForm {
   namePrint: string;
   nameStreet: string;
@@ -132,6 +144,7 @@ interface CompanyForm {
   bookStartingDate?: string;
   financialDate?: string;
   registrationDocs: RegistrationDocument[];
+  brandingImages: BrandingImageForm[];
   status: "active" | "inactive";
   maintainGodown?: boolean;
   maintainBatch?: boolean;
@@ -139,7 +152,6 @@ interface CompanyForm {
   negativeOrder?: boolean;
   autoApprove?: boolean;
 }
-
 // Registration document interface (unchanged)
 interface RegistrationDocument {
   id: number;
@@ -148,7 +160,6 @@ interface RegistrationDocument {
   fileName: string;
   previewUrl: string;
 }
-
 const stepIcons = {
   basic: <Building2 className="w-2 h-2 md:w-5 md:h-5" />,
   contact: <Phone className="w-2 h-2 md:w-5 md:h-5" />,
@@ -157,15 +168,13 @@ const stepIcons = {
   branding: <ImageIcon className="w-2 h-2 md:w-5 md:h-5" />,
   settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />,
 };
-
 // Compression options - adjust as needed (e.g., maxSizeMB: 0.5 for ~500KB limit)_
 const compressionOptions = {
   maxSizeMB: 1, // Max file size after compression_
   maxWidthOrHeight: 1920, // Max dimension_
   useWebWorker: true, // Use web worker for non-blocking_
-  initialQuality: 0.8, // Start with 80% quality_
+  initialQuality: 0.8, // Start with 80% quality_,
 };
-
 const CompanyPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
@@ -185,7 +194,9 @@ const CompanyPage: React.FC = () => {
   const [isNamePrintManuallyEdited, setIsNamePrintManuallyEdited] =
     useState(false);
   const [viewingImage, setViewingImage] = useState<
-    RegistrationDocument | { previewUrl: string; type: "logo" } | null
+    | RegistrationDocument
+    | { previewUrl: string; type: "logo" | "banner" }
+    | null
   >(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<
@@ -199,7 +210,6 @@ const CompanyPage: React.FC = () => {
   const limit = 10; // Fixed limit per page
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
   const {
     companies,
     pagination,
@@ -212,10 +222,11 @@ const CompanyPage: React.FC = () => {
     filterCompanies,
     defaultSelected,
     initialLoading,
+    getCompanyStates,
+    counts,
+    states,
   } = useCompanyStore();
-
   const today = new Date().toISOString().split("T")[0];
-
   const [formData, setFormData] = useState<CompanyForm>({
     namePrint: "",
     nameStreet: "",
@@ -244,6 +255,7 @@ const CompanyPage: React.FC = () => {
     bookStartingDate: today,
     financialDate: today,
     registrationDocs: [],
+    brandingImages: [],
     status: "active",
     maintainGodown: false,
     maintainBatch: false,
@@ -256,7 +268,6 @@ const CompanyPage: React.FC = () => {
   // Track if user manually changed accountHolderName
   const [isAccountHolderManuallyEdited, setIsAccountHolderManuallyEdited] =
     useState(false);
-
   // When `namePrint` changes, auto-fill bankForm.accountHolderName if user hasn't edited it
   useEffect(() => {
     if (!isAccountHolderManuallyEdited && formData.namePrint) {
@@ -266,14 +277,11 @@ const CompanyPage: React.FC = () => {
       }));
     }
   }, [formData.namePrint, isAccountHolderManuallyEdited]);
-
   const handleViewCompany = (company: any) => {
     setSelectedCompany(company);
     setIsModalOpen(true);
   };
-
   const allCountries = useMemo(() => Country.getAllCountries(), []);
-
   const availableStates = useMemo(() => {
     const selectedCountry = allCountries.find(
       (c) => c.name === formData.country
@@ -281,7 +289,6 @@ const CompanyPage: React.FC = () => {
     if (!selectedCountry) return [];
     return State.getStatesOfCountry(selectedCountry.isoCode);
   }, [formData.country, allCountries]);
-
   const availableCities = useMemo(() => {
     const selectedCountry = allCountries.find(
       (c) => c.name === formData.country
@@ -295,11 +302,9 @@ const CompanyPage: React.FC = () => {
       selectedState.isoCode
     );
   }, [formData.country, formData.state, availableStates, allCountries]);
-
   const getCurrencyForCountry = (countryName: string): string => {
     const country = allCountries.find((c) => c.name === countryName);
     if (!country) return "INR";
-
     const currencyMap: Record<string, string> = {
       IN: "INR",
       US: "USD",
@@ -311,29 +316,24 @@ const CompanyPage: React.FC = () => {
       JP: "JPY",
       CN: "CNY",
     };
-
     return currencyMap[country.isoCode] || country.currency || "USD";
   };
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ): void => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-
     setFormData((prev) => {
       const updated = {
         ...prev,
         [name]: type === "checkbox" ? checked : value,
       };
-
       if (name === "nameStreet" && !isNamePrintManuallyEdited) {
         updated.namePrint = value;
       }
       return updated;
     });
   };
-
   const handleSelectChange = (name: keyof CompanyForm, value: string): void => {
     if (name === "country") {
       setFormData((prev) => ({
@@ -362,16 +362,23 @@ const CompanyPage: React.FC = () => {
       [key]: value,
     }));
   };
-
+  useEffect(() => {
+    const fetchCompanyStates = async () => {
+      try {
+        await getCompanyStates();
+      } catch (error) {
+        console.error("Failed to fetch company states:", error);
+      }
+    };
+    fetchCompanyStates();
+  }, []);
+  console.log("Company States:", states);
   const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-
     let newValue = value;
-
     if (name === "accountNumber") {
       newValue = value.replace(/\D/g, "");
     }
-
     setBankForm((prev) => ({
       ...prev,
       [name]: newValue,
@@ -380,7 +387,6 @@ const CompanyPage: React.FC = () => {
       setIsAccountHolderManuallyEdited(true); // ✅ user edited manually
     }
   };
-
   const addOrUpdateBank = (): void => {
     if (
       !bankForm.accountHolderName ||
@@ -392,7 +398,6 @@ const CompanyPage: React.FC = () => {
       );
       return;
     }
-
     if (editingBankId !== null) {
       // Update existing bank
       setFormData((prev) => ({
@@ -410,7 +415,6 @@ const CompanyPage: React.FC = () => {
       }));
       toast.success("Bank added successfully");
     }
-
     // Reset form
     setBankForm({
       id: Date.now(),
@@ -424,12 +428,10 @@ const CompanyPage: React.FC = () => {
     });
     setEditingBankId(null);
   };
-
   const editBank = (bank: Bank): void => {
     setBankForm(bank);
     setEditingBankId(bank.id);
   };
-
   const removeBank = (id: number): void => {
     setFormData((prev) => ({
       ...prev,
@@ -450,7 +452,6 @@ const CompanyPage: React.FC = () => {
       });
     }
   };
-
   // Updated logo upload with compression (async)_
   const handleLogoUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
@@ -462,7 +463,6 @@ const CompanyPage: React.FC = () => {
         toast.error("Please select an image file for the logo.");
         return;
       }
-
       try {
         toast.info("Compressing image...");
         const compressedFile = await imageCompression(file, compressionOptions);
@@ -489,7 +489,6 @@ const CompanyPage: React.FC = () => {
       }
     }
   };
-
   const removeLogo = (): void => {
     if (
       formData.logoPreviewUrl &&
@@ -503,7 +502,6 @@ const CompanyPage: React.FC = () => {
       logoPreviewUrl: undefined,
     }));
   };
-
   // Updated document upload with compression (async)_
   const handleDocumentUpload = async (
     type: string,
@@ -514,7 +512,6 @@ const CompanyPage: React.FC = () => {
       // Compress only if it's an image; skip for PDFs_
       let processedFile = file;
       let isImage = file.type.startsWith("image/");
-
       if (isImage) {
         try {
           toast.info(`Compressing ${type} image...`);
@@ -529,9 +526,7 @@ const CompanyPage: React.FC = () => {
           toast.error(`Failed to compress ${type} image. Using original.`);
         }
       }
-
       const previewUrl = URL.createObjectURL(processedFile);
-
       const newDoc: RegistrationDocument = {
         id: Date.now(),
         type,
@@ -539,7 +534,6 @@ const CompanyPage: React.FC = () => {
         previewUrl,
         fileName: processedFile.name,
       };
-
       setFormData((prev) => ({
         ...prev,
         registrationDocs: [
@@ -548,6 +542,60 @@ const CompanyPage: React.FC = () => {
         ],
       }));
     }
+  };
+  // New banner upload handler
+  const handleBannerUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    try {
+      const newImages: BrandingImageForm[] = await Promise.all(
+        files.map(async (file) => {
+          let processedFile = file;
+          if (file.type.startsWith("image/")) {
+            toast.info("Compressing banner image...");
+            try {
+              processedFile = await imageCompression(file, compressionOptions);
+              toast.success(
+                `Banner compressed from ${Math.round(
+                  file.size / 1024
+                )}KB to ${Math.round(processedFile.size / 1024)}KB`
+              );
+            } catch (error) {
+              console.error("Compression failed:", error);
+              toast.error("Failed to compress banner. Using original file.");
+            }
+          }
+          const previewUrl = URL.createObjectURL(processedFile);
+          return {
+            id: Date.now() + Math.random(),
+            type: "banner",
+            file: processedFile,
+            fileName: processedFile.name,
+            previewUrl,
+            description: "",
+          };
+        })
+      );
+      setFormData((prev) => ({
+        ...prev,
+        brandingImages: [...prev.brandingImages, ...newImages],
+      }));
+    } catch (error) {
+      console.error("Banner upload failed:", error);
+      toast.error("Failed to upload banner images.");
+    }
+  };
+  const removeBrandingImage = (id: number): void => {
+    const imgToRemove = formData.brandingImages.find((img) => img.id === id);
+    if (imgToRemove?.previewUrl && imgToRemove.previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(imgToRemove.previewUrl);
+    }
+    setFormData((prev) => ({
+      ...prev,
+      brandingImages: prev.brandingImages.filter((img) => img.id !== id),
+    }));
   };
   const removeDocument = (id: number) => {
     const docToRemove = formData.registrationDocs.find((doc) => doc.id === id);
@@ -558,13 +606,11 @@ const CompanyPage: React.FC = () => {
     ) {
       URL.revokeObjectURL(docToRemove.previewUrl);
     }
-
     setFormData((prev) => ({
       ...prev,
       registrationDocs: prev.registrationDocs.filter((doc) => doc.id !== id),
     }));
   };
-
   const cleanupImageUrls = (): void => {
     // Clean up logo
     if (
@@ -573,15 +619,19 @@ const CompanyPage: React.FC = () => {
     ) {
       URL.revokeObjectURL(formData.logoPreviewUrl);
     }
-
     // Clean up documents
     formData.registrationDocs.forEach((doc) => {
       if (doc.previewUrl && doc.previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(doc.previewUrl);
       }
     });
+    // Clean up branding images
+    formData.brandingImages.forEach((img) => {
+      if (img.previewUrl && img.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(img.previewUrl);
+      }
+    });
   };
-
   const resetForm = () => {
     cleanupImageUrls();
     const today = new Date().toISOString().split("T")[0];
@@ -613,6 +663,7 @@ const CompanyPage: React.FC = () => {
       bookStartingDate: today,
       financialDate: today,
       registrationDocs: [],
+      brandingImages: [],
       status: "active",
       maintainGodown: false,
       maintainBatch: false,
@@ -634,10 +685,8 @@ const CompanyPage: React.FC = () => {
       branch: "",
     });
   };
-
   const handleEditCompany = (company: Company): void => {
     const today = new Date().toISOString().split("T")[0];
-
     setEditingCompany(company);
     setFormData({
       ...company,
@@ -649,6 +698,15 @@ const CompanyPage: React.FC = () => {
         fileName: doc.fileName,
         previewUrl: doc.file, // Use URL as preview for existing images
       })),
+      brandingImages:
+        company.brandingImages?.map((img: BrandingImage, index: number) => ({
+          id: Date.now() + index * 1000,
+          type: "banner",
+          file: undefined,
+          fileName: img.fileName,
+          previewUrl: img.file,
+          description: img.description || "",
+        })) || [],
       bookStartingDate: company.bookStartingDate
         ? new Date(company.bookStartingDate).toISOString().split("T")[0]
         : today,
@@ -658,7 +716,6 @@ const CompanyPage: React.FC = () => {
     });
     setOpen(true);
   };
-
   const handleDeleteCompany = async (id: string): void => {
     try {
       await deleteCompany(id);
@@ -667,7 +724,6 @@ const CompanyPage: React.FC = () => {
       toast.error(error?.response?.data?.error || "Failed to perform action");
     }
   };
-
   const handleSubmit = async (): Promise<void> => {
     if (!formData.namePrint.trim()) {
       toast.error("Please enter Company Name (Print)");
@@ -682,46 +738,55 @@ const CompanyPage: React.FC = () => {
       toast.error("Please enter a valid email address");
       return;
     }
-
     const companyFormData = new FormData();
-
     Object.keys(formData).forEach((key) => {
       const value = formData[key as keyof CompanyForm];
       if (
         key === "registrationDocs" ||
         key === "banks" ||
+        key === "brandingImages" ||
         key === "logoFile" ||
         key === "logoPreviewUrl"
       ) {
         return;
       }
-
       if (value !== null && value !== undefined && value !== "") {
         companyFormData.append(key, String(value));
       }
     });
-
     companyFormData.append("banks", JSON.stringify(formData.banks));
-
     if (formData.logoFile) {
       companyFormData.append("logo", formData.logoFile);
     }
-
     const newRegistrationDocs = formData.registrationDocs.filter(
       (doc) => doc.file && doc.file instanceof Blob
     );
-
     newRegistrationDocs.forEach((doc) => {
       companyFormData.append("registrationDocs", doc.file!);
     });
-
     if (newRegistrationDocs.length > 0) {
       companyFormData.append(
         "registrationDocTypes",
         JSON.stringify(newRegistrationDocs.map((doc) => doc.type))
       );
     }
-
+    // Handle branding images
+    const newBrandingImages = formData.brandingImages.filter(
+      (img) => img.file && img.file instanceof Blob
+    );
+    newBrandingImages.forEach((img) => {
+      companyFormData.append("brandingImages", img.file!);
+    });
+    // If editing, send kept branding URLs for removal handling
+    if (editingCompany) {
+      const keptBrandingUrls = formData.brandingImages
+        .filter((img) => !img.file && img.previewUrl)
+        .map((img) => img.previewUrl!);
+      companyFormData.append(
+        "keptBrandingUrls",
+        JSON.stringify(keptBrandingUrls)
+      );
+    }
     // ✅ Submit logic
     try {
       let createdCompany;
@@ -736,13 +801,11 @@ const CompanyPage: React.FC = () => {
         await fetchCompanies("68c1503077fd742fa21575df");
         toast.success("Company created successfully!");
       }
-
       // ✅ If this is the first company created, auto-select it
       if (!editingCompany && companies.length === 0 && createdCompany) {
         setDefaultCompany(createdCompany);
         toast.info(`${createdCompany.namePrint} set as default company`);
       }
-
       setOpen(false);
       resetForm();
     } catch (error) {
@@ -750,7 +813,8 @@ const CompanyPage: React.FC = () => {
       console.error(error);
     }
   };
-
+  const deviceId = navigator.userAgent;
+  console.log("Device ID:", deviceId);
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchTerm.length >= 3 || searchTerm.length === 0) {
@@ -764,25 +828,17 @@ const CompanyPage: React.FC = () => {
         ).catch((err) => console.error("Error filtering companies:", err));
       }
     }, 500);
-
     return () => clearTimeout(handler);
   }, [searchTerm, statusFilter, sortBy, currentPage, limit]); // ✅ Watch currentPage, not pagination.page
-
   const stats = useMemo(
     () => ({
       totalCompanies: pagination?.total,
-      gstRegistered: companies?.filter((c) => c.gstNumber?.trim() !== "")
-        .length,
-      msmeRegistered: companies?.filter((c) => c.msmeNumber?.trim() !== "")
-        .length,
-      activeCompanies:
-        statusFilter === "active"
-          ? pagination?.total
-          : companies?.filter((c) => c.status === "active").length,
+      gstRegistered: counts?.gstRegistered,
+      msmeRegistered: counts?.msmeRegistered,
+      activeCompanies: counts?.activeCompanies,
     }),
     [companies, pagination, statusFilter, companies]
   );
-
   const tabs = [
     { id: "basic", label: "Basic Info" },
     { id: "contact", label: "Contact Details" },
@@ -791,28 +847,23 @@ const CompanyPage: React.FC = () => {
     { id: "branding", label: "Branding" },
     { id: "settings", label: "Settings" },
   ];
-
   // Initial fetch
-
   // Reset page to 1 when filters change
   // useEffect(() => {
-  //   setCurrentPage(1);
+  // setCurrentPage(1);
   // }, [searchTerm, statusFilter, sortBy]);
-
   const headers = ["Company", "Contact", "Registration", "Status", "Actions"];
   const setDefaultCompany = useCompanyStore((state) => state.setDefaultCompany);
   const handleSelect = (company) => {
     setDefaultCompany(company._id);
     setShowCompanyPopup(false);
   };
-
   // Table View Component
   const TableView = () => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <TableHeader headers={headers} />
-
           <tbody className="bg-white divide-y divide-gray-200">
             {companies.map((company) => (
               <tr
@@ -910,7 +961,6 @@ const CompanyPage: React.FC = () => {
       </div>
     </div>
   );
-
   // Card View Component
   const CardView = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
@@ -940,7 +990,6 @@ const CompanyPage: React.FC = () => {
                     <Building2 className="w-4 h-4 text-white" />
                   )}
                 </div>
-
                 <div className="min-w-0 flex-1">
                   <CardTitle className="text-sm font-semibold text-gray-900 truncate">
                     {company.namePrint}
@@ -952,7 +1001,6 @@ const CompanyPage: React.FC = () => {
                   )}
                 </div>
               </div>
-
               {/* Status and actions - ensured to always be visible */}
               <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                 <Badge
@@ -974,7 +1022,6 @@ const CompanyPage: React.FC = () => {
               </div>
             </div>
           </CardHeader>
-
           <CardContent className="px-3 flex-1 flex flex-col gap-2">
             <div className="space-y-1">
               {(company.city || company.state || company.pincode) && (
@@ -987,7 +1034,6 @@ const CompanyPage: React.FC = () => {
                   </span>
                 </div>
               )}
-
               <div className="flex items-start text-sm">
                 <Mail className="w-4 h-4 text-gray-800 mr-2 mt-0.5 flex-shrink-0" />
                 <span className="text-gray-700 break-words leading-relaxed text-xs">
@@ -1003,7 +1049,6 @@ const CompanyPage: React.FC = () => {
                 </div>
               )}
             </div>
-
             {(company.gstNumber || company.vatNumber || company.tanNumber) && (
               <div className="pt-2 border-t border-gray-100">
                 <div className="space-y-1.5">
@@ -1047,7 +1092,6 @@ const CompanyPage: React.FC = () => {
                 </div>
               </div>
             )}
-
             <div className="pt-2 border-t border-gray-100 mt-auto">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center">
@@ -1071,7 +1115,6 @@ const CompanyPage: React.FC = () => {
       ))}
     </div>
   );
-
   const downloadPDF = async () => {
     const res = await api.downloadCompanyPDF();
   };
@@ -1114,7 +1157,6 @@ const CompanyPage: React.FC = () => {
             </Button>
           </div>
         </div>
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-2">
           <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
@@ -1124,13 +1166,12 @@ const CompanyPage: React.FC = () => {
                   <p className="text-teal-100 text-sm font-medium">
                     Total Companies
                   </p>
-                  <p className="text-3xl font-bold">{stats.totalCompanies}</p>
+                  <p className="text-3xl font-bold">{stats?.totalCompanies}</p>
                 </div>
                 <Building2 className="w-8 h-8 text-teal-200" />
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -1138,13 +1179,12 @@ const CompanyPage: React.FC = () => {
                   <p className="text-blue-100 text-sm font-medium">
                     GST Registered
                   </p>
-                  <p className="text-3xl font-bold">{stats.gstRegistered}</p>
+                  <p className="text-3xl font-bold">{stats?.gstRegistered}</p>
                 </div>
                 <FileText className="w-8 h-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -1152,26 +1192,24 @@ const CompanyPage: React.FC = () => {
                   <p className="text-green-100 text-sm font-medium">
                     MSME Registered
                   </p>
-                  <p className="text-3xl font-bold">{stats.msmeRegistered}</p>
+                  <p className="text-3xl font-bold">{stats?.msmeRegistered}</p>
                 </div>
                 <Star className="w-8 h-8 text-green-200" />
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm font-medium">Active</p>
-                  <p className="text-3xl font-bold">{stats.activeCompanies}</p>
+                  <p className="text-3xl font-bold">{stats?.activeCompanies}</p>
                 </div>
                 <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
               </div>
             </CardContent>
           </Card>
         </div>
-
         <FilterBar
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
@@ -1187,13 +1225,11 @@ const CompanyPage: React.FC = () => {
           }}
         />
         {loading && <TableViewSkeleton />}
-
         <ViewModeToggle
           viewMode={viewMode}
           setViewMode={setViewMode}
           totalItems={pagination?.total}
         />
-
         {pagination?.total === 0 ? (
           <EmptyStateCard
             icon={Building2}
@@ -1217,7 +1253,6 @@ const CompanyPage: React.FC = () => {
             />
           </>
         )}
-
         {/* Modal Form */}
         <Dialog
           open={open}
@@ -1238,7 +1273,6 @@ const CompanyPage: React.FC = () => {
               }
               showCompany={false}
             />
-
             <MultiStepNav
               steps={tabs}
               currentStep={activeTab}
@@ -1293,7 +1327,6 @@ const CompanyPage: React.FC = () => {
               stepIcons={stepIcons}
               scrollContainerRef={containerRef}
             />
-
             <div className="flex-1 overflow-y-scroll " ref={containerRef}>
               {activeTab === "basic" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
@@ -1348,7 +1381,6 @@ const CompanyPage: React.FC = () => {
                       onChange={handleChange}
                     />
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-semibold text-gray-700">
@@ -1368,7 +1400,6 @@ const CompanyPage: React.FC = () => {
                         ))}
                       </select>
                     </div>
-
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-semibold text-gray-700">
                         State
@@ -1389,7 +1420,6 @@ const CompanyPage: React.FC = () => {
                         ))}
                       </select>
                     </div>
-
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-semibold text-gray-700">
                         City
@@ -1411,7 +1441,6 @@ const CompanyPage: React.FC = () => {
                       </select>
                     </div>
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                     <CustomInputBox
                       label="Zip/Pincode"
@@ -1442,7 +1471,6 @@ const CompanyPage: React.FC = () => {
                       </select>
                     </div>
                   </div>
-
                   <CustomStepNavigation
                     currentStep={1}
                     totalSteps={6}
@@ -1458,7 +1486,6 @@ const CompanyPage: React.FC = () => {
                   />
                 </div>
               )}
-
               {activeTab === "contact" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                   <div className="grid grid-cols-1 gap-6">
@@ -1500,7 +1527,6 @@ const CompanyPage: React.FC = () => {
                       onChange={handleChange}
                     />
                   </div>
-
                   <CustomStepNavigation
                     currentStep={2}
                     totalSteps={6}
@@ -1521,7 +1547,6 @@ const CompanyPage: React.FC = () => {
                   />
                 </div>
               )}
-
               {activeTab === "registration" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1581,7 +1606,6 @@ const CompanyPage: React.FC = () => {
                       </>
                     )}
                   </div>
-
                   <CustomStepNavigation
                     currentStep={3}
                     totalSteps={6}
@@ -1591,7 +1615,6 @@ const CompanyPage: React.FC = () => {
                   />
                 </div>
               )}
-
               {activeTab === "bank" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
@@ -1656,7 +1679,6 @@ const CompanyPage: React.FC = () => {
                       {editingBankId !== null ? "Update Bank" : "Add Bank"}
                     </Button>
                   </div>
-
                   {/* Bank List */}
                   {formData.banks.length > 0 && (
                     <div className="space-y-3">
@@ -1696,7 +1718,6 @@ const CompanyPage: React.FC = () => {
                       ))}
                     </div>
                   )}
-
                   <CustomStepNavigation
                     currentStep={4}
                     totalSteps={6}
@@ -1706,7 +1727,6 @@ const CompanyPage: React.FC = () => {
                   />
                 </div>
               )}
-
               {activeTab === "branding" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                   <div className="mb-8">
@@ -1740,7 +1760,7 @@ const CompanyPage: React.FC = () => {
                             className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 shadow-md cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() =>
                               setViewingImage({
-                                previewUrl: formData.logoPreviewUrl,
+                                previewUrl: formData.logoPreviewUrl!,
                                 type: "logo",
                               })
                             }
@@ -1757,7 +1777,6 @@ const CompanyPage: React.FC = () => {
                       )}
                     </div>
                   </div>
-
                   <div className="mb-8">
                     <h4 className="font-semibold text-gray-800 mb-4 text-lg">
                       Registration Documents
@@ -1768,7 +1787,6 @@ const CompanyPage: React.FC = () => {
                           const existingDoc = formData.registrationDocs.find(
                             (doc) => doc.type === docType
                           );
-
                           return (
                             <div
                               key={docType}
@@ -1786,7 +1804,6 @@ const CompanyPage: React.FC = () => {
                                 }
                                 accept="image/*,.pdf"
                               />
-
                               {/* Show upload button only if no document exists */}
                               {!existingDoc && (
                                 <label
@@ -1799,14 +1816,12 @@ const CompanyPage: React.FC = () => {
                                   </p>
                                 </label>
                               )}
-
                               {/* Show document preview if document exists */}
                               {existingDoc && (
                                 <div className="mt-4 w-full">
                                   <p className="text-xs text-gray-500 truncate mb-2 text-center">
                                     {existingDoc.fileName}
                                   </p>
-
                                   {/* Show image preview for image files */}
                                   {existingDoc.previewUrl &&
                                     !existingDoc.fileName
@@ -1821,7 +1836,6 @@ const CompanyPage: React.FC = () => {
                                         }
                                       />
                                     )}
-
                                   {/* Show PDF preview for PDF files */}
                                   {existingDoc.previewUrl &&
                                     existingDoc.fileName
@@ -1842,7 +1856,6 @@ const CompanyPage: React.FC = () => {
                                         </p>
                                       </div>
                                     )}
-
                                   {/* Show file icon for other file types */}
                                   {!existingDoc.previewUrl && (
                                     <div className="w-full h-32 bg-gray-100 rounded border flex flex-col items-center justify-center">
@@ -1852,7 +1865,6 @@ const CompanyPage: React.FC = () => {
                                       </p>
                                     </div>
                                   )}
-
                                   {/* Action buttons */}
                                   <div className="flex gap-2 mt-3 justify-center">
                                     <Button
@@ -1888,7 +1900,68 @@ const CompanyPage: React.FC = () => {
                       )}
                     </div>
                   </div>
-
+                  {/* New Banner Images Section */}
+                  <div className="mb-8">
+                    <h4 className="font-semibold text-gray-800 mb-4 text-lg">
+                      Banner Images
+                    </h4>
+                    <div className="p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shadow-inner">
+                      <input
+                        type="file"
+                        id="banners"
+                        className="hidden"
+                        multiple
+                        onChange={handleBannerUpload}
+                        accept="image/*"
+                      />
+                      <label
+                        htmlFor="banners"
+                        className="cursor-pointer flex flex-col items-center gap-3 hover:bg-gray-50 p-4 rounded-lg transition-colors"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 hover:bg-blue-200 transition-colors">
+                          <Upload className="w-8 h-8" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-600">
+                          Upload Banner Images (Multiple)
+                        </p>
+                      </label>
+                      {formData.brandingImages.length > 0 && (
+                        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                          {formData.brandingImages.map((img) => (
+                            <div key={img.id} className="relative">
+                              <img
+                                src={img.previewUrl!}
+                                alt="Banner"
+                                className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={() =>
+                                  setViewingImage({
+                                    previewUrl: img.previewUrl!,
+                                    type: "banner",
+                                  })
+                                }
+                              />
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeBrandingImage(img.id);
+                                }}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                              {img.description && (
+                                <p className="text-xs text-gray-500 mt-1 truncate">
+                                  {img.description}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <CustomStepNavigation
                     currentStep={5}
                     totalSteps={6}
@@ -1898,7 +1971,6 @@ const CompanyPage: React.FC = () => {
                   />
                 </div>
               )}
-
               {activeTab === "settings" && (
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -1923,7 +1995,6 @@ const CompanyPage: React.FC = () => {
                       value={formData.bookStartingDate}
                       onChange={handleChange}
                     />
-
                     <DatePickerField
                       label="Financial Date"
                       name="financialDate"
@@ -1952,7 +2023,6 @@ const CompanyPage: React.FC = () => {
                         handleCheckSelectChange("maintainGodown", value)
                       }
                     />
-
                     <ToggleSwitch
                       title="Maintain Batch"
                       checked={formData.maintainBatch}
@@ -1960,7 +2030,6 @@ const CompanyPage: React.FC = () => {
                         handleCheckSelectChange("maintainBatch", value)
                       }
                     />
-
                     <ToggleSwitch
                       title="Closing Quantity Order"
                       checked={formData.closingQuantityOrder}
@@ -1968,7 +2037,6 @@ const CompanyPage: React.FC = () => {
                         handleCheckSelectChange("closingQuantityOrder", value)
                       }
                     />
-
                     <ToggleSwitch
                       title="Negative Order"
                       checked={formData.negativeOrder}
@@ -1976,7 +2044,6 @@ const CompanyPage: React.FC = () => {
                         handleCheckSelectChange("negativeOrder", value)
                       }
                     />
-
                     <ToggleSwitch
                       title="Auto Approve"
                       checked={formData.autoApprove}
@@ -1985,7 +2052,6 @@ const CompanyPage: React.FC = () => {
                       }
                     />
                   </div>
-
                   <CustomStepNavigation
                     currentStep={6}
                     totalSteps={6}
@@ -2001,7 +2067,6 @@ const CompanyPage: React.FC = () => {
             </div>
           </DialogContent>
         </Dialog>
-
         {/* Image viewing modal */}
         <ImagePreviewDialog
           viewingImage={viewingImage}
@@ -2028,5 +2093,4 @@ const CompanyPage: React.FC = () => {
     </>
   );
 };
-
 export default CompanyPage;

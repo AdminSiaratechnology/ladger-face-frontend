@@ -217,6 +217,7 @@ export const UserManagement: React.FC = () => {
     filterUsers,
     pagination,
     initialLoading,
+    counts
   } = useUserManagementStore();
 
   useEffect(() => {
@@ -793,21 +794,10 @@ export const UserManagement: React.FC = () => {
     () => ({
       totalUsers: pagination.total,
       activeUsers:
-        statusFilter === "active"
-          ? pagination.total
-          : filteredUsers.filter((u) => u.status === "active").length,
-      adminUsers:
-        roleFilter === "Admin"
-          ? pagination.total
-          : filteredUsers.filter((u) => u.role === "Admin").length,
-      salesUsers:
-        roleFilter === "Salesman"
-          ? pagination.total
-          : filteredUsers.filter((u) => u.role === "Salesman").length,
-      agentUsers:
-        roleFilter === "Customer"
-          ? pagination.total
-          : filteredUsers.filter((u) => u.role === "Customer").length,
+        counts?.activeUsers,
+      adminUsers: counts?.adminCount,
+      salesUsers: counts?.salesmanCount,
+      customerUsers: counts?.customerCount,
     }),
     [filteredUsers, pagination, statusFilter, roleFilter]
   );
@@ -1040,8 +1030,8 @@ export const UserManagement: React.FC = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Agents</p>
-                <p className="text-2xl font-bold">{stats.agentUsers}</p>
+                <p className="text-purple-100 text-sm font-medium">Customers</p>
+                <p className="text-2xl font-bold">{stats.customerUsers}</p>
               </div>
               <Key className="w-6 h-6 text-purple-200" />
             </div>

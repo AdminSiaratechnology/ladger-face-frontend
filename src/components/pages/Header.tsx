@@ -36,7 +36,7 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useVendorStore } from "../../../store/vendorStore";
 import { useAgentStore } from "../../../store/agentStore";
-
+import DeviceLogoutModal from "../DeviceLogoutModal";
 interface HeaderProps {
   onMenuClick: () => void;
 }
@@ -150,17 +150,25 @@ export default function Header({ onMenuClick }: HeaderProps) {
   useEffect(() => {
     fetchOtherAsync();
   }, [defaultSelected]);
-  const handleLogout = () => {
-    setShowLogout(false);
-    logout();
-    resetCompanies();
-    resetUnits();
-    resetStockGroup();
-    resetSrockCategories(), resetGodown();
-    resetStore();
-    resetUserManagement();
-    localStorage.clear();
-  };
+  // const handleLogout = () => {
+  //   setShowLogout(false);
+  //   logout();
+  //   resetCompanies();
+  //   resetUnits();
+  //   resetStockGroup();
+  //   resetSrockCategories(), resetGodown();
+  //   resetStore();
+  //   resetUserManagement();
+  //   localStorage.clear();
+  // };
+
+  const handleLogout = async() => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  }
   return (
     <>
       <header className="bg-white shadow-sm border-b border-gray-200 px-3 sm:px-4 py-1">
@@ -378,6 +386,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </div>
         )}
       </header>
+      <DeviceLogoutModal/>
       {companies && (
         <CompanySelectorModal
           open={showCompanyPopup}

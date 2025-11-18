@@ -104,6 +104,7 @@ const UnitManagement: React.FC = () => {
     pagination,
     loading,
     error,
+    counts,
     initialLoading,
   } = useUOMStore();
   const { companies, defaultSelected } = useCompanyStore();
@@ -316,12 +317,9 @@ const UnitManagement: React.FC = () => {
   const stats = useMemo(
     () => ({
       totalUnits: pagination?.total || 0,
-      simpleUnits: filteredUnits.filter((u) => u.type === "simple").length,
-      compoundUnits: filteredUnits.filter((u) => u.type === "compound").length,
-      activeUnits:
-        statusFilter === "active"
-          ? pagination?.total || 0
-          : filteredUnits.filter((u) => u.status === "active").length,
+      simpleUnits: counts?.simpleUnits,
+      compoundUnits: counts?.compoundUnits,
+      activeUnits: counts?.activeUnits,
     }),
     [filteredUnits, pagination, statusFilter]
   );

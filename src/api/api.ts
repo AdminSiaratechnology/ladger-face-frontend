@@ -61,7 +61,7 @@ const getCompanies = async ({
   queryParams: string;
 }) => {
   try {
-    const res = await apiClient.get(`/company/agent/companies?${queryParams}`);
+    const res = await apiClient.get(`/company/companies?${queryParams}`);
     return res.data;
   } catch (err: any) {
     console.error(
@@ -97,7 +97,7 @@ const deleteCompany = async (companyId: string) => {
 const downloadCompanyPDF = async () => {
   const token = localStorage.getItem("token");
   try {
-    const res = await axios.get(`${baseUrl}company/agent/companies/doc/pdf`, {
+    const res = await axios.get(`${baseUrl}company/companies/doc/pdf`, {
       responseType: "blob",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -258,9 +258,7 @@ const fetchCustomers = async (
   { companyId }: { companyId: string },
   { queryParams }: { queryParams: string }
 ) => {
-  const res = await apiClient.get(
-    `/customers/${companyId}?${queryParams}}`
-  );
+  const res = await apiClient.get(`/customers/${companyId}?${queryParams}}`);
   // console.log(res, "fetchCustomers response");
   return res.data;
 };
@@ -292,21 +290,21 @@ const fetchVendors = async (
   { companyId }: { companyId: string },
   { queryParams }: { queryParams: string }
 ) => {
-  const res = await apiClient.get(`/agent/vendors/${companyId}?${queryParams}`);
+  const res = await apiClient.get(`/vendors/${companyId}?${queryParams}`);
   // console.log(res, "fetchVendors response");
   return res.data;
 };
 
 //Create a new vendor
 const createVendor = async (vendor: any) => {
-  const res = await apiClient.post("/agent/vendors", vendor);
+  const res = await apiClient.post("/vendors", vendor);
   return res.data;
 };
 
 // Update vendor by ID
 const updateVendor = async (id: number | string, vendor: any) => {
   try {
-    const res = await apiClient.put(`/agent/vendors/${id}`, vendor);
+    const res = await apiClient.put(`/vendors/${id}`, vendor);
     return res.data;
   } catch (err: any) {
     console.error(
@@ -319,7 +317,7 @@ const updateVendor = async (id: number | string, vendor: any) => {
 
 // Delete vendor by ID
 const deleteVendor = async (id: number | string) => {
-  const res = await apiClient.delete(`/agent/vendors/${id}`);
+  const res = await apiClient.delete(`/vendors/${id}`);
   return res.data;
 };
 
@@ -328,21 +326,21 @@ const fetchAgents = async (
   { companyId }: { companyId: string },
   { queryParams }: { queryParams: string }
 ) => {
-  const res = await apiClient.get(`/agent/agents/${companyId}?${queryParams}`);
+  const res = await apiClient.get(`/agents/${companyId}?${queryParams}`);
   // console.log(res, "fetchAgents response");
   return res.data;
 };
 
 //Create a new agent
 const createAgent = async (agent: any) => {
-  const res = await apiClient.post("/agent/agents", agent);
+  const res = await apiClient.post("/agents", agent);
   return res.data;
 };
 
 // Update agent by ID
 const updateAgent = async (id: number | string, agent: any) => {
   try {
-    const res = await apiClient.put(`/agent/agents/${id}`, agent);
+    const res = await apiClient.put(`/agents/${id}`, agent);
     return res.data;
   } catch (err: any) {
     throw err;
@@ -351,7 +349,7 @@ const updateAgent = async (id: number | string, agent: any) => {
 
 // Delete agent by ID
 const deleteAgent = async (id: number | string) => {
-  const res = await apiClient.delete(`/agent/agents/${id}`);
+  const res = await apiClient.delete(`/agents/${id}`);
   return res.data;
 };
 
@@ -360,20 +358,20 @@ const fetchLedgers = async (
   { companyId }: { companyId: string },
   { queryParams }: { queryParams: string }
 ) => {
-  const res = await apiClient.get(`/agent/ledgers/${companyId}?${queryParams}`);
+  const res = await apiClient.get(`/ledgers/${companyId}?${queryParams}`);
   return res.data;
 };
 
 // Create a new ledger
 const createLedger = async (ledger: any) => {
-  const res = await apiClient.post("/agent/ledgers", ledger);
+  const res = await apiClient.post("/ledgers", ledger);
   return res.data;
 };
 
 // Update ledger by ID
 const updateLedger = async (id: number | string, ledger: any) => {
   try {
-    const res = await apiClient.put(`/agent/ledgers/${id}`, ledger);
+    const res = await apiClient.put(`/ledgers/${id}`, ledger);
     return res.data;
   } catch (err: any) {
     throw err;
@@ -382,7 +380,7 @@ const updateLedger = async (id: number | string, ledger: any) => {
 
 // Delete ledger by ID
 const deleteLedger = async (id: number | string) => {
-  const res = await apiClient.delete(`/agent/ledgers/${id}`);
+  const res = await apiClient.delete(`/ledgers/${id}`);
   return res.data;
 };
 
@@ -625,8 +623,16 @@ const getPartyWiseSales = async (companyId: string) => {
   return res.data;
 };
 
-const getSalesmanWiseSales=async ({companyId, period = 'month'}:{companyId: string, period?: string}) => {
-  const res=await apiClient.get(`/order/salesman-wise-sales/${companyId}?period=${period}`);
+const getSalesmanWiseSales = async ({
+  companyId,
+  period = "month",
+}: {
+  companyId: string;
+  period?: string;
+}) => {
+  const res = await apiClient.get(
+    `/order/salesman-wise-sales/${companyId}?period=${period}`
+  );
   return res.data;
 };
 
@@ -645,14 +651,23 @@ const getTopCustomers = async (companyId: string) => {
   return res.data;
 };
 
-const getTopProducts = async (companyId: string, period: TimePeriod = 'month') => {
+const getTopProducts = async (
+  companyId: string,
+  period: TimePeriod = "month"
+) => {
   const params = `?period=${period}`;
   const res = await apiClient.get(`/order/top-products/${companyId}${params}`);
   return res.data;
 };
 
-const getDateRangeSales = async (companyId: string, fromDate: string, toDate: string) => {
-  const res = await apiClient.get(`/order/date-range/${companyId}?fromDate=${fromDate}&toDate=${toDate}`);
+const getDateRangeSales = async (
+  companyId: string,
+  fromDate: string,
+  toDate: string
+) => {
+  const res = await apiClient.get(
+    `/order/date-range/${companyId}?fromDate=${fromDate}&toDate=${toDate}`
+  );
   return res.data;
 };
 
@@ -667,9 +682,9 @@ const getMyOrders = async (companyId: string) => {
     );
     throw error;
   }
-}
+};
 
-const getOrdersByUser = async (companyId: string ) => {
+const getOrdersByUser = async (companyId: string) => {
   try {
     const res = await apiClient.get(`/order/orders-by-user/${companyId}`);
     return res.data;
@@ -680,12 +695,19 @@ const getOrdersByUser = async (companyId: string ) => {
     );
     throw error;
   }
-}
+};
 
-
-const getSalesmanPersonalStats=async ({companyId, period = 'month'}:{companyId: string, period?: string}) => {
+const getSalesmanPersonalStats = async ({
+  companyId,
+  period = "month",
+}: {
+  companyId: string;
+  period?: string;
+}) => {
   try {
-    const res=await apiClient.get(`/order/salesman-personal-stats/${companyId}?period=${period}`);
+    const res = await apiClient.get(
+      `/order/salesman-personal-stats/${companyId}?period=${period}`
+    );
     return res.data;
   } catch (error) {
     console.error(
@@ -695,9 +717,17 @@ const getSalesmanPersonalStats=async ({companyId, period = 'month'}:{companyId: 
     throw error;
   }
 };
-const getCustomerSalesStats=async ({companyId, period = 'month'}:{companyId: string, period?: string}) => {
+const getCustomerSalesStats = async ({
+  companyId,
+  period = "month",
+}: {
+  companyId: string;
+  period?: string;
+}) => {
   try {
-    const res=await apiClient.get(`/order/salesman-personal-stats/${companyId}?period=${period}`);
+    const res = await apiClient.get(
+      `/order/salesman-personal-stats/${companyId}?period=${period}`
+    );
     return res.data;
   } catch (error) {
     console.error(
@@ -707,9 +737,9 @@ const getCustomerSalesStats=async ({companyId, period = 'month'}:{companyId: str
     throw error;
   }
 };
-const getSalesTrend=async (companyId: string) => {
+const getSalesTrend = async (companyId: string) => {
   try {
-    const res=await apiClient.get(`/order/sales-trend/${companyId}`);
+    const res = await apiClient.get(`/order/sales-trend/${companyId}`);
     return res.data;
   } catch (error) {
     console.error(
@@ -719,7 +749,20 @@ const getSalesTrend=async (companyId: string) => {
     throw error;
   }
 };
-
+const handleLogout = async (id) => {
+  try {
+    const res = await apiClient.put(`/auth/logout/${id}`);
+    if (res.status === 200) {
+      console.log("User logged out successfully");
+    }
+  } catch (error) {
+    console.error(
+      "❌ Failed to logout:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
 // Export API
 const api = {
   createCompany,
@@ -782,18 +825,19 @@ const api = {
   updateOrder,
   clearCart,
   getStateWiseSales,
- getPartyWiseSales,
- getSalesmanWiseSales,
- getTodaySales,
- getMonthlyComparison,
- getTopCustomers,
- getTopProducts,
- getDateRangeSales,
- getMyOrders,
- getOrdersByUser,
- getSalesmanPersonalStats,
- getCustomerSalesStats,
- getSalesTrend
+  getPartyWiseSales,
+  getSalesmanWiseSales,
+  getTodaySales,
+  getMonthlyComparison,
+  getTopCustomers,
+  getTopProducts,
+  getDateRangeSales,
+  getMyOrders,
+  getOrdersByUser,
+  getSalesmanPersonalStats,
+  getCustomerSalesStats,
+  getSalesTrend,
+  handleLogout,
 };
 
 export default api;

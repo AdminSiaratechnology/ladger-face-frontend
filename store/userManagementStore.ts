@@ -17,6 +17,7 @@ interface useUserManagementStore {
   pagination: Pagination;
   loading: boolean;
   error: string | null | boolean;
+  counts: any;
   fetchUsers: (
     page?: number,
     limit?: number,
@@ -51,6 +52,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
       },
       loading: true,
       error: null,
+      counts: null,
 
       fetchUsers: async (page = 1, limit = 10) => {
         set({ loading: true });
@@ -66,6 +68,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             users: response.data?.users || [],
             pagination: response.data?.pagination,
             loading: false,
+            counts: response.data?.counts,
           });
         } catch (error: any) {
           set({ error: error.message, loading: false });
@@ -152,6 +155,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
           set({
             users: response.data?.users || [],
             pagination: response.data?.pagination,
+            counts: response.data?.counts,
             loading: false,
           });
 
@@ -172,6 +176,7 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             limit: 10,
             totalPages: 0,
           },
+          counts: null,
           loading: false,
           error: null,
         });

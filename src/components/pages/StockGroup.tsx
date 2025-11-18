@@ -95,6 +95,7 @@ const StockGroupRegistration: React.FC = () => {
     deleteStockGroup,
     stockGroups,
     pagination,
+    counts,
     loading,
     error,
     filterStockGroups,
@@ -254,15 +255,9 @@ const handleSelectChange = (
   const stats = useMemo(
     () => ({
       totalGroups: pagination?.total,
-      primaryGroups: filteredStockGroups?.filter((g) => !g.stockGroupId).length,
-      activeGroups:
-        statusFilter === "active"
-          ? pagination.total
-          : filteredStockGroups?.filter((g) => g.status === "active").length,
-      inactiveGroups:
-        statusFilter === "inactive"
-          ? pagination.total
-          : filteredStockGroups?.filter((g) => g.status === "inactive").length,
+      primaryGroups: counts?.totalPrimary,
+      activeGroups: counts?.totalActive,
+      inactiveGroups: counts?.totalInactive,
     }),
     [filteredStockGroups, pagination, statusFilter]
   );
