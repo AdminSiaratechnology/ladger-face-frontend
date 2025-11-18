@@ -1,6 +1,6 @@
 import axios from "axios";
 import baseUrl from "../lib/constant";
-
+import { useAuthStore } from "../../store/authStore";
 // Create axios instance
 const apiClient = axios.create({
   baseURL: baseUrl,
@@ -23,6 +23,19 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const msg = error?.response?.data?.message;
+
+    if (error.response?.status === 401 && msg?.includes("another device")) {
+      const authStore = useAuthStore.getState();
+
+      authStore.setNewDeviceLogin(true);
+    }
+    return Promise.reject(error);
+  }
+);
 //Create user Api
 
 const createUser = async (userData: any) => {
