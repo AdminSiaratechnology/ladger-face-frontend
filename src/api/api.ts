@@ -776,6 +776,38 @@ const handleLogout = async (id) => {
     throw error;
   }
 };
+
+const sendResetOTP = async (email: string) => {
+try {
+const res = await apiClient.post("/auth/send-otp", { email });
+return res.data;
+} catch (error: any) {
+throw error.response?.data || error;
+}
+};
+
+
+const verifyOTP = async ({ email, otp }: { email: string; otp: string }) => {
+try {
+const res = await apiClient.post("/auth/verify-otp", { email, otp });
+return res.data;
+} catch (error: any) {
+throw error.response?.data || error;
+}
+};
+
+
+const resetPassword = async ({ email, newPassword }: { email: string; newPassword: string }) => {
+try {
+const res = await apiClient.post("/auth/reset-password", { email, newPassword });
+return res.data;
+} catch (error: any) {
+throw error.response?.data || error;
+}
+};
+
+
+
 // Export API
 const api = {
   createCompany,
@@ -851,6 +883,9 @@ const api = {
   getCustomerSalesStats,
   getSalesTrend,
   handleLogout,
+  sendResetOTP,
+  verifyOTP,
+  resetPassword
 };
 
 export default api;

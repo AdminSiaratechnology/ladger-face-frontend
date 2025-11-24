@@ -9,7 +9,7 @@ export default function DeviceLogoutModal() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    logout();
+   await logout();
     console.log("User logged out from all devices");
 
     setIsLoggingOut(false);

@@ -35,7 +35,7 @@ export const PerformanceCharts = ({
           <CardDescription>Revenue by geographic regions</CardDescription>
         </CardHeader>
         <CardContent>
-          {salesByStateData.length === 0 ? (
+          {salesByStateData?.length === 0 ? (
             <div className="flex items-center justify-center h-64 text-gray-500 text-sm">
               No data
             </div>
@@ -47,7 +47,7 @@ export const PerformanceCharts = ({
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip
                   formatter={(value) => [
-                    `₹${(Number(value) * 100000).toLocaleString()}`,
+                    `₹${(Number(value) * 100000)?.toLocaleString()}`,
                     "Sales",
                   ]}
                   contentStyle={{
@@ -69,11 +69,7 @@ export const PerformanceCharts = ({
           <CardDescription>Current vs previous month</CardDescription>
         </CardHeader>
         <CardContent>
-          {monthlyComparisonData.length === 0 ? (
-            <div className="flex items-center justify-center h-64 text-gray-500 text-sm">
-              No data
-            </div>
-          ) : (
+          {monthlyComparisonData.length >= 1 ?  (
             <ResponsiveContainer width="100%" height={300}>
               <ComposedChart data={monthlyComparisonData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -115,7 +111,11 @@ export const PerformanceCharts = ({
                 />
               </ComposedChart>
             </ResponsiveContainer>
-          )}
+          ):(
+            <div className="flex items-center justify-center h-64 text-gray-500 text-sm">
+              No data
+            </div>
+          ) }
         </CardContent>
       </Card>
     </div>

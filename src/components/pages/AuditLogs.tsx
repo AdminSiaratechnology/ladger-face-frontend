@@ -35,15 +35,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader as TableHeaderShadcn, TableRow } from "../ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader as TableHeaderShadcn,
+  TableRow,
+} from "../ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import {useAuditLogStore} from "../../../store/auditLogStore"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
+import { useAuditLogStore } from "../../../store/auditLogStore";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
 import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 
 // Audit Event interface based on actual API response
@@ -78,9 +91,15 @@ interface AuditEvent {
 
 const AuditLogsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [actionFilter, setActionFilter] = useState<"all" | "create" | "update" | "delete">("all");
-  const [timeFilter, setTimeFilter] = useState<"today" | "week" | "month" | "all">("all");
-  const [sortBy, setSortBy] = useState<"timeDesc" | "timeAsc" | "actorAsc" | "actorDesc">("timeDesc");
+  const [actionFilter, setActionFilter] = useState<
+    "all" | "create" | "update" | "delete"
+  >("all");
+  const [timeFilter, setTimeFilter] = useState<
+    "today" | "week" | "month" | "all"
+  >("all");
+  const [sortBy, setSortBy] = useState<
+    "timeDesc" | "timeAsc" | "actorAsc" | "actorDesc"
+  >("timeDesc");
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -97,19 +116,36 @@ const AuditLogsPage: React.FC = () => {
     fetchAuditEvents,
     fetchAllAuditEvents,
     fetchAuditLogById,
-    resetStore
+    resetStore,
   } = useAuditLogStore();
 
   const limit = 10;
 
-  const headers = ["Timestamp", "Actor", "Action", "Module", "Details", "IP Address", "Actions"];
+  const headers = [
+    "Timestamp",
+    "Actor",
+    "Action",
+    "Module",
+    "Details",
+    "IP Address",
+    "Actions",
+  ];
 
-  const stats = useMemo(() => ({
-    totalEvents: storePagination.total,
-    securityAlerts: auditEvents.filter((e) => e.action?.toLowerCase() === "delete").length,
-    dataExports: auditEvents.filter((e) => e.action?.toLowerCase().includes("export")).length || 0,
-    activeUsers: new Set(auditEvents.map((e) => e.performedBy?.name).filter(Boolean)).size,
-  }), [auditEvents, storePagination.total]);
+  const stats = useMemo(
+    () => ({
+      totalEvents: storePagination.total,
+      securityAlerts: auditEvents.filter(
+        (e) => e.action?.toLowerCase() === "delete"
+      ).length,
+      dataExports:
+        auditEvents.filter((e) => e.action?.toLowerCase().includes("export"))
+          .length || 0,
+      activeUsers: new Set(
+        auditEvents.map((e) => e.performedBy?.name).filter(Boolean)
+      ).size,
+    }),
+    [auditEvents, storePagination.total]
+  );
 
   const getActionIcon = (action: string) => {
     const lowerAction = action.toLowerCase();
@@ -127,7 +163,8 @@ const AuditLogsPage: React.FC = () => {
     return "text-gray-600";
   };
 
-  const capitalizeFirst = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+  const capitalizeFirst = (str: string) =>
+    str.charAt(0).toUpperCase() + str.slice(1);
 
   const getExportParams = () => {
     let fromDate: string | undefined;
@@ -189,55 +226,69 @@ const AuditLogsPage: React.FC = () => {
   };
 
   const downloadCSV = (events: AuditEvent[], isDetail: boolean = false) => {
-    const csvHeaders = isDetail 
-      ? ["Timestamp", "Actor", "Actor Role", "Action", "Module", "Details", "IP Address", "Reference ID", "Reference Name", "Reference Code", "Reference Status","Auditlog"]
+    const csvHeaders = isDetail
+      ? [
+          "Timestamp",
+          "Actor",
+          "Actor Role",
+          "Action",
+          "Module",
+          "Details",
+          "IP Address",
+          "Reference ID",
+          "Reference Name",
+          "Reference Code",
+          "Reference Status",
+          "Auditlog",
+        ]
       : ["Timestamp", "Actor", "Action", "Module", "Details", "IP Address"];
-    
+
     const csvRows = events.map((event) => {
       const baseRow = [
         new Date(event.timestamp).toLocaleString("en-IN"),
-        event.performedBy?.name || 'Unknown',
+        event.performedBy?.name || "Unknown",
         capitalizeFirst(event.action),
         event.module,
-        event.details || '',
-        event.ipAddress || 'N/A'
+        event.details || "",
+        event.ipAddress || "N/A",
       ];
-   
-      
 
       if (isDetail) {
-        baseRow.splice(2, 0, event.performedBy?.role || ''); // Insert role after Actor
+        baseRow.splice(2, 0, event.performedBy?.role || ""); // Insert role after Actor
         baseRow.push(
-          event.referenceId?._id || '',
-          event.referenceId?.name || '',
-          event.referenceId?.code || '',
-          event.referenceId?.status || '',
-          JSON.stringify( event.referenceId?.auditLogs )|| ''
-
+          event.referenceId?._id || "",
+          event.referenceId?.name || "",
+          event.referenceId?.code || "",
+          event.referenceId?.status || "",
+          JSON.stringify(event.referenceId?.auditLogs) || ""
         );
-       
       }
 
       return baseRow;
     });
 
-
     const csvContent = [
       csvHeaders.join(","),
-      ...csvRows.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(","))
+      ...csvRows.map((row) =>
+        row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(",")
+      ),
     ].join("\n");
- 
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `audit-logs-${isDetail ? 'detail-' : ''}${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute(
+      "download",
+      `audit-logs-${isDetail ? "detail-" : ""}${
+        new Date().toISOString().split("T")[0]
+      }.csv`
+    );
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success(`${isDetail ? 'Detailed ' : ''}CSV exported successfully`);
+    toast.success(`${isDetail ? "Detailed " : ""}CSV exported successfully`);
   };
 
   const handleExportNormal = async () => {
@@ -323,7 +374,14 @@ const AuditLogsPage: React.FC = () => {
       limit,
       fromDate,
     });
-  }, [searchTerm, actionFilter, timeFilter, sortBy, currentPage, fetchAuditEvents]);
+  }, [
+    searchTerm,
+    actionFilter,
+    timeFilter,
+    sortBy,
+    currentPage,
+    fetchAuditEvents,
+  ]);
 
   // Reset page on filter changes
   useEffect(() => {
@@ -332,8 +390,7 @@ const AuditLogsPage: React.FC = () => {
   useEffect(() => {
     // Cleanup when leaving the page
     return () => {
-      resetStore()
-
+      resetStore();
     };
   }, [resetStore]);
 
@@ -351,27 +408,42 @@ const AuditLogsPage: React.FC = () => {
               const displayAction = capitalizeFirst(event.action);
 
               return (
-                <tr key={event._id} className="hover:bg-gray-50 transition-colors duration-200">
+                <tr
+                  key={event._id}
+                  className="hover:bg-gray-50 transition-colors duration-200"
+                >
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div>
-                      <p>{new Date(event.timestamp).toLocaleDateString("en-IN")}</p>
-                      <p className="text-xs text-gray-500">{new Date(event.timestamp).toLocaleTimeString("en-IN")}</p>
+                      <p>
+                        {new Date(event.timestamp).toLocaleDateString("en-IN")}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(event.timestamp).toLocaleTimeString("en-IN")}
+                      </p>
                     </div>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{event.performedBy?.name || 'Unknown'}</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {event.performedBy?.name || "Unknown"}
+                    </div>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center space-x-2">
                       <Icon className={`w-4 h-4 ${colorClass}`} />
-                      <span className="text-sm font-medium">{displayAction}</span>
+                      <span className="text-sm font-medium">
+                        {displayAction}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{event.module}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500 max-w-xs truncate">{event.details}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {event.module}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    {event.details}
+                  </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <code className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
-                      {event.ipAddress || 'N/A'}
+                      {event.ipAddress || "N/A"}
                     </code>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -396,7 +468,17 @@ const AuditLogsPage: React.FC = () => {
   const ModalContent = () => {
     if (!singleAuditEvent) return <div>Loading...</div>;
 
-    const { module, action, performedBy, referenceId, details, ipAddress, timestamp, clientId, changes } = singleAuditEvent;
+    const {
+      module,
+      action,
+      performedBy,
+      referenceId,
+      details,
+      ipAddress,
+      timestamp,
+      clientId,
+      changes,
+    } = singleAuditEvent;
 
     return (
       <div className="space-y-4">
@@ -495,7 +577,9 @@ const AuditLogsPage: React.FC = () => {
                 <ul className="space-y-1">
                   {referenceId.auditLogs.map((log, index) => (
                     <li key={index} className="text-sm">
-                      Action: {log.action}, Performed By: {log.performedBy}, Timestamp: {new Date(log.timestamp).toLocaleString("en-IN")}
+                      Action: {log.action}, Performed By: {log.performedBy},
+                      Timestamp:{" "}
+                      {new Date(log.timestamp).toLocaleString("en-IN")}
                     </li>
                   ))}
                 </ul>
@@ -507,7 +591,9 @@ const AuditLogsPage: React.FC = () => {
         {changes && Object.keys(changes).length > 0 && (
           <div>
             <h3 className="font-semibold mt-4 mb-2">Changes</h3>
-            <pre className="bg-gray-100 p-2 rounded text-sm overflow-auto">{JSON.stringify(changes, null, 2)}</pre>
+            <pre className="bg-gray-100 p-2 rounded text-sm overflow-auto">
+              {JSON.stringify(changes, null, 2)}
+            </pre>
           </div>
         )}
       </div>
@@ -519,7 +605,7 @@ const AuditLogsPage: React.FC = () => {
       <EmptyStateCard
         icon={AlertCircle}
         title="Error loading audit logs"
-        description={errorMessage || 'An error occurred'}
+        description={errorMessage || "An error occurred"}
         buttonLabel="Retry"
         onButtonClick={() => fetchAuditEvents()}
       />
@@ -536,14 +622,18 @@ const AuditLogsPage: React.FC = () => {
         />
         <div className="flex gap-2">
           <DropdownMenu>
-            <DropdownMenuTrigger >
+            <DropdownMenuTrigger>
               <Button className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer">
                 Export Logs <Download className="w-4 h-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportNormal}>Normal Export</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportDetail}>Detailed Export</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportNormal}>
+                Normal Export
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportDetail}>
+                Detailed Export
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -555,7 +645,9 @@ const AuditLogsPage: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-teal-100 text-sm font-medium">Total Events</p>
+                <p className="text-teal-100 text-sm font-medium">
+                  Total Events
+                </p>
                 <p className="text-3xl font-bold">{stats.totalEvents}</p>
               </div>
               <Shield className="w-8 h-8 text-teal-200" />
@@ -567,7 +659,9 @@ const AuditLogsPage: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-red-100 text-sm font-medium">Security Alerts</p>
+                <p className="text-red-100 text-sm font-medium">
+                  Security Alerts
+                </p>
                 <p className="text-3xl font-bold">{stats.securityAlerts}</p>
               </div>
               <AlertCircle className="w-8 h-8 text-red-200" />
@@ -579,7 +673,9 @@ const AuditLogsPage: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">Data Exports</p>
+                <p className="text-blue-100 text-sm font-medium">
+                  Data Exports
+                </p>
                 <p className="text-3xl font-bold">{stats.dataExports}</p>
               </div>
               <FileText className="w-8 h-8 text-blue-200" />
@@ -591,7 +687,9 @@ const AuditLogsPage: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Active Users</p>
+                <p className="text-green-100 text-sm font-medium">
+                  Active Users
+                </p>
                 <p className="text-3xl font-bold">{stats.activeUsers}</p>
               </div>
               <Users className="w-8 h-8 text-green-200" />
@@ -676,7 +774,8 @@ const AuditLogsPage: React.FC = () => {
         />
       ) : (
         <>
-          {viewMode === "table" ? <TableView /> : null} {/* Cards not implemented for logs */}
+          {viewMode === "table" ? <TableView /> : null}{" "}
+          {/* Cards not implemented for logs */}
           <PaginationControls
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
@@ -688,15 +787,12 @@ const AuditLogsPage: React.FC = () => {
 
       {/* Detail Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-       
-            <DialogContent className="custom-dialog-container">
+        <DialogContent className="custom-dialog-container">
           <CustomFormDialogHeader
-            title={
-            "Audit Log Details"
-            }
+            title={"Audit Log Details"}
             subtitle="View user actions and recent changes."
           />
-          
+
           <ModalContent />
           <div className="flex justify-end mt-4">
             <Button variant="outline" onClick={closeModal}>

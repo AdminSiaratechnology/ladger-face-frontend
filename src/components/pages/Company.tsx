@@ -49,6 +49,8 @@ import { DatePickerField } from "../customComponents/DatePickerField";
 import UniversalCompanyDetailsModal from "../customComponents/UniversalCompanyDetailsModal";
 import imageCompression from "browser-image-compression";
 import ToggleSwitch from "../customComponents/ToggleSwitch";
+import { getCurrency } from "@/lib/getCurrency";
+import { currencies } from "../../lib/currency";
 // Bank interface (unchanged)
 interface Bank {
   id: number;
@@ -227,6 +229,7 @@ const CompanyPage: React.FC = () => {
     states,
   } = useCompanyStore();
   const today = new Date().toISOString().split("T")[0];
+  const [pdfLoading, setPdfLoading] = useState<boolean>(false);
   const [formData, setFormData] = useState<CompanyForm>({
     namePrint: "",
     nameStreet: "",
@@ -302,22 +305,15 @@ const CompanyPage: React.FC = () => {
       selectedState.isoCode
     );
   }, [formData.country, formData.state, availableStates, allCountries]);
-  const getCurrencyForCountry = (countryName: string): string => {
+  const getCurrencyForCountry = async (countryName: string) => {
     const country = allCountries.find((c) => c.name === countryName);
-    if (!country) return "INR";
-    const currencyMap: Record<string, string> = {
-      IN: "INR",
-      US: "USD",
-      GB: "GBP",
-      CA: "CAD",
-      AU: "AUD",
-      DE: "EUR",
-      FR: "EUR",
-      JP: "JPY",
-      CN: "CNY",
-    };
-    return currencyMap[country.isoCode] || country.currency || "USD";
+
+    if (!country) return null;
+
+    // Use your API function (imported from lib)
+    return await getCurrency(country.isoCode);
   };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ): void => {
@@ -334,28 +330,48 @@ const CompanyPage: React.FC = () => {
       return updated;
     });
   };
-  const handleSelectChange = (name: keyof CompanyForm, value: string): void => {
+  const handleSelectChange = async (name: keyof CompanyForm, value: string) => {
     if (name === "country") {
+      // Update country, reset related fields immediately
       setFormData((prev) => ({
         ...prev,
         [name]: value,
         state: "",
         city: "",
-        defaultCurrency: getCurrencyForCountry(value),
+        defaultCurrency: "", // temporarily empty until we fetch
       }));
-    } else if (name === "state") {
+
+      // Fetch currency asynchronously
+      const currency = await getCurrencyForCountry(value);
+
+      // Update currency ONLY if it exists
+      if (currency?.currencyCode) {
+        setFormData((prev) => ({
+          ...prev,
+          defaultCurrency: currency.currencyCode,
+        }));
+      }
+
+      return;
+    }
+
+    // For state
+    if (name === "state") {
       setFormData((prev) => ({
         ...prev,
         [name]: value,
         city: "",
       }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      return;
     }
+
+    // For other fields
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
+
   const handleCheckSelectChange = (key: keyof CompanyForm, value: boolean) => {
     setFormData((prev) => ({
       ...prev,
@@ -372,7 +388,6 @@ const CompanyPage: React.FC = () => {
     };
     fetchCompanyStates();
   }, []);
-  console.log("Company States:", states);
   const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     let newValue = value;
@@ -718,6 +733,10 @@ const CompanyPage: React.FC = () => {
   };
   const handleDeleteCompany = async (id: string): void => {
     try {
+      if(id==defaultSelected_id){
+        toast.error("Default company cannot be deleted");
+        return
+      }
       await deleteCompany(id);
     } catch (error: any) {
       console.error(error, "wrrorwhiledelete");
@@ -795,11 +814,10 @@ const CompanyPage: React.FC = () => {
           companyId: editingCompany._id || "",
           companyData: companyFormData,
         });
-        toast.success("Company updated successfully!");
+        await fetchCompanies("68c1503077fd742fa21575df");
       } else {
         createdCompany = await addCompany(companyFormData);
         await fetchCompanies("68c1503077fd742fa21575df");
-        toast.success("Company created successfully!");
       }
       // ✅ If this is the first company created, auto-select it
       if (!editingCompany && companies.length === 0 && createdCompany) {
@@ -836,6 +854,7 @@ const CompanyPage: React.FC = () => {
       gstRegistered: counts?.gstRegistered,
       msmeRegistered: counts?.msmeRegistered,
       activeCompanies: counts?.activeCompanies,
+      vatRegistered: counts?.vatRegistered,
     }),
     [companies, pagination, statusFilter, companies]
   );
@@ -1116,7 +1135,9 @@ const CompanyPage: React.FC = () => {
     </div>
   );
   const downloadPDF = async () => {
-    const res = await api.downloadCompanyPDF();
+    setPdfLoading(true);
+    const res = await api.downloadCompanyPDF(defaultSelected._id || "");
+    setPdfLoading(false);
   };
   useEffect(() => {
     return () => {
@@ -1151,14 +1172,50 @@ const CompanyPage: React.FC = () => {
             </CheckAccess>
             <Button
               onClick={downloadPDF}
-              className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-3 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
+              disabled={pdfLoading}
+              className={`
+ bg-gradient-to-r from-teal-600 to-teal-700
+ hover:from-teal-700 hover:to-teal-800
+ text-white px-3 py-3 rounded-xl shadow-lg
+ transition-all duration-200 cursor-pointer
+ flex items-center gap-2
+${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
+`}
             >
-              Integration PDF <ArrowBigDownDash />
+              {pdfLoading ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  Integration PDF <ArrowBigDownDash />
+                </>
+              )}
             </Button>
           </div>
         </div>
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-2">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-2">
           <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -1193,6 +1250,19 @@ const CompanyPage: React.FC = () => {
                     MSME Registered
                   </p>
                   <p className="text-3xl font-bold">{stats?.msmeRegistered}</p>
+                </div>
+                <Star className="w-8 h-8 text-green-200" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-medium">
+                    VAT Registered
+                  </p>
+                  <p className="text-3xl font-bold">{stats?.vatRegistered}</p>
                 </div>
                 <Star className="w-8 h-8 text-green-200" />
               </div>
@@ -1453,21 +1523,24 @@ const CompanyPage: React.FC = () => {
                       <label className="text-sm font-semibold text-gray-700">
                         Default Currency
                       </label>
+
                       <select
                         value={formData.defaultCurrency}
                         onChange={(e) =>
                           handleSelectChange("defaultCurrency", e.target.value)
                         }
-                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg 
+               focus:border-blue-500 focus:ring-4 focus:ring-blue-100 
+               focus:outline-none bg-white transition-all"
                       >
-                        <option value="INR">INR - Indian Rupee</option>
-                        <option value="USD">USD - US Dollar</option>
-                        <option value="EUR">EUR - Euro</option>
-                        <option value="GBP">GBP - British Pound</option>
-                        <option value="CAD">CAD - Canadian Dollar</option>
-                        <option value="AUD">AUD - Australian Dollar</option>
-                        <option value="JPY">JPY - Japanese Yen</option>
-                        <option value="CNY">CNY - Chinese Yuan</option>
+                        <option value="">Select Currency</option>
+
+                        {currencies.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.code} - {c.name}{" "}
+                            {c.symbol ? `(${c.symbol})` : ""}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>

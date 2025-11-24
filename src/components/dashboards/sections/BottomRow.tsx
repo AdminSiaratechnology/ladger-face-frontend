@@ -35,12 +35,12 @@ export const BottomRow = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {topCustomersData.length === 0 ? (
+            {topCustomersData?.length === 0 ? (
               <div className="text-center py-6 text-gray-500 text-sm">
                 No customers
               </div>
             ) : (
-              topCustomersData.map((c, i) => (
+              topCustomersData?.map((c, i) => (
                 <div
                   key={i}
                   className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50/50 transition-colors"

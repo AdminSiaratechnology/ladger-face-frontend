@@ -143,8 +143,8 @@ const ProductSelection = () => {
   const [showReview, setShowReview] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-const [selectedCategory, setSelectedCategory] = useState("");
-const [selectedGroup, setSelectedGroup] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState("");
 
   const navigate = useNavigate();
   useEffect(() => {
@@ -214,10 +214,11 @@ const [selectedGroup, setSelectedGroup] = useState("");
 
   // ✅ Add to Cart
   const handleAddToCart = async (product: any) => {
-    const newItem = {
+    const newItem ={
+      "items": [{
       productId: product._id,
       quantity: 1,
-    };
+    }]};
 
     // Update local cart instantly
     setCart((prev) => [...prev, { ...product, quantity: 1 }]);
@@ -240,13 +241,17 @@ const [selectedGroup, setSelectedGroup] = useState("");
 
     const product = updatedCart.find((i) => i._id === productId);
     if (!product) return;
+    const newItem={
+      "items": [{
+    
+          productId,
+          quantity: product.quantity,
+        
+    }]}
 
     try {
       await api.addCart(
-        {
-          productId,
-          quantity: product.quantity,
-        },
+      newItem ,
         defaultSelected?._id
       );
     } catch (err) {
@@ -268,13 +273,15 @@ const [selectedGroup, setSelectedGroup] = useState("");
     if (updated.length === 0) setShowReview(false);
 
     const product = updated.find((i) => i._id === productId);
+    const newItem={
+      "items": [{
+               productId,
+          quantity: product ? product.quantity : 0, // if removed
+    }]}
 
     try {
       await api.addCart(
-        {
-          productId,
-          quantity: product ? product.quantity : 0, // if removed
-        },
+        newItem,
         defaultSelected?._id
       );
     } catch (err) {
@@ -358,28 +365,28 @@ const [selectedGroup, setSelectedGroup] = useState("");
       console.error(err);
     }
   };
-// ✅ Extract unique stock categories & groups
-const uniqueCategories = [
-  ...new Set(normalizedItems.map((i) => i.stockCategory)),
-];
+  // ✅ Extract unique stock categories & groups
+  const uniqueCategories = [
+    ...new Set(normalizedItems.map((i) => i.stockCategory)),
+  ];
 
-const uniqueGroups = [...new Set(normalizedItems.map((i) => i.stockGroup))];
-const categoryOptions = uniqueCategories.map((c) => ({
-  label: c,
-  value: c,
-}));
+  const uniqueGroups = [...new Set(normalizedItems.map((i) => i.stockGroup))];
+  const categoryOptions = uniqueCategories.map((c) => ({
+    label: c,
+    value: c,
+  }));
 
-const groupOptions = uniqueGroups.map((g) => ({
-  label: g,
-  value: g,
-}));
-const filteredItems = normalizedItems.filter((i) => {
-  const matchCategory =
-    !selectedCategory || i.stockCategory === selectedCategory;
-  const matchGroup = !selectedGroup || i.stockGroup === selectedGroup;
+  const groupOptions = uniqueGroups.map((g) => ({
+    label: g,
+    value: g,
+  }));
+  const filteredItems = normalizedItems.filter((i) => {
+    const matchCategory =
+      !selectedCategory || i.stockCategory === selectedCategory;
+    const matchGroup = !selectedGroup || i.stockGroup === selectedGroup;
 
-  return matchCategory && matchGroup;
-});
+    return matchCategory && matchGroup;
+  });
 
   return (
     <div className="pb-24">
@@ -404,50 +411,47 @@ const filteredItems = normalizedItems.filter((i) => {
       </div>
 
       {/* Search Bar */}
-   <div className="flex w-full mb-4 mt-2 gap-3">
-  
-  {/* Search */}
-  <input
-    type="text"
-    placeholder="Search products..."
-    value={searchTerm}
-    onChange={handleSearchChange}
-    className="w-full sm:w-1/2 border border-gray-300 rounded-lg px-3 py-2 text-sm
+      <div className="flex w-full mb-4 mt-2 gap-3">
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search products..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+          className="w-full sm:w-1/2 border border-gray-300 rounded-lg px-3 py-2 text-sm
       focus:outline-none focus:ring-2 focus:ring-teal-500"
-  />
+        />
 
-  {/* Category Filter */}
-  <select
-    value={selectedCategory}
-    onChange={(e) => setSelectedCategory(e.target.value)}
-    className="border border-gray-300 rounded-lg px-3 py-2 text-sm 
+        {/* Category Filter */}
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm 
       focus:outline-none focus:ring-2 focus:ring-teal-500"
-  >
-    <option value="">All Categories</option>
-    {uniqueCategories.map((cat) => (
-      <option key={cat} value={cat}>
-        {cat}
-      </option>
-    ))}
-  </select>
+        >
+          <option value="">All Categories</option>
+          {uniqueCategories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
 
-  {/* Group Filter */}
-  <select
-    value={selectedGroup}
-    onChange={(e) => setSelectedGroup(e.target.value)}
-    className="border border-gray-300 rounded-lg px-3 py-2 text-sm 
+        {/* Group Filter */}
+        <select
+          value={selectedGroup}
+          onChange={(e) => setSelectedGroup(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm 
       focus:outline-none focus:ring-2 focus:ring-teal-500"
-  >
-    <option value="">All Groups</option>
-    {uniqueGroups.map((grp) => (
-      <option key={grp} value={grp}>
-        {grp}
-      </option>
-    ))}
-  </select>
-  
-</div>
-
+        >
+          <option value="">All Groups</option>
+          {uniqueGroups.map((grp) => (
+            <option key={grp} value={grp}>
+              {grp}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* Main Layout */}
       <div className="flex relative transition-all duration-500 shadow-sm p-2 gap-8">

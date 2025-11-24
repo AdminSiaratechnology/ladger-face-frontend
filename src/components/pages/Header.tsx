@@ -258,7 +258,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             </Button>
 
             {/* Notifications */}
-            <DropdownMenu>
+            {/* <DropdownMenu>
               <DropdownMenuTrigger>
                 <Button
                   variant="ghost"
@@ -307,7 +307,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   </span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+            </DropdownMenu> */}
 
             {/* System status - hidden on very small screens */}
             <div className="hidden xs:flex items-center space-x-1.5">

@@ -122,7 +122,8 @@ export const useCompanyStore = create<CompanyStore>()(
             limit: 10,
             totalPages: 0,
           },
-        });      },
+        });
+      },
 
       fetchCompanies: async (agentId: string, page = 1, limit = 10) => {
         try {
@@ -164,6 +165,7 @@ export const useCompanyStore = create<CompanyStore>()(
             loading: false,
             error: null,
           });
+          toast.success("Company created successfully!");
 
           return newCompany;
         } catch (error: any) {
@@ -195,6 +197,7 @@ export const useCompanyStore = create<CompanyStore>()(
             loading: false,
             error: null,
           });
+          toast.success("Company updated successfully!");
         } catch (error: any) {
           set({
             loading: false,
@@ -218,7 +221,9 @@ export const useCompanyStore = create<CompanyStore>()(
             loading: false,
             error: error.response?.data?.message || "Failed to delete company",
           });
-          toast.error(error?.response?.data?.error || "Failed to delete company");
+          toast.error(
+            error?.response?.data?.error || "Failed to delete company"
+          );
         }
       },
 
@@ -248,9 +253,10 @@ export const useCompanyStore = create<CompanyStore>()(
             queryParams: queryParams.toString(),
           });
 
-          const companies = res.data.companies?.length <= 0 && isLogin
-            ? [...get().companies]
-            : res.data.companies;
+          const companies =
+            res.data.companies?.length <= 0 && isLogin
+              ? [...get().companies]
+              : res.data.companies;
 
           set({
             companies,
@@ -272,7 +278,7 @@ export const useCompanyStore = create<CompanyStore>()(
       },
 
       initialLoading: () => set({ loading: true }),
-      
+
       setDefaultCompany: async (companyId: Company) => {
         set({ defaultSelected: companyId });
       },
