@@ -52,6 +52,8 @@ import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
 import UniversalDetailsModal from "../customComponents/UniversalDetailsModal";
 import imageCompression from "browser-image-compression";
+import { getCurrency } from "@/lib/getCurrency";
+import { currencies } from "@/lib/currency";
 
 // Step icons for multi-step navigation
 const stepIcons = {
@@ -245,7 +247,7 @@ const LedgerRegistration: React.FC = () => {
     pagination,
     loading,
     initialLoading,
-    counts
+    counts,
   } = useLedgerStore();
   const { companies, defaultSelected } = useCompanyStore();
   const [selectedLedger, setSelectedLedger] = useState<any>(null);
@@ -404,21 +406,13 @@ const LedgerRegistration: React.FC = () => {
     );
   }, [formData.country, formData.state, availableStates, allCountries]);
 
-  const getCurrencyForCountry = (countryName: string): string => {
+  const getCurrencyForCountry = async (countryName: string) => {
     const country = allCountries.find((c) => c.name === countryName);
-    if (!country) return "INR";
-    const currencyMap: Record<string, string> = {
-      IN: "INR",
-      US: "USD",
-      GB: "GBP",
-      CA: "CAD",
-      AU: "AUD",
-      DE: "EUR",
-      FR: "EUR",
-      JP: "JPY",
-      CN: "CNY",
-    };
-    return currencyMap[country.isoCode] || country.currency || "USD";
+
+    if (!country) return null;
+
+    // Use your API function (imported from lib)
+    return await getCurrency(country.isoCode);
   };
 
   // Handlers
@@ -433,15 +427,25 @@ const LedgerRegistration: React.FC = () => {
     }));
   };
 
-  const handleSelectChange = (name: keyof LedgerForm, value: string): void => {
+  const handleSelectChange = async (name: keyof LedgerForm, value: string) => {
     if (name === "country") {
       setFormData((prev) => ({
         ...prev,
         [name]: value,
         state: "",
         city: "",
-        currency: getCurrencyForCountry(value),
+        currency: "",
       }));
+      const currency = await getCurrencyForCountry(value);
+      // Update currency ONLY if it exists
+      if (currency?.currencyCode) {
+        setFormData((prev) => ({
+          ...prev,
+          currency: currency.currencyCode,
+        }));
+      }
+
+      return;
     } else if (name === "state") {
       setFormData((prev) => ({
         ...prev,
@@ -843,6 +847,7 @@ const LedgerRegistration: React.FC = () => {
       activeLedgers: counts?.activeLedgers,
       gstRegistered: counts?.gstRegistered,
       msmeRegistered: counts?.msmeRegistered,
+      vatRegistered: counts?.vatRegistered,
     }),
     [filteredLedgers, pagination, statusFilter]
   );
@@ -1127,7 +1132,7 @@ const LedgerRegistration: React.FC = () => {
         </CheckAccess>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -1177,6 +1182,19 @@ const LedgerRegistration: React.FC = () => {
                 <p className="text-2xl font-bold">{stats.msmeRegistered}</p>
               </div>
               <Target className="w-6 h-6 text-purple-200" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-sm font-medium">
+                  VAT Registered
+                </p>
+                <p className="text-3xl font-bold">{stats?.vatRegistered}</p>
+              </div>
+              <Star className="w-8 h-8 text-green-200" />
             </div>
           </CardContent>
         </Card>
@@ -1436,26 +1454,6 @@ const LedgerRegistration: React.FC = () => {
                       <option value="enterprise">Enterprise (1000+)</option>
                     </select>
                   </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Currency
-                    </label>
-                    <select
-                      value={formData.currency}
-                      onChange={(e) =>
-                        handleSelectChange("currency", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="USD">USD - US Dollar</option>
-                      <option value="EUR">EUR - Euro</option>
-                      <option value="GBP">GBP - British Pound</option>
-                      <option value="INR">INR - Indian Rupee</option>
-                      <option value="CAD">CAD - Canadian Dollar</option>
-                      <option value="AUD">AUD - Australian Dollar</option>
-                    </select>
-                  </div>
                 </div>
 
                 <CustomStepNavigation
@@ -1600,14 +1598,36 @@ const LedgerRegistration: React.FC = () => {
                       </select>
                     </div>
                   </div>
-                  <CustomInputBox
-                    label="Zip/Pincode"
-                    placeholder="e.g., 12345"
-                    name="zipCode"
-                    value={formData.zipCode}
-                    onChange={handleChange}
-                    maxLength={10}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <CustomInputBox
+                      label="Zip/Pincode"
+                      placeholder="e.g., 12345"
+                      name="zipCode"
+                      value={formData.zipCode}
+                      onChange={handleChange}
+                      maxLength={10}
+                    />
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Currency
+                      </label>
+                      <select
+                        value={formData.currency}
+                        onChange={(e) =>
+                          handleSelectChange("currency", e.target.value)
+                        }
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="">Select Currency</option>
+                        {currencies.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.code} - {c.name}{" "}
+                            {c.symbol ? `(${c.symbol})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                   <CustomInputBox
                     label="Website"
                     placeholder="e.g., https://example.com"

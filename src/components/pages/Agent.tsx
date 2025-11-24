@@ -928,6 +928,7 @@ const AgentRegistrationPage: React.FC = () => {
       gstRegistered: counts?.gstRegistered,
       activeAgents: counts?.activeAgents,
       msmeRegistered: counts?.msmeRegistered,
+      vatRegistered: counts?.vatRegistered,
     }),
     [filteredAgents, pagination, statusFilter]
   );
@@ -1248,19 +1249,51 @@ const AgentRegistrationPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm font-medium">
-                  GST Registered
-                </p>
-                <p className="text-2xl font-bold">{stats.gstRegistered}</p>
+        {defaultSelected.country === "India" && (
+          <>
+            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-sm font-medium">
+                      GST Registered
+                    </p>
+                    <p className="text-2xl font-bold">{stats.gstRegistered}</p>
+                  </div>
+                  <FileText className="w-6 h-6 text-blue-200" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-100 text-sm font-medium">
+                      MSME Registered
+                    </p>
+                    <p className="text-2xl font-bold">{stats.msmeRegistered}</p>
+                  </div>
+                  <Target className="w-6 h-6 text-purple-200" />
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+        {defaultSelected.country !== "India" && (
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium">
+                    VAT Registered
+                  </p>
+                  <p className="text-2xl font-bold">{stats.vatRegistered}</p>
+                </div>
+                <FileText className="w-6 h-6 text-blue-200" />
               </div>
-              <FileText className="w-6 h-6 text-blue-200" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
         <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -1271,19 +1304,6 @@ const AgentRegistrationPage: React.FC = () => {
                 <p className="text-2xl font-bold">{stats.activeAgents}</p>
               </div>
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium">
-                  MSME Registered
-                </p>
-                <p className="text-2xl font-bold">{stats.msmeRegistered}</p>
-              </div>
-              <Target className="w-6 h-6 text-purple-200" />
             </div>
           </CardContent>
         </Card>
@@ -1779,7 +1799,7 @@ const AgentRegistrationPage: React.FC = () => {
               </div>
             )}
 
-             {activeTab === "tax" && (
+            {activeTab === "tax" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 {formData.country?.toLowerCase() === "india" ? (
                   <>
