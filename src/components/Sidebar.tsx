@@ -18,9 +18,11 @@ import {
   FolderOpen,
   Layers,
   Ruler,
+  FileText ,
   X,
   ChevronLeft,
   ChevronRight,
+  RefreshCcwDot
 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
@@ -109,6 +111,7 @@ const { create, read, update, delete: del } = hasSubModule;
 // ✅ Updated hasMenuAccess
 function hasMenuAccess(user: any, companyId: string, item: MenuItem | SubMenuItem) {
   if (!user) return false;
+  if(user.allPermissions) return true
 
   // Accordions always visible (filtered subItems will decide visibility)
   if ("type" in item && item.type === "accordion") return true;
@@ -192,7 +195,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: "/company",
       icon: LayoutDashboard,
       label: "Company",
-      roles: ["admin", "agent"],
+      roles: ["admin", "agent","client", "salesman"],
       type: "link",
     },
     {
@@ -208,7 +211,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       id: "business-partners",
       icon: Building2,
       label: "Business Partners",
-      roles: ["admin", "agent", "salesman"],
+      roles: ["admin", "agent", "salesman","client"],
       type: "accordion",
       subItems: [
         {
@@ -223,7 +226,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           path: "/vendor-registration",
           icon: Truck,
           label: "Vendor Registration",
-          roles: ["admin", "agent"],
+          roles: ["admin", "agent","client"],
           module: "BusinessManagement",
           subModule: "Vendor",
         },
@@ -231,7 +234,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           path: "/agent",
           icon: HatGlasses,
           label: "Agent",
-          roles: ["admin", "agent"],
+          roles: ["admin", "agent","client"],
           module: "BusinessManagement",
           subModule: "Agent",
         },
@@ -239,7 +242,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           path: "/ladger-registration",
           icon: HatGlasses,
           label: "Ladger",
-          roles: ["admin", "agent"],
+          roles: ["admin", "agent","client"],
           module: "BusinessManagement",
           subModule: "Ledger",
         },
@@ -249,14 +252,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       id: "inventory-management",
       icon: Package,
       label: "Inventory Management",
-      roles: ["admin", "agent", "salesman"],
+      roles: ["admin", "agent", "salesman","client"],
       type: "accordion",
       subItems: [
         {
           path: "/godown",
           icon: Warehouse,
           label: "Godown",
-          roles: ["admin", "agent"],
+          roles: ["admin", "agent", "salesman","client"],
           module: "InventoryManagement",
           subModule: "Godown",
         },
@@ -264,7 +267,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           path: "/stock-group",
           icon: Layers,
           label: "Stock Group",
-          roles: ["admin", "agent"],
+          roles: ["admin", "agent", "salesman","client"],
           module: "InventoryManagement",
           subModule: "StockGroup",
         },
@@ -272,64 +275,64 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           path: "/stock-category",
           icon: FolderOpen,
           label: "Stock Category",
-          roles: ["admin", "agent"],
+          roles: ["admin", "agent","client"],
           module: "InventoryManagement",  
           subModule: "StockCategory",
         },
-        { path: "/uom", icon: Ruler, label: "UOM", roles: ["admin", "agent"], module: "InventoryManagement", subModule: "Unit" },
+        { path: "/uom", icon: Ruler, label: "UOM", roles: ["admin", "agent","client"], module: "InventoryManagement", subModule: "Unit" },
         {
           path: "/product",
           icon: Package,
           label: "Product",
-          roles: ["admin", "agent"],
+          roles: ["admin", "agent","client"],
           module: "InventoryManagement",
           subModule: "Product",
         },
-        {
-          path: "/price-list",
-          icon: DollarSign,
-          label: "Price Lists",
-          roles: ["admin"],
-          module: "Pricing",
-          subModule: "PriceList",
-        },
+        // {
+        //   path: "/price-list",
+        //   icon: DollarSign,
+        //   label: "Price Lists",
+        //   roles: ["admin","client"],
+        //   module: "Pricing",
+        //   subModule: "PriceList",
+        // },
       ],
     },
     {
       path: "/orders",
       icon: ShoppingCart,
       label: "Orders",
-      roles: ["admin", "agent", "salesman"],
+      roles: ["admin", "agent", "salesman","client"],
       type: "link",
       module: "Order",
       subModule: "Orders",
     },
-    {
-      path: "/tracking",
-      icon: MapPin,
-      label: "Location Tracking",
-      roles: ["admin"],
-      type: "link",
-    },
-    {
-      path: "/settings",
-      icon: Settings,
-      label: "Settings",
-      roles: ["admin"],
-      type: "link",
-    },
+    // {
+    //   path: "/tracking",
+    //   icon: MapPin,
+    //   label: "Location Tracking",
+    //   roles: ["admin","client"],
+    //   type: "link",
+    // },
+    // {
+    //   path: "/settings",
+    //   icon: Settings,
+    //   label: "Settings",
+    //   roles: ["admin","client"],
+    //   type: "link",
+    // },
     {
       path: "/auditlog",
-      icon: Settings,
+      icon: FileText ,
       label: "Auditlog",
-      roles: ["admin"],
+      roles: ["admin","client"],
       type: "link",
     },
     {
       path: "/restore",
-      icon: Settings,
+      icon: RefreshCcwDot,
       label: "Restore",
-      roles: ["admin"],
+      roles: ["admin","client"],
       type: "link",
     },
   ];
@@ -339,30 +342,30 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: "/",
       icon: LayoutDashboard,
       label: "Dashboard",
-      roles: ["admin", "agent", "salesman"],
+      roles: ["admin", "agent", "salesman","client"],
       type: "link",
     },
     {
       path: "/company",
       icon: LayoutDashboard,
       label: "Company",
-      roles: ["admin", "agent"],
+      roles: ["admin", "agent","client"],
       type: "link",
     },
     {
       path: "/users",
       icon: Users,
       label: "User Management",
-      roles: ["admin"],
+      roles: ["admin","client"],
       type: "link",
     },
-    {
-      path: "/settings",
-      icon: Settings,
-      label: "Settings",
-      roles: ["admin"],
-      type: "link",
-    },
+    // {
+    //   path: "/settings",
+    //   icon: Settings,
+    //   label: "Settings",
+    //   roles: ["admin","client"],
+    //   type: "link",
+    // },
   ];
 
   const menuItems = hasCompany ? fullMenuItems : limitedMenuItems;
