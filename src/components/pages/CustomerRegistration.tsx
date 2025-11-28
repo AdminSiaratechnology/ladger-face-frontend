@@ -12,15 +12,6 @@ import {
   Settings2,
   Star,
   Edit,
-  Trash2,
-  MoreHorizontal,
-  Eye,
-  Table,
-  Grid3X3,
-  Layers,
-  Package,
-  Tag,
-  Archive,
   Phone,
   Mail,
   MapPin,
@@ -30,9 +21,7 @@ import {
   Upload,
   X,
   Image as ImageIcon,
-  Search,
-  ChevronLeft,
-  ChevronRight,
+
 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import { Country, State, City } from "country-state-city";
@@ -58,6 +47,7 @@ import UniversalDetailsModal from "../customComponents/UniversalDetailsModal";
 import imageCompression from "browser-image-compression";
 import { currencies } from "@/lib/currency";
 import { getCurrency } from "@/lib/getCurrency";
+import { useCustomerGroupStore } from "../../../store/CustomerGroupStore";
 // Interfaces (adapted from provided Customer interface)
 interface Bank {
   id: number;
@@ -378,6 +368,13 @@ const CustomerRegistrationPage: React.FC = () => {
     notes: "",
     registrationDocs: [],
   });
+  const { groups: customerGroups, fetchGroups: fetchCustomerGroups } = useCustomerGroupStore();
+
+useEffect(() => {
+  if (defaultSelected?._id) {
+    fetchCustomerGroups(defaultSelected._id);
+  }
+}, [defaultSelected, fetchCustomerGroups]);
   useEffect(() => {
     if (defaultSelected) {
       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
@@ -794,20 +791,20 @@ const CustomerRegistrationPage: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    if (!formData.customerName.trim()) {
+    if (!formData?.customerName.trim()) {
       toast.error("Please enter Customer Name");
       return;
     }
-    if (!formData.contactPerson.trim()) {
+    if (!formData?.contactPerson?.trim()) {
       toast.error("Please enter Contact Person");
       return;
     }
-    if (!formData.emailAddress.trim()) {
+    if (!formData?.emailAddress?.trim()) {
       toast.error("Please enter Email Address");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.emailAddress)) {
+    if (!emailRegex?.test(formData.emailAddress)) {
       toast.error("Please enter a valid email address");
       return;
     }
@@ -1504,24 +1501,26 @@ const CustomerRegistrationPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Customer Group
-                    </label>
-                    <select
-                      value={formData.customerGroup}
-                      onChange={(e) =>
-                        handleSelectChange("customerGroup", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Customer Group</option>
-                      <option value="retail">Retail</option>
-                      <option value="wholesale">Wholesale</option>
-                      <option value="distributor">Distributor</option>
-                      <option value="corporate">Corporate</option>
-                    </select>
-                  </div>
+                 <div className="flex flex-col gap-1">
+  <label className="text-sm font-semibold text-gray-700">
+    Customer Group <span className="text-red-500">*</span>
+  </label>
+  <select
+    value={formData.customerGroup}
+    onChange={(e) => handleSelectChange("customerGroup", e.target.value)}
+    className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+    required
+  >
+    <option value="">Select Customer Group</option>
+    {customerGroups
+      .filter((g) => g.status === "active") // Only show active groups
+      .map((group) => (
+        <option key={group._id} value={group._id}>
+          {group.groupName}
+        </option>
+      ))}
+  </select>
+</div>
 
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">

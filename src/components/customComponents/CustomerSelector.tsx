@@ -36,7 +36,7 @@ export default function CustomerDropdown({
         );
       } else {
         // ✅ Normal full list
-        filterCustomers("", "all", "nameAsc", 1, 20, defaultSelected?._id);
+        filterCustomers("", "all", "nameAsc", 1, 20, defaultSelected?._id,true);
       }
     }
   }, [defaultSelected]);
@@ -51,7 +51,7 @@ export default function CustomerDropdown({
     ) {
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchCustomers(nextPage, 20, defaultSelected?._id);
+      fetchCustomers(nextPage, 20, defaultSelected?._id,true);
     }
   };
 

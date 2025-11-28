@@ -91,7 +91,13 @@ interface SubMenuItem {
 // ✅ Updated checkPermission
 function checkPermission(user: any, companyId: string, module: string, subModule: string) {
   if (!user) return false;
-  if (user.allPermissions) return true;
+  if (user.allPermissions) return {
+    create: true,
+    read: true,
+    update: true,
+    delete: true,
+    extra: []
+  };
   if (!user.access || user.access.length === 0) return false;
 
   // Find access entry for selected company
@@ -101,12 +107,30 @@ function checkPermission(user: any, companyId: string, module: string, subModule
   if (!companyAccess || !companyAccess.modules) return false;
 
   const modules = companyAccess.modules;
-  const hasModule = modules[module];
+  const hasModule = modules?.[module];
   const hasSubModule = hasModule?.[subModule];
-  //  return !!hasSubModule?.read;
-const { create, read, update, delete: del } = hasSubModule;
-  return !!(create || read || update || del);
+
+  // If submodule exists → return its permissions
+  if (hasSubModule) {
+    return {
+      create: !!hasSubModule.create,
+      read: !!hasSubModule.read,
+      update: !!hasSubModule.update,
+      delete: !!hasSubModule.delete,
+      extra: hasSubModule.extra || []
+    };
+  }
+
+  // Else return default full permissions
+  return {
+    create: true,
+    read: true,
+    update: true,
+    delete: true,
+    extra: []
+  };
 }
+
 
 // ✅ Updated hasMenuAccess
 function hasMenuAccess(user: any, companyId: string, item: MenuItem | SubMenuItem) {
@@ -214,6 +238,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: ["admin", "agent", "salesman","client"],
       type: "accordion",
       subItems: [
+        {
+          path: "/customer-group-management",
+          icon: UserPlus,
+          label: "Customer Group",
+          roles: ["admin", "agent"],
+          module: "BusinessManagement",
+          subModule: "CustomerGroup",
+        },
         {
           path: "/customer-registration",
           icon: UserPlus,

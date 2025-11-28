@@ -271,7 +271,7 @@ const fetchCustomers = async (
   { companyId }: { companyId: string },
   { queryParams }: { queryParams: string }
 ) => {
-  const res = await apiClient.get(`/customers/${companyId}?${queryParams}}`);
+  const res = await apiClient.get(`/customers/${companyId}?${queryParams}`);
   // console.log(res, "fetchCustomers response");
   return res.data;
 };
@@ -806,6 +806,45 @@ throw error.response?.data || error;
 }
 };
 
+// Inside api.ts
+
+
+
+// api.ts — Fixed & Perfectly
+
+const fetchCustomerGroups = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }
+) => {
+  const res = await apiClient.get(
+    `/customer-group/all?companyId=${companyId}&${queryParams}`
+  );
+  return res.data; // → { groups, total, stats: { total, active, inactive }, ... }
+};
+const createCustomerGroup = async (data: {
+  groupName: string;
+  status?: "active" | "inactive";
+  companyId: string;
+}) => {
+  const res = await apiClient.post("/customer-group/create", data);
+  return res.data;
+};
+
+const updateCustomerGroup = async ({
+  groupId,
+  data,
+}: {
+  groupId: string;
+  data: { groupName?: string; status?: "active" | "inactive" };
+}) => {
+  const res = await apiClient.put(`/customer-group/update/${groupId}`, data);
+  return res.data;
+};
+
+const deleteCustomerGroup = async (groupId: string) => {
+  const res = await apiClient.delete(`/customer-group/delete/${groupId}`);
+  return res.data;
+};
 
 
 // Export API
@@ -885,7 +924,11 @@ const api = {
   handleLogout,
   sendResetOTP,
   verifyOTP,
-  resetPassword
+  resetPassword,
+  createCustomerGroup,
+  fetchCustomerGroups,
+  updateCustomerGroup,
+  deleteCustomerGroup,
 };
 
 export default api;
