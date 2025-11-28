@@ -28,6 +28,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  Warehouse, // Added Warehouse icon
 } from "lucide-react";
 import { Switch } from "../ui/switch";
 import {
@@ -55,8 +56,13 @@ import EmptyStateCard from "../customComponents/EmptyStateCard";
 import SelectedCompany from "../customComponents/SelectedCompany";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import UniversalUserDetailsModal from "../customComponents/UniversalUserDetailsModal";
+import { useCustomerGroupStore } from "../../../store/CustomerGroupStore";
 
-// Interfaces (unchanged from original)
+import axios from "axios"; 
+
+
+// --- Interfaces ---
+
 interface Company {
   id: string;
   _id: string;
@@ -117,6 +123,8 @@ interface ModuleAccess {
 interface Access {
   company: string;
   modules: ModuleAccess;
+  customerGroups: CustomerGroup[];
+  godowns: Godown[]; // Added Godowns to Access
 }
 
 interface User {
@@ -159,6 +167,34 @@ interface UserForm {
   status: string;
 }
 
+interface CustomerGroup {
+  groupId: string;
+  groupName: string;
+  groupCode: string;
+}
+
+// Added Godown Interface
+interface Godown {
+  _id: string;
+  company: string;
+  client: string;
+  code: string;
+  name: string;
+  country: string;
+  isPrimary: boolean;
+  status: string;
+  contactNumber?: string;
+  manager?: string;
+  capacity?: string;
+  address?: string;
+  state?: string;
+  city?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
+
 // Step Icons for MultiStepNav
 const stepIcons = {
   basic: <Users className="w-2 h-2 md:w-5 md:h-5" />,
@@ -167,15 +203,281 @@ const stepIcons = {
   settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />,
 };
 
-export const UserManagement: React.FC = () => {
+// --- CUSTOM STORE FOR GODOWNS (Local Implementation) ---
+
+import { useGodownStore } from "../../../store/godownStore";
+
+interface GodownStore {
+  godowns: Godown[];
+  loading: boolean;
+  fetchGodowns: (companyId: string) => Promise<void>;
+}
+
+
+const CustomerGroupSelector: React.FC<{
+  companyId: string;
+  selectedGroupIds: string[];
+  onChange: (groupIds: string[]) => void;
+}> = ({ companyId, selectedGroupIds, onChange }) => {
+  const { groups, fetchGroups, loading } = useCustomerGroupStore();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (companyId) {
+      fetchGroups(companyId);
+    }
+  }, [companyId, fetchGroups]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const companyGroups = groups.filter((g) => g.companyId === companyId);
+  const selectedGroupsData = companyGroups.filter((g) =>
+    selectedGroupIds.includes(g._id)
+  );
+  
+  const availableGroups = companyGroups.filter(
+    (g) =>
+      !selectedGroupIds.includes(g._id) &&
+      g.status === "active" &&
+      g.groupName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const addGroup = (groupId: string) => {
+    onChange([...selectedGroupIds, groupId]);
+    setSearchTerm("");
+  };
+
+  const removeGroup = (groupId: string) => {
+    onChange(selectedGroupIds.filter((id) => id !== groupId));
+  };
+
+  if (loading)
+    return <p className="text-sm text-gray-500 py-2">Loading...</p>;
+
+  if (companyGroups.length === 0) {
+    return (
+      <div className="text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+        <p className="text-sm text-gray-500">No customer groups found.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3" ref={dropdownRef}>
+      <div className="relative">
+        <Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
+        <Input
+          placeholder="Search and add customer groups..."
+          className="pl-9"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onFocus={() => setShowDropdown(true)}
+        />
+
+        {showDropdown && (
+          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+            {availableGroups.length > 0 ? (
+              availableGroups.map((group) => (
+                <div
+                  key={group._id}
+                  onClick={() => addGroup(group._id)}
+                  className="flex flex-col px-4 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 border-gray-100"
+                >
+                  <span className="text-sm font-medium text-gray-800">
+                    {group.groupName}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    Code: {group.groupCode}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="p-3 text-center text-sm text-gray-500">
+                {searchTerm ? "No matching groups found" : "All groups selected"}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {selectedGroupsData.length > 0 && (
+        <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <span className="text-xs text-gray-500 font-medium self-center mr-1">Selected:</span>
+          {selectedGroupsData.map((group) => (
+            <div
+              key={group._id}
+              className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs font-medium border border-blue-200"
+            >
+              {group.groupName}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeGroup(group._id);
+                }}
+                className="ml-1 hover:text-blue-900 rounded-full hover:bg-blue-200 p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// 2. GodownSelector (NEW)
+const GodownSelector: React.FC<{
+  companyId: string;
+  selectedGodownIds: string[];
+  onChange: (godownIds: string[]) => void;
+}> = ({ companyId, selectedGodownIds, onChange }) => {
+  const { godowns, fetchGodowns, loading } = useGodownStore();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (companyId) {
+      fetchGodowns(companyId);
+    }
+  }, [companyId, fetchGodowns]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+
+  const companyGodowns = godowns.filter((g) => g.company === companyId);
+  
+  const selectedGodownsData = companyGodowns.filter((g) =>
+    selectedGodownIds.includes(g._id)
+  );
+
+  const availableGodowns = companyGodowns.filter(
+    (g) =>
+      !selectedGodownIds.includes(g._id) &&
+      g.status === "active" &&
+      g.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const addGodown = (godownId: string) => {
+    onChange([...selectedGodownIds, godownId]);
+    setSearchTerm("");
+  };
+
+  const removeGodown = (godownId: string) => {
+    onChange(selectedGodownIds.filter((id) => id !== godownId));
+  };
+
+  if (loading)
+    return <p className="text-sm text-gray-500 py-2">Loading godowns...</p>;
+
+  if (companyGodowns.length === 0) {
+    return (
+      <div className="text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+        <Warehouse className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+        <p className="text-sm text-gray-500">No godowns found in this company.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3" ref={dropdownRef}>
+      <div className="relative">
+        <Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
+        <Input
+          placeholder="Search and add godowns..."
+          className="pl-9"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onFocus={() => setShowDropdown(true)}
+        />
+
+        {showDropdown && (
+          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+            {availableGodowns.length > 0 ? (
+              availableGodowns.map((godown) => (
+                <div
+                  key={godown._id}
+                  onClick={() => addGodown(godown._id)}
+                  className="flex flex-col px-4 py-2 hover:bg-orange-50 cursor-pointer border-b last:border-b-0 border-gray-100"
+                >
+                  <span className="text-sm font-medium text-gray-800">
+                    {godown.name}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    Code: {godown.code} | City: {godown.city || "N/A"}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="p-3 text-center text-sm text-gray-500">
+                {searchTerm ? "No matching godowns found" : "All godowns selected"}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {selectedGodownsData.length > 0 && (
+        <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <span className="text-xs text-gray-500 font-medium self-center mr-1">Selected:</span>
+          {selectedGodownsData.map((godown) => (
+            <div
+              key={godown._id}
+              className="flex items-center gap-1 bg-orange-100 text-orange-800 px-2 py-1 rounded-md text-xs font-medium border border-orange-200"
+            >
+              <Warehouse className="w-3 h-3 mr-1 opacity-70" />
+              {godown.name}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeGodown(godown._id);
+                }}
+                className="ml-1 hover:text-orange-900 rounded-full hover:bg-orange-200 p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- MAIN COMPONENT ---
+
+const UserManagement: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("basic");
   const [searchTerm, setSearchTerm] = useState("");
   const [searchTerm2, setSearchTerm2] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "inactive"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -188,10 +490,15 @@ export const UserManagement: React.FC = () => {
     alterOnly: { create: false, read: true, update: true, delete: false },
     noDelete: { create: true, read: true, update: true, delete: false },
   };
-
-  const [activeCompanyTab, setActiveCompanyTab] = useState<string | null>(null);
-  const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [activeCompanyTab, setActiveCompanyTab] = useState<string | null>(null);
+  
+  // State for IDs
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Record<string, string[]>>({});
+  const [selectedGodownIds, setSelectedGodownIds] = useState<Record<string, string[]>>({}); // New State
+  
+  const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -200,7 +507,7 @@ export const UserManagement: React.FC = () => {
     setSelectedUser(user);
     setIsModalOpen(true);
   };
-  const limit = 10; // Fixed limit per page
+  const limit = 10;
   const [selectedTemplates, setSelectedTemplates] = useState<{
     [companyId: string]: string;
   }>({});
@@ -220,9 +527,13 @@ export const UserManagement: React.FC = () => {
     counts
   } = useUserManagementStore();
 
+  const { groups: customerGroups, fetchGroups: fetchCustomerGroups } = useCustomerGroupStore();
+  const { godowns: companyGodowns, fetchGodowns } = useGodownStore(); // Use new store
+
   useEffect(() => {
     setFilteredUsers(users);
   }, [users]);
+
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -259,7 +570,7 @@ export const UserManagement: React.FC = () => {
           defaultSelected?._id
         );
       }
-    }, 500); // 500ms debounce time
+    }, 500);
 
     return () => {
       clearTimeout(handler);
@@ -273,7 +584,7 @@ export const UserManagement: React.FC = () => {
     defaultSelected,
   ]);
 
-  // Roles and Sub-roles (unchanged)
+  // Roles and Sub-roles
   const roles = ["Salesman", "Customer", "Admin"];
   const subRoles = {
     Salesman: ["salesman"],
@@ -288,138 +599,36 @@ export const UserManagement: React.FC = () => {
     ],
   };
 
-  // Available modules (unchanged)
+  // Available modules
   const availableModules = {
     BusinessManagement: {
-      CustomerRegistration: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
-      Vendor: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
-      Agent: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
-      Ledger: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
+      CustomerRegistration: { create: false, read: false, update: false, delete: false, extra: [] },
+      Vendor: { create: false, read: false, update: false, delete: false, extra: [] },
+      Agent: { create: false, read: false, update: false, delete: false, extra: [] },
+      Ledger: { create: false, read: false, update: false, delete: false, extra: [] },
     },
     UserManagement: {
-      User: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
+      User: { create: false, read: false, update: false, delete: false, extra: [] },
     },
     InventoryManagement: {
-      Godown: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
-      StockGroup: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
-      StockCategory: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
-      Product: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
-      Unit: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
-      Order: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
-      Payment: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
+      Godown: { create: false, read: false, update: false, delete: false, extra: [] },
+      StockGroup: { create: false, read: false, update: false, delete: false, extra: [] },
+      StockCategory: { create: false, read: false, update: false, delete: false, extra: [] },
+      Product: { create: false, read: false, update: false, delete: false, extra: [] },
+      Unit: { create: false, read: false, update: false, delete: false, extra: [] },
+      Order: { create: false, read: false, update: false, delete: false, extra: [] },
+      Payment: { create: false, read: false, update: false, delete: false, extra: [] },
     },
     Pricing: {
-      PriceList: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
-      Discount: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
+      PriceList: { create: false, read: false, update: false, delete: false, extra: [] },
+      Discount: { create: false, read: false, update: false, delete: false, extra: [] },
     },
     Reports: {
-      SalesReport: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
-      PurchaseReport: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
+      SalesReport: { create: false, read: false, update: false, delete: false, extra: [] },
+      PurchaseReport: { create: false, read: false, update: false, delete: false, extra: [] },
     },
     Order: {
-      Orders: {
-        create: false,
-        read: false,
-        update: false,
-        delete: false,
-        extra: [],
-      },
+      Orders: { create: false, read: false, update: false, delete: false, extra: [] },
     },
   };
 
@@ -440,35 +649,7 @@ export const UserManagement: React.FC = () => {
     status: "active",
     pincode: "",
   });
-  useEffect(() => {
-    if (defaultSelected) {
-      setForm((prev) => ({ ...prev, company: defaultSelected?._id }));
-    }
-  }, [defaultSelected, companies]);
 
-  useEffect(() => {
-    setForm((prev) => {
-      // Create access entries for selected companies that don't exist yet
-      const newAccess = [...prev.access];
-
-      selectedCompanies.forEach((companyId) => {
-        const exists = newAccess.find((a) => a.company === companyId);
-        if (!exists) {
-          newAccess.push({
-            company: companyId,
-            modules: {},
-          });
-        }
-      });
-
-      // Remove access entries for unselected companies
-      const filteredAccess = newAccess.filter((a) =>
-        selectedCompanies.includes(a.company)
-      );
-
-      return { ...prev, access: filteredAccess };
-    });
-  }, [selectedCompanies]);
   // Function to set all permissions
   const setAllPermissions = (enabled: boolean) => {
     setForm((prev) => ({
@@ -496,70 +677,6 @@ export const UserManagement: React.FC = () => {
     }));
   };
 
-  // Effect for role change
-  // useEffect(() => {
-  //   if (form.role === "Admin") {
-  //     setAllPermissions(true);
-  //   } else {
-  //     setAllPermissions(false);
-  //     // Set default permissions for Salesman and Customer
-  //     const defaultPermissions =
-  //       form.role === "Salesman"
-  //         ? {
-  //             // Example defaults for Salesman
-  //             BusinessManagement: {
-  //               CustomerRegistration: {
-  //                 create: true,
-  //                 read: true,
-  //                 update: true,
-  //                 delete: false,
-  //                 extra: [],
-  //               },
-  //               Vendor: {
-  //                 create: false,
-  //                 read: true,
-  //                 update: false,
-  //                 delete: false,
-  //                 extra: [],
-  //               },
-  //               // ... other defaults
-  //             },
-  //             InventoryManagement: {
-  //               Product: {
-  //                 create: false,
-  //                 read: true,
-  //                 update: false,
-  //                 delete: false,
-  //                 extra: [],
-  //               },
-  //               // ... etc
-  //             },
-  //             // Add more as needed
-  //           }
-  //         : {
-  //             // Defaults for Customer - even less
-  //             Order: {
-  //               Orders: {
-  //                 create: false,
-  //                 read: true,
-  //                 update: false,
-  //                 delete: false,
-  //                 extra: [],
-  //               },
-  //             },
-  //             // ... etc
-  //           };
-
-  //     setForm((prev) => ({
-  //       ...prev,
-  //       access: prev.access.map((access) => ({
-  //         ...access,
-  //         modules: JSON.parse(JSON.stringify(defaultPermissions)), // Deep copy
-  //       })),
-  //     }));
-  //   }
-  // }, [form.role]);
-
   // Reset form function
   const resetForm = () => {
     setForm({
@@ -577,6 +694,8 @@ export const UserManagement: React.FC = () => {
       access: companies.map((company) => ({
         company: company._id,
         modules: {},
+        customerGroups: [],
+        godowns: []
       })),
       phone: "",
       area: "",
@@ -584,7 +703,63 @@ export const UserManagement: React.FC = () => {
     });
     setEditingUser(null);
     setIsEditing(false);
+    setSelectedGroupIds({});
+    setSelectedGodownIds({}); // Reset godown IDs
   };
+
+  // Load customer groups and godowns when company is selected
+  useEffect(() => {
+    if (activeCompanyTab) {
+      fetchCustomerGroups(activeCompanyTab);
+      fetchGodowns(activeCompanyTab); // Fetch Godowns
+    }
+  }, [activeCompanyTab, fetchCustomerGroups, fetchGodowns]);
+
+  // Update form when selected groups/godowns change
+  // FIX: Added JSON stringify check to prevent infinite loop on array reference changes
+  useEffect(() => {
+    if (activeCompanyTab) {
+      const currentGroups = selectedGroupIds[activeCompanyTab] || [];
+      const currentGodowns = selectedGodownIds[activeCompanyTab] || [];
+      
+      setForm(prev => {
+        // Create new state
+        const updatedAccess = prev.access.map(a => {
+          if (a.company !== activeCompanyTab) return a;
+          
+          // Map selected IDs to objects
+          const newGroups = currentGroups.map(id => {
+            const group = customerGroups.find(g => g._id === id);
+            return group ? {
+              groupId: group._id,
+              groupName: group.groupName,
+              groupCode: group.groupCode
+            } : null;
+          }).filter(Boolean) as CustomerGroup[];
+
+          const newGodowns = currentGodowns.map(id => {
+            return companyGodowns.find(g => g._id === id) || null;
+          }).filter(Boolean) as Godown[];
+
+          return {
+            ...a,
+            customerGroups: newGroups,
+            godowns: newGodowns
+          };
+        });
+
+        // Simple check to avoid unnecessary updates if nothing changed
+        if (JSON.stringify(updatedAccess) === JSON.stringify(prev.access)) {
+            return prev;
+        }
+
+        return {
+          ...prev,
+          access: updatedAccess
+        };
+      });
+    }
+  }, [selectedGroupIds, selectedGodownIds, activeCompanyTab, customerGroups, companyGodowns]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value, type, checked } = e.target;
@@ -722,9 +897,11 @@ export const UserManagement: React.FC = () => {
       toast.error("Failed to save user. Please try again.");
     }
   };
+
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setIsEditing(true);
+    
     // ✅ Preselected company IDs
     const preselectedCompanies = user.access.map(
       (a) => a.company._id || a.company
@@ -734,6 +911,8 @@ export const UserManagement: React.FC = () => {
     const mergedAccess = user.access.map((a) => ({
       company: a.company._id || a.company,
       modules: a.modules || {},
+      customerGroups: a.customerGroups || [],
+      godowns: a.godowns || []
     }));
 
     // ✅ Build selectedCompanyData directly from user.access (already has namePrint)
@@ -741,6 +920,16 @@ export const UserManagement: React.FC = () => {
       _id: a.company._id || a.company,
       namePrint: a.company.namePrint || "Unnamed Company",
     }));
+
+    // ✅ Extract selected group IDs for each company
+    const initialGroupIds: Record<string, string[]> = {};
+    const initialGodownIds: Record<string, string[]> = {};
+
+    user.access.forEach(a => {
+      const companyId = a.company._id || a.company;
+      initialGroupIds[companyId] = a.customerGroups?.map(g => g.groupId) || [];
+      initialGodownIds[companyId] = a.godowns?.map(g => g._id) || [];
+    });
 
     // ✅ Set form data
     setForm({
@@ -751,18 +940,20 @@ export const UserManagement: React.FC = () => {
       subRole: user.subRole,
       allPermissions: user.allPermissions,
       parent: user.parent,
-      clientAgent: user.clientAgent,
+      clientID: user.clientID,
       company: user.company || "",
       access: mergedAccess,
       phone: user.phone || "",
       area: user.area || "",
       pincode: user.pincode || "",
-      status: user.status,
+      status: user.status || "active",
     });
 
     // ✅ Update company selections for permission tab
     setSelectedCompanies(preselectedCompanies);
     setSelectedCompanyData(selectedCompanyData);
+    setSelectedGroupIds(initialGroupIds);
+    setSelectedGodownIds(initialGodownIds); // Set Godown IDs
     setActiveCompanyTab(preselectedCompanies[0] || "");
 
     // ✅ Open modal and go to Basic tab
@@ -793,8 +984,7 @@ export const UserManagement: React.FC = () => {
   const stats = useMemo(
     () => ({
       totalUsers: pagination.total,
-      activeUsers:
-        counts?.activeUsers,
+      activeUsers: counts?.activeUsers,
       adminUsers: counts?.adminCount,
       salesUsers: counts?.salesmanCount,
       customerUsers: counts?.customerCount,
@@ -899,7 +1089,9 @@ export const UserManagement: React.FC = () => {
   const handleCloseModal = () => {
     setSelectedCompanies([]);
     setSelectedCompanyData([]);
-    setSelectedTemplates([]);
+    setSelectedTemplates({});
+    setSelectedGroupIds({});
+    setSelectedGodownIds({});
     resetForm();
     setOpen(false);
     setActiveTab("basic");
@@ -942,11 +1134,13 @@ export const UserManagement: React.FC = () => {
       </div>
     </div>
   );
+
   useEffect(() => {
     return () => {
       initialLoading();
     };
   }, []);
+
   return (
     <div className="custom-container ">
       {/* Header */}
@@ -1172,11 +1366,6 @@ export const UserManagement: React.FC = () => {
 
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          {/* <Switch
-                            checked={user.status === "active"}
-                            onCheckedChange={() => handleToggleStatus(user.id)}
-                            className="data-[state=checked]:bg-green-500"
-                          /> */}
                           <Badge
                             variant={
                               user.status === "active" ? "default" : "secondary"
@@ -1288,9 +1477,6 @@ export const UserManagement: React.FC = () => {
                   return;
                 }
               }
-
-              // (optional) You can add similar validation for later steps
-              // if (activeTab === "permissions") { ... }
 
               setActiveTab(nextTab);
             }}
@@ -1489,7 +1675,7 @@ export const UserManagement: React.FC = () => {
                               .filter(
                                 (company) =>
                                   !selectedCompanies.includes(company._id)
-                              ) // 👈 hides already-selected ones
+                              )
                               .map((company) => {
                                 return (
                                   <div
@@ -1579,12 +1765,12 @@ export const UserManagement: React.FC = () => {
                           </label>
                           <select
                             className="border border-teal-300 rounded-lg p-2 text-sm"
-                            value={selectedTemplates[activeCompanyTab] || ""} // 👈 this keeps it in sync
+                            value={selectedTemplates[activeCompanyTab] || ""}
                             onChange={(e) => {
                               const templateName = e.target.value;
                               setSelectedTemplates((prev) => ({
                                 ...prev,
-                                [activeCompanyTab]: templateName, // 👈 remember selection for that company
+                                [activeCompanyTab]: templateName,
                               }));
 
                               const selectedTemplate =
@@ -1633,6 +1819,72 @@ export const UserManagement: React.FC = () => {
                               Full Access except Delete
                             </option>
                           </select>
+                        </div>
+
+                        {/* Customer Groups Section */}
+                        <div className="bg-white p-4 rounded-lg border border-blue-200 mb-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-lg font-semibold text-blue-700">
+                              Customer Groups Access
+                            </h3>
+                          </div>
+
+                          <div className="space-y-2">
+                            <CustomerGroupSelector
+                              companyId={activeCompanyTab}
+                              selectedGroupIds={selectedGroupIds[activeCompanyTab] || []}
+                              onChange={(groupIds) => {
+                                setSelectedGroupIds(prev => ({
+                                  ...prev,
+                                  [activeCompanyTab]: groupIds
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {(selectedGroupIds[activeCompanyTab] || []).length > 0 && (
+                            <div className="mt-3 p-3 bg-blue-100 rounded-lg">
+                              <p className="text-sm text-blue-700">
+                                <strong>Note:</strong> User will have access only to customers in the selected groups.
+                                {(selectedGroupIds[activeCompanyTab] || []).length === 0 
+                                  ? " Leave empty for all groups access."
+                                  : ""}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Godown Access Section (NEW) */}
+                        <div className="bg-white p-4 rounded-lg border border-orange-200 mb-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-lg font-semibold text-orange-700">
+                              Godown Access
+                            </h3>
+                          </div>
+
+                          <div className="space-y-2">
+                            <GodownSelector
+                              companyId={activeCompanyTab}
+                              selectedGodownIds={selectedGodownIds[activeCompanyTab] || []}
+                              onChange={(godownIds) => {
+                                setSelectedGodownIds(prev => ({
+                                  ...prev,
+                                  [activeCompanyTab]: godownIds
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {(selectedGodownIds[activeCompanyTab] || []).length > 0 && (
+                            <div className="mt-3 p-3 bg-orange-100 rounded-lg">
+                              <p className="text-sm text-orange-700">
+                                <strong>Note:</strong> User will have access only to selected godowns.
+                                {(selectedGodownIds[activeCompanyTab] || []).length === 0 
+                                  ? " Leave empty for all godown access."
+                                  : ""}
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                         <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -1917,6 +2169,7 @@ export const UserManagement: React.FC = () => {
                 />
               </div>
             )}
+
             {/* Settings Tab */}
             {activeTab === "settings" && (
               <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
@@ -1979,6 +2232,18 @@ export const UserManagement: React.FC = () => {
                               </div>
                             )
                           )}
+                          {access.customerGroups && access.customerGroups.length > 0 && (
+                            <div>
+                              <strong>Customer Groups:</strong>{" "}
+                              {access.customerGroups.map(g => g.groupName).join(", ")}
+                            </div>
+                          )}
+                          {access.godowns && access.godowns.length > 0 && (
+                            <div>
+                              <strong>Godowns:</strong>{" "}
+                              {access.godowns.map(g => g.name).join(", ")}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2008,75 +2273,3 @@ export const UserManagement: React.FC = () => {
 };
 
 export default UserManagement;
-
-{
-  /* <div className="grid grid-cols-3 gap-3 w-full max-w-2xl mx-auto mt-4">
-                          {(() => {
-                            let totalPermissions = 0;
-                            let enabledPermissions = 0;
-
-                            Object.entries(availableModules).forEach(
-                              ([moduleKey, subModules]) => {
-                                Object.entries(subModules).forEach(
-                                  ([subModuleKey]) => {
-                                    const perms = [
-                                      "create",
-                                      "read",
-                                      "update",
-                                      "delete",
-                                    ];
-                                    totalPermissions += perms.length;
-                                    perms.forEach((permType) => {
-                                      if (
-                                        getPermissionForCompany(
-                                          activeCompanyTab,
-                                          moduleKey,
-                                          subModuleKey,
-                                          permType
-                                        )
-                                      ) {
-                                        enabledPermissions++;
-                                      }
-                                    });
-                                  }
-                                );
-                              }
-                            );
-
-                            const percent =
-                              totalPermissions > 0
-                                ? Math.round(
-                                    (enabledPermissions / totalPermissions) *
-                                      100
-                                  )
-                                : 0;
-
-                            const statBoxes = [
-                              {
-                                label: "Total Permissions",
-                                value: totalPermissions,
-                              },
-                              { label: "Enabled", value: enabledPermissions },
-                              { label: "Progress", value: `${percent}%` },
-                            ];
-
-                            return (
-                              <>
-                                {statBoxes.map((stat) => (
-                                  <div
-                                    key={stat.label}
-                                    className="flex flex-col items-center justify-center bg-gradient-to-b from-teal-50 to-white border border-teal-300 rounded-xl shadow-sm p-3 text-center transition-all duration-200 hover:shadow-md"
-                                  >
-                                    <span className="text-xs font-medium text-teal-600">
-                                      {stat.label}
-                                    </span>
-                                    <span className="text-lg font-bold text-teal-700 mt-1">
-                                      {stat.value}
-                                    </span>
-                                  </div>
-                                ))}
-                              </>
-                            );
-                          })()}
-                        </div> */
-}

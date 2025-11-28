@@ -1,8 +1,11 @@
 // Updated useCustomerStore with pagination and filter support
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import api from "../src/api/api";
 import { toast } from "sonner";
+
+// --- Interfaces ---
+
 interface Bank {
   id: number;
   accountHolderName: string;
@@ -29,7 +32,7 @@ interface Pagination {
   totalPages: number;
 }
 
-interface Customer {
+export interface Customer {
   id: number;
   _id?: string;
   customerType?: string;
@@ -101,87 +104,20 @@ interface Customer {
   allowPartialShipments: boolean;
   allowBackOrders: boolean;
   autoInvoice: boolean;
-  logo: string | null; // Will handle as previewUrl or file
+  logo: string | null;
   notes: string;
   createdAt: string;
   registrationDocs: RegistrationDocument[];
   isDeleted: boolean;
 }
 
-interface CustomerForm {
-  customerType?: string;
-  customerCode?: string;
-  code: string;
-  customerName: string;
-  shortName: string;
-  customerGroup: string;
-  industryType: string;
-  territory: string;
-  salesPerson: string;
-  customerStatus: string;
-  companySize: string;
-  contactPerson: string;
-  designation: string;
-  phoneNumber: string;
-  mobileNumber: string;
-  emailAddress: string;
-  faxNumber: string;
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  website: string;
-  currency: string;
-  priceList: string;
-  paymentTerms: string;
-  creditLimit: string;
-  creditDays: string;
-  discount: string;
-  agent: string;
-  isFrozenAccount: boolean;
-  disabled: boolean;
-  allowZeroValuation: boolean;
-  taxId: string;
-  vatNumber: string;
-  gstNumber: string;
-  panNumber: string;
-  tanNumber: string;
-  taxCategory: string;
-  taxTemplate: string;
-  withholdingTaxCategory: string;
-  msmeRegistration: string;
-  isTaxExempt: boolean;
-  reverseCharge: boolean;
-  exportCustomer: boolean;
-  bankName: string;
-  branchName: string;
-  accountNumber: string;
-  accountHolderName: string;
-  ifscCode: string;
-  swiftCode: string;
-  preferredPaymentMethod: string;
-  acceptedPaymentMethods: string[];
-  creditCardDetails: string;
-  paymentInstructions: string;
-  approvalWorkflow: string;
-  creditLimitApprover: string;
-  documentRequired: string;
-  externalSystemId: string;
-  crmIntegration: string;
-  dataSource: string;
-  customerPriority: string;
-  leadSource: string;
-  internalNotes: string;
-  allowPartialShipments: boolean;
-  allowBackOrders: boolean;
-  autoInvoice: boolean;
-  banks: Bank[];
-  logoFile?: File; // For logo upload
-  logoPreviewUrl?: string;
-  notes: string;
-  registrationDocs: RegistrationDocument[];
+// Interface for API responses involving counts
+interface CustomerCounts {
+  gstRegistered: number;
+  msmeRegistered: number;
+  activeCustomers: number;
+  vatRegistered: number;
+  [key: string]: number;
 }
 
 interface CustomerStore {
@@ -189,27 +125,37 @@ interface CustomerStore {
   pagination: Pagination;
   loading: boolean;
   error: boolean;
-  counts: any;
+  counts: CustomerCounts | null;
   errorMessage: string | null;
-  companyId?: number | string;
+  
+  // Actions
   fetchCustomers: (
     page?: number,
     limit?: number,
-    companyId?: number | string
+    companyId?: number | string,
+    isCustomer?: boolean
   ) => Promise<void>;
+
   addCustomer: (customer: FormData) => Promise<void>;
+  
   updateCustomer: (params: { id: string; customer: FormData }) => Promise<void>;
+  
   deleteCustomer: (id: string) => Promise<void>;
+  
   filterCustomers: (
     searchTerm: string,
     statusFilter: "all" | "active" | "inactive" | "suspended" | "prospect",
     sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
     page?: number,
     limit?: number,
-    companyId?: number | string
+    companyId?: number | string,
+    isCustomer?: boolean
   ) => Promise<Customer[]>;
+  
   initialLoading: () => void;
 }
+
+// --- Store Implementation ---
 
 export const useCustomerStore = create<CustomerStore>()(
   persist(
@@ -225,20 +171,27 @@ export const useCustomerStore = create<CustomerStore>()(
       error: false,
       errorMessage: null,
       counts: null,
-      fetchCustomers: async (page = 1, limit = 10, companyId?:string|number) => {
-        console.log(companyId,"dddddddddddddd")
+
+      fetchCustomers: async (page = 1, limit = 10, companyId, isCustomer = false) => {
         set({ loading: true, error: false });
         try {
-          const queryParams = new URLSearchParams({
+          // URLSearchParams requires strings
+          const params: Record<string, string> = {
             page: page.toString(),
             limit: limit.toString(),
-          });
+            isCustomer: String(isCustomer), // Explicit string conversion
+          };
+          console.log(params,"params")
+
+          const queryParams = new URLSearchParams(params);
+
           const result = await api.fetchCustomers(
-            { companyId: companyId},
+            { companyId },
             {
               queryParams: queryParams.toString(),
             }
-          ); // Adjust api call
+          );
+
           set({
             customers: result?.data?.customers || [],
             pagination: result?.data?.pagination,
@@ -283,7 +236,7 @@ export const useCustomerStore = create<CustomerStore>()(
 
           set({
             customers: get().customers.map((c) => {
-              return c?.["_id"] == id ? result?.data : c;
+              return c?.["_id"] === id ? result?.data : c;
             }),
             loading: false,
           });
@@ -324,31 +277,40 @@ export const useCustomerStore = create<CustomerStore>()(
       },
 
       filterCustomers: async (
-        searchTerm: string,
-        statusFilter: "all" | "active" | "inactive" | "suspended" | "prospect",
-        sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
+        searchTerm,
+        statusFilter,
+        sortBy,
         page = 1,
         limit = 10,
-        companyId?: string
+        companyId,
+        isCustomer = false
       ) => {
         try {
           set({ loading: true, error: false });
+          console.log(isCustomer,"isCustomer")
+          
 
-          const queryParams = new URLSearchParams({
+          const params: Record<string, string> = {
             search: searchTerm,
             status: statusFilter !== "all" ? statusFilter : "",
             sortBy: sortBy.includes("name") ? "customerName" : "createdAt",
             sortOrder: sortBy.includes("Desc") ? "desc" : "asc",
             page: page.toString(),
             limit: limit.toString(),
-          });
+            isCustomer: String(isCustomer),
+          };
+
+          const queryParams = new URLSearchParams(params);
+          console.log(queryParams,"queryParamsnnn")
+
 
           const result = await api.fetchCustomers(
             { companyId },
             {
               queryParams: queryParams.toString(),
             }
-          ); // Adjust api call
+          );
+
           set({
             customers: result?.data?.customers || [],
             pagination: result?.data?.pagination,
@@ -367,11 +329,12 @@ export const useCustomerStore = create<CustomerStore>()(
           return [];
         }
       },
+
       initialLoading: () => set({ loading: true, error: false }),
     }),
     {
       name: "customer-storage",
-      getStorage: () => localStorage,
+      storage: createJSONStorage(() => localStorage), // Updated for newer Zustand versions, falls back to getStorage if strictly needed
       partialize: (state) => ({
         customers: state.customers,
         counts: state.counts,

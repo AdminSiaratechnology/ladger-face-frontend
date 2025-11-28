@@ -138,7 +138,7 @@ export default function OrderManagement() {
   }, [defaultSelected]);
 
   useEffect(() => {
-    filterCustomers("", "all", "nameAsc", 1, 100, defaultSelected?._id);
+    filterCustomers("", "all", "nameAsc", 1, 100, defaultSelected?._id,true);
   }, [filterCustomers]);
   // Fetch orders with filters and pagination
   const fetchFilteredOrders = useCallback(

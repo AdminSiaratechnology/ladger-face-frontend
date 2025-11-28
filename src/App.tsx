@@ -16,6 +16,7 @@ import { checkPermission } from "./lib/utils";
 import Login from "./components/pages/Login";
 import AdminDashboard from "./components/pages/AdminDashboard";
 import UserManagement from "./components/pages/UserManagement";
+// import UserManagement from "./components/user-management/UserManagement";
 import InventoryManagement from "./components/pages/InventoryManagement";
 import OrderManagement from "./components/pages/OrderManagement";
 import Order from "./components/pages/OrderPage";
@@ -41,6 +42,7 @@ import CheckoutPage from "./components/pages/CheckoutPage";
 import AuditLogs from "./components/pages/AuditLogs";
 import RestoreDeletedPage from "./components/pages/RestoreDeletedPage";
 import ProfilePage from "./components/pages/ProfilePage";
+import CustomerGroupManagement from "./components/pages/CustomerGroupManagement"
 
 // Unauthorized Access Page
 function UnauthorizedAccess() {
@@ -281,6 +283,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <CustomerRegistration />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer-group-management"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CustomerGroupManagement />
                 </AppLayout>
               </ProtectedRoute>
             }
