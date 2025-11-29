@@ -1473,39 +1473,23 @@ const AgentRegistrationPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Supervisor
-                    </label>
-                    <select
-                      value={formData.supervisor}
-                      onChange={(e) =>
-                        handleSelectChange("supervisor", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Supervisor</option>
-                      <option value="john">John Smith</option>
-                      <option value="jane">Jane Doe</option>
-                      <option value="mike">Mike Johnson</option>
-                    </select>
-                  </div>
+                      <CustomInputBox
+                    label="Supervisor"
+                    placeholder="Supervisor"
+                    name="John"
+                    value={formData.supervisor}
+                    onChange={handleChange}
+                  />
+                         <CustomInputBox
+                    label=" Agent Category"
+                    placeholder="agentCategory"
+                    name="supervisor"
+                    value={formData.agentCategory}
+                    onChange={handleChange}
+                  />
+              
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Agent Status
-                    </label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) =>
-                        handleSelectChange("status", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
+               
 
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1527,43 +1511,24 @@ const AgentRegistrationPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
-                      Agent Category
+                      Agent Status
                     </label>
                     <select
-                      value={formData.agentCategory}
+                      value={formData.status}
                       onChange={(e) =>
-                        handleSelectChange("agentCategory", e.target.value)
+                        handleSelectChange("status", e.target.value)
                       }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
-                      <option value="">Select Agent Category</option>
-                      <option value="sales">Sales Agent</option>
-                      <option value="procurement">Procurement Agent</option>
-                      <option value="broker">Broker</option>
-                      <option value="independent">Independent Agent</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
                     </select>
                   </div>
+             
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Territory
-                    </label>
-                    <select
-                      value={formData.territory}
-                      onChange={(e) =>
-                        handleSelectChange("territory", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Territory</option>
-                      <option value="north">North</option>
-                      <option value="south">South</option>
-                      <option value="east">East</option>
-                      <option value="west">West</option>
-                    </select>
-                  </div>
+              
                 </div>
                 <CustomStepNavigation
                   currentStep={1}
@@ -2194,48 +2159,10 @@ const AgentRegistrationPage: React.FC = () => {
                     </select>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Lead Source
-                    </label>
-                    <select
-                      value={formData.leadSource}
-                      onChange={(e) =>
-                        handleSelectChange("leadSource", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Lead Source</option>
-                      <option value="referral">Referral</option>
-                      <option value="recruitment">Recruitment Agency</option>
-                      <option value="direct">Direct Application</option>
-                      <option value="social_media">Social Media</option>
-                    </select>
-                  </div>
+               
                 </div>
 
-                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="isTaxExempt"
-                      checked={formData.isTaxExempt}
-                      onChange={handleChange}
-                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
-                    />
-                    Tax Exempt
-                  </label>
-                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="reverseCharge"
-                      checked={formData.reverseCharge}
-                      onChange={handleChange}
-                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
-                    />
-                    Reverse Charge
-                  </label>
-                </div> */}
+          
 
                 <div className="mb-6">
                   <p className="text-sm font-semibold text-gray-700 mb-2">

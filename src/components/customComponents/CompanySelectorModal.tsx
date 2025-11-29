@@ -57,6 +57,8 @@ const CompanySelectorModal = ({
           nameStreet: a.company.nameStreet,
           logo: a.company.logo,
           code: a.company.code,
+          maintainAgent:a?.company?.maintainAgent|| false,
+
         }));
 
       setFilteredCompanies(accessibleCompanies);

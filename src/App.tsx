@@ -136,7 +136,7 @@ export default function App() {
           <Route
             path="/"
             element={
-              <ProtectedRoute allowedRoles={["admin", "agent", "salesman","client"]}>
+              <ProtectedRoute allowedRoles={["admin", "agent", "salesman","client"]} module="Deshboard" subModule="Deshboard">
                 <AppLayout>
                   <AdminDashboard />
                 </AppLayout>
