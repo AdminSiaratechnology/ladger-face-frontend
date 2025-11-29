@@ -16,7 +16,7 @@ export default function Dashboard() {
     );
   }
 
-  if (role === "Admin") return <AdminDashboard />;
+  if (role === "Admin" || role==="Client") return <AdminDashboard />;
   if (role === "Salesman") return <SalesmanDashboard />;
   if (role === "Customer") return <CustomerDashboard />;
 

@@ -89,16 +89,12 @@ interface SubMenuItem {
 //   return false;
 // }
 // ✅ Updated checkPermission
-function checkPermission(user: any, companyId: string, module: string, subModule: string) {
+function checkPermission(user: any, companyId: string, module: string, subModule: string,defaultSelected:any) {
   if (!user) return false;
-  if (user.allPermissions) return {
-    create: true,
-    read: true,
-    update: true,
-    delete: true,
-    extra: []
-  };
+
   if (!user.access || user.access.length === 0) return false;
+  console.log(defaultSelected,"defaultSelected",module,subModule,defaultSelected?.maintainAgent)
+
 
   // Find access entry for selected company
   const companyAccess = user.access.find(
@@ -109,6 +105,22 @@ function checkPermission(user: any, companyId: string, module: string, subModule
   const modules = companyAccess.modules;
   const hasModule = modules?.[module];
   const hasSubModule = hasModule?.[subModule];
+  console.log(module,subModule,defaultSelected?.maintainAgent,"hhhhhhhhhhhhhh")
+    if(module=="BusinessManagement" && subModule=="Agent" && !defaultSelected?.maintainAgent ) {
+      console.log("hiiiiii"
+      )
+   
+      return false
+
+  }
+    if (user.allPermissions) return {
+    create: true,
+    read: true,
+    update: true,
+    delete: true,
+    extra: []
+  };
+  
 
   // If submodule exists → return its permissions
   if (hasSubModule) {
@@ -133,8 +145,15 @@ function checkPermission(user: any, companyId: string, module: string, subModule
 
 
 // ✅ Updated hasMenuAccess
-function hasMenuAccess(user: any, companyId: string, item: MenuItem | SubMenuItem) {
+function hasMenuAccess(user: any, companyId: string, item: MenuItem | SubMenuItem,defaultSelected:any) {
   if (!user) return false;
+     if(item?.module=="BusinessManagement" && item?.subModule=="Agent" && !defaultSelected?.maintainAgent ) {
+      console.log("hiiiiii"
+      )
+   
+      return false
+
+  }
   if(user.allPermissions) return true
 
   // Accordions always visible (filtered subItems will decide visibility)
@@ -142,7 +161,7 @@ function hasMenuAccess(user: any, companyId: string, item: MenuItem | SubMenuIte
 
   // Module-based permissions
   if (item.module && item.subModule) {
-    return checkPermission(user, companyId, item.module, item.subModule);
+    return checkPermission(user, companyId, item.module, item.subModule,defaultSelected);
   }
 
   // Role-based fallback
@@ -405,11 +424,11 @@ console.log(menuItems)
  const companyId = defaultSelected?._id;
 
 const filteredMenuItems = menuItems
-  .filter((item) => user && hasMenuAccess(user, companyId, item) || item.label === "Dashboard")
+  .filter((item) => user && hasMenuAccess(user, companyId, item,defaultSelected) || item.label === "Dashboard")
   .map((item) => { 
     if (item.type === "accordion" && item.subItems) {
       const filteredSubItems = item.subItems.filter((sub) =>
-        hasMenuAccess(user, companyId, sub)
+        hasMenuAccess(user, companyId, sub,defaultSelected)
       );
       return { ...item, subItems: filteredSubItems };
     }

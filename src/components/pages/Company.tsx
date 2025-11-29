@@ -113,7 +113,8 @@ interface Company {
   registrationDocs: RegistrationDocument[];
   brandingImages?: BrandingImage[];
   status: "active" | "inactive";
-  autoApprove: boolean;
+  autoApprove?: boolean;
+  maintainAgent?:boolean
 }
 // Form interface (updated with brandingImages)
 interface CompanyForm {
@@ -153,6 +154,7 @@ interface CompanyForm {
   closingQuantityOrder?: boolean;
   negativeOrder?: boolean;
   autoApprove?: boolean;
+  maintainAgent?:boolean;
 }
 // Registration document interface (unchanged)
 interface RegistrationDocument {
@@ -265,6 +267,7 @@ const CompanyPage: React.FC = () => {
     closingQuantityOrder: false,
     negativeOrder: false,
     autoApprove: false,
+    maintainAgent:false
   });
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -685,6 +688,7 @@ const CompanyPage: React.FC = () => {
       closingQuantityOrder: false,
       negativeOrder: false,
       autoApprove: false,
+      maintainAgent:false
     });
     setEditingCompany(null);
     setActiveTab("basic");
@@ -2122,6 +2126,13 @@ ${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
                       checked={formData.autoApprove}
                       onChange={(value) =>
                         handleCheckSelectChange("autoApprove", value)
+                      }
+                    />
+                    <ToggleSwitch
+                      title="Maintain Agent"
+                      checked={formData.maintainAgent}
+                      onChange={(value) =>
+                        handleCheckSelectChange("maintainAgent", value)
                       }
                     />
                   </div>
