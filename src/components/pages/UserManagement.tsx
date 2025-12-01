@@ -899,6 +899,11 @@ const UserManagement: React.FC = () => {
   };
 
   const handleEditUser = (user: User) => {
+if(user.role=="Client"){
+  toast.error("Access denied: Only Administrators can modify client details.")
+  return
+}
+
     setEditingUser(user);
     setIsEditing(true);
     
