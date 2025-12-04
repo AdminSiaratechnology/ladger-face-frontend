@@ -162,6 +162,7 @@ interface LedgerStore {
     page?: number,
     limit?: number
   ) => Promise<Ledger[]>;
+  getLedgerById : (id: string) => Promise<Ledger>;
   initialLoading: () => void;
 }
 
@@ -311,6 +312,24 @@ export const useLedgerStore = create<LedgerStore>()(
         }
       },
 
+      getLedgerById: async (id) => {
+        set({ loading: true, error: false });
+        try {
+          const result = await api.getLedgerById(id);
+          set({
+            ledger: result?.data,
+            loading: false,
+          });
+          return result?.data;
+        } catch (error: any) {
+          set({
+            loading: false,
+            error: true,
+            errorMessage: error?.response?.data?.message || "Failed to fetch ledger",
+          });
+          return null;
+        }
+      },
       initialLoading: () => {
         set({ loading: true });
       },
