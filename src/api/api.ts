@@ -998,7 +998,7 @@ const api = {
   orderReport,
   paymentReport,
   customerWiseReport,
-  productWiseReport
+  productWiseReport,
   fetchTemplates,
   getLedgerById,
   createTemplate,
