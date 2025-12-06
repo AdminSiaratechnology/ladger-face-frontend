@@ -301,7 +301,6 @@ const TemplateCardView = ({
   );
 };
 
-// Loading skeleton for card view
 const CardViewSkeleton = () => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -872,19 +871,18 @@ export default function TemplateManagement() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-    }, 500); // 500ms delay
+    }, 500);
 
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  // Fetch templates when page, company, or filters change
   useEffect(() => {
     if (!defaultSelected?._id) return;
 
     fetchTemplates({
       page: currentPage,
       limit: 10,
-      searchTerm: debouncedSearch, // if using debounced search
+      searchTerm: debouncedSearch,
       sortBy,
       statusFilter,
       companyId: defaultSelected._id,
@@ -892,26 +890,23 @@ export default function TemplateManagement() {
   }, [
     currentPage,
     defaultSelected,
-    debouncedSearch, // include if search input exists
+    debouncedSearch, 
     sortBy,
     statusFilter,
   ]);
 
-  // Reset form when dialog closes
   useEffect(() => {
     if (!isDialogOpen) {
       resetForm();
     }
   }, [isDialogOpen]);
 
-  // Reset preview when preview dialog closes
   useEffect(() => {
     if (!isPreviewDialogOpen) {
       setPreviewTemplate(null);
     }
   }, [isPreviewDialogOpen]);
 
-  // Reset delete dialog when it closes
   useEffect(() => {
     if (!isDeleteDialogOpen) {
       setTemplateToDelete(null);
@@ -941,15 +936,15 @@ export default function TemplateManagement() {
           ...(template.layout || {}),
         },
         ledgers: [
-        ...(template.ledgers || []),
-        {
-          ledgerId: "",
-          ledgerName: "",
-          condition: "autoCalculated",
-          amount: 0,
-          serialNo: (template.ledgers?.length || 0) + 1,
-        },
-      ],
+          ...(template.ledgers || []),
+          {
+            ledgerId: "",
+            ledgerName: "",
+            condition: "autoCalculated",
+            amount: 0,
+            serialNo: (template.ledgers?.length || 0) + 1,
+          },
+        ],
       };
 
       setEditingTemplate(template);
@@ -1010,9 +1005,9 @@ export default function TemplateManagement() {
       await fetchTemplates({
         page: currentPage,
         limit: 10,
-        searchTerm: "", // empty search
+        searchTerm: "",
         sortBy,
-        statusFilter: "all", // all statuses
+        statusFilter: "all",
         companyId: defaultSelected?._id,
       });
     } catch (err: any) {
@@ -1053,7 +1048,6 @@ export default function TemplateManagement() {
     const newLedgers = [...formState.ledgers];
     newLedgers[index] = { ...newLedgers[index], ...ledger };
 
-    // If ledgerId is selected, get the ledger name
     if (ledger.ledgerId && ledger.ledgerId !== newLedgers[index].ledgerId) {
       const selectedLedger = ledgers.find((l) => l._id === ledger.ledgerId);
       if (selectedLedger) {
@@ -1067,7 +1061,6 @@ export default function TemplateManagement() {
   const removeLedger = (index: number) => {
     const newLedgers = [...formState.ledgers];
     newLedgers.splice(index, 1);
-    // Update serial numbers after removal
     const updatedLedgers = newLedgers.map((ledger, idx) => ({
       ...ledger,
       serialNo: idx + 1,
@@ -1103,7 +1096,6 @@ export default function TemplateManagement() {
         newLedgers[index],
       ];
     }
-    // Update serial numbers after moving
     const updatedLedgers = newLedgers.map((ledger, idx) => ({
       ...ledger,
       serialNo: idx + 1,
@@ -1128,7 +1120,6 @@ export default function TemplateManagement() {
     { id: "layout", label: "Layout & Print" },
   ];
 
-  // Define step icons
   const stepIcons = {
     general: <Settings className="w-3 h-3" />,
     ledgers: <CreditCard className="w-3 h-3" />,
@@ -1161,7 +1152,6 @@ export default function TemplateManagement() {
           <DialogContent
             className="custom-dialog-container max-w-4xl"
             onInteractOutside={(e) => {
-              // Prevent closing when clicking outside if loading
               if (isLoading) {
                 e.preventDefault();
               }
@@ -1178,7 +1168,6 @@ export default function TemplateManagement() {
               />
             </DialogHeader>
 
-            {/* MultiStep Navigation */}
             <div className="mb-6">
               <MultiStepNav
                 steps={steps}
@@ -1195,7 +1184,6 @@ export default function TemplateManagement() {
             </div>
 
             <ScrollArea className="h-[60vh] pr-4" ref={containerRef}>
-              {/* General Step */}
               <div
                 className={`space-y-6 py-4 ${
                   activeTab !== "general" ? "hidden" : ""
@@ -1227,19 +1215,39 @@ export default function TemplateManagement() {
                           name="applicableFrom"
                           label="Applicable From"
                           value={formState.applicableFrom}
-                          onChange={(e) =>
-                            setFormState({
-                              ...formState,
-                              applicableFrom: e.target.value,
-                            })
-                          }
+                          onChange={(e) => {
+                            const newFrom = e.target.value;
+
+                            setFormState((prev) => {
+                              let updatedTo = prev.applicableTo;
+
+                              if (
+                                updatedTo &&
+                                new Date(updatedTo) < new Date(newFrom)
+                              ) {
+                                updatedTo = "";
+                              }
+
+                              return {
+                                ...prev,
+                                applicableFrom: newFrom,
+                                applicableTo: updatedTo,
+                              };
+                            });
+                          }}
                         />
                       </div>
+
                       <div className="space-y-3">
                         <DatePickerField
                           name="applicableTo"
                           label="Applicable To"
                           value={formState.applicableTo}
+                          minDate={
+                            formState.applicableFrom
+                              ? new Date(formState.applicableFrom)
+                              : new Date()
+                          }
                           onChange={(e) =>
                             setFormState({
                               ...formState,
@@ -1288,7 +1296,6 @@ export default function TemplateManagement() {
                 </Card>
               </div>
 
-              {/* Ledgers Step */}
               <div
                 className={`space-y-6 py-4 ${
                   activeTab !== "ledgers" ? "hidden" : ""
@@ -1297,7 +1304,6 @@ export default function TemplateManagement() {
                 <Card>
                   <CardContent className="p-0">
                     <div className="rounded-md border overflow-hidden">
-                      {/* Header */}
                       <div className="grid grid-cols-12 gap-4 p-4 bg-gray-100 border-b font-medium text-sm text-gray-700">
                         <div className="col-span-1">S.no.</div>
                         <div className="col-span-4">Ledger</div>
@@ -1306,19 +1312,16 @@ export default function TemplateManagement() {
                         <div className="col-span-2 text-center">Actions</div>
                       </div>
 
-                      {/* Rows */}
                       <div className="divide-y">
                         {formState.ledgers.map((ledger, index) => (
                           <div
                             key={index}
                             className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-gray-50 transition"
                           >
-                            {/* SN */}
                             <div className="col-span-1 font-medium text-gray-700">
                               {index + 1}
                             </div>
 
-                            {/* Ledger Select */}
                             <div className="col-span-4">
                               <SelectBasedLedger
                                 value={ledger.ledgerId}
@@ -1348,7 +1351,6 @@ export default function TemplateManagement() {
                               />
                             </div>
 
-                            {/* Condition Select */}
                             <div className="col-span-3">
                               <Select
                                 value={ledger.condition}
@@ -1373,16 +1375,18 @@ export default function TemplateManagement() {
                               </Select>
                             </div>
 
-                            {/* Amount Input */}
                             <div className="col-span-2">
                               <Input
                                 type="number"
                                 min="0"
                                 step="1"
-                                value={ledger.amount}
+                                value={ledger.amount === 0 ? "" : ledger.amount}
                                 onChange={(e) =>
                                   updateLedger(index, {
-                                    amount: parseFloat(e.target.value) || 0,
+                                    amount:
+                                      e.target.value === ""
+                                        ? ""
+                                        : parseFloat(e.target.value),
                                   })
                                 }
                                 disabled={ledger.condition === "autoCalculated"}
@@ -1395,7 +1399,6 @@ export default function TemplateManagement() {
                               />
                             </div>
 
-                            {/* Actions */}
                             <div className="col-span-2 flex justify-center">
                               <Button
                                 variant="ghost"
@@ -1411,7 +1414,6 @@ export default function TemplateManagement() {
                       </div>
                     </div>
 
-                    {/* Auto Calc Note */}
                     {formState.ledgers.some(
                       (l) => l.condition === "autoCalculated"
                     ) && (
@@ -1425,7 +1427,6 @@ export default function TemplateManagement() {
                 </Card>
               </div>
 
-              {/* Layout & Print Step */}
               <div
                 className={`space-y-6 py-4 ${
                   activeTab !== "layout" ? "hidden" : ""
@@ -1433,7 +1434,6 @@ export default function TemplateManagement() {
               >
                 <Card>
                   <CardContent className="p-6 space-y-6">
-                    {/* Header + Footer */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">
@@ -1682,7 +1682,6 @@ export default function TemplateManagement() {
               </div>
             </ScrollArea>
 
-            {/* Step Navigation */}
             <div className="mt-2">
               <CustomStepNavigation
                 currentStep={
@@ -1893,7 +1892,6 @@ export default function TemplateManagement() {
         </div>
       )}
 
-      {/* Preview Dialog */}
       <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
         <DialogContent className="custom-dialog-container">
           <DialogHeader className="flex-shrink-0">
@@ -1919,7 +1917,6 @@ export default function TemplateManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
