@@ -846,6 +846,42 @@ const deleteCustomerGroup = async (groupId: string) => {
   const res = await apiClient.delete(`/customer-group/delete/${groupId}`);
   return res.data;
 };
+const orderReport =async(params: URLSearchParams | string)=>{
+  try {
+       const res = await apiClient.get(`/order/report?${params.toString()}`)
+       return res.data
+
+  } catch (error) {
+    throw error
+  }
+
+}
+const paymentReport = async (params: string) => {
+  try {
+    const res = await apiClient.get(`/payment/report?${params}`);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+const customerWiseReport = async (params: string) => {
+  try {
+    const res = await apiClient.get(`/payment/report/customer-wise?${params}`);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+const productWiseReport = async (params: string) => {
+  try {
+    const res = await apiClient.get(`/order/product-wise?${params}`);
+    console.log(res,"res")
+    return res.data;
+  } catch (error) {
+    console.log(error,"productWiseReportError")
+    throw error;
+  }
+};
 
 const fetchTemplates = async ({ queryParams }: { queryParams: string }) => {
   const res = await apiClient.get(`/bill-templates?${queryParams}`);
@@ -959,6 +995,10 @@ const api = {
   fetchCustomerGroups,
   updateCustomerGroup,
   deleteCustomerGroup,
+  orderReport,
+  paymentReport,
+  customerWiseReport,
+  productWiseReport
   fetchTemplates,
   getLedgerById,
   createTemplate,

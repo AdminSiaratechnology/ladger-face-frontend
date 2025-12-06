@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
-import { TableViewSkeleton } from "../../components/customComponents/TableViewSkeleton";
+import { TableViewSkeleton } from "../customComponents/TableViewSkeleton";
 import api from "../../api/api";
 import { toast } from "sonner";
 import TableHeader from "../customComponents/CustomTableHeader";

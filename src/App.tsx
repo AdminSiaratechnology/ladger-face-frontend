@@ -43,6 +43,10 @@ import AuditLogs from "./components/pages/AuditLogs";
 import RestoreDeletedPage from "./components/pages/RestoreDeletedPage";
 import ProfilePage from "./components/pages/ProfilePage";
 import CustomerGroupManagement from "./components/pages/CustomerGroupManagement"
+import OrderReport  from "./components/pages/OrderReportPage";
+import PaymentReport from "./components/pages/PaymentReportPage";
+import CustomerWiseReportPage from "./components/pages/CustomerWiseReportPage"
+import ProductWiseReport from "./components/pages/ProductWiseReportPage"
 import TemplateManagement from "./components/pages/TemplateManagement";
 
 // Unauthorized Access Page
@@ -384,6 +388,46 @@ export default function App() {
               <ProtectedRoute module="BusinessManagement" subModule="Agent">
                 <AppLayout>
                   <Agent />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/order-report"
+            element={
+              <ProtectedRoute module="Report" subModule="orderReport">
+                <AppLayout>
+                  <OrderReport />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/product-report"
+            element={
+              <ProtectedRoute module="Report" subModule="productReport">
+                <AppLayout>
+                  <ProductWiseReport />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment-report"
+            element={
+              <ProtectedRoute module="Report" subModule="paymentReport">
+                <AppLayout>
+                  <PaymentReport />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer-report"
+            element={
+              <ProtectedRoute module="Report" subModule="customerReport">
+                <AppLayout>
+                  <CustomerWiseReportPage />
                 </AppLayout>
               </ProtectedRoute>
             }

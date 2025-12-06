@@ -23,6 +23,8 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCcwDot,
+  CreditCard,
+  
 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
@@ -408,20 +410,47 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       module: "Order",
       subModule: "Orders",
     },
-    // {
-    //   path: "/tracking",
-    //   icon: MapPin,
-    //   label: "Location Tracking",
-    //   roles: ["admin","client"],
-    //   type: "link",
-    // },
-    // {
-    //   path: "/settings",
-    //   icon: Settings,
-    //   label: "Settings",
-    //   roles: ["admin","client"],
-    //   type: "link",
-    // },
+    {
+      id: "Report",
+      icon: FileText, // Changed from Building2 to FileText (more appropriate for reports)
+      label: "Reports", // Changed to plural for consistency
+      roles: ["admin", "agent", "salesman", "client"],
+      type: "accordion",
+      subItems: [
+        {
+          path: "/order-report",
+          icon: ShoppingCart, // Perfect for order-related reports
+          label: "Order Report",
+          roles: ["admin", "agent"],
+          module: "Report",
+          subModule: "orderReport",
+        },
+        {
+          path: "/payment-report",
+          icon: CreditCard, // Best for payment-related reports
+          label: "Payment Report",
+          roles: ["admin", "agent"],
+          module: "Report",
+          subModule: "paymentReport",
+        },
+        {
+          path: "/customer-report",
+          icon: Users, // Represents customers/users
+          label: "Customer Report",
+          roles: ["admin", "agent"],
+          module: "Report",
+          subModule: "customerReport",
+        },
+        {
+          path: "/product-report",
+          icon: Package, // Perfect for product-related reports
+          label: "Product Report",
+          roles: ["admin", "agent"],
+          module: "Report",
+          subModule: "productReport",
+        },
+      ],
+    },
     {
       path: "/auditlog",
       icon: FileText,

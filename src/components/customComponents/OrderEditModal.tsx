@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
-import CustomInputBox from "../customComponents/CustomInputBox";
+import CustomInputBox from "./CustomInputBox";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
 
