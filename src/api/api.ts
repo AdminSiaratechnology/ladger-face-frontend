@@ -1,6 +1,7 @@
 import axios from "axios";
 import baseUrl from "../lib/constant";
 import { useAuthStore } from "../../store/authStore";
+import { create } from "zustand";
 // Create axios instance
 const apiClient = axios.create({
   baseURL: baseUrl,
@@ -882,7 +883,36 @@ const productWiseReport = async (params: string) => {
   }
 };
 
+const fetchTemplates = async ({ queryParams }: { queryParams: string }) => {
+  const res = await apiClient.get(`/bill-templates?${queryParams}`);
+  return res.data;
+}
 
+const getLedgerById = async (id: string) => {
+  const res = await apiClient.get(`/ledgers/single/${id}`);
+  return res.data;
+}
+
+const createTemplate = async (data: any) => {
+  const res = await apiClient.post(`/bill-templates`, data);
+  return res.data;
+}
+
+const updateTemplate = async (id: string, data: any) => {
+  const res = await apiClient.put(`/bill-templates/${id}`, data);
+  return res.data;
+}
+
+const deleteTemplate = async (id: string) => {
+  const res = await apiClient.delete(`/bill-templates/${id}`);
+  return res.data;
+}
+
+const fetchTemplatesByCompany = async (  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }) => {
+  const res = await apiClient.get(`/bill-templates/company/${companyId}?${queryParams}`);
+  return res.data;
+}
 // Export API
 const api = {
   createCompany,
@@ -969,6 +999,12 @@ const api = {
   paymentReport,
   customerWiseReport,
   productWiseReport
+  fetchTemplates,
+  getLedgerById,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
+  fetchTemplatesByCompany
 };
 
 export default api;

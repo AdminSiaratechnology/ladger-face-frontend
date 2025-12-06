@@ -47,6 +47,7 @@ import OrderReport  from "./components/pages/OrderReportPage";
 import PaymentReport from "./components/pages/PaymentReportPage";
 import CustomerWiseReportPage from "./components/pages/CustomerWiseReportPage"
 import ProductWiseReport from "./components/pages/ProductWiseReportPage"
+import TemplateManagement from "./components/pages/TemplateManagement";
 
 // Unauthorized Access Page
 function UnauthorizedAccess() {
@@ -102,6 +103,7 @@ function ProtectedRoute({
       subModule,
       type: permissionTypes.join(" | "),
     });
+    console.log(hasPermission)
     if (!hasPermission) {
       return <UnauthorizedAccess />;
     }
@@ -140,7 +142,7 @@ export default function App() {
           <Route
             path="/"
             element={
-              <ProtectedRoute allowedRoles={["admin", "agent", "salesman","client"]} module="Deshboard" subModule="Deshboard">
+              <ProtectedRoute allowedRoles={["admin", "agent", "salesman","client"]}>
                 <AppLayout>
                   <AdminDashboard />
                 </AppLayout>
@@ -249,7 +251,16 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
+<Route
+            path="/bill-template"
+            element={
+              <ProtectedRoute >
+                <AppLayout>
+                  <TemplateManagement />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
           {/* Other Admin Routes */}
           <Route
             path="/tracking"

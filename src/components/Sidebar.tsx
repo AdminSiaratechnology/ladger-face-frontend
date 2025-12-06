@@ -266,11 +266,25 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       type: "link",
     },
     {
-      path: "/company",
+      id: "company",
       icon: LayoutDashboard,
       label: "Company",
       roles: ["admin", "agent", "client", "salesman"],
-      type: "link",
+      type: "accordion",
+      subItems: [
+        {
+          path: "/company",
+          icon: LayoutDashboard,
+          label: "New Company",
+          roles: ["admin", "agent", "client", "salesman"],
+        },
+        {
+          path: "/bill-template",
+          icon: FileText,
+          label: "Bill Template",
+          roles: ["admin", "client"],
+        },
+      ],
     },
     {
       path: "/users",
@@ -483,7 +497,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     //   type: "link",
     // },
   ];
-
   const menuItems = hasCompany ? fullMenuItems : limitedMenuItems;
   console.log(menuItems);
   const companyId = defaultSelected?._id;
