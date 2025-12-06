@@ -18,11 +18,13 @@ import {
   FolderOpen,
   Layers,
   Ruler,
-  FileText ,
+  FileText,
   X,
   ChevronLeft,
   ChevronRight,
-  RefreshCcwDot
+  RefreshCcwDot,
+  CreditCard,
+  
 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
@@ -89,12 +91,23 @@ interface SubMenuItem {
 //   return false;
 // }
 // ✅ Updated checkPermission
-function checkPermission(user: any, companyId: string, module: string, subModule: string,defaultSelected:any) {
+function checkPermission(
+  user: any,
+  companyId: string,
+  module: string,
+  subModule: string,
+  defaultSelected: any
+) {
   if (!user) return false;
 
   if (!user.access || user.access.length === 0) return false;
-  console.log(defaultSelected,"defaultSelected",module,subModule,defaultSelected?.maintainAgent)
-
+  console.log(
+    defaultSelected,
+    "defaultSelected",
+    module,
+    subModule,
+    defaultSelected?.maintainAgent
+  );
 
   // Find access entry for selected company
   const companyAccess = user.access.find(
@@ -105,22 +118,29 @@ function checkPermission(user: any, companyId: string, module: string, subModule
   const modules = companyAccess.modules;
   const hasModule = modules?.[module];
   const hasSubModule = hasModule?.[subModule];
-  console.log(module,subModule,defaultSelected?.maintainAgent,"hhhhhhhhhhhhhh")
-    if(module=="BusinessManagement" && subModule=="Agent" && !defaultSelected?.maintainAgent ) {
-      console.log("hiiiiii"
-      )
-   
-      return false
+  console.log(
+    module,
+    subModule,
+    defaultSelected?.maintainAgent,
+    "hhhhhhhhhhhhhh"
+  );
+  if (
+    module == "BusinessManagement" &&
+    subModule == "Agent" &&
+    !defaultSelected?.maintainAgent
+  ) {
+    console.log("hiiiiii");
 
+    return false;
   }
-    if (user.allPermissions) return {
-    create: true,
-    read: true,
-    update: true,
-    delete: true,
-    extra: []
-  };
-  
+  if (user.allPermissions)
+    return {
+      create: true,
+      read: true,
+      update: true,
+      delete: true,
+      extra: [],
+    };
 
   // If submodule exists → return its permissions
   if (hasSubModule) {
@@ -129,7 +149,7 @@ function checkPermission(user: any, companyId: string, module: string, subModule
       read: !!hasSubModule.read,
       update: !!hasSubModule.update,
       delete: !!hasSubModule.delete,
-      extra: hasSubModule.extra || []
+      extra: hasSubModule.extra || [],
     };
   }
 
@@ -139,29 +159,41 @@ function checkPermission(user: any, companyId: string, module: string, subModule
     read: true,
     update: true,
     delete: true,
-    extra: []
+    extra: [],
   };
 }
 
-
 // ✅ Updated hasMenuAccess
-function hasMenuAccess(user: any, companyId: string, item: MenuItem | SubMenuItem,defaultSelected:any) {
+function hasMenuAccess(
+  user: any,
+  companyId: string,
+  item: MenuItem | SubMenuItem,
+  defaultSelected: any
+) {
   if (!user) return false;
-     if(item?.module=="BusinessManagement" && item?.subModule=="Agent" && !defaultSelected?.maintainAgent ) {
-      console.log("hiiiiii"
-      )
-   
-      return false
+  if (
+    item?.module == "BusinessManagement" &&
+    item?.subModule == "Agent" &&
+    !defaultSelected?.maintainAgent
+  ) {
+    console.log("hiiiiii");
 
+    return false;
   }
-  if(user.allPermissions) return true
+  if (user.allPermissions) return true;
 
   // Accordions always visible (filtered subItems will decide visibility)
   if ("type" in item && item.type === "accordion") return true;
 
   // Module-based permissions
   if (item.module && item.subModule) {
-    return checkPermission(user, companyId, item.module, item.subModule,defaultSelected);
+    return checkPermission(
+      user,
+      companyId,
+      item.module,
+      item.subModule,
+      defaultSelected
+    );
   }
 
   // Role-based fallback
@@ -180,7 +212,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     undefined
   );
   const [collapsed, setCollapsed] = useState(false); // 🔹 New: collapse state
-  const {companies,defaultSelected} = useCompanyStore();
+  const { companies, defaultSelected } = useCompanyStore();
   // Detect active accordion on route change
   useEffect(() => {
     const activeAccordion = filteredMenuItems.find(
@@ -194,36 +226,35 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   }, [location.pathname]);
 
   // Check if company exists
- useEffect(() => {
-  const checkCompanyExists = () => {
-    try {
-      const hasCompanies =
-        Array.isArray(companies) && companies.length > 0;
-      const hasDefaultSelected = Boolean(defaultSelected?._id);
+  useEffect(() => {
+    const checkCompanyExists = () => {
+      try {
+        const hasCompanies = Array.isArray(companies) && companies.length > 0;
+        const hasDefaultSelected = Boolean(defaultSelected?._id);
 
-      if (hasCompanies || hasDefaultSelected) {
-        setHasCompany(true);
-      } else {
+        if (hasCompanies || hasDefaultSelected) {
+          setHasCompany(true);
+        } else {
+          setHasCompany(false);
+        }
+      } catch (error) {
+        console.error("Error reading companies:", error);
         setHasCompany(false);
       }
-    } catch (error) {
-      console.error("Error reading companies:", error);
-      setHasCompany(false);
-    }
-  };
+    };
 
-  checkCompanyExists();
+    checkCompanyExists();
 
-  const handleStorageChange = () => checkCompanyExists();
+    const handleStorageChange = () => checkCompanyExists();
 
-  window.addEventListener("storage", handleStorageChange);
-  window.addEventListener("companiesUpdated", handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("companiesUpdated", handleStorageChange);
 
-  return () => {
-    window.removeEventListener("storage", handleStorageChange);
-    window.removeEventListener("companiesUpdated", handleStorageChange);
-  };
-}, [companies, defaultSelected]);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("companiesUpdated", handleStorageChange);
+    };
+  }, [companies, defaultSelected]);
 
   // Menu data
   const fullMenuItems: MenuItem[] = [
@@ -238,7 +269,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: "/company",
       icon: LayoutDashboard,
       label: "Company",
-      roles: ["admin", "agent","client", "salesman"],
+      roles: ["admin", "agent", "client", "salesman"],
       type: "link",
     },
     {
@@ -254,7 +285,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       id: "business-partners",
       icon: Building2,
       label: "Business Partners",
-      roles: ["admin", "agent", "salesman","client"],
+      roles: ["admin", "agent", "salesman", "client"],
       type: "accordion",
       subItems: [
         {
@@ -277,7 +308,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           path: "/vendor-registration",
           icon: Truck,
           label: "Vendor Registration",
-          roles: ["admin", "agent","client"],
+          roles: ["admin", "agent", "client"],
           module: "BusinessManagement",
           subModule: "Vendor",
         },
@@ -285,7 +316,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           path: "/agent",
           icon: HatGlasses,
           label: "Agent",
-          roles: ["admin", "agent","client"],
+          roles: ["admin", "agent", "client"],
           module: "BusinessManagement",
           subModule: "Agent",
         },
@@ -293,7 +324,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           path: "/ladger-registration",
           icon: HatGlasses,
           label: "Ladger",
-          roles: ["admin", "agent","client"],
+          roles: ["admin", "agent", "client"],
           module: "BusinessManagement",
           subModule: "Ledger",
         },
@@ -303,14 +334,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       id: "inventory-management",
       icon: Package,
       label: "Inventory Management",
-      roles: ["admin", "agent", "salesman","client"],
+      roles: ["admin", "agent", "salesman", "client"],
       type: "accordion",
       subItems: [
         {
           path: "/godown",
           icon: Warehouse,
           label: "Godown",
-          roles: ["admin", "agent", "salesman","client"],
+          roles: ["admin", "agent", "salesman", "client"],
           module: "InventoryManagement",
           subModule: "Godown",
         },
@@ -318,7 +349,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           path: "/stock-group",
           icon: Layers,
           label: "Stock Group",
-          roles: ["admin", "agent", "salesman","client"],
+          roles: ["admin", "agent", "salesman", "client"],
           module: "InventoryManagement",
           subModule: "StockGroup",
         },
@@ -326,16 +357,23 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           path: "/stock-category",
           icon: FolderOpen,
           label: "Stock Category",
-          roles: ["admin", "agent","client"],
-          module: "InventoryManagement",  
+          roles: ["admin", "agent", "client"],
+          module: "InventoryManagement",
           subModule: "StockCategory",
         },
-        { path: "/uom", icon: Ruler, label: "UOM", roles: ["admin", "agent","client"], module: "InventoryManagement", subModule: "Unit" },
+        {
+          path: "/uom",
+          icon: Ruler,
+          label: "UOM",
+          roles: ["admin", "agent", "client"],
+          module: "InventoryManagement",
+          subModule: "Unit",
+        },
         {
           path: "/product",
           icon: Package,
           label: "Product",
-          roles: ["admin", "agent","client"],
+          roles: ["admin", "agent", "client"],
           module: "InventoryManagement",
           subModule: "Product",
         },
@@ -353,37 +391,64 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: "/orders",
       icon: ShoppingCart,
       label: "Orders",
-      roles: ["admin", "agent", "salesman","client"],
+      roles: ["admin", "agent", "salesman", "client"],
       type: "link",
       module: "Order",
       subModule: "Orders",
     },
-    // {
-    //   path: "/tracking",
-    //   icon: MapPin,
-    //   label: "Location Tracking",
-    //   roles: ["admin","client"],
-    //   type: "link",
-    // },
-    // {
-    //   path: "/settings",
-    //   icon: Settings,
-    //   label: "Settings",
-    //   roles: ["admin","client"],
-    //   type: "link",
-    // },
+    {
+      id: "Report",
+      icon: FileText, // Changed from Building2 to FileText (more appropriate for reports)
+      label: "Reports", // Changed to plural for consistency
+      roles: ["admin", "agent", "salesman", "client"],
+      type: "accordion",
+      subItems: [
+        {
+          path: "/order-report",
+          icon: ShoppingCart, // Perfect for order-related reports
+          label: "Order Report",
+          roles: ["admin", "agent"],
+          module: "Report",
+          subModule: "orderReport",
+        },
+        {
+          path: "/payment-report",
+          icon: CreditCard, // Best for payment-related reports
+          label: "Payment Report",
+          roles: ["admin", "agent"],
+          module: "Report",
+          subModule: "paymentReport",
+        },
+        {
+          path: "/customer-report",
+          icon: Users, // Represents customers/users
+          label: "Customer Report",
+          roles: ["admin", "agent"],
+          module: "Report",
+          subModule: "customerReport",
+        },
+        {
+          path: "/product-report",
+          icon: Package, // Perfect for product-related reports
+          label: "Product Report",
+          roles: ["admin", "agent"],
+          module: "Report",
+          subModule: "productReport",
+        },
+      ],
+    },
     {
       path: "/auditlog",
-      icon: FileText ,
+      icon: FileText,
       label: "Auditlog",
-      roles: ["admin","client"],
+      roles: ["admin", "client"],
       type: "link",
     },
     {
       path: "/restore",
       icon: RefreshCcwDot,
       label: "Restore",
-      roles: ["admin","client"],
+      roles: ["admin", "client"],
       type: "link",
     },
   ];
@@ -393,21 +458,21 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: "/",
       icon: LayoutDashboard,
       label: "Dashboard",
-      roles: ["admin", "agent", "salesman","client"],
+      roles: ["admin", "agent", "salesman", "client"],
       type: "link",
     },
     {
       path: "/company",
       icon: LayoutDashboard,
       label: "Company",
-      roles: ["admin", "agent","client"],
+      roles: ["admin", "agent", "client"],
       type: "link",
     },
     {
       path: "/users",
       icon: Users,
       label: "User Management",
-      roles: ["admin","client"],
+      roles: ["admin", "client"],
       type: "link",
     },
     // {
@@ -420,24 +485,27 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   ];
 
   const menuItems = hasCompany ? fullMenuItems : limitedMenuItems;
-console.log(menuItems)
- const companyId = defaultSelected?._id;
+  console.log(menuItems);
+  const companyId = defaultSelected?._id;
 
-const filteredMenuItems = menuItems
-  .filter((item) => user && hasMenuAccess(user, companyId, item,defaultSelected) || item.label === "Dashboard")
-  .map((item) => { 
-    if (item.type === "accordion" && item.subItems) {
-      const filteredSubItems = item.subItems.filter((sub) =>
-        hasMenuAccess(user, companyId, sub,defaultSelected)
-      );
-      return { ...item, subItems: filteredSubItems };
-    }
-    return item;
-  })
-  .filter((item) =>
-    item.type === "accordion" ? item.subItems?.length > 0 : true
-  );
-
+  const filteredMenuItems = menuItems
+    .filter(
+      (item) =>
+        (user && hasMenuAccess(user, companyId, item, defaultSelected)) ||
+        item.label === "Dashboard"
+    )
+    .map((item) => {
+      if (item.type === "accordion" && item.subItems) {
+        const filteredSubItems = item.subItems.filter((sub) =>
+          hasMenuAccess(user, companyId, sub, defaultSelected)
+        );
+        return { ...item, subItems: filteredSubItems };
+      }
+      return item;
+    })
+    .filter((item) =>
+      item.type === "accordion" ? item.subItems?.length > 0 : true
+    );
 
   const handleLinkClick = () => {
     if (window.innerWidth < 768 && onClose) onClose();
