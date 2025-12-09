@@ -1,6 +1,17 @@
 import React, { useMemo, useState } from "react";
 import type { Coupon } from "./Coupon";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
+import ActionsDropdown from "../customComponents/ActionsDropdown";
+
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardAction
+} from "../ui/card";
 
 export default function AllCoupons({
   coupons,
@@ -170,38 +181,17 @@ export default function AllCoupons({
                   </td>
 
                   {/* ACTIONS */}
-                  <td className="px-4">
-                    <div className="flex justify-center gap-4">
+                  <td className="px-4 w-[120px] text-center">
+  <ActionsDropdown
+    module="coupon"
+    subModule="management"
+    onView={() => onView(c)}
+    onEdit={() => onEdit(c)}
+    onDelete={() => onDelete(c)}
+  />
+</td> 
 
-                      {/* VIEW */}
-                      <button
-                        className="text-slate-500 hover:text-teal-600"
-                        onClick={() => onView(c)}
-                      >
-                        👁
-                      </button>
-
-                      {/* EDIT */}
-                      {c?.status !== "delete" && (
-                        <button
-                          className="text-slate-500 hover:text-blue-600"
-                          onClick={() => onEdit(c)}
-                        >
-                          ✏️
-                        </button>
-                      )}
-
-                      {/* DELETE */}
-                      {c?.status !== "delete" && (
-                        <button
-                          className="text-slate-500 hover:text-red-600"
-                          onClick={() => onDelete(c)}
-                        >
-                          🗑
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                  
                 </tr>
               ))}
 
@@ -219,57 +209,101 @@ export default function AllCoupons({
       )}
 
       {/* ================= CARD VIEW ================= */}
-      {viewMode === "cards" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((c) => (
-            <div
-              key={c?._id}
-              className="p-4 bg-white rounded-lg border shadow-sm hover:shadow-md transition"
-            >
-              <div className="font-semibold">{c?.code}</div>
-              <div className="text-sm text-slate-500">{c?.name}</div>
+{viewMode === "cards" && (
+<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 ml-4">
 
-              <div className="mt-3 text-lg font-semibold">
-                {c?.discountType === "PERCENT"
-                  ? `${c?.discountValue}%`
-                  : `₹${c?.discountValue}`}
-              </div>
+    {filtered.map((c) => (
+      <div
+        key={c?._id}
+        className="
+          border rounded-xl shadow-sm bg-white
+          hover:shadow-lg hover:-translate-y-[2px] hover:border-teal-500
+          transition-all duration-200 cursor-pointer
+          min-h-[230px]              /* ⭐ height thodi badhai */
+        "
+      >
+        {/* HEADER */}
+        <div className="flex items-start justify-between p-3 pb-2">
+          <div>
+            <h3 className="text-base font-semibold">{c?.code}</h3>
+            <p className="text-sm text-gray-500 leading-none">{c?.name}</p>
+          </div>
 
-              <div className="text-xs text-slate-600">
-                Minimum: {c?.minPurchase ? `₹${c?.minPurchase}` : "None"}
-              </div>
-
-              <div className="text-xs text-slate-600">
-                Valid Till: {formatDate(c?.validTo)}
-              </div>
-
-              {/* Status */}
-              <div className="mt-2">
-                {c?.status === "active" && (
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs">
-                    Active
-                  </span>
-                )}
-                {c?.status === "inactive" && (
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-                    Inactive
-                  </span>
-                )}
-                {c?.status === "expired" && (
-                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs">
-                    Expired
-                  </span>
-                )}
-                {c?.status === "delete" && (
-                  <span className="px-3 py-1 bg-slate-300 text-slate-700 rounded-full text-xs">
-                    Deleted
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
+          <ActionsDropdown
+            module="coupon"
+            subModule="management"
+            onView={() => onView(c)}
+            onEdit={() => onEdit(c)}
+            onDelete={() => onDelete(c)}
+          />
         </div>
-      )}
+
+        {/* HALKA DIVIDER (header ke niche) */}
+        <div className="border-t border-slate-200"></div>
+
+        {/* CONTENT */}
+        <div className="p-4 pt-3 space-y-2 text-sm text-slate-700">
+          {/* ⭐ More spacing + soft text color */}
+          <div className="flex justify-between">
+            <span className="text-gray-500">Discount</span>
+            <span className="font-medium text-teal-700">
+              {c?.discountType === "PERCENT"
+                ? `${c?.discountValue}%`
+                : c?.discountType === "FIXED"
+                ? `₹${c?.discountValue}`
+                : "-"}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-gray-500">Min Purchase</span>
+            <span className="font-medium">
+              {c?.minPurchase ? `₹${c?.minPurchase}` : "-"}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-gray-500">Valid Till</span>
+            <span className="font-medium text-slate-600">
+              {formatDate(c?.validTo)}
+            </span>
+          </div>
+        </div>
+
+        {/* ⭐ CONTENT KE BAAD SECOND BORDER (as requested) */}
+        <div className="border-t border-slate-200 mx-3"></div>
+
+        {/* STATUS */}
+        <div className="px-3 py-3">
+          {c?.status === "active" && (
+            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+              Active
+            </span>
+          )}
+          {c?.status === "inactive" && (
+            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+              Inactive
+            </span>
+          )}
+          {c?.status === "expired" && (
+            <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs">
+              Expired
+            </span>
+          )}
+          {c?.status === "delete" && (
+            <span className="px-3 py-1 bg-slate-300 text-slate-700 rounded-full text-xs">
+              Deleted
+            </span>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+)}
+
+
+
+
     </div>
   );
 }
