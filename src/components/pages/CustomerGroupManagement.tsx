@@ -350,7 +350,7 @@ const [formData, setFormData] = useState({
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-xl">
+        {/* <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-xl">
           <CardContent className="p-6">
             <div className="text-center">
               <p className="text-purple-100 text-sm">Last Updated</p>
@@ -359,7 +359,7 @@ const [formData, setFormData] = useState({
               </p>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Filters */}

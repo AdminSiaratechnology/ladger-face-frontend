@@ -1,6 +1,7 @@
 import axios from "axios";
 import baseUrl from "../lib/constant";
 import { useAuthStore } from "../../store/authStore";
+import { create } from "zustand";
 // Create axios instance
 const apiClient = axios.create({
   baseURL: baseUrl,
@@ -845,6 +846,52 @@ const deleteCustomerGroup = async (groupId: string) => {
   const res = await apiClient.delete(`/customer-group/delete/${groupId}`);
   return res.data;
 };
+const orderReport =async(params: URLSearchParams | string)=>{
+  try {
+       const res = await apiClient.get(`/order/report?${params.toString()}`)
+       return res.data
+
+  } catch (error) {
+    throw error
+  }
+
+}
+const paymentReport = async (params: string) => {
+  try {
+    const res = await apiClient.get(`/payment/report?${params}`);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+const customerWiseReport = async (params: string) => {
+  try {
+    const res = await apiClient.get(`/payment/report/customer-wise?${params}`);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+const productWiseReport = async (params: string) => {
+  try {
+    const res = await apiClient.get(`/order/product-wise?${params}`);
+    console.log(res,"res")
+    return res.data;
+  } catch (error) {
+    console.log(error,"productWiseReportError")
+    throw error;
+  }
+};
+
+const fetchTemplates = async ({ queryParams }: { queryParams: string }) => {
+  const res = await apiClient.get(`/bill-templates?${queryParams}`);
+  return res.data;
+}
+
+const getLedgerById = async (id: string) => {
+  const res = await apiClient.get(`/ledgers/single/${id}`);
+  return res.data;
+}
 
 // COUPON
 
@@ -875,7 +922,26 @@ const deleteCoupon = async (id: string) => {
 };
 
 
+const createTemplate = async (data: any) => {
+  const res = await apiClient.post(`/bill-templates`, data);
+  return res.data;
+}
 
+const updateTemplate = async (id: string, data: any) => {
+  const res = await apiClient.put(`/bill-templates/${id}`, data);
+  return res.data;
+}
+
+const deleteTemplate = async (id: string) => {
+  const res = await apiClient.delete(`/bill-templates/${id}`);
+  return res.data;
+}
+
+const fetchTemplatesByCompany = async (  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }) => {
+  const res = await apiClient.get(`/bill-templates/company/${companyId}?${queryParams}`);
+  return res.data;
+}
 // Export API
 const api = {
   createCompany,
@@ -963,6 +1029,16 @@ const api = {
   getCouponById,
   updateCoupon,
   deleteCoupon,
+  orderReport,
+  paymentReport,
+  customerWiseReport,
+  productWiseReport,
+  fetchTemplates,
+  getLedgerById,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
+  fetchTemplatesByCompany
 };
 
 export default api;

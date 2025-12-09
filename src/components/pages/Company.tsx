@@ -28,7 +28,7 @@ import { useCompanyStore } from "../../../store/companyStore";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
 import api from "../../api/api";
-import { TableViewSkeleton } from "../../components/customComponents/TableViewSkeleton";
+import { TableViewSkeleton } from "../customComponents/TableViewSkeleton";
 import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 import CustomStepNavigation from "../customComponents/CustomStepNavigation";
 import MultiStepNav from "../customComponents/MultiStepNav";
