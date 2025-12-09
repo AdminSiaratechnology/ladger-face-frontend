@@ -39,7 +39,6 @@ useEffect(() => {
     const res = await addCouponAPI(payload);
     console.log(res);
     if (res.success) setOpen(false);
-    else alert(res.message || "Failed to add coupon");
   };
 
   // UPDATE COUPON
@@ -144,17 +143,24 @@ const handleDelete = async (coupon) => {
       color="from-teal-400 to-teal-500"
     />
 
-    <StatCardBox
-      title="Active"
-      value={(coupons || []).filter((c) => c?.active).length}
-      color="from-blue-400 to-blue-500"
-    />
+ <StatCardBox
+  title="Active"
+  value={(coupons || []).filter((c) =>
+    c?.validTo && new Date(c.validTo) >= new Date()
+  ).length}
+  color="from-blue-400 to-blue-500"
+/>
 
-    <StatCardBox
-      title="Expired"
-      value={(coupons || []).filter((c) => !c?.active).length}
-      color="from-orange-400 to-orange-500"
-    />
+<StatCardBox
+  title="Expired"
+  value={(coupons || []).filter((c) => {
+    if (!c?.validTo) return false;
+    const date = new Date(c.validTo);
+    return !isNaN(date) && date < new Date();
+  }).length}
+  color="from-orange-400 to-orange-500"
+/>
+
 
    <StatCardBox
   title="Deleted Coupons"

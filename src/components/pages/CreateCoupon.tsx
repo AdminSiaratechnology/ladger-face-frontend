@@ -265,32 +265,48 @@ useEffect(() => {
   };
 
   // submit coupon (final)
-  const submit = () => {
-    if (isView) return closeModal();
+ const submit = () => {
+  if (isView) return closeModal();
 
-    
+  const today = new Date().setHours(0, 0, 0, 0);
+  const validFrom = new Date(form.validFrom).setHours(0, 0, 0, 0);
+  const validTo = new Date(form.validTo).setHours(0, 0, 0, 0);
 
-    const today = new Date().setHours(0, 0, 0, 0);
-    const validFrom = new Date(form.validFrom).setHours(0, 0, 0, 0);
-    const validTo = new Date(form.validTo).setHours(0, 0, 0, 0);
+  // ---------------------
+  // VALIDATION
+  // ---------------------
+  if (!form.name) {
+    toast.error("Coupon name is required");
+    return;  // ⛔ STOP SUBMIT
+  }
 
-    const isActive = today >= validFrom && today <= validTo;
+  if (validFrom > validTo) {
+    toast.error("Valid From cannot be greater than Valid To");
+    return;  // ⛔ STOP SUBMIT
+  }
 
-    // ⭐ IMPORTANT: BACKEND REQUIRES THIS
-    const payload = {
-      ...form,
-      company: defaultSelected?._id,    // ⭐ COMPANY ADDED HERE
-      active: isActive,
-    };
-    console.log(payload);
-    if (mode === "add") {
-      addCoupon(payload);        // ⭐ remove your old array logic → send object
-    } else {
-      updateCoupon(payload);
-    }
+  // ---------------------
+  // ONLY AFTER VALIDATION
+  // ---------------------
+  const isActive = today >= validFrom && today <= validTo;
 
-    closeModal();
+  const payload = {
+    ...form,
+    company: defaultSelected?._id,
+    active: isActive,
   };
+
+  // ---------------------
+  // SUBMIT SHOULD HAPPEN ONLY IF VALID
+  // ---------------------
+  if (mode === "add") {
+    addCoupon(payload);
+  } else {
+    updateCoupon(payload);
+  }
+
+  closeModal();
+};
 
 
 
@@ -316,11 +332,33 @@ useEffect(() => {
       step: 1,
     });
 
-  const saveBogoToForm = () => {
-    update("bogoConfig", { ...bogoState });
-    toast.success("BOGO saved");
-    setShowBogoModal(false);
-  };
+const saveBogoToForm = () => {
+
+  // ----------------------------------
+  //  VALIDATION (TOAST + RETURN)
+  // ----------------------------------
+
+  if (!bogoState.buyProducts || bogoState.buyProducts.length === 0) {
+    toast.error("Please select at least one product to buy under BOGO .");
+    return;
+  }
+
+  if (bogoState.freeMode === "different" &&
+      (!bogoState.freeProducts || bogoState.freeProducts.length === 0)
+  ) {
+    toast.error("Please select at least one free product under  BOGO.");
+    return;
+  }
+
+  // ----------------------------------
+  //  SAVE (ONLY IF VALID)
+  // ----------------------------------
+  update("bogoConfig", { ...bogoState });
+
+  toast.success("BOGO offer saved successfully!");
+
+  setShowBogoModal(false);
+};
 
   // UI: selected product cards (for preview)
   const SelectedProductCards = ({ labels = [], onRemove }) => {
