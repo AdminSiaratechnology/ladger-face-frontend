@@ -301,15 +301,20 @@ function CustomInputBox({
           type={inputType}
           placeholder={placeholder}
           name={name}
+
+          min={type === "number" ? 0 : undefined}   // ⭐ PREVENT NEGATIVE VALUES
+
           value={value?.toString() || ""}
           onChange={handleInputChange}
           onBlur={handleBlur}
+
           maxLength={maxLength}
           autoComplete={autoComplete}
           autoCorrect={autoCorrect}
           spellCheck={spellCheck}
           readOnly={readOnly}
           disabled={disabled}
+
           className={`h-12 px-4 py-3 bg-gray-50/50 border rounded-lg text-gray-800 placeholder-gray-400 focus:border-blue-500 focus:ring-0 focus:bg-white transition-all shadow-sm ${
             leftIcon ? "pl-12" : "pl-4"
           } ${passwordRightIcon || rightIcon ? "pr-12" : "pr-4"} ${
@@ -317,6 +322,7 @@ function CustomInputBox({
           } ${disabled ? "cursor-not-allowed bg-gray-100 text-gray-500" : ""} ${
             readOnly ? "cursor-not-allowed bg-gray-100 text-gray-500" : ""
           }`}
+
         />
         {passwordRightIcon && (
           <div className="absolute right-4 top-1/2 -translate-y-1/2">

@@ -410,6 +410,30 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       module: "Order",
       subModule: "Orders",
     },
+        {
+      path: "/Coupon",
+      icon: ShoppingCart,
+      label: "Coupon",
+      roles: ["admin", "agent", "salesman","client"],
+      type: "link",
+      module: "Coupon",
+      subModule: "Coupon",
+    },
+    
+    // {
+    //   path: "/tracking",
+    //   icon: MapPin,
+    //   label: "Location Tracking",
+    //   roles: ["admin","client"],
+    //   type: "link",
+    // },
+    // {
+    //   path: "/settings",
+    //   icon: Settings,
+    //   label: "Settings",
+    //   roles: ["admin","client"],
+    //   type: "link",
+    // },
     {
       id: "Report",
       icon: FileText, // Changed from Building2 to FileText (more appropriate for reports)

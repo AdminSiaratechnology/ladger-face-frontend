@@ -49,7 +49,8 @@ import CustomerWiseReportPage from "./components/pages/CustomerWiseReportPage"
 import ProductWiseReport from "./components/pages/ProductWiseReportPage"
 import TemplateManagement from "./components/pages/TemplateManagement";
 
-// Unauthorized Access Page
+
+import Coupon from './components/pages/Coupon'
 function UnauthorizedAccess() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -181,6 +182,16 @@ export default function App() {
               <ProtectedRoute allowedRoles={["admin", "client"]}>
                 <AppLayout>
                   <Company />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+             <Route
+            path="/coupon"
+            element={
+              <ProtectedRoute allowedRoles={["admin", "client"]}>
+                <AppLayout>
+                  <Coupon />
                 </AppLayout>
               </ProtectedRoute>
             }
