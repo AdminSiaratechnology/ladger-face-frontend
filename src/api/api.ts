@@ -846,6 +846,35 @@ const deleteCustomerGroup = async (groupId: string) => {
   return res.data;
 };
 
+// COUPON
+
+const createCoupon = async (couponData: any) => {
+    if (couponData.code === "" || couponData.code == null) {
+    delete couponData.code;
+  }
+  console.log("vikas "+ couponData);
+  const res = await apiClient.post("/coupons", couponData);
+  return res.data;
+};
+const getAllCouponsByCompany = async ({ companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }) => {
+  const res = await apiClient.get(`/coupons/all/${companyId}?${queryParams}`);
+  return res.data;
+};
+const getCouponById = async (id: string) => {
+  const res = await apiClient.get(`/coupons/${id}`);
+  return res.data;
+};
+const updateCoupon = async (id: string, couponData: any) => {
+  const res = await apiClient.put(`/coupons/${id}`, couponData);
+  return res.data;
+};
+const deleteCoupon = async (id: string) => {
+  const res = await apiClient.delete(`/coupons/${id}`);
+  return res.data;
+};
+
+
 
 // Export API
 const api = {
@@ -929,6 +958,11 @@ const api = {
   fetchCustomerGroups,
   updateCustomerGroup,
   deleteCustomerGroup,
+  createCoupon,
+  getAllCouponsByCompany,
+  getCouponById,
+  updateCoupon,
+  deleteCoupon,
 };
 
 export default api;

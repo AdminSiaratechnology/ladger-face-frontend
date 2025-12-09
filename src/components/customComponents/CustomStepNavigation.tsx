@@ -13,6 +13,7 @@ interface CustomStepNavigationProps {
   showNext?: boolean;
   submitLabel?: string;
   editing?: boolean;
+  isSubmit?:boolean;
 }
 
 const CustomStepNavigation: React.FC<CustomStepNavigationProps> = ({
@@ -26,6 +27,7 @@ const CustomStepNavigation: React.FC<CustomStepNavigationProps> = ({
   showNext = true,
   submitLabel = "Save Vendor",
   editing = false,
+  isSubmit =true,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
@@ -93,15 +95,14 @@ const CustomStepNavigation: React.FC<CustomStepNavigationProps> = ({
                 <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
               </Button>
             )}
-
-            <Button
+{isSubmit &&  <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
               className={`${
                 isSubmitting ? "opacity-70 cursor-not-allowed" : ""
               } bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base`}
             >
-              {isSubmitting ? (
+              {isSubmitting  ? (
                 <>
                   <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
                   <span>Saving...</span>
@@ -114,7 +115,8 @@ const CustomStepNavigation: React.FC<CustomStepNavigationProps> = ({
                   <span className="xs:hidden">{editing ? "Update" : "Save"}</span>
                 </>
               )}
-            </Button>
+            </Button>}
+           
           </div>
         </div>
       </div>

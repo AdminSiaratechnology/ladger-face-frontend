@@ -358,6 +358,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       module: "Order",
       subModule: "Orders",
     },
+        {
+      path: "/Coupon",
+      icon: ShoppingCart,
+      label: "Coupon",
+      roles: ["admin", "agent", "salesman","client"],
+      type: "link",
+      module: "Coupon",
+      subModule: "Coupon",
+    },
+    
     // {
     //   path: "/tracking",
     //   icon: MapPin,
