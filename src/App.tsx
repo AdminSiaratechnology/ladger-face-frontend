@@ -42,12 +42,13 @@ import CheckoutPage from "./components/pages/CheckoutPage";
 import AuditLogs from "./components/pages/AuditLogs";
 import RestoreDeletedPage from "./components/pages/RestoreDeletedPage";
 import ProfilePage from "./components/pages/ProfilePage";
-import CustomerGroupManagement from "./components/pages/CustomerGroupManagement"
-import OrderReport  from "./components/pages/OrderReportPage";
+import CustomerGroupManagement from "./components/pages/CustomerGroupManagement";
+import OrderReport from "./components/pages/OrderReportPage";
 import PaymentReport from "./components/pages/PaymentReportPage";
-import CustomerWiseReportPage from "./components/pages/CustomerWiseReportPage"
-import ProductWiseReport from "./components/pages/ProductWiseReportPage"
+import CustomerWiseReportPage from "./components/pages/CustomerWiseReportPage";
+import ProductWiseReport from "./components/pages/ProductWiseReportPage";
 import TemplateManagement from "./components/pages/TemplateManagement";
+import DemoExpired from "./components/pages/DemoExpired";
 
 
 import Coupon from './components/pages/Coupon'
@@ -95,6 +96,14 @@ function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
 
+    if (user?.isDemo === true && user?.demoExpiry) {
+    const today = new Date();
+    const expiryDate = new Date(user.demoExpiry);
+
+    if (expiryDate < today) {
+      return <Navigate to="/demo-expired" replace />;
+    }
+  }
   if (module && subModule) {
     const permissionTypes = ["read", "create", "update", "delete"];
     const hasPermission = checkPermission({
@@ -104,7 +113,7 @@ function ProtectedRoute({
       subModule,
       type: permissionTypes.join(" | "),
     });
-    console.log(hasPermission)
+    console.log(hasPermission);
     if (!hasPermission) {
       return <UnauthorizedAccess />;
     }
@@ -143,7 +152,9 @@ export default function App() {
           <Route
             path="/"
             element={
-              <ProtectedRoute allowedRoles={["admin", "agent", "salesman","client"]}>
+              <ProtectedRoute
+                allowedRoles={["admin", "agent", "salesman", "client"]}
+              >
                 <AppLayout>
                   <AdminDashboard />
                 </AppLayout>
@@ -155,7 +166,7 @@ export default function App() {
           <Route
             path="/users"
             element={
-              <ProtectedRoute allowedRoles={["admin","client"]}>
+              <ProtectedRoute allowedRoles={["admin", "client"]}>
                 <AppLayout>
                   <UserManagement />
                 </AppLayout>
@@ -262,10 +273,10 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-<Route
+          <Route
             path="/bill-template"
             element={
-              <ProtectedRoute >
+              <ProtectedRoute>
                 <AppLayout>
                   <TemplateManagement />
                 </AppLayout>
@@ -356,7 +367,10 @@ export default function App() {
           <Route
             path="/stock-category"
             element={
-              <ProtectedRoute module="InventoryManagement" subModule="StockCategory">
+              <ProtectedRoute
+                module="InventoryManagement"
+                subModule="StockCategory"
+              >
                 <AppLayout>
                   <StockCategory />
                 </AppLayout>
@@ -366,7 +380,10 @@ export default function App() {
           <Route
             path="/stock-group"
             element={
-              <ProtectedRoute module="InventoryManagement" subModule="StockGroup">
+              <ProtectedRoute
+                module="InventoryManagement"
+                subModule="StockGroup"
+              >
                 <AppLayout>
                   <StockGroup />
                 </AppLayout>
@@ -463,6 +480,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/demo-expired" element={<DemoExpired />} />
 
           {/* Default redirect */}
           <Route path="*" element={<Navigate to="/login" replace />} />
