@@ -47,25 +47,25 @@ export default function PosBilling() {
   // ------------------------
   // FETCH STOCK ITEMS
   // ------------------------
-useEffect(() => {
-  if (defaultSelected?._id) {
-    fetchStockItems?.(1, 1000, defaultSelected._id);
-  }
+  useEffect(() => {
+    if (defaultSelected?._id) {
+      fetchStockItems?.(1, 1000, defaultSelected._id);
+    }
 
-  // OPENING CASH LOAD LOGIC
-  let openCash = localStorage.getItem("openingCash");
-  let drawer = localStorage.getItem("drawerCash");
+    // OPENING CASH LOAD LOGIC
+    let openCash = localStorage.getItem("openingCash");
+    let drawer = localStorage.getItem("drawerCash");
 
-  // Agar openingCash hai but drawerCash nahi
-  if (!drawer) {
-    drawer = openCash || "0";
-    localStorage.setItem("drawerCash", drawer);
-  }
+    // Agar openingCash hai but drawerCash nahi
+    if (!drawer) {
+      drawer = openCash || "0";
+      localStorage.setItem("drawerCash", drawer);
+    }
 
-  // --- MOST IMPORTANT FIX ---
-  updateDrawerCash(Number(drawer));
+    // --- MOST IMPORTANT FIX ---
+    updateDrawerCash(Number(drawer));
 
-}, [defaultSelected?._id]);
+  }, [defaultSelected?._id]);
 
 
   const products = Array.isArray(stockItems) ? stockItems : [];
@@ -191,82 +191,82 @@ useEffect(() => {
     setCashReceived("");
     setShowDraftModal(false);
   };
-const handleCompleteBill = async (paymentData) => {
-  if (cart.length === 0) return;
+  const handleCompleteBill = async (paymentData) => {
+    if (cart.length === 0) return;
 
-  updateDrawerCash(paymentData.grandTotal);
+    updateDrawerCash(paymentData.grandTotal);
 
-  const newBillNo = "INV-" + Math.floor(100000 + Math.random() * 900000);
-  setBillNumber(newBillNo);
+    const newBillNo = "INV-" + Math.floor(100000 + Math.random() * 900000);
+    setBillNumber(newBillNo);
 
- const payload = {
-  billNumber: newBillNo,
-  customerName,
-  customerPhone,
-  createdAt: new Date().toISOString(),
+    const payload = {
+      billNumber: newBillNo,
+      customerName,
+      customerPhone,
+      createdAt: new Date().toISOString(),
 
-  items: cart.map((c) => ({
-    name: c.ItemName,
-    qty: c.qty,
-    price: c.price,
-    total: c.qty * c.price,
-    batch: c.batch
-  })),
+      items: cart.map((c) => ({
+        name: c.ItemName,
+        qty: c.qty,
+        price: c.price,
+        total: c.qty * c.price,
+        batch: c.batch
+      })),
 
-  subtotal,
-  taxAmount: paymentData.taxAmount,
-  grandTotal: paymentData.grandTotal,
+      subtotal,
+      taxAmount: paymentData.taxAmount,
+      grandTotal: paymentData.grandTotal,
 
-  paymentInfo: paymentData
-};
+      paymentInfo: paymentData
+    };
 
-  setPreviewBill(payload);
-  setShowPreview(true);
-};
+    setPreviewBill(payload);
+    setShowPreview(true);
+  };
 
   // ------------------------
   // DOWNLOAD BILL
   // ------------------------
-const handleDownloadInvoice = async () => {
-  if (!previewBill) return;
+  const handleDownloadInvoice = async () => {
+    if (!previewBill) return;
 
-  await generateInvoicePdf({
-    billNumber: previewBill.billNumber,
-    createdAt: previewBill.createdAt,
+    await generateInvoicePdf({
+      billNumber: previewBill.billNumber,
+      createdAt: previewBill.createdAt,
 
-    company: {
-      CompanyName: defaultSelected?.namePrint || "",
-      Address: `${defaultSelected?.address1 || ""}, ${defaultSelected?.address2 || ""}, ${defaultSelected?.address3 || ""}, ${defaultSelected?.city || ""}, ${defaultSelected?.state || ""} - ${defaultSelected?.pincode || ""}`,
-      phone: defaultSelected?.mobile || defaultSelected?.telephone || "",
-      country: defaultSelected?.country || "",
-      gstNumber: defaultSelected?.gstNumber || "",
-      logo: defaultSelected?.logo || ""
-    },
+      company: {
+        CompanyName: defaultSelected?.namePrint || "",
+        Address: `${defaultSelected?.address1 || ""}, ${defaultSelected?.address2 || ""}, ${defaultSelected?.address3 || ""}, ${defaultSelected?.city || ""}, ${defaultSelected?.state || ""} - ${defaultSelected?.pincode || ""}`,
+        phone: defaultSelected?.mobile || defaultSelected?.telephone || "",
+        country: defaultSelected?.country || "",
+        gstNumber: defaultSelected?.gstNumber || "",
+        logo: defaultSelected?.logo || ""
+      },
 
-    customer: {
-      name: previewBill.customerName || "",
-      phone: previewBill.customerPhone || ""
-    },
+      customer: {
+        name: previewBill.customerName || "",
+        phone: previewBill.customerPhone || ""
+      },
 
-    items: previewBill.items || [],
+      items: previewBill.items || [],
 
-    subtotal: Number(previewBill.subtotal) || 0,
-    taxAmount: Number(previewBill.taxAmount) || 0,
-    grandTotal: Number(previewBill.grandTotal) || 0,
+      subtotal: Number(previewBill.subtotal) || 0,
+      taxAmount: Number(previewBill.taxAmount) || 0,
+      grandTotal: Number(previewBill.grandTotal) || 0,
 
-    paymentInfo: previewBill.paymentInfo || {}
-  });
+      paymentInfo: previewBill.paymentInfo || {}
+    });
 
-  // RESET POS
-  setCart([]);
-  setPayment("");
-  setCashReceived("");
-  setCustomerName("");
-  setCustomerPhone("");
-  setBillNumber("");
-  setPreviewBill(null);
-  setShowPreview(false);
-};
+    // RESET POS
+    setCart([]);
+    setPayment("");
+    setCashReceived("");
+    setCustomerName("");
+    setCustomerPhone("");
+    setBillNumber("");
+    setPreviewBill(null);
+    setShowPreview(false);
+  };
 
 
 
@@ -278,12 +278,12 @@ const handleDownloadInvoice = async () => {
 
         <div className="flex items-center gap-5">
           <div className="bg-white/20 px-4 py-1.5 rounded-lg text-sm">
-            Drawer: {drawerCash}
+            Drawer: ₹{Number(drawerCash || 0).toFixed(2)}
           </div>
 
           <button
             onClick={() => localStorage.removeItem("posSessionActive")}
-            className="bg-white text-blue-700 px-4 py-1.5 rounded-lg"
+            className="bg-white text-blue-700 px-4 py-1.5 rounded-lg cursor-pointer"
           >
             Shift End
           </button>
@@ -303,7 +303,7 @@ const handleDownloadInvoice = async () => {
 
         <button
           onClick={() => setShowDraftModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer"
         >
           Draft Bills
         </button>
@@ -411,144 +411,144 @@ const handleDownloadInvoice = async () => {
 
       {/* PREVIEW */}
       {showPreview && previewBill && (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div className="bg-white w-[750px] max-h-[90vh] overflow-y-auto p-8 rounded-2xl shadow-xl border">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-[750px] max-h-[90vh] overflow-y-auto p-8 rounded-2xl shadow-xl border">
 
-      {/* HEADER */}
-{/* HEADER */}
-<div className="flex justify-between items-start border-b pb-4">
+            {/* HEADER */}
+            {/* HEADER */}
+            <div className="flex justify-between items-start border-b pb-4">
 
-  {/* LEFT COMPANY INFO */}
-  <div>
-    <h1 className="text-2xl font-bold">{defaultSelected?.namePrint || "Company Name"}</h1>
+              {/* LEFT COMPANY INFO */}
+              <div>
+                <h1 className="text-2xl font-bold">{defaultSelected?.namePrint || "Company Name"}</h1>
 
-    <p className="text-sm text-gray-700">
-      {defaultSelected?.address1}, {defaultSelected?.address2}, {defaultSelected?.address3}
-    </p>
+                <p className="text-sm text-gray-700">
+                  {defaultSelected?.address1}, {defaultSelected?.address2}, {defaultSelected?.address3}
+                </p>
 
-    <p className="text-sm text-gray-700">
-      {defaultSelected?.city}, {defaultSelected?.state} - {defaultSelected?.pincode}
-    </p>
+                <p className="text-sm text-gray-700">
+                  {defaultSelected?.city}, {defaultSelected?.state} - {defaultSelected?.pincode}
+                </p>
 
-    {defaultSelected?.mobile && (
-      <p className="text-sm text-gray-700">Mobile: {defaultSelected.mobile}</p>
-    )}
+                {defaultSelected?.mobile && (
+                  <p className="text-sm text-gray-700">Mobile: {defaultSelected.mobile}</p>
+                )}
 
-    {defaultSelected?.telephone && (
-      <p className="text-sm text-gray-700">Phone: {defaultSelected.telephone}</p>
-    )}
+                {defaultSelected?.telephone && (
+                  <p className="text-sm text-gray-700">Phone: {defaultSelected.telephone}</p>
+                )}
 
-    {defaultSelected?.gstNumber && (
-      <p className="text-sm text-gray-700">GST: {defaultSelected.gstNumber}</p>
-    )}
+                {defaultSelected?.gstNumber && (
+                  <p className="text-sm text-gray-700">GST: {defaultSelected.gstNumber}</p>
+                )}
 
-    {defaultSelected?.website && (
-      <p className="text-sm text-gray-700">Website: {defaultSelected.website}</p>
-    )}
-  </div>
+                {defaultSelected?.website && (
+                  <p className="text-sm text-gray-700">Website: {defaultSelected.website}</p>
+                )}
+              </div>
 
-  {/* LOGO */}
-  {defaultSelected?.logo && (
-    <img
-      src={defaultSelected.logo}
-      className="w-28 h-20 object-contain rounded"
-      alt="Company Logo"
-    />
-  )}
+              {/* LOGO */}
+              {defaultSelected?.logo && (
+                <img
+                  src={defaultSelected.logo}
+                  className="w-28 h-20 object-contain rounded"
+                  alt="Company Logo"
+                />
+              )}
 
-</div>
+            </div>
 
 
 
-      {/* BILL INFO */}
-      <div className="flex justify-between mt-4 border-b pb-3">
-        <div>
-          <p><b>Invoice No:</b> {previewBill.billNumber}</p>
-             {new Date(previewBill.createdAt || Date.now()).toLocaleString()}
+            {/* BILL INFO */}
+            <div className="flex justify-between mt-4 border-b pb-3">
+              <div>
+                <p><b>Invoice No:</b> {previewBill.billNumber}</p>
+                {new Date(previewBill.createdAt || Date.now()).toLocaleString()}
 
-        </div>
+              </div>
 
-        <div>
-          <p><b>Customer:</b> {previewBill.customerName || "N/A"}</p>
-          <p><b>Phone:</b> {previewBill.customerPhone || "N/A"}</p>
-        </div>
-      </div>
+              <div>
+                <p><b>Customer:</b> {previewBill.customerName || "N/A"}</p>
+                <p><b>Phone:</b> {previewBill.customerPhone || "N/A"}</p>
+              </div>
+            </div>
 
-      {/* ITEMS TABLE */}
-      <table className="w-full mt-5 border">
-        <thead>
-          <tr className="bg-gray-100 text-left">
-            <th className="p-2 border">#</th>
-            <th className="p-2 border">Product</th>
-            <th className="p-2 border">Batch</th>
-            <th className="p-2 border">Qty</th>
-            <th className="p-2 border">Price</th>
-            <th className="p-2 border">Total</th>
-          </tr>
-        </thead>
+            {/* ITEMS TABLE */}
+            <table className="w-full mt-5 border">
+              <thead>
+                <tr className="bg-gray-100 text-left">
+                  <th className="p-2 border">#</th>
+                  <th className="p-2 border">Product</th>
+                  <th className="p-2 border">Batch</th>
+                  <th className="p-2 border">Qty</th>
+                  <th className="p-2 border">Price</th>
+                  <th className="p-2 border">Total</th>
+                </tr>
+              </thead>
 
-        <tbody>
-          {previewBill.items.map((it, i) => (
-            <tr key={i} className="text-sm">
-              <td className="border p-2">{i + 1}</td>
-              <td className="border p-2">{it.name}</td>
-              <td className="border p-2">{it.batch || "-"}</td>
-              <td className="border p-2">{it.qty}</td>
-              <td className="border p-2">₹{it.price.toFixed(2)}</td>
-              <td className="border p-2 font-semibold">₹{it.total.toFixed(2)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              <tbody>
+                {previewBill.items.map((it, i) => (
+                  <tr key={i} className="text-sm">
+                    <td className="border p-2">{i + 1}</td>
+                    <td className="border p-2">{it.name}</td>
+                    <td className="border p-2">{it.batch || "-"}</td>
+                    <td className="border p-2">{it.qty}</td>
+                    <td className="border p-2">₹{it.price.toFixed(2)}</td>
+                    <td className="border p-2 font-semibold">₹{it.total.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-      {/* TOTALS */}
-      <div className="mt-6 text-right pr-3">
-        <p className="text-sm">Subtotal: ₹{previewBill.subtotal.toFixed(2)}</p>
-        <p className="text-sm">Tax: ₹{previewBill.taxAmount.toFixed(2)}</p>
-        <p className="text-xl font-bold text-green-700">
-          Grand Total: ₹{previewBill.grandTotal.toFixed(2)}
-        </p>
-      </div>
+            {/* TOTALS */}
+            <div className="mt-6 text-right pr-3">
+              <p className="text-sm">Subtotal: ₹{previewBill.subtotal.toFixed(2)}</p>
+              <p className="text-sm">Tax: ₹{previewBill.taxAmount.toFixed(2)}</p>
+              <p className="text-xl font-bold text-green-700">
+                Grand Total: ₹{previewBill.grandTotal.toFixed(2)}
+              </p>
+            </div>
 
-      {/* PAYMENT DETAILS */}
-      <div className="mt-6 border-t pt-4">
-        <h3 className="font-semibold text-lg mb-2">Payment Details</h3>
+            {/* PAYMENT DETAILS */}
+            <div className="mt-6 border-t pt-4">
+              <h3 className="font-semibold text-lg mb-2">Payment Details</h3>
 
-        {previewBill.paymentInfo?.isSplit ? (
-          <div className="text-sm space-y-1">
-            <p>Cash: ₹{previewBill.paymentInfo.splitPayment.cash}</p>
-            <p>Card: ₹{previewBill.paymentInfo.splitPayment.card}</p>
-            <p>UPI: ₹{previewBill.paymentInfo.splitPayment.upi}</p>
+              {previewBill.paymentInfo?.isSplit ? (
+                <div className="text-sm space-y-1">
+                  <p>Cash: ₹{previewBill.paymentInfo.splitPayment.cash}</p>
+                  <p>Card: ₹{previewBill.paymentInfo.splitPayment.card}</p>
+                  <p>UPI: ₹{previewBill.paymentInfo.splitPayment.upi}</p>
+                </div>
+              ) : (
+                <p className="text-sm">Payment Mode: {previewBill.paymentInfo.singlePayment}</p>
+              )}
+            </div>
+
+            {/* FOOTER */}
+            <p className="text-center mt-8 text-sm text-gray-500">
+              Thank you for shopping with us!
+            </p>
+
+            {/* BUTTONS */}
+            <div className="mt-6 flex gap-4">
+              <button
+                onClick={handleDownloadInvoice}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg w-full shadow hover:bg-green-700cursor-pointer "
+              >
+                Download Invoice
+              </button>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="bg-gray-300 px-4 py-2 rounded-lg w-full hover:bg-gray-400 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
           </div>
-        ) : (
-          <p className="text-sm">Payment Mode: {previewBill.paymentInfo.singlePayment}</p>
-        )}
-      </div>
-
-      {/* FOOTER */}
-      <p className="text-center mt-8 text-sm text-gray-500">
-        Thank you for shopping with us!
-      </p>
-
-      {/* BUTTONS */}
-      <div className="mt-6 flex gap-4">
-        <button
-          onClick={handleDownloadInvoice}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg w-full shadow hover:bg-green-700"
-        >
-          Download Invoice
-        </button>
-        <button
-          onClick={() => setShowPreview(false)}
-          className="bg-gray-300 px-4 py-2 rounded-lg w-full hover:bg-gray-400"
-        >
-          Close
-        </button>
-      </div>
-
-    </div>
-  </div>
-)}
+        </div>
+      )}
 
     </div>
   );
