@@ -238,6 +238,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-size: 1.25rem;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%236b7280' viewBox='0 0 24 24'%3E%3Cpath d='M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6a2 2 0 0 0-2-2zm0 16H5V9h14v11zM7 11h5v5H7v-5z'/%3E%3C/svg%3E");
 }
+.custom-dialog-container-class{
+  z-index: 50 !important ;
+}
 
 /* Use a lighter icon for dark mode */
 /* .dark .custom-date {
@@ -286,3 +289,4 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 [data-radix-dialog-content] {
   z-index: 50;
 }
+

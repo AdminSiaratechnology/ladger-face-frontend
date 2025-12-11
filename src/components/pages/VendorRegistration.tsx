@@ -1757,7 +1757,7 @@ const VendorRegistrationPage: React.FC = () => {
                   />
                 </div>
 
-                <CustomStepNavigation
+                {/* <CustomStepNavigation
                   currentStep={2}
                   totalSteps={6}
                   onPrevious={() => setActiveTab("basic")}
@@ -1776,7 +1776,7 @@ const VendorRegistrationPage: React.FC = () => {
                     setActiveTab("financialSettings");
                   }}
                   onSubmit={handleSubmit}
-                />
+                /> */}
               </div>
             )}
 

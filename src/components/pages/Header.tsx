@@ -10,6 +10,7 @@ import {
   Building,
   ChevronDown,
   User,
+  Calendar,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -169,6 +170,20 @@ export default function Header({ onMenuClick }: HeaderProps) {
       console.error("Error logging out:", error);
     }
   }
+  const isDemoUser = user?.isDemo === true;
+  const expiryDate = user?.demoExpiry ? new Date(user.demoExpiry) : null;
+  const today = new Date();
+  const daysRemaining = expiryDate 
+    ? Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+  // Format date for display
+  const formattedExpiryDate = expiryDate 
+    ? expiryDate.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      })
+    : '';
   return (
     <>
       <header className="bg-white shadow-sm border-b border-gray-200 px-3 sm:px-4 py-1">
@@ -226,6 +241,27 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {/* Right section */}
           <div className="flex items-center space-x-1 sm:space-x-3">
             {/* Mobile search toggle */}
+             {isDemoUser && (
+              <div className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-yellow-50 to-orange-50 px-2 sm:px-3 py-1 rounded-md border border-yellow-200">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-yellow-800">
+                  Demo Account
+                </span>
+                {expiryDate && (
+                  <div className="hidden sm:flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-yellow-600" />
+                    <span className="text-xs text-yellow-700">
+                      Expires: {formattedExpiryDate}
+                      {/* {daysRemaining > 0 && (
+                        <span className="ml-1 font-semibold">
+                          ({daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} left)
+                        </span>
+                      )} */}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
             <Button
               variant="ghost"
               size="sm"

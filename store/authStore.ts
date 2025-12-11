@@ -8,7 +8,7 @@ import api from "../src/api/api";
 // Import all stores that need reset on logout_
 import { useCompanyStore } from "../store/companyStore";
 import { useStockCategory } from "../store/stockCategoryStore";
-import { useStockGroup } from "../store/stockgroupStore";
+import { useStockGroup } from "../store/stockGroupStore";
 import { useUOMStore } from "../store/uomStore";
 import { useGodownStore } from "../store/godownStore";
 import { useUserManagementStore } from "../store/userManagementStore";
