@@ -194,7 +194,7 @@ const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
 
   const CardView = useMemo(
     () => (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
         {orders.map((order) => (
           <Card key={order._id} className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader className="pb-2">

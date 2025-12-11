@@ -31,6 +31,7 @@ interface Filters {
   endDate?: string;
   page: number;
   limit: number;
+  customerId?:string;
 }
 
 interface CustomerWiseReportStore {
@@ -63,6 +64,7 @@ export const useCustomerWiseReportStore = create<CustomerWiseReportStore>()(
         endDate: undefined,
         page: 1,
         limit: 15,
+        customerId:""
       },
 
       setFilter: (key, value) =>{
@@ -102,8 +104,9 @@ export const useCustomerWiseReportStore = create<CustomerWiseReportStore>()(
             page: filters.page.toString(),
             limit: filters.limit.toString(),
           });
+          console.log(filters,"filterssssssss")
 
-          if (filters.search) params.append("search", filters.search);
+          if (filters.customerId) params.append("search",  filters.customerId);
           if (filters.salesmanId && filters.salesmanId !== "all") params.append("salesmanId", filters.salesmanId);
           if (filters.status && filters.status !== "all") params.append("status", filters.status);
           if (filters.mode && filters.mode !== "all") params.append("mode", filters.mode);

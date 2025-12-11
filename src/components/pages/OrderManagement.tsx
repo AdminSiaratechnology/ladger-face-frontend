@@ -120,7 +120,7 @@ export default function OrderManagement() {
   const { customers, filterCustomers, loading } = useCustomerStore();
   const company = defaultSelected;
   const selectedCustomer = customers.find((c) => c._id === selectedCustomerId);
-  const itemsPerPage = 10;
+  const itemsPerPage = 12;
   const navigate = useNavigate();
   const { fetchOrders, orders, pagination, counts } = useOrderStore();
   const [selectedItem, setSelectedItem] = useState<Order | null>(null);
@@ -134,7 +134,7 @@ export default function OrderManagement() {
     setIsModalOpen(true);
   };
   useEffect(() => {
-    fetchOrders(defaultSelected?._id, 1, 10);
+    fetchOrders(defaultSelected?._id, 1, 12);
   }, [defaultSelected]);
 
   useEffect(() => {
@@ -149,7 +149,7 @@ export default function OrderManagement() {
         paymentStatus: paymentFilter !== "all" ? paymentFilter : undefined,
       };
 
-      fetchOrders(defaultSelected?._id, page, 10, filters);
+      fetchOrders(defaultSelected?._id, page, 12, filters);
     },
     [defaultSelected, searchTerm, statusFilter, paymentFilter, fetchOrders]
   );
@@ -389,7 +389,7 @@ export default function OrderManagement() {
   );
 
   const CardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
       {paginatedOrders.map((order) => (
         <Card
           key={order._id}

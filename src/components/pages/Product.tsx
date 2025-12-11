@@ -571,10 +571,7 @@ const ProductPage: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    if (!formData.code.trim()) {
-      toast.error("Please enter Product Code");
-      return;
-    }
+
     if (!formData.name.trim()) {
       toast.error("Please enter Product Name");
       return;
@@ -807,7 +804,7 @@ const ProductPage: React.FC = () => {
   );
 
   const CardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
       {filteredProducts.map((product: Product) => (
         <Card
           key={product._id}
@@ -1106,7 +1103,9 @@ const ProductPage: React.FC = () => {
                     name="code"
                     value={formData.code}
                     onChange={handleChange}
-                    required={true}
+                    disabled={true}
+                    readOnly={true}
+
                   />
                   <CustomInputBox
                     label="Product Name"
@@ -1336,8 +1335,8 @@ const ProductPage: React.FC = () => {
                   totalSteps={4}
                   showPrevious={false}
                   onNext={() => {
-                    if (!formData.code.trim() || !formData.name.trim()) {
-                      toast.error("Please enter Product Code and Name");
+                    if ( !formData.name.trim()) {
+                      toast.error("Please enter Product Name");
                       return;
                     }
                     setActiveTab("tax");

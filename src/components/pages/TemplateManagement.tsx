@@ -887,13 +887,7 @@ export default function TemplateManagement() {
       statusFilter,
       companyId: defaultSelected._id,
     });
-  }, [
-    currentPage,
-    defaultSelected,
-    debouncedSearch, 
-    sortBy,
-    statusFilter,
-  ]);
+  }, [currentPage, defaultSelected, debouncedSearch, sortBy, statusFilter]);
 
   useEffect(() => {
     if (!isDialogOpen) {
@@ -1374,29 +1368,38 @@ export default function TemplateManagement() {
                                 </SelectContent>
                               </Select>
                             </div>
-
                             <div className="col-span-2">
-                              <Input
-                                type="number"
-                                min="0"
-                                step="1"
-                                value={ledger.amount === 0 ? "" : ledger.amount}
-                                onChange={(e) =>
-                                  updateLedger(index, {
-                                    amount:
-                                      e.target.value === ""
-                                        ? ""
-                                        : parseFloat(e.target.value),
-                                  })
-                                }
-                                disabled={ledger.condition === "autoCalculated"}
-                                placeholder="0.00"
-                                className={
-                                  ledger.condition === "autoCalculated"
-                                    ? "bg-gray-100"
-                                    : "bg-white"
-                                }
-                              />
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  value={
+                                    ledger.amount === 0 ? "" : ledger.amount
+                                  }
+                                  onChange={(e) =>
+                                    updateLedger(index, {
+                                      amount:
+                                        e.target.value === ""
+                                          ? ""
+                                          : parseFloat(e.target.value),
+                                    })
+                                  }
+                                  disabled={
+                                    ledger.condition === "autoCalculated"
+                                  }
+                                  placeholder="0.00"
+                                  className={`
+        ${ledger.condition === "autoCalculated" ? "bg-gray-100" : "bg-white"}
+        ${ledger.condition === "percentage" ? "pr-10" : ""}
+      `}
+                                />
+                                {ledger.condition === "percentage" && (
+                                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
+                                    %
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
                             <div className="col-span-2 flex justify-center">
@@ -1601,7 +1604,7 @@ export default function TemplateManagement() {
                                 A5 (Half Sheet)
                               </SelectItem>
                               <SelectItem value="80mm">
-                                80mm (Receipt)
+                                80mm (Role Paper)
                               </SelectItem>
                               <SelectItem value="500mm">
                                 500mm (Receipt)
