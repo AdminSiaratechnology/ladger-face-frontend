@@ -1,10 +1,10 @@
 import React from "react";
 import {
-  ShoppingCart,
+  Tag,
   CheckCircle,
   XCircle,
   Building2,
-  Tag
+  CircleDashed
 } from "lucide-react";
 
 export default function StatCardBox({
@@ -18,16 +18,22 @@ export default function StatCardBox({
   color: string;
   onClick?: () => void;
 }) {
-  const getIcon = () => {
-    const t = title.toLowerCase();
+ const getIcon = () => {
+  const t = title.toLowerCase();
 
-    if (t.includes("total")) return <ShoppingCart size={28} />;
-    if (t.includes("active")) return <CheckCircle size={28} />;
-    if (t.includes("expired")) return <XCircle size={28} />;
-    if (t.includes("company")) return <Building2 size={28} />;
+  if (t.includes("total")) return <Tag size={28} />;
 
-    return <Tag size={28} />;
-  };
+  if (t.includes("inactive")) return <CircleDashed size={28} />;  // ⭐ check BEFORE active
+
+  if (t.includes("active")) return <CheckCircle size={28} />;
+
+  if (t.includes("expired")) return <XCircle size={28} />;
+
+  if (t.includes("company")) return <Building2 size={28} />;
+
+  return <Tag size={28} />;
+};
+
 
   return (
     <div

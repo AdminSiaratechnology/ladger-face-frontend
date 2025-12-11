@@ -48,6 +48,7 @@ import PaymentReport from "./components/pages/PaymentReportPage";
 import CustomerWiseReportPage from "./components/pages/CustomerWiseReportPage";
 import ProductWiseReport from "./components/pages/ProductWiseReportPage";
 import TemplateManagement from "./components/pages/TemplateManagement";
+import POS from "./components/pages/POS"
 import DemoExpired from "./components/pages/DemoExpired";
 
 
@@ -227,6 +228,16 @@ export default function App() {
               <ProtectedRoute module="Order" subModule="Orders">
                 <AppLayout>
                   <OrderManagement />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+             <Route
+            path="/pos"
+            element={
+              <ProtectedRoute module="Order" subModule="Orders">
+                <AppLayout>
+                  <POS />
                 </AppLayout>
               </ProtectedRoute>
             }

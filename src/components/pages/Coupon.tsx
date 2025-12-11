@@ -11,7 +11,14 @@ import StatCardBox from "./StatCardBox";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { useCouponStore } from "../../../store/couponStore";
 import { useCompanyStore } from "../../../store/companyStore";
+import { Button } from "../ui/button";
 
+import {
+  Ticket,
+  CheckCircle2,
+  CircleDashed,
+  AlarmClockOff,
+} from "lucide-react";
 export default function Coupon() {
   const [page, setPage] = useState("list");
   const [open, setOpen] = useState(false);
@@ -108,20 +115,22 @@ const handleDelete = async (coupon) => {
         <div className="ml-4 mt-1">
           {page === "list" ? (
             <div className="flex gap-3">
-              <button
-                onClick={() => {
+           
+               <Button
+                  onClick={() => {
                   setMode("add");
                   setSelectedCoupon(null);
                   setOpen(true);
                 }}
-                className="px-4 py-2 bg-[#0d9488] text-white rounded-md shadow hover:bg-[#0c857a]"
+                className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
               >
                 Add Coupon
-              </button>
+                <Ticket className="w-4 h-4" />
+              </Button>
 
-              <button className="px-4 py-2 bg-white border rounded-md hover:bg-slate-50">
+              {/* <button className="px-4 py-2 bg-white border rounded-md hover:bg-slate-50">
                 Export
-              </button>
+              </button> */}
             </div>
           ) : (
             <button
@@ -137,36 +146,41 @@ const handleDelete = async (coupon) => {
       {/* STATS */}
    {page === "list" && (
   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-    <StatCardBox
-      title="Total Coupons"
-      value={(coupons || []).length}
-      color="from-teal-400 to-teal-500"
-    />
+   <StatCardBox
+  title="Total Coupons"
+  value={(coupons || []).length}
+  color="from-teal-400 to-teal-600"
+/>
 
- <StatCardBox
+<StatCardBox
   title="Active"
-  value={(coupons || []).filter((c) =>
-    c?.validTo && new Date(c.validTo) >= new Date()
-  ).length}
-  color="from-blue-400 to-blue-500"
+  value={(coupons || []).filter((c) => {
+    if (c?.status !== "active") return false;
+    if (!c?.validTo) return false;
+
+    const d = new Date(c.validTo);
+    return !isNaN(d) && d >= new Date();
+  }).length}
+  color="from-blue-400 to-blue-600"
+/>
+
+<StatCardBox
+  title="Inactive"
+  value={(coupons || []).filter((c) => c?.status === "inactive").length}
+  color="from-slate-400 to-slate-600"
 />
 
 <StatCardBox
   title="Expired"
   value={(coupons || []).filter((c) => {
     if (!c?.validTo) return false;
-    const date = new Date(c.validTo);
-    return !isNaN(date) && date < new Date();
+    const d = new Date(c.validTo);
+    return !isNaN(d) && d < new Date();
   }).length}
-  color="from-orange-400 to-orange-500"
+  color="from-orange-400 to-orange-600"
 />
 
 
-   <StatCardBox
-  title="Deleted Coupons"
-  value={(coupons || []).filter((c) => c?.status === "delete").length}
-  color="from-red-400 to-red-500"
-/>
 
   </div>
 )}
