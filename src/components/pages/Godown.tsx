@@ -81,7 +81,7 @@ const GodownRegistration: React.FC = () => {
     setSelectedGodown(godown);
     setIsModalOpen(true);
   };
-  const limit = 10; // Fixed limit per page
+  const limit = 12; // Fixed limit per page
 
   const {
     godowns,
@@ -439,7 +439,7 @@ const GodownRegistration: React.FC = () => {
 
   // Card View Component
   const CardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
       {filteredGodowns?.map((godown: Godown) => (
         <Card
           key={godown._id}

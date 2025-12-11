@@ -1,4 +1,4 @@
-// components/custom/SearchableSalesmanSelect.tsx
+// components/custom/SearchableSelect.tsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Command,
@@ -16,86 +16,81 @@ import {
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useUserManagementStore } from "../../../store/userManagementStore";
-import { useCompanyStore } from "../../../store/companyStore";
 
-interface SearchableSalesmanSelectProps {
+interface Option {
+  value: string;
+  label: string;
+}
+
+interface SearchableSelectProps {
+  options?: Option[];                    // Optional: pass pre-loaded data
   value: string;
   onChange: (value: string) => void;
+  onSearch?: (query: string) => Promise<void> | void; // Parent handles search
+  loading?: boolean;
   placeholder?: string;
+  searchPlaceholder?: string;
+  emptyMessage?: string;
+  includeAllOption?: boolean;
+  allOptionLabel?: string;
   className?: string;
 }
 
-const SearchableSalesmanSelect: React.FC<SearchableSalesmanSelectProps> = ({
+const SearchableSelect: React.FC<SearchableSelectProps> = ({
+  options = [],
   value,
   onChange,
-  placeholder = "Select salesman...",
+  onSearch,
+  loading = false,
+  placeholder = "Select an option...",
+  searchPlaceholder = "Search...",
+  emptyMessage = "No results found.",
+  includeAllOption = true,
+  allOptionLabel = "All",
   className,
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  const { users, loading, filterUsers } = useUserManagementStore();
-  const { defaultSelected } = useCompanyStore();
-  const companyId = defaultSelected?._id;
+  // Final list of options
+  const finalOptions = useMemo(() => {
+    const list = includeAllOption
+      ? [{ value: "all", label: allOptionLabel }, ...options]
+      : options;
 
-  // Build options from current users in store
-  const options = useMemo(() => {
-    const userOptions = users.map((u: any) => ({
-      value: u._id,
-      label: u.name,
-    }));
-
-    return [
-      { value: "all", label: "All Salesmen" },
-      ...userOptions,
-    ];
-  }, [users]);
-
-  // Load users on open or search
-  const loadUsers = useCallback(async () => {
-    if (!companyId) return;
-
-    try {
-      await filterUsers(
-        search,
-        "all",
-        "all",
-        "nameAsc",
-        1,
-        50,
-        companyId
+    // Client-side filter if no onSearch
+    if (!onSearch && search) {
+      return list.filter((opt) =>
+        opt.label.toLowerCase().includes(search.toLowerCase())
       );
-      // Store updates → options update via useMemo
-    } catch (error) {
-      console.error("Failed to load salesmen:", error);
     }
-  }, [search, companyId, filterUsers]);
+    return list;
+  }, [options, search, includeAllOption, allOptionLabel, onSearch]);
 
-  // Load when popover opens
+  // Debounced search call to parent
   useEffect(() => {
-    if (open && companyId) {
-      loadUsers();
-    }
-  }, [open, companyId, loadUsers]);
-
-  // Debounced search
-  useEffect(() => {
-    if (open && search.length >= 1) {
-      const timer = setTimeout(loadUsers, 300);
+    if (onSearch && open) {
+      const timer = setTimeout(() => {
+        onSearch(search);
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [search, open, loadUsers]);
+  }, [search, open, onSearch]);
 
-  // Selected label
+  // Reset search when closed
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) setSearch("");
+  };
+
   const selectedLabel = useMemo(() => {
-    if (!value || value === "all") return "All Salesmen";
+    if (!value || value === "all") return allOptionLabel;
     const found = options.find((opt) => opt.value === value);
     return found?.label || placeholder;
-  }, [value, options, placeholder]);
+  }, [value, options, allOptionLabel, placeholder]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger >
         <Button
           variant="outline"
@@ -105,8 +100,7 @@ const SearchableSalesmanSelect: React.FC<SearchableSalesmanSelectProps> = ({
         >
           <span className="truncate">{selectedLabel}</span>
           {loading ? (
-            // <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-            <></>
+            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
           ) : (
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           )}
@@ -114,9 +108,9 @@ const SearchableSalesmanSelect: React.FC<SearchableSalesmanSelectProps> = ({
       </PopoverTrigger>
 
       <PopoverContent className="w-full p-0" align="start">
-        <Command shouldFilter={false}>  {/* ← CRITICAL: Disable built-in filter */}
+        <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Search salesman..."
+            placeholder={searchPlaceholder}
             value={search}
             onValueChange={setSearch}
           />
@@ -126,18 +120,17 @@ const SearchableSalesmanSelect: React.FC<SearchableSalesmanSelectProps> = ({
                 <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                 Loading...
               </CommandEmpty>
-            ) : options.length === 0 ? (
-              <CommandEmpty>No salesman found.</CommandEmpty>
+            ) : finalOptions.length === 0 ? (
+              <CommandEmpty>{emptyMessage}</CommandEmpty>
             ) : (
               <CommandGroup>
-                {options.map((option) => (
+                {finalOptions.map((option) => (
                   <CommandItem
                     key={option.value}
-                    value={option.label}  // ← Use label for filtering!
+                    value={option.label}
                     onSelect={() => {
                       onChange(option.value);
                       setOpen(false);
-                      setSearch("");
                     }}
                   >
                     <Check
@@ -158,4 +151,4 @@ const SearchableSalesmanSelect: React.FC<SearchableSalesmanSelectProps> = ({
   );
 };
 
-export default SearchableSalesmanSelect;
+export default SearchableSelect;

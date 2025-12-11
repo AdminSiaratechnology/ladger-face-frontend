@@ -85,7 +85,7 @@ const UnitManagement: React.FC = () => {
   >("dateDesc");
   const [filteredUnits, setFilteredUnits] = useState<Unit[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const limit = 10;
+  const limit = 12;
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -401,7 +401,7 @@ const UnitManagement: React.FC = () => {
 
   // Card View Component
   const CardView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {filteredUnits.map((unit) => (
         <Card
           key={unit._id}

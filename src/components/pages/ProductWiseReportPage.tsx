@@ -4,7 +4,7 @@ import { useProductWiseReportStore } from "../../../store/ProductWiseReportStore
 import { useCompanyStore } from "../../../store/companyStore";
 import { useUserManagementStore } from "../../../store/userManagementStore";
 import GenericReportPage from "../customComponents/GenericReportPage";
-import ReportFilterBar from "../customComponents/CustomerWiseReportFilterBar";
+import ReportFilterBar from "../customComponents/ProductWiseReportFilterBar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Package, DollarSign, TrendingUp, Users } from "lucide-react";
@@ -118,7 +118,6 @@ const ProductWiseReportPage = () => {
   const headers = useMemo(() => {
     const base = [
       "Date",
-      "HSN",
       "Product",
       "Salesman",
       "Qty",
@@ -126,7 +125,7 @@ const ProductWiseReportPage = () => {
       "Taxable",
     ];
     if (isIndia) {
-      return [...base, "CGST", "SGST", "IGST", "Total", "Salesman"];
+      return [...base,"HSN", "CGST", "SGST", "IGST", "Total", ];
       // ];
     } else {
       return [...base, "VAT Rate", "VAT Amount", "Total"];
@@ -145,9 +144,7 @@ const ProductWiseReportPage = () => {
                   <td className="px-4 py-3 text-xs md:text-sm whitespace-nowrap">
                     {format(new Date(p?.date), "dd MMM yyyy")}
                   </td>
-                  <td className="px-4 py-3 text-center text-xs md:text-sm">
-                    {p?.hsnCode || "-"}
-                  </td>
+                
                   <td
                     className="px-4 py-3 font-medium text-sm max-w-[220px] truncate"
                     title={p.productName}
@@ -170,6 +167,9 @@ const ProductWiseReportPage = () => {
                   {/* TAX COLUMNS — SEPARATE & CLEAN */}
                   {isIndia ? (
                     <>
+                      <td className="px-4 py-3 text-center text-xs md:text-sm">
+                    {p?.hsnCode || "-"}
+                  </td>
                       <td className="px-4 py-3 text-left text-orange-600 text-xs ">
                         {p.cgst > 0 ? `${p?.cgst?.toLocaleString()}` : "-"}
                       </td>
@@ -213,11 +213,11 @@ const ProductWiseReportPage = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-bold text-lg truncate">{p?.productName}</p>
+                <div className="text-xs bg-white text-black">HSN: {p?.hsnCode || "N/A"}</div>
                   <p className="text-xs text-gray-500">
                     {format(new Date(p?.date), "dd MMM yyyy")}
                   </p>
                 </div>
-                <Badge className="text-xs">HSN: {p?.hsnCode || "N/A"}</Badge>
               </div>
             </CardHeader>
             <CardContent>

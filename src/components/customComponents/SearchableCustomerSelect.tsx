@@ -1,4 +1,4 @@
-// components/custom/SearchableSalesmanSelect.tsx
+// components/custom/SearchableCustomerSelect.tsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Command,
@@ -14,88 +14,92 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useUserManagementStore } from "../../../store/userManagementStore";
+import { useCustomerStore } from "../../../store/customerStore";
 import { useCompanyStore } from "../../../store/companyStore";
 
-interface SearchableSalesmanSelectProps {
+interface SearchableCustomerSelectProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  companyId?: string;
 }
 
-const SearchableSalesmanSelect: React.FC<SearchableSalesmanSelectProps> = ({
+const SearchableCustomerSelect: React.FC<SearchableCustomerSelectProps> = ({
   value,
   onChange,
-  placeholder = "Select salesman...",
+  placeholder = "Select customer...",
   className,
+  companyId: propCompanyId,
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  const { users, loading, filterUsers } = useUserManagementStore();
   const { defaultSelected } = useCompanyStore();
-  const companyId = defaultSelected?._id;
+  const finalCompanyId = propCompanyId || defaultSelected?._id;
+  console.log(finalCompanyId,"finalCompanyId")
 
-  // Build options from current users in store
+  const { customers, loading, fetchCustomers,filterCustomers } = useCustomerStore();
+
+  const loadCustomers = useCallback(async () => {
+    if (!finalCompanyId) return;
+
+    try {
+    //   await fetchCustomers({
+    //     search,
+    //     companyId: finalCompanyId,
+    //     page: 1,
+    //     limit: 100,
+    //   });
+     await  filterCustomers(
+          search,
+          "",
+          "",
+          "",
+          10,
+         finalCompanyId)
+    } catch (error) {
+      console.error("Failed to load customers:", error);
+    }
+  }, [search, finalCompanyId, fetchCustomers]);
+
+  useEffect(() => {
+    if (open && finalCompanyId) {
+      loadCustomers();
+    }
+  }, [open, finalCompanyId, loadCustomers]);
+
+  useEffect(() => {
+    if (open && search.length >= 1) {
+      const timer = setTimeout(() => {
+        loadCustomers();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [search, open, loadCustomers]);
+
   const options = useMemo(() => {
-    const userOptions = users.map((u: any) => ({
-      value: u._id,
-      label: u.name,
+    const customerOptions = customers.map((c: any) => ({
+      value: c._id,
+      label: c.contactPerson || c.name || "Unnamed Customer",
     }));
 
     return [
-      { value: "all", label: "All Salesmen" },
-      ...userOptions,
+      { value: "all", label: "All Customers" },
+      ...customerOptions,
     ];
-  }, [users]);
+  }, [customers]);
 
-  // Load users on open or search
-  const loadUsers = useCallback(async () => {
-    if (!companyId) return;
-
-    try {
-      await filterUsers(
-        search,
-        "all",
-        "all",
-        "nameAsc",
-        1,
-        50,
-        companyId
-      );
-      // Store updates → options update via useMemo
-    } catch (error) {
-      console.error("Failed to load salesmen:", error);
-    }
-  }, [search, companyId, filterUsers]);
-
-  // Load when popover opens
-  useEffect(() => {
-    if (open && companyId) {
-      loadUsers();
-    }
-  }, [open, companyId, loadUsers]);
-
-  // Debounced search
-  useEffect(() => {
-    if (open && search.length >= 1) {
-      const timer = setTimeout(loadUsers, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [search, open, loadUsers]);
-
-  // Selected label
   const selectedLabel = useMemo(() => {
-    if (!value || value === "all") return "All Salesmen";
+    if (!value || value === "all") return "All Customers";
     const found = options.find((opt) => opt.value === value);
     return found?.label || placeholder;
   }, [value, options, placeholder]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} className="w-full">
       <PopoverTrigger >
         <Button
           variant="outline"
@@ -103,7 +107,10 @@ const SearchableSalesmanSelect: React.FC<SearchableSalesmanSelectProps> = ({
           aria-expanded={open}
           className={cn("w-full justify-between h-11 font-normal", className)}
         >
-          <span className="truncate">{selectedLabel}</span>
+          <div className="flex items-center gap-2 truncate">
+            <User className="h-4 w-4 shrink-0 opacity-60" />
+            <span className="truncate">{selectedLabel}</span>
+          </div>
           {loading ? (
             // <Loader2 className="ml-2 h-4 w-4 animate-spin" />
             <></>
@@ -114,9 +121,9 @@ const SearchableSalesmanSelect: React.FC<SearchableSalesmanSelectProps> = ({
       </PopoverTrigger>
 
       <PopoverContent className="w-full p-0" align="start">
-        <Command shouldFilter={false}>  {/* ← CRITICAL: Disable built-in filter */}
+        <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Search salesman..."
+            placeholder="Search customer..."
             value={search}
             onValueChange={setSearch}
           />
@@ -124,16 +131,16 @@ const SearchableSalesmanSelect: React.FC<SearchableSalesmanSelectProps> = ({
             {loading ? (
               <CommandEmpty className="py-6 text-center text-sm">
                 <Loader2 className="mx-auto h-4 w-4 animate-spin" />
-                Loading...
+                Loading customers...
               </CommandEmpty>
             ) : options.length === 0 ? (
-              <CommandEmpty>No salesman found.</CommandEmpty>
+              <CommandEmpty>No customer found.</CommandEmpty>
             ) : (
               <CommandGroup>
                 {options.map((option) => (
                   <CommandItem
                     key={option.value}
-                    value={option.label}  // ← Use label for filtering!
+                    value={option.label}
                     onSelect={() => {
                       onChange(option.value);
                       setOpen(false);
@@ -158,4 +165,4 @@ const SearchableSalesmanSelect: React.FC<SearchableSalesmanSelectProps> = ({
   );
 };
 
-export default SearchableSalesmanSelect;
+export default SearchableCustomerSelect;

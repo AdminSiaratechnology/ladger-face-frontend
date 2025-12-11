@@ -284,7 +284,7 @@ const VendorRegistrationPage: React.FC = () => {
   >("dateDesc");
   const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const limit = 10; // Fixed limit per page
+  const limit = 12; // Fixed limit per page
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1038,7 +1038,7 @@ const VendorRegistrationPage: React.FC = () => {
 
   // Card View Component
   const CardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
       {filteredVendors.map((vendor: Vendor) => (
         <Card
           key={vendor._id}

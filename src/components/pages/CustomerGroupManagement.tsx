@@ -54,7 +54,7 @@ const CustomerGroupManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const limit = 10;
+  const limit = 12;
 
   // Stores
   const {
@@ -225,7 +225,7 @@ const [formData, setFormData] = useState({
 
   // Card View
   const CardView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {groups.map((group) => (
         <Card key={group._id} className="hover:shadow-xl transition-all duration-300 border border-gray-100">
           <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">

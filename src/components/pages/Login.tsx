@@ -34,6 +34,7 @@ import ForgotPasswordModal from "../Modals/ForgotPasswordModal"; // adjust path 
 
 export default function Login() {
 const deviceId = navigator.userAgent;
+localStorage.setItem("deviceId",deviceId)
 
 const { login, isLoading: loading, user } = useAuthStore();
 
