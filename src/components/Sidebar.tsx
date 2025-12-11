@@ -328,13 +328,25 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       ],
     },
     {
-      path: "/orders",
+      id: "Order",
       icon: ShoppingCart,
-      label: "Orders",
-      roles: ["admin", "agent", "salesman", "client"],
-      type: "link",
-      module: "Order",
-      subModule: "Orders",
+      label: "Order Management",
+      roles: ["admin", "agent", "client", "salesman"],
+      type: "accordion",
+      subItems: [
+        {
+          path: "/orders",
+          icon: LayoutDashboard,
+          label: "Custom Order",
+          roles: ["admin", "agent", "client", "salesman"],
+        },
+        {
+          path: "/POS",
+          icon: FileText,
+          label: "POS ",
+          roles: ["admin", "client"],
+        },
+      ],
     },
         {
       path: "/Coupon",

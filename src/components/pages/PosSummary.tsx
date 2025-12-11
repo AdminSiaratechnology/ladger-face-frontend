@@ -132,7 +132,7 @@ export default function PosSummary({
             {/* SPLIT TOGGLE */}
             <button
               onClick={() => setIsSplit(!isSplit)}
-              className={`w-full mb-4 py-2 rounded-lg border font-medium ${isSplit ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-700"
+              className={`w-full mb-4 py-2 rounded-lg border cursor-pointer font-medium ${isSplit ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-700"
                 }`}
             >
               {isSplit ? "Split Payment Enabled" : "Enable Split Payment"}
@@ -299,7 +299,7 @@ export default function PosSummary({
                   grandTotal,
                 })
               }
-              className={`w-full rounded-xl py-3 flex items-center justify-center gap-3 transition ${!canCompleteBill
+              className={`w-full rounded-xl py-3 flex items-center justify-center gap-3 transition cursor-pointer ${!canCompleteBill
                 ? "bg-gray-300 text-gray-200 cursor-not-allowed"
                 : "bg-green-600 hover:bg-green-700 text-white shadow"
                 }`}
