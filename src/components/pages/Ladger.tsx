@@ -234,7 +234,7 @@ const LedgerRegistration: React.FC = () => {
   const [filteredLedgers, setFilteredLedgers] = useState<Ledger[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const containerRef = useRef<HTMLDivElement>(null);
-  const limit = 10;
+  const limit = 12;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
@@ -947,7 +947,7 @@ const LedgerRegistration: React.FC = () => {
   );
 
   const CardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
       {filteredLedgers.map((ledger: Ledger) => (
         <Card
           key={ledger._id}

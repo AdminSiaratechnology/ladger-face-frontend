@@ -75,7 +75,7 @@ const StockCategoryRegistration: React.FC = () => {
     StockCategory[]
   >([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const limit = 10; // Fixed limit per page
+  const limit = 12; // Fixed limit per page
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const {
@@ -345,7 +345,7 @@ const StockCategoryRegistration: React.FC = () => {
 
   // Card View Component
   const CardView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {filteredStockCategories.map((category) => (
         <Card
           key={category._id}
@@ -378,13 +378,13 @@ const StockCategoryRegistration: React.FC = () => {
                 <Layers className="w-4 h-4 mr-2 text-gray-400" />
                 Group: {getStockGroupName(category.stockGroupId)}
               </div> */}
-              <div className="flex items-center">
+              {/* <div className="flex items-center">
                 <Package className="w-4 h-4 mr-2 text-gray-400" />
                 Parent:{" "}
                 {category.parent === "primary"
                   ? "Primary"
                   : getCategoryName(category.parent)}
-              </div>
+              </div> */}
               <div className="flex items-center">
                 <FileText className="w-4 h-4 mr-2 text-gray-400" />
                 Created: {formatSimpleDate(category.createdAt)}

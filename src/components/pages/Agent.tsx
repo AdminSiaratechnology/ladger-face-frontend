@@ -256,7 +256,7 @@ const AgentRegistrationPage: React.FC = () => {
     setSelectedAgent(agent);
     setIsModalOpen(true);
   };
-  const limit = 10;
+  const limit = 12;
 
   const {
     fetchAgents,
@@ -1027,7 +1027,7 @@ const AgentRegistrationPage: React.FC = () => {
   );
 
   const CardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
       {filteredAgents.map((agent: Agent) => (
         <Card
           key={agent._id}

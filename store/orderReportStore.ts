@@ -56,7 +56,7 @@ export const useOrderReportStore = create<OrderReportStore>()(
         sortBy: "createdAt",
         sortOrder: "desc",
         page: 1,
-        limit: 10,
+        limit: 12,
       },
 
       setFilter: (key, value) =>
@@ -75,7 +75,7 @@ export const useOrderReportStore = create<OrderReportStore>()(
             sortBy: "createdAt",
             sortOrder: "desc",
             page: 1,
-            limit: 10,
+            limit: 12,
           },
         }),
 

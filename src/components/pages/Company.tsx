@@ -211,7 +211,7 @@ const CompanyPage: React.FC = () => {
   >("dateDesc");
   // const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const limit = 10; // Fixed limit per page
+  const limit = 12; // Fixed limit per page
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const {
@@ -381,6 +381,8 @@ const CompanyPage: React.FC = () => {
       [key]: value,
     }));
   };
+
+  
   useEffect(() => {
     const fetchCompanyStates = async () => {
       try {
@@ -706,6 +708,7 @@ const CompanyPage: React.FC = () => {
   };
   const handleEditCompany = (company: Company): void => {
     const today = new Date().toISOString().split("T")[0];
+    console.log("Editing company:", company);
     setEditingCompany(company);
     setFormData({
       ...company,
@@ -748,6 +751,7 @@ const CompanyPage: React.FC = () => {
     }
   };
   const handleSubmit = async (): Promise<void> => {
+    console.log("Form data before submission:", formData);
     if (!formData.namePrint.trim()) {
       toast.error("Please enter Company Name (Print)");
       return;
@@ -761,6 +765,7 @@ const CompanyPage: React.FC = () => {
       toast.error("Please enter a valid email address");
       return;
     }
+    console.log("Submitting form data:", formData);
     const companyFormData = new FormData();
     Object.keys(formData).forEach((key) => {
       const value = formData[key as keyof CompanyForm];
@@ -769,7 +774,8 @@ const CompanyPage: React.FC = () => {
         key === "banks" ||
         key === "brandingImages" ||
         key === "logoFile" ||
-        key === "logoPreviewUrl"
+        key === "logoPreviewUrl" ||
+         key === "defaultCurrencySymbol" 
       ) {
         return;
       }
@@ -793,6 +799,22 @@ const CompanyPage: React.FC = () => {
         JSON.stringify(newRegistrationDocs.map((doc) => doc.type))
       );
     }
+     const currencyObj = currencies.find(
+    (c) => c.code === formData.defaultCurrency
+  );
+
+  const currencySymbol = currencyObj ? currencyObj.symbol : "";
+
+  // Detect if currency changed during update
+  const currencyChanged =
+    editingCompany &&
+    editingCompany.defaultCurrency !== formData.defaultCurrency;
+
+  // CREATE → Always set
+  // UPDATE → Only set if currency changed
+  if (!editingCompany || currencyChanged) {
+    companyFormData.set("defaultCurrencySymbol", currencySymbol);
+  }
     // Handle branding images
     const newBrandingImages = formData.brandingImages.filter(
       (img) => img.file && img.file instanceof Blob
@@ -836,7 +858,7 @@ const CompanyPage: React.FC = () => {
     }
   };
   const deviceId = navigator.userAgent;
-  console.log("Device ID:", deviceId);
+  // console.log("Device ID:", deviceId);
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchTerm.length >= 3 || searchTerm.length === 0) {
@@ -1539,8 +1561,8 @@ ${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
                       >
                         <option value="">Select Currency</option>
 
-                        {currencies.map((c) => (
-                          <option key={c.code} value={c.code}>
+                        {currencies.map((c,index) => (
+                          <option key={`curr-${c.code}-${index}`} value={c.code}>
                             {c.code} - {c.name}{" "}
                             {c.symbol ? `(${c.symbol})` : ""}
                           </option>

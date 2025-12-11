@@ -278,7 +278,7 @@ const CustomerRegistrationPage: React.FC = () => {
     setSelectedCustomer(customer);
     setIsModalOpen(true);
   };
-  const limit = 10; // Fixed limit per page
+  const limit = 12; // Fixed limit per page
   const {
     fetchCustomers,
     addCustomer,
@@ -1018,7 +1018,7 @@ useEffect(() => {
 
   // Card View Component
   const CardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
       {filteredCustomers.map((customer: Customer) => (
         <Card
           key={customer._id}

@@ -85,7 +85,7 @@ const StockGroupRegistration: React.FC = () => {
     setSelectedGroup(group);
     setIsModalOpen(true);
   };
-  const limit = 10; // Fixed limit per page
+  const limit = 12; // Fixed limit per page
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const {
@@ -329,7 +329,7 @@ const handleSelectChange = (
 
   // Card View Component
   const CardView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {filteredStockGroups.map((group) => (
         <Card
           key={group._id}

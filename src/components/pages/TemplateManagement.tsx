@@ -1604,7 +1604,7 @@ export default function TemplateManagement() {
                                 A5 (Half Sheet)
                               </SelectItem>
                               <SelectItem value="80mm">
-                                80mm (Receipt)
+                                80mm (Role Paper)
                               </SelectItem>
                               <SelectItem value="500mm">
                                 500mm (Receipt)

@@ -345,16 +345,36 @@ const GodownSelector: React.FC<{
   selectedGodownIds: string[];
   onChange: (godownIds: string[]) => void;
 }> = ({ companyId, selectedGodownIds, onChange }) => {
-  const { godowns, fetchGodowns, loading } = useGodownStore();
+  const { godowns, fetchGodowns, loading,filterGodowns } = useGodownStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (companyId) {
-      fetchGodowns(companyId);
+      // createdAt&sortOrder=desc
+      // searchTerm,
+      //   statusFilter,
+      //   sortBy,
+      //   page = 1,
+      //   limit = 10,
+      //   companyId
+    //     searchTerm: string,
+    // statusFilter: "all" | "active" | "inactive" | "maintenance",
+    // sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
+    // companyId?: number | string,
+    // page?: number,
+    // limit?: number
+      filterGodowns(
+        searchTerm,
+         "all",
+        "nameAsc",
+        1,
+        10,
+        companyId
+      );
     }
-  }, [companyId, fetchGodowns]);
+  }, [companyId, searchTerm]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -711,7 +731,8 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     if (activeCompanyTab) {
       fetchCustomerGroups(activeCompanyTab);
-      fetchGodowns(activeCompanyTab); // Fetch Godowns
+      let companyId = activeCompanyTab;
+      fetchGodowns(1, 10, companyId); // Fetch Godowns
     }
   }, [activeCompanyTab, fetchCustomerGroups, fetchGodowns]);
 
