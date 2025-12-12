@@ -944,14 +944,10 @@ const fetchTemplatesByCompany = async (  { companyId }: { companyId: string },
 }
 const PosBillToServer = async (payload: any) => {
   try {
-    const res = await fetch("http://localhost:8000/api/sales", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await apiClient.post("/pos", payload);
 
-    const data = await res.json();
-    return data;
+    
+    return res;
   } catch (err) {
     console.error("SALE API ERROR:", err);
     return { success: false };
