@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useStockItemStore } from "../../../store/stockItemStore";
 import { useCompanyStore } from "../../../store/companyStore";
 import { usePosStore } from "../../../store/posStore";
+import api from "../../api/api";
 
 import PosCart from "./PosCart";
 import PosSummary from "./PosSummary";
@@ -66,9 +67,18 @@ export default function PosBilling() {
     updateDrawerCash(Number(drawer));
 
   }, [defaultSelected?._id]);
+  useEffect(() => {
+  const clearDrawer = () => {
+    localStorage.removeItem("drawerCash");
+  };
+
+  window.addEventListener("beforeunload", clearDrawer);
+  return () => window.removeEventListener("beforeunload", clearDrawer);
+}, []);
 
 
   const products = Array.isArray(stockItems) ? stockItems : [];
+
 
   // ------------------------
   // SEARCH RESULTS
@@ -191,82 +201,92 @@ export default function PosBilling() {
     setCashReceived("");
     setShowDraftModal(false);
   };
-  const handleCompleteBill = async (paymentData) => {
-    if (cart.length === 0) return;
+ const handleCompleteBill = async (paymentData) => {
+  console.log("hello mr bean");
+  if (cart.length === 0) return;
 
-    updateDrawerCash(paymentData.grandTotal);
+  updateDrawerCash(paymentData.grandTotal);
 
-    const newBillNo = "INV-" + Math.floor(100000 + Math.random() * 900000);
-    setBillNumber(newBillNo);
+  const newBillNo = "INV-" + Math.floor(100000 + Math.random() * 900000);
+  setBillNumber(newBillNo);
 
-    const payload = {
-      billNumber: newBillNo,
-      customerName,
-      customerPhone,
-      createdAt: new Date().toISOString(),
+  const payload = {
+    billNumber: newBillNo,
+    customerName,
+    customerPhone,
+    createdAt: new Date().toISOString(),
 
-      items: cart.map((c) => ({
-        name: c.ItemName,
-        qty: c.qty,
-        price: c.price,
-        total: c.qty * c.price,
-        batch: c.batch
-      })),
+    items: cart.map((c) => ({
+      name: c.ItemName,
+      qty: c.qty,
+      price: c.price,
+      total: c.qty * c.price,
+      batch: c.batch
+    })),
 
-      subtotal,
-      taxAmount: paymentData.taxAmount,
-      grandTotal: paymentData.grandTotal,
+    subtotal,
+    taxAmount: paymentData.taxAmount,
+    grandTotal: paymentData.grandTotal,
 
-      paymentInfo: paymentData
-    };
-
-    setPreviewBill(payload);
-    setShowPreview(true);
+    paymentMode: paymentData.singlePayment || "split",
+    splitPayment: paymentData.splitPayment || null
   };
+
+console.log("CALLING API...");
+try {
+  const res = await api.PosBillToServer(payload);
+  console.log("API RESPONSE:", res);
+} catch (err) {
+  console.log("API ERROR:", err);
+}
+
+  // 🟢 STEP 2: PREVIEW OPEN
+  setPreviewBill(payload);
+  setShowPreview(true);
+};
+
 
   // ------------------------
   // DOWNLOAD BILL
   // ------------------------
-  const handleDownloadInvoice = async () => {
-    if (!previewBill) return;
+const handleDownloadInvoice = async () => {
+  if (!previewBill) return;
 
-    await generateInvoicePdf({
-      billNumber: previewBill.billNumber,
-      createdAt: previewBill.createdAt,
+  await generateInvoicePdf({
+    billNumber: previewBill.billNumber,
+    createdAt: previewBill.createdAt,
+    company: {
+      CompanyName: defaultSelected?.namePrint || "",
+      Address: `${defaultSelected?.address1 || ""}, ${defaultSelected?.address2 || ""}, ${defaultSelected?.address3 || ""}, ${defaultSelected?.city || ""}, ${defaultSelected?.state || ""} - ${defaultSelected?.pincode || ""}`,
+      phone: defaultSelected?.mobile || defaultSelected?.telephone || "",
+      country: defaultSelected?.country || "",
+      gstNumber: defaultSelected?.gstNumber || "",
+      logo: defaultSelected?.logo || ""
+    },
+    customer: {
+      name: previewBill.customerName || "",
+      phone: previewBill.customerPhone || ""
+    },
+    items: previewBill.items,
+    subtotal: previewBill.subtotal,
+    taxAmount: previewBill.taxAmount,
+    grandTotal: previewBill.grandTotal,
+    paymentMode: previewBill.paymentMode,
+    splitPayment: previewBill.splitPayment
+  });
 
-      company: {
-        CompanyName: defaultSelected?.namePrint || "",
-        Address: `${defaultSelected?.address1 || ""}, ${defaultSelected?.address2 || ""}, ${defaultSelected?.address3 || ""}, ${defaultSelected?.city || ""}, ${defaultSelected?.state || ""} - ${defaultSelected?.pincode || ""}`,
-        phone: defaultSelected?.mobile || defaultSelected?.telephone || "",
-        country: defaultSelected?.country || "",
-        gstNumber: defaultSelected?.gstNumber || "",
-        logo: defaultSelected?.logo || ""
-      },
+  // Reset UI
+  setCart([]);
+  setPayment("");
+  setCashReceived("");
+  setCustomerName("");
+  setCustomerPhone("");
+  setBillNumber("");
+  setPreviewBill(null);
+  setShowPreview(false);
+};
 
-      customer: {
-        name: previewBill.customerName || "",
-        phone: previewBill.customerPhone || ""
-      },
 
-      items: previewBill.items || [],
-
-      subtotal: Number(previewBill.subtotal) || 0,
-      taxAmount: Number(previewBill.taxAmount) || 0,
-      grandTotal: Number(previewBill.grandTotal) || 0,
-
-      paymentInfo: previewBill.paymentInfo || {}
-    });
-
-    // RESET POS
-    setCart([]);
-    setPayment("");
-    setCashReceived("");
-    setCustomerName("");
-    setCustomerPhone("");
-    setBillNumber("");
-    setPreviewBill(null);
-    setShowPreview(false);
-  };
 
 
 
@@ -282,7 +302,11 @@ export default function PosBilling() {
           </div>
 
           <button
-            onClick={() => localStorage.removeItem("posSessionActive")}
+          onClick={() => {
+  localStorage.removeItem("posSessionActive");
+  localStorage.removeItem("drawerCash");  
+  updateDrawerCash(0);   // UI instantly update ho jayega
+}}
             className="bg-white text-blue-700 px-4 py-1.5 rounded-lg cursor-pointer"
           >
             Shift End

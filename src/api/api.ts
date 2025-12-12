@@ -942,7 +942,7 @@ const fetchTemplatesByCompany = async (  { companyId }: { companyId: string },
   const res = await apiClient.get(`/bill-templates/company/${companyId}?${queryParams}`);
   return res.data;
 }
-const saveSaleToServer = async (payload: any) => {
+const PosBillToServer = async (payload: any) => {
   try {
     const res = await fetch("http://localhost:8000/api/sales", {
       method: "POST",
@@ -960,7 +960,7 @@ const saveSaleToServer = async (payload: any) => {
 
 // Export API
 const api = {
-  saveSaleToServer,  
+ PosBillToServer, 
   createCompany,
   getCompanies,
   getProducts,
