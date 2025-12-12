@@ -197,6 +197,11 @@ export const useCompanyStore = create<CompanyStore>()(
             loading: false,
             error: null,
           });
+          let defaultSelected = get().defaultSelected;
+          if (defaultSelected?._id === updatedCompany._id ) {
+           
+            set({ defaultSelected: updatedCompany });
+          }
           toast.success("Company updated successfully!");
         } catch (error: any) {
           set({
