@@ -387,6 +387,16 @@ const VendorRegistrationPage: React.FC = () => {
     notes: "",
     registrationDocs: [],
   });
+  const [isAccountHolderManuallyEdited, setIsAccountHolderManuallyEdited] = useState(false);
+
+    useEffect(() => {
+      if (!isAccountHolderManuallyEdited && formData.vendorName) {
+        setBankForm((prev) => ({
+          ...prev,
+          accountHolderName: formData.vendorName,
+        }));
+      }
+    }, [formData.vendorName, isAccountHolderManuallyEdited]);
   useEffect(() => {
     if (defaultSelected) {
       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
@@ -484,6 +494,9 @@ const VendorRegistrationPage: React.FC = () => {
       ...prev,
       [name]: newValue,
     }));
+        if (name === "accountHolderName") {
+      setIsAccountHolderManuallyEdited(true);
+    }
   };
 
   const addOrUpdateBank = (): void => {
@@ -1545,23 +1558,13 @@ const VendorRegistrationPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Procurement Person
-                    </label>
-                    <select
-                      value={formData.procurementPerson}
-                      onChange={(e) =>
-                        handleSelectChange("procurementPerson", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Procurement Person</option>
-                      <option value="john">John Smith</option>
-                      <option value="jane">Jane Doe</option>
-                      <option value="mike">Mike Johnson</option>
-                    </select>
-                  </div>
+                  <CustomInputBox
+ label="Procurement Person"
+placeholder="e.g., ABC "
+name="procurementPerson"
+value={formData.procurementPerson}
+onChange={handleChange}
+/>
 
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1757,7 +1760,7 @@ const VendorRegistrationPage: React.FC = () => {
                   />
                 </div>
 
-                {/* <CustomStepNavigation
+                <CustomStepNavigation
                   currentStep={2}
                   totalSteps={6}
                   onPrevious={() => setActiveTab("basic")}
@@ -1776,7 +1779,7 @@ const VendorRegistrationPage: React.FC = () => {
                     setActiveTab("financialSettings");
                   }}
                   onSubmit={handleSubmit}
-                /> */}
+                />
               </div>
             )}
 
@@ -1986,7 +1989,7 @@ const VendorRegistrationPage: React.FC = () => {
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                   <CustomInputBox
-                    label="Account Holder Name *"
+                    label="Account Holder Name"
                     placeholder="e.g., John Doe"
                     name="accountHolderName"
                     value={bankForm.accountHolderName}
@@ -1994,7 +1997,7 @@ const VendorRegistrationPage: React.FC = () => {
                     required={true}
                   />
                   <CustomInputBox
-                    label="Account Number *"
+                    label="Account Number"
                     placeholder="e.g., 123456789012"
                     name="accountNumber"
                     value={bankForm.accountNumber}
@@ -2023,7 +2026,7 @@ const VendorRegistrationPage: React.FC = () => {
                     onChange={handleBankChange}
                   />
                   <CustomInputBox
-                    label="Bank Name *"
+                    label="Bank Name"
                     placeholder="e.g., State Bank of India"
                     name="bankName"
                     value={bankForm.bankName}

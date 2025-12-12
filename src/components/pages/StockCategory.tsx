@@ -57,6 +57,7 @@ interface StockCategoryForm {
   parent: string | null;
   status: string;
   companyId: string;
+  code: string | null;
 }
 
 const StockCategoryRegistration: React.FC = () => {
@@ -161,6 +162,7 @@ const StockCategoryRegistration: React.FC = () => {
     parent: null,
     status: "active",
     companyId: "",
+    code: null,
   });
 
   const handleChange = (
@@ -191,6 +193,7 @@ const StockCategoryRegistration: React.FC = () => {
       parent: null,
       status: "active",
       companyId: "",
+      code: null,
     });
     setEditingStockCategory(null);
   };
@@ -203,6 +206,7 @@ const StockCategoryRegistration: React.FC = () => {
       parent: stockCategory.parent,
       status: stockCategory.status,
       companyId: stockCategory.companyId,
+      code: stockCategory.code || null,
     });
     setOpen(true);
   };
@@ -294,7 +298,10 @@ const StockCategoryRegistration: React.FC = () => {
                 className="hover:bg-gray-50 transition-colors duration-200"
               >
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {category.name}
+                  {category.name} <br />
+                  <span className="text-gray-500 text-xs">
+                    {category?.code}
+                  </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                   {category.description || "No description"}
@@ -353,7 +360,10 @@ const StockCategoryRegistration: React.FC = () => {
         >
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100">
             <div className="flex justify-between items-start">
-              <CardTitle className="text-lg">{category.name}</CardTitle>
+              <CardTitle className="text-lg">
+                {category.name} <br />
+                <span className="text-gray-500 text-xs">{category?.code}</span>
+              </CardTitle>
               <Badge
                 className={`${
                   category.status === "active"
@@ -556,12 +566,12 @@ const StockCategoryRegistration: React.FC = () => {
         }}
       >
         <DialogContent className="custom-dialog-container">
-           {showProgress && (
-        <div className="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-50 overflow-hidden">
-          <div className="absolute inset-0 bg-blue-500 animate-progressFlow" />
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-white/50 to-blue-400/0 animate-shimmer" />
-        </div>
-      )}
+          {showProgress && (
+            <div className="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-50 overflow-hidden">
+              <div className="absolute inset-0 bg-blue-500 animate-progressFlow" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-white/50 to-blue-400/0 animate-shimmer" />
+            </div>
+          )}
           <CustomFormDialogHeader
             title={
               editingStockCategory
@@ -583,7 +593,14 @@ const StockCategoryRegistration: React.FC = () => {
                 gradientFrom="from-pink-400"
                 gradientTo="to-pink-500"
               /> */}
-
+              <CustomInputBox
+                label="Category Code"
+                placeholder="e.g., PRD001"
+                name="code"
+                value={formData.code}
+                disabled={true}
+                readOnly={true}
+              />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <CustomInputBox
                   label="Category Name "
