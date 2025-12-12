@@ -334,7 +334,7 @@ const ProductPage: React.FC = () => {
       localStorage.setItem("selectedCompanyId", value);
     }
   };
-    const handleCheckSelectChange = (key: keyof CompanyForm, value: boolean) => {
+  const handleCheckSelectChange = (key: keyof CompanyForm, value: boolean) => {
     setFormData((prev) => ({
       ...prev,
       [key]: value,
@@ -571,7 +571,6 @@ const ProductPage: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-
     if (!formData.name.trim()) {
       toast.error("Please enter Product Name");
       return;
@@ -680,7 +679,7 @@ const ProductPage: React.FC = () => {
   const stats = useMemo(
     () => ({
       totalProducts: pagination?.total || 0,
-      activeProducts:counts?.activeProducts,
+      activeProducts: counts?.activeProducts,
       batchProducts: counts?.batchManagedProducts,
       taxableProducts: counts?.taxableProducts,
     }),
@@ -1078,8 +1077,8 @@ const ProductPage: React.FC = () => {
                 setActiveTab(nextTab);
               }
               if (activeTab === "basic") {
-                if (!formData.code.trim() || !formData.name.trim()) {
-                  toast.error("Please enter Product Code and Name");
+                if (!formData.name.trim()) {
+                  toast.error("Please enter Product Name");
                   return;
                 }
               }
@@ -1105,7 +1104,6 @@ const ProductPage: React.FC = () => {
                     onChange={handleChange}
                     disabled={true}
                     readOnly={true}
-
                   />
                   <CustomInputBox
                     label="Product Name"
@@ -1335,7 +1333,7 @@ const ProductPage: React.FC = () => {
                   totalSteps={4}
                   showPrevious={false}
                   onNext={() => {
-                    if ( !formData.name.trim()) {
+                    if (!formData.name.trim()) {
                       toast.error("Please enter Product Name");
                       return;
                     }
@@ -1345,256 +1343,292 @@ const ProductPage: React.FC = () => {
                 />
               </div>
             )}
-           {activeTab === "tax" && (
-  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-    {/* Tax Applicability Section */}
-    <div className="mb-8">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-        <FileText className="w-5 h-5 mr-2 text-teal-600" />
-        Tax Applicability
-      </h3>
-      <div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-xl p-4 border border-teal-200">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-          <div className="flex-1">
-            <p className="text-sm text-gray-600 mb-2">Select if tax applies to this item</p>
-          </div>
-          <div className="flex items-center space-x-8">
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-white shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors">
-              <input
-                type="radio"
-                id="tax-applicable"
-                name="applicable"
-                checked={formData.taxConfiguration.applicable}
-                onChange={() =>
-                  handleTaxChange({
-                    target: {
-                      name: "applicable",
-                      value: true,
-                      type: "checkbox",
-                      checked: true,
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>)
-                }
-                className="w-5 h-5 text-teal-600 focus:ring-teal-500 border-gray-300"
-              />
-              <label htmlFor="tax-applicable" className="text-sm font-medium text-gray-900 cursor-pointer">
-                Applicable
-              </label>
-            </div>
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-white shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors">
-              <input
-                type="radio"
-                id="tax-not-applicable"
-                name="applicable"
-                checked={!formData.taxConfiguration.applicable}
-                onChange={() =>
-                  handleTaxChange({
-                    target: {
-                      name: "applicable",
-                      value: false,
-                      type: "checkbox",
-                      checked: false,
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>)
-                }
-                className="w-5 h-5 text-teal-600 focus:ring-teal-500 border-gray-300"
-              />
-              <label htmlFor="tax-not-applicable" className="text-sm font-medium text-gray-900 cursor-pointer">
-                Not Applicable
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Price Includes Tax Toggle */}
-    <div className="mb-8">
-      <ToggleSwitch
-        title="Price Includes Tax"
-        subtitle="Check if the listed price already includes tax"
-        checked={formData.priceIncludesTax}
-        onChange={(value) => {
-          console.log(value);
-          handleCheckSelectChange("priceIncludesTax", value);
-        }}
-      />
-    </div>
-
-    {/* Tax Configuration Fields */}
-    {formData.taxConfiguration.applicable ? (
-      <div className="space-y-6">
-        {/* Basic Tax Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-1">
-            <label className="text-sm font-semibold text-gray-700 block mb-2">HSN Code</label>
-            <CustomInputBox
-              placeholder="e.g., 12345678"
-              name="hsnCode"
-              value={formData.taxConfiguration.hsnCode}
-              onChange={handleTaxChange}
-              className="border-gray-300 focus:border-teal-500"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-semibold text-gray-700 block mb-2">Tax Percentage (%)</label>
-            <CustomInputBox
-              placeholder="e.g., 18"
-              name="taxPercentage"
-              value={formData.taxConfiguration.taxPercentage}
-              onChange={handleTaxChange}
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              className="border-gray-300 focus:border-teal-500"
-            />
-          </div>
-        </div>
-
-        {/* India-Specific Tax Breakdown */}
-        {defaultSelected.country.toLowerCase() === "India" && (
-          <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl overflow-hidden">
-            <CardHeader className="bg-white border-b border-indigo-100 pb-3">
-              <div className="flex items-center">
-                <Archive className="w-4 h-4 mr-2 text-indigo-600" />
-                <h4 className="text-md font-semibold text-indigo-800">India Tax Breakdown</h4>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <CustomInputBox
-                  label="CGST (%)"
-                  placeholder="e.g., 9"
-                  name="cgst"
-                  value={formData.taxConfiguration.cgst}
-                  onChange={handleTaxChange}
-                  type="number"
-                  min="0"
-                  max="50"
-                  step="0.01"
-                  className="border-indigo-300 focus:border-indigo-500"
-                />
-                <CustomInputBox
-                  label="SGST (%)"
-                  placeholder="e.g., 9"
-                  name="sgst"
-                  value={formData.taxConfiguration.sgst}
-                  onChange={handleTaxChange}
-                  type="number"
-                  min="0"
-                  max="50"
-                  step="0.01"
-                  className="border-indigo-300 focus:border-indigo-500"
-                />
-                <CustomInputBox
-                  label="Cess (%)"
-                  placeholder="e.g., 0"
-                  name="cess"
-                  value={formData.taxConfiguration.cess}
-                  onChange={handleTaxChange}
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="border-indigo-300 focus:border-indigo-500"
-                />
-                <CustomInputBox
-                  label="Additional Cess (%)"
-                  placeholder="e.g., 0"
-                  name="additionalCess"
-                  value={formData.taxConfiguration.additionalCess}
-                  onChange={handleTaxChange}
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="border-indigo-300 focus:border-indigo-500"
-                />
-              </div>
-
-              {/* Warning */}
-              {formData.taxConfiguration.cgst + formData.taxConfiguration.sgst > formData.taxConfiguration.taxPercentage && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-start">
-                    <XCircle className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                    <p className="text-red-800 text-sm">
-                      Warning: CGST + SGST ({formData.taxConfiguration.cgst + formData.taxConfiguration.sgst}%) exceeds Tax Percentage ({formData.taxConfiguration.taxPercentage}%)
-                    </p>
+            {activeTab === "tax" && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                {/* Tax Applicability Section */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <FileText className="w-5 h-5 mr-2 text-teal-600" />
+                    Tax Applicability
+                  </h3>
+                  <div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-xl p-4 border border-teal-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-600 mb-2">
+                          Select if tax applies to this item
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-8">
+                        <div className="flex items-center space-x-3 p-3 rounded-lg bg-white shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors">
+                          <input
+                            type="radio"
+                            id="tax-applicable"
+                            name="applicable"
+                            checked={formData.taxConfiguration.applicable}
+                            onChange={() =>
+                              handleTaxChange({
+                                target: {
+                                  name: "applicable",
+                                  value: true,
+                                  type: "checkbox",
+                                  checked: true,
+                                },
+                              } as React.ChangeEvent<HTMLInputElement>)
+                            }
+                            className="w-5 h-5 text-teal-600 focus:ring-teal-500 border-gray-300"
+                          />
+                          <label
+                            htmlFor="tax-applicable"
+                            className="text-sm font-medium text-gray-900 cursor-pointer"
+                          >
+                            Applicable
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 rounded-lg bg-white shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors">
+                          <input
+                            type="radio"
+                            id="tax-not-applicable"
+                            name="applicable"
+                            checked={!formData.taxConfiguration.applicable}
+                            onChange={() =>
+                              handleTaxChange({
+                                target: {
+                                  name: "applicable",
+                                  value: false,
+                                  type: "checkbox",
+                                  checked: false,
+                                },
+                              } as React.ChangeEvent<HTMLInputElement>)
+                            }
+                            className="w-5 h-5 text-teal-600 focus:ring-teal-500 border-gray-300"
+                          />
+                          <label
+                            htmlFor="tax-not-applicable"
+                            className="text-sm font-medium text-gray-900 cursor-pointer"
+                          >
+                            Not Applicable
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {/* Tax Summary */}
-              <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-                <h5 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                  <Calculator className="w-4 h-4 mr-2 text-teal-600" />
-                  Tax Summary
-                </h5>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between text-gray-600">
-                    <span>CGST:</span>
-                    <span className="font-medium">{formData.taxConfiguration.cgst}%</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>SGST:</span>
-                    <span className="font-medium">{formData.taxConfiguration.sgst}%</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Cess:</span>
-                    <span className="font-medium">{formData.taxConfiguration.cess}%</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Additional Cess:</span>
-                    <span className="font-medium">{formData.taxConfiguration.additionalCess}%</span>
-                  </div>
-                  <div className="flex justify-between pt-2 border-t border-gray-300 font-bold text-teal-700">
-                    <span>Total:</span>
-                    <span>
-                      {formData.taxConfiguration.cgst +
-                        formData.taxConfiguration.sgst +
-                        formData.taxConfiguration.cess +
-                        formData.taxConfiguration.additionalCess}
-                      %
-                    </span>
-                  </div>
+                {/* Price Includes Tax Toggle */}
+                <div className="mb-8">
+                  <ToggleSwitch
+                    title="Price Includes Tax"
+                    subtitle="Check if the listed price already includes tax"
+                    checked={formData.priceIncludesTax}
+                    onChange={(value) => {
+                      console.log(value);
+                      handleCheckSelectChange("priceIncludesTax", value);
+                    }}
+                  />
                 </div>
+
+                {/* Tax Configuration Fields */}
+                {formData.taxConfiguration.applicable ? (
+                  <div className="space-y-6">
+                    {/* Basic Tax Fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-1">
+                        <label className="text-sm font-semibold text-gray-700 block mb-2">
+                          HSN Code
+                        </label>
+                        <CustomInputBox
+                          placeholder="e.g., 12345678"
+                          name="hsnCode"
+                          value={formData.taxConfiguration.hsnCode}
+                          onChange={handleTaxChange}
+                          className="border-gray-300 focus:border-teal-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-semibold text-gray-700 block mb-2">
+                          Tax Percentage (%)
+                        </label>
+                        <CustomInputBox
+                          placeholder="e.g., 18"
+                          name="taxPercentage"
+                          value={formData.taxConfiguration.taxPercentage}
+                          onChange={handleTaxChange}
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          className="border-gray-300 focus:border-teal-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* India-Specific Tax Breakdown */}
+                    {defaultSelected.country.toLowerCase() === "India" && (
+                      <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl overflow-hidden">
+                        <CardHeader className="bg-white border-b border-indigo-100 pb-3">
+                          <div className="flex items-center">
+                            <Archive className="w-4 h-4 mr-2 text-indigo-600" />
+                            <h4 className="text-md font-semibold text-indigo-800">
+                              India Tax Breakdown
+                            </h4>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <CustomInputBox
+                              label="CGST (%)"
+                              placeholder="e.g., 9"
+                              name="cgst"
+                              value={formData.taxConfiguration.cgst}
+                              onChange={handleTaxChange}
+                              type="number"
+                              min="0"
+                              max="50"
+                              step="0.01"
+                              className="border-indigo-300 focus:border-indigo-500"
+                            />
+                            <CustomInputBox
+                              label="SGST (%)"
+                              placeholder="e.g., 9"
+                              name="sgst"
+                              value={formData.taxConfiguration.sgst}
+                              onChange={handleTaxChange}
+                              type="number"
+                              min="0"
+                              max="50"
+                              step="0.01"
+                              className="border-indigo-300 focus:border-indigo-500"
+                            />
+                            <CustomInputBox
+                              label="Cess (%)"
+                              placeholder="e.g., 0"
+                              name="cess"
+                              value={formData.taxConfiguration.cess}
+                              onChange={handleTaxChange}
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="border-indigo-300 focus:border-indigo-500"
+                            />
+                            <CustomInputBox
+                              label="Additional Cess (%)"
+                              placeholder="e.g., 0"
+                              name="additionalCess"
+                              value={formData.taxConfiguration.additionalCess}
+                              onChange={handleTaxChange}
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="border-indigo-300 focus:border-indigo-500"
+                            />
+                          </div>
+
+                          {/* Warning */}
+                          {formData.taxConfiguration.cgst +
+                            formData.taxConfiguration.sgst >
+                            formData.taxConfiguration.taxPercentage && (
+                            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                              <div className="flex items-start">
+                                <XCircle className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+                                <p className="text-red-800 text-sm">
+                                  Warning: CGST + SGST (
+                                  {formData.taxConfiguration.cgst +
+                                    formData.taxConfiguration.sgst}
+                                  %) exceeds Tax Percentage (
+                                  {formData.taxConfiguration.taxPercentage}%)
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Tax Summary */}
+                          <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                            <h5 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                              <Calculator className="w-4 h-4 mr-2 text-teal-600" />
+                              Tax Summary
+                            </h5>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between text-gray-600">
+                                <span>CGST:</span>
+                                <span className="font-medium">
+                                  {formData.taxConfiguration.cgst}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-gray-600">
+                                <span>SGST:</span>
+                                <span className="font-medium">
+                                  {formData.taxConfiguration.sgst}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-gray-600">
+                                <span>Cess:</span>
+                                <span className="font-medium">
+                                  {formData.taxConfiguration.cess}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-gray-600">
+                                <span>Additional Cess:</span>
+                                <span className="font-medium">
+                                  {formData.taxConfiguration.additionalCess}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between pt-2 border-t border-gray-300 font-bold text-teal-700">
+                                <span>Total:</span>
+                                <span>
+                                  {formData.taxConfiguration.cgst +
+                                    formData.taxConfiguration.sgst +
+                                    formData.taxConfiguration.cess +
+                                    formData.taxConfiguration.additionalCess}
+                                  %
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Applicable Date */}
+                    <div className="space-y-1">
+                      <label className="text-sm font-semibold text-gray-700 block mb-2">
+                        Tax Applicable Date
+                      </label>
+                      <DatePickerField
+                        name="applicableDate"
+                        value={formData.taxConfiguration.applicableDate}
+                        onChange={handleTaxChange}
+                        className="border-gray-300 focus:border-teal-500"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  /* Not Applicable Empty State */
+                  <div className="flex items-center justify-center py-12 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+                    <div className="text-center">
+                      <Archive className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h4 className="text-lg font-medium text-gray-900 mb-1">
+                        Tax Not Applicable
+                      </h4>
+                      <p className="text-gray-500 text-sm">
+                        This item is exempt from tax calculations.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Navigation */}
+                <CustomStepNavigation
+                  currentStep={2}
+                  totalSteps={4}
+                  onPrevious={() => setActiveTab("basic")}
+                  onNext={() => setActiveTab("opening")}
+                  nextDisabled={
+                    formData.taxConfiguration.applicable && !isTaxValid()
+                  }
+                  onSubmit={handleSubmit}
+                />
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Applicable Date */}
-        <div className="space-y-1">
-          <label className="text-sm font-semibold text-gray-700 block mb-2">Tax Applicable Date</label>
-          <DatePickerField
-            name="applicableDate"
-            value={formData.taxConfiguration.applicableDate}
-            onChange={handleTaxChange}
-            className="border-gray-300 focus:border-teal-500"
-          />
-        </div>
-      </div>
-    ) : (
-      /* Not Applicable Empty State */
-      <div className="flex items-center justify-center py-12 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
-        <div className="text-center">
-          <Archive className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h4 className="text-lg font-medium text-gray-900 mb-1">Tax Not Applicable</h4>
-          <p className="text-gray-500 text-sm">This item is exempt from tax calculations.</p>
-        </div>
-      </div>
-    )}
-
-    {/* Navigation */}
-    <CustomStepNavigation
-      currentStep={2}
-      totalSteps={4}
-      onPrevious={() => setActiveTab("basic")}
-      onNext={() => setActiveTab("opening")}
-      nextDisabled={formData.taxConfiguration.applicable && !isTaxValid()}
-      onSubmit={handleSubmit}
-    />
-  </div>
-)}
+            )}
             {activeTab === "opening" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 {/* <SectionHeader
@@ -1638,6 +1672,11 @@ const ProductPage: React.FC = () => {
                     step="1"
                     className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     placeholder="Enter total opening quantity"
+                    onFocus={(e) => {
+                      if (e.target.value === "0") {
+                        setTotalOpeningQuantity("");
+                      }
+                    }}
                   />
                   {remainingQuantity < 0 && (
                     <p className="text-red-500 text-sm mt-2">
@@ -1736,6 +1775,18 @@ const ProductPage: React.FC = () => {
                               min="0"
                               step="0.01"
                               max={item.quantity + remainingQuantity}
+                              onFocus={(e) => {
+                                if (
+                                  e.target.value === "0" ||
+                                  e.target.value === "0.00"
+                                ) {
+                                  handleOpeningQuantityChange(
+                                    item.id,
+                                    "quantity",
+                                    ""
+                                  );
+                                }
+                              }}
                             />
                           </td>
                           <td className="p-2 border border-teal-200">
@@ -1752,6 +1803,18 @@ const ProductPage: React.FC = () => {
                               className="w-full h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                               min="0"
                               step="1"
+                              onFocus={(e) => {
+                                if (
+                                  e.target.value === "0" ||
+                                  e.target.value === "0.00"
+                                ) {
+                                  handleOpeningQuantityChange(
+                                    item.id,
+                                    "rate",
+                                    ""
+                                  );
+                                }
+                              }}
                             />
                           </td>
                           <td className="p-2 border border-teal-200">
@@ -1954,8 +2017,7 @@ const ProductPage: React.FC = () => {
                           <strong>Tax Percentage:</strong>{" "}
                           {formData.taxConfiguration.taxPercentage}%
                         </p>
-                       { defaultSelected.country.toLowerCase() === "India" && (
-                        
+                        {defaultSelected.country.toLowerCase() === "India" && (
                           <>
                             <p>
                               <strong>CGST:</strong>{" "}
@@ -2005,7 +2067,7 @@ const ProductPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         data={selectedProduct}
-        />
+      />
     </div>
   );
 };

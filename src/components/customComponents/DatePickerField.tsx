@@ -19,6 +19,18 @@ interface DatePickerFieldProps {
   onChange: (e: { target: { name: string; value: string } }) => void
 }
 
+function pad(n: number) {
+  return n.toString().padStart(2, "0")
+}
+
+/** Return local YYYY-MM-DD (not UTC) */
+function toLocalISODate(date: Date) {
+  const y = date.getFullYear()
+  const m = pad(date.getMonth() + 1)
+  const d = pad(date.getDate())
+  return `${y}-${m}-${d}`
+}
+
 export function DatePickerField({
   label,
   name,
@@ -66,13 +78,15 @@ export function DatePickerField({
             selected={selectedDate}
             onSelect={(date) => {
               if (date) {
+                // use local YYYY-MM-DD to avoid timezone shift
+                const isoLocal = toLocalISODate(date)
                 onChange({
-                  target: { name, value: date.toISOString().split("T")[0] },
+                  target: { name, value: isoLocal },
                 })
                 setOpen(false)
               }
             }}
-            // ⭐ Disable past dates + enforce minDate
+            // Disable past dates + enforce minDate
             disabled={(date) => date < minimumDate}
             initialFocus
           />

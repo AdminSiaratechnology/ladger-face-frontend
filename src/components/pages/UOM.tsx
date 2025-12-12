@@ -69,6 +69,7 @@ interface UnitForm {
   secondUnit: string;
   companyId: string;
   UQC: string;
+  code: string | null;
 }
 
 const UnitManagement: React.FC = () => {
@@ -170,6 +171,7 @@ const UnitManagement: React.FC = () => {
     secondUnit: "",
     companyId: "",
     UQC: "",
+    code: null,
   });
 
   const handleChange = (
@@ -199,6 +201,7 @@ const UnitManagement: React.FC = () => {
       secondUnit: "",
       companyId: "",
       UQC: "",
+      code: null,
     });
     setEditingUnit(null);
     setActiveTab("basic");
@@ -217,6 +220,7 @@ const UnitManagement: React.FC = () => {
       secondUnit: unit.secondUnit || "",
       companyId: unit.companyId,
       UQC: unit.UQC || "",
+      code: unit?.code || null,
     });
     setOpen(true);
   };
@@ -346,7 +350,8 @@ const UnitManagement: React.FC = () => {
                 className="hover:bg-gray-50 transition-colors duration-200"
               >
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {unit.name}
+                  {unit.name} <br />{" "}
+                  <span className="text-xs text-gray-500">{unit?.code}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Badge
@@ -409,7 +414,10 @@ const UnitManagement: React.FC = () => {
         >
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100">
             <div className="flex justify-between items-start">
-              <CardTitle className="text-lg">{unit.name}</CardTitle>
+              <CardTitle className="text-lg">
+                {unit.name} <br />
+                <span className="text-gray-500 text-xs">{unit?.code}</span>
+              </CardTitle>
               <Badge
                 className={`${
                   unit.status === "active"
@@ -655,17 +663,25 @@ const UnitManagement: React.FC = () => {
             }
           />
 
-          <div className="bg-white rounded-xl shadow-sm ">
+          <div className="bg-white rounded-xl shadow-sm p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <SelectedCompany />
-                <CustomInputBox
-                  label="Unit Name"
-                  placeholder="e.g., Meter"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required={true}
-                />
+              <SelectedCompany />
+              <CustomInputBox
+                label="Unit Code"
+                placeholder="e.g., PRD001"
+                name="code"
+                value={formData.code}
+                disabled={true}
+                readOnly={true}
+              />
+              <CustomInputBox
+                label="Unit Name"
+                placeholder="e.g., Meter"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required={true}
+              />
 
               {/* Unit Type and Status - Side by Side */}
               <div className="flex flex-col gap-1">

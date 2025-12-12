@@ -387,6 +387,16 @@ const AgentRegistrationPage: React.FC = () => {
     performanceRating: 0,
     activeContracts: 0,
   });
+  const [isAccountHolderManuallyEdited, setIsAccountHolderManuallyEdited] =
+    useState(false);
+  useEffect(() => {
+    if (!isAccountHolderManuallyEdited && formData.agentName) {
+      setBankForm((prev) => ({
+        ...prev,
+        accountHolderName: formData.agentName,
+      }));
+    }
+  }, [formData.agentName, isAccountHolderManuallyEdited]);
   useEffect(() => {
     if (defaultSelected && companies.length > 0) {
       const selectedCompany = defaultSelected;
@@ -505,6 +515,9 @@ const AgentRegistrationPage: React.FC = () => {
       ...prev,
       [name]: newValue,
     }));
+    if (name === "accountHolderName") {
+      setIsAccountHolderManuallyEdited(true);
+    }
   };
 
   const addOrUpdateBank = (): void => {
@@ -1473,23 +1486,20 @@ const AgentRegistrationPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                      <CustomInputBox
+                  <CustomInputBox
                     label="Supervisor"
                     placeholder="Supervisor"
-                    name="John"
+                    name="supervisor"
                     value={formData.supervisor}
                     onChange={handleChange}
                   />
-                         <CustomInputBox
+                  <CustomInputBox
                     label=" Agent Category"
                     placeholder="agentCategory"
-                    name="supervisor"
+                    name="agentCategory"
                     value={formData.agentCategory}
                     onChange={handleChange}
                   />
-              
-
-               
 
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1511,7 +1521,7 @@ const AgentRegistrationPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-              <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Agent Status
                     </label>
@@ -1526,9 +1536,6 @@ const AgentRegistrationPage: React.FC = () => {
                       <option value="inactive">Inactive</option>
                     </select>
                   </div>
-             
-
-              
                 </div>
                 <CustomStepNavigation
                   currentStep={1}
@@ -1861,7 +1868,7 @@ const AgentRegistrationPage: React.FC = () => {
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                   <CustomInputBox
-                    label="Account Holder Name *"
+                    label="Account Holder Name"
                     placeholder="e.g., John Doe"
                     name="accountHolderName"
                     value={bankForm.accountHolderName}
@@ -1869,7 +1876,7 @@ const AgentRegistrationPage: React.FC = () => {
                     required={true}
                   />
                   <CustomInputBox
-                    label="Account Number *"
+                    label="Account Number"
                     placeholder="e.g., 123456789012"
                     name="accountNumber"
                     value={bankForm.accountNumber}
@@ -1898,7 +1905,7 @@ const AgentRegistrationPage: React.FC = () => {
                     onChange={handleBankChange}
                   />
                   <CustomInputBox
-                    label="Bank Name *"
+                    label="Bank Name"
                     placeholder="e.g., State Bank of India"
                     name="bankName"
                     value={bankForm.bankName}
@@ -2158,11 +2165,7 @@ const AgentRegistrationPage: React.FC = () => {
                       <option value="vip">VIP</option>
                     </select>
                   </div>
-
-               
                 </div>
-
-          
 
                 <div className="mb-6">
                   <p className="text-sm font-semibold text-gray-700 mb-2">
