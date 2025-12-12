@@ -369,7 +369,16 @@ const CustomerRegistrationPage: React.FC = () => {
     registrationDocs: [],
   });
   const { groups: customerGroups, fetchGroups: fetchCustomerGroups } = useCustomerGroupStore();
-
+  const [isAccountHolderManuallyEdited, setIsAccountHolderManuallyEdited] =
+    useState(false);
+    useEffect(() => {
+      if(!isAccountHolderManuallyEdited && formData.customerName){
+        setBankForm((prev) => ({
+          ...prev,
+          accountHolderName: formData.customerName,
+        }));
+    }
+  }, [formData.customerName, isAccountHolderManuallyEdited]);
 useEffect(() => {
   if (defaultSelected?._id) {
     fetchCustomerGroups(defaultSelected._id);
@@ -476,6 +485,9 @@ useEffect(() => {
       ...prev,
       [name]: newValue,
     }));
+    if (name === "accountHolderName") {
+      setIsAccountHolderManuallyEdited(true);
+    }
   };
 
   const addOrUpdateBank = (): void => {

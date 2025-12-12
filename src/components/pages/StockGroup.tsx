@@ -59,6 +59,7 @@ interface StockGroupForm {
   stockGroupId: string;
   companyId: string;
   parent: string | null;
+  code: string |null;
 }
 
 const StockGroupRegistration: React.FC = () => {
@@ -165,6 +166,7 @@ const StockGroupRegistration: React.FC = () => {
     stockGroupId: "",
     companyId: "",
     parent: null,
+    code: "",
   });
   useEffect(() => {
     if (defaultSelected) {
@@ -204,6 +206,7 @@ const handleSelectChange = (
       stockGroupId: "",
       companyId: "",
       parent: null,
+      code: "",
     });
     setEditingStockGroup(null);
     setActiveTab("basic");
@@ -218,6 +221,7 @@ const handleSelectChange = (
       stockGroupId: stockGroup.stockGroupId || "",
       companyId: stockGroup.companyId || "",
       parent: stockGroup.parent || null,
+      code: stockGroup.code || "",
     });
     setOpen(true);
   };
@@ -284,8 +288,11 @@ const handleSelectChange = (
                 className="hover:bg-gray-50 transition-colors duration-200"
               >
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {group.name}
+                  {group.name}  
+                  <br/>
+                  <span className="text-gray-500 text-xs">{group?.code}</span>
                 </td>
+
                 <td className="px-6 py-4 text-sm text-gray-500">
                   {group.description || "No description"}
                 </td>
@@ -337,7 +344,7 @@ const handleSelectChange = (
         >
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100">
             <div className="flex justify-between items-start">
-              <CardTitle className="text-lg">{group.name}</CardTitle>
+              <CardTitle className="text-lg">{group.name} <br/><span className="text-gray-500 text-xs">{group?.code}</span></CardTitle>
               <Badge
                 className={`${
                   group.status === "active"
@@ -551,6 +558,14 @@ const handleSelectChange = (
           <div className="">
             <div className="bg-white p-4 rounded-lg">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <CustomInputBox
+                    label="Group Code"
+                    placeholder="e.g., PRD001"
+                    name="code"
+                    value={formData.code}
+                    disabled={true}
+                    readOnly={true}
+                  />
                 <CustomInputBox
                   placeholder="Group Name *"
                   name="name"

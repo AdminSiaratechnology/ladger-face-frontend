@@ -272,10 +272,6 @@ const GodownRegistration: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    if (!formData.code.trim()) {
-      toast.error("Please enter Godown Code");
-      return;
-    }
     if (!formData.name.trim()) {
       toast.error("Please enter Godown Name");
       return;
@@ -730,8 +726,8 @@ const GodownRegistration: React.FC = () => {
                 setActiveTab(nextTab);
               }
               if (activeTab === "basic") {
-                if (!formData.code || !formData.name) {
-                  toast.error("Please enter Godown Code and Name");
+                if (!formData.name) {
+                  toast.error("Please enter Godown Name");
                   return;
                 }
               }
@@ -751,6 +747,7 @@ const GodownRegistration: React.FC = () => {
                     value={formData.code}
                     onChange={handleChange}
                     required={true}
+                    disabled={true}
                   />
                   <CustomInputBox
                     label="Godown Name"
@@ -846,8 +843,8 @@ const GodownRegistration: React.FC = () => {
                   totalSteps={2}
                   showPrevious={false}
                   onNext={() => {
-                    if (!formData.code || !formData.name) {
-                      toast.error("Please enter Godown Code and Name");
+                    if ( !formData.name) {
+                      toast.error("Please enter Godown Name");
                       return;
                     }
                     setActiveTab("location");
