@@ -411,6 +411,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           module: "Report",
           subModule: "productReport",
         },
+         {
+          path: "/pos-report",
+          icon: Package,
+          label: "POS Report",
+          roles: ["admin", "agent"],
+          module: "Report",
+          subModule: "posReport",
+        },
+        
       ],
     },
     {
