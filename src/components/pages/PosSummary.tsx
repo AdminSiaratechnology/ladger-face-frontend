@@ -98,10 +98,10 @@ export default function PosSummary({
 
     
   return (
-    <div className="space-y-5">
+    <div className="space-y-1">
 
       {/* BILL SUMMARY */}
-      <div className="bg-white rounded-2xl border shadow-sm p-6">
+      <div className="bg-white rounded-2xl border shadow-sm p-3">
         <h3 className="font-semibold text-lg mb-4">Bill Summary</h3>
 
         <div className="space-y-2 text-sm">
@@ -125,7 +125,7 @@ export default function PosSummary({
       {/* PAYMENT FULL UI */}
       {!isCartEmpty && (
         <>
-          <div className="bg-white rounded-2xl border shadow-sm p-6">
+          <div className="bg-white rounded-2xl border shadow-sm p-3">
 
             <p className="font-semibold mb-4 text-gray-800">Payment Method</p>
 
@@ -279,7 +279,7 @@ export default function PosSummary({
           <div>
          <button
   onClick={onHoldBill}
-  className="w-full bg-orange-500 text-white font-semibold py-2.5 rounded-xl 
+  className="w-full bg-orange-500 text-white font-semibold py-1.5 rounded-xl 
              shadow hover:bg-orange-600 transition-all active:scale-95 cursor-pointer mb-3"
 >
   Hold Bill
@@ -299,7 +299,7 @@ export default function PosSummary({
                   grandTotal,
                 })
               }
-              className={`w-full rounded-xl py-3 flex items-center justify-center gap-3 transition cursor-pointer ${!canCompleteBill
+              className={`w-full rounded-xl py-1.5 flex items-center justify-center gap-3 transition cursor-pointer ${!canCompleteBill
                 ? "bg-gray-300 text-gray-200 cursor-not-allowed"
                 : "bg-green-600 hover:bg-green-700 text-white shadow"
                 }`}

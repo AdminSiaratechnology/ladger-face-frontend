@@ -53,6 +53,7 @@ import DemoExpired from "./components/pages/DemoExpired";
 
 
 import Coupon from './components/pages/Coupon'
+import PosReport from "./components/pages/PosReport";
 function UnauthorizedAccess() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -491,6 +492,10 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/pos-report" element={
+            <AppLayout> <PosReport /></AppLayout>
+            } />
+
           <Route path="/demo-expired" element={<DemoExpired />} />
 
           {/* Default redirect */}
