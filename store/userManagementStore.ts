@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "../src/api/api";
 import { toast } from "sonner";
+import { useAuthStore } from "./authStore";
 
 // Types
 interface Pagination {
@@ -109,6 +110,9 @@ export const useUserManagementStore = create<useUserManagementStore>()(
             users: get().users.map((u) => (u._id === id ? updatedUser : u)),
             loading: false,
           });
+
+          useAuthStore.getState().updateUserIfAuthUser(updatedUser);
+
           return response;
 
           // toast.success("User updated successfully");
