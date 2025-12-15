@@ -1,9 +1,11 @@
 import { create } from "zustand";
+import { getCompanyPosReport} from  "../src/api/api";
+
 
 export const usePosStore = create((set, get) => ({
-  // -------------------------
+  // =================================================
   // CART
-  // -------------------------
+  // =================================================
   cart: [],
 
   setCart: (value) =>
@@ -28,17 +30,17 @@ export const usePosStore = create((set, get) => ({
 
   clearCart: () => set({ cart: [] }),
 
-  // -------------------------
+  // =================================================
   // CUSTOMER
-  // -------------------------
+  // =================================================
   customerName: "",
   customerPhone: "",
   setCustomerName: (v) => set({ customerName: v }),
   setCustomerPhone: (v) => set({ customerPhone: v }),
 
-  // -------------------------
-  // DRAWER CASH (CASH-IN-DRAWER)
-  // -------------------------
+  // =================================================
+  // DRAWER CASH
+  // =================================================
   drawerCash: Number(localStorage.getItem("drawerCash") || 0),
 
   setDrawerCash: (amt) => {
@@ -52,9 +54,9 @@ export const usePosStore = create((set, get) => ({
     set({ drawerCash: updated });
   },
 
-  // -------------------------
-  // SESSION START TIME
-  // -------------------------
+  // =================================================
+  // SESSION START
+  // =================================================
   sessionStart: localStorage.getItem("sessionStart") || null,
 
   setSessionStart: () => {
@@ -63,9 +65,7 @@ export const usePosStore = create((set, get) => ({
     set({ sessionStart: now });
   },
 
-  // -------------------------
-  // SESSION SALES (All bills in this session)
-  // -------------------------
+  
   sessionSales: JSON.parse(localStorage.getItem("sessionSales") || "[]"),
 
   addSale: (sale) => {
@@ -74,34 +74,30 @@ export const usePosStore = create((set, get) => ({
     set({ sessionSales: updated });
   },
 
-  // Auto-calculated totals
-  getCashSales: () => {
-    return get().sessionSales.reduce((sum, s) => {
+  getCashSales: () =>
+    get().sessionSales.reduce((sum, s) => {
       if (s.paymentMode === "cash") return sum + s.amount;
       if (s.paymentMode === "split") return sum + (s.split?.cash || 0);
       return sum;
-    }, 0);
-  },
+    }, 0),
 
-  getCardSales: () => {
-    return get().sessionSales.reduce((sum, s) => {
+  getCardSales: () =>
+    get().sessionSales.reduce((sum, s) => {
       if (s.paymentMode === "card") return sum + s.amount;
       if (s.paymentMode === "split") return sum + (s.split?.card || 0);
       return sum;
-    }, 0);
-  },
+    }, 0),
 
-  getUpiSales: () => {
-    return get().sessionSales.reduce((sum, s) => {
+  getUpiSales: () =>
+    get().sessionSales.reduce((sum, s) => {
       if (s.paymentMode === "upi") return sum + s.amount;
       if (s.paymentMode === "split") return sum + (s.split?.upi || 0);
       return sum;
-    }, 0);
-  },
+    }, 0),
 
-  // -------------------------
+  // =================================================
   // OPENING CASH
-  // -------------------------
+  // =================================================
   openingCash: Number(localStorage.getItem("openingCash") || 0),
 
   setOpeningCash: (amt) => {
@@ -109,9 +105,9 @@ export const usePosStore = create((set, get) => ({
     set({ openingCash: amt });
   },
 
-  // -------------------------
-  // RESET EVERYTHING (AT SHIFT END)
-  // -------------------------
+  // =================================================
+  // RESET SESSION (SHIFT END)
+  // =================================================
   resetSession: () => {
     localStorage.removeItem("drawerCash");
     localStorage.removeItem("openingCash");
@@ -126,9 +122,9 @@ export const usePosStore = create((set, get) => ({
     });
   },
 
-  // -------------------------
+  // =================================================
   // DRAFT BILLS
-  // -------------------------
+  // =================================================
   draftBills: JSON.parse(localStorage.getItem("draftBills") || "[]"),
 
   addDraftBill: (draft) => {
@@ -149,16 +145,45 @@ export const usePosStore = create((set, get) => ({
       customerName: draft.customerName,
       customerPhone: draft.customerPhone,
     }),
-  removeDraft: (id) =>
-  set((state) => ({
-    draftBills: state.draftBills.filter((bill) => bill.id !== id),
-  })),
 
+  removeDraft: (id) =>
+    set((state) => ({
+      draftBills: state.draftBills.filter((bill) => bill.id !== id),
+    })),
+
+  // =================================================
   // BILL NUMBER
+  // =================================================
   billNumber: "---",
   setBillNumber: (v) => set({ billNumber: v }),
 
+  // =================================================
   // BATCH MODAL
+  // =================================================
   batchProduct: null,
   setBatchProduct: (p) => set({ batchProduct: p }),
+
+  // =================================================
+  // 🔥 BACKEND POS REPORT (NEW – COMPANY WISE)
+  // =================================================
+  posReportData: [],
+  posReportStats: null,
+  posReportLoading: false,
+
+  fetchCompanyPosReport: async (params) => {
+  set({ posReportLoading: true });
+
+  try {
+    const data = await getCompanyPosReport(params);
+
+    set({
+      posReportData: data.data || [],
+      posReportStats: data.stats || null,
+      posReportLoading: false,
+    });
+  } catch (e) {
+    console.error("POS REPORT FETCH ERROR:", e);
+    set({ posReportLoading: false });
+  }
+},
 }));

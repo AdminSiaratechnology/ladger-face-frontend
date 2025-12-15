@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export default function MultiSelect({
   label,
@@ -12,17 +12,25 @@ export default function MultiSelect({
   const open = activeMultiSelect === id;
 
   const [search, setSearch] = useState("");
+  const wrapperRef = useRef(null);
 
-  // Close when user clicks outside
+  // ✅ UNIVERSAL OUTSIDE CLICK HANDLER (NO selector, NO id)
   useEffect(() => {
     function handleClickOutside(e) {
-      if (!e.target.closest(`#multi-${id}`)) {
-        if (activeMultiSelect === id) setActiveMultiSelect(null);
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target)
+      ) {
+        if (activeMultiSelect === id) {
+          setActiveMultiSelect(null);
+        }
       }
     }
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [activeMultiSelect]);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, [activeMultiSelect, id]);
 
   const toggle = () => {
     if (disabled) return;
@@ -44,7 +52,7 @@ export default function MultiSelect({
   );
 
   return (
-    <div id={`multi-${id}`} className="w-full relative">
+    <div ref={wrapperRef} className="w-full relative">
       <label className="text-sm font-medium">{label}</label>
 
       {/* Selected box */}
@@ -58,9 +66,9 @@ export default function MultiSelect({
           <span className="text-gray-400 text-sm">Select options...</span>
         )}
 
-        {selected.map((item) => (
+        {selected.map((item, index) => (
           <span
-            key={item}
+            key={`${item}-${index}`}   // ✅ duplicate-safe key
             className="bg-teal-100 text-teal-700 px-2 py-1 rounded-md text-xs flex items-center gap-1 shadow-sm"
           >
             {item}
@@ -89,9 +97,9 @@ export default function MultiSelect({
             onChange={(e) => setSearch(e.target.value)}
           />
 
-          {filtered.map((opt) => (
+          {filtered.map((opt, index) => (
             <div
-              key={opt}
+              key={`${opt}-${index}`}   // ✅ duplicate-safe key
               className={`p-2 cursor-pointer hover:bg-teal-50 transition 
                 ${selected.includes(opt) ? "bg-teal-100 font-medium" : ""}`}
               onClick={() => handleSelect(opt)}
