@@ -70,7 +70,7 @@ function DialogContent({
         {children}
         {/* Clean, high-contrast close button — no hover opacity games */}
         <DialogPrimitive.Close className="absolute top-3 right-3 rounded-full bg-gray-200 p-2 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-          <XIcon className="h-5 w-5" />
+          <XIcon className="h-5 w-5 cursor-pointer" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>

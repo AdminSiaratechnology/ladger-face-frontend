@@ -1,21 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PosOpeningCash from "./PosOpeningCash";
 import PosBilling from "./PosBilling";
-import { usePosStore } from "../../../store/posStore";  // ⭐ ADD THIS
+import { usePosStore } from "../../../store/posStore";
 import { useCompanyStore } from "../../../store/companyStore";
 
 const Pos = () => {
   const [showOpeningCash, setShowOpeningCash] = useState<boolean>(false);
 
-  // ⭐ Zustand store functions
-  const { setOpeningCash, setDrawerCash, setSessionStart } = usePosStore();
+  // ------------------------------
+  // STORES
+  // ------------------------------
+  const {
+    setOpeningCash,
+    setDrawerCash,
+    setSessionStart,
+    clearCart,
+  } = usePosStore();
 
-  if (!sessionStorage.getItem("posTabId")) {
-    sessionStorage.setItem("posTabId", String(Date.now()));
-  }
-  const tabId = sessionStorage.getItem("posTabId")!;
   const { defaultSelected } = useCompanyStore();
-  const { clearCart } = usePosStore();
+
+  // ------------------------------
+  // TAB ID (ONE TIME)
+  // ------------------------------
+  const tabIdRef = useRef<string>("");
+
+  if (!tabIdRef.current) {
+    tabIdRef.current =
+      sessionStorage.getItem("posTabId") || String(Date.now());
+    sessionStorage.setItem("posTabId", tabIdRef.current);
+  }
+
+  const tabId = tabIdRef.current;
 
   // ------------------------------
   // DRAWER RESET LOGIC
@@ -30,11 +45,11 @@ const Pos = () => {
   }, [tabId]);
 
   // ------------------------------
-  // OPENING CASH VISIBILITY LOGIC
+  // OPENING CASH MODAL VISIBILITY
   // ------------------------------
   useEffect(() => {
     const sessionActive = localStorage.getItem("posSessionActive");
-    const savedTab = localStorage.getItem("activePosTab");
+    const savedTab = localStorage.getItem("sessionActive");
 
     if (!sessionActive) {
       setShowOpeningCash(true);
@@ -43,51 +58,48 @@ const Pos = () => {
     }
   }, [tabId]);
 
-//   useEffect(() => {
-//   if (!defaultSelected) return;
+  // ------------------------------
+  // COMPANY CHANGE RESET (SKIP FIRST RENDER)
+  // ------------------------------
+  const isFirstRender = useRef(true);
 
-//   // Clear POS session data
-//   localStorage.removeItem("posSessionActive");
-//   localStorage.removeItem("openingCash");
-//   localStorage.removeItem("drawerCash");
-//   localStorage.removeItem("sessionStart");
-//   localStorage.removeItem("activePosTab");
-
-//   // ⭐ CLEAR CART FROM STORE
-//   clearCart();
-
-//   // Show Opening Cash modal again
-//   setShowOpeningCash(true);
-// }, [defaultSelected]);
-
-  // -----------------------------------------------------
-  // ⭐⭐ NEW EFFECT — SHOW OPENING MODAL AFTER SHIFT END
-  // -----------------------------------------------------
   useEffect(() => {
-    const handleSessionEnd = () => {
-      setShowOpeningCash(true);
-    };
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    localStorage.removeItem("posSessionActive");
+    localStorage.removeItem("openingCash");
+    localStorage.removeItem("drawerCash");
+    localStorage.removeItem("sessionStart");
+    localStorage.removeItem("activePosTab");
+
+    clearCart();
+    setShowOpeningCash(true);
+  }, [defaultSelected, clearCart]);
+
+  // ------------------------------
+  // EXTERNAL SESSION END LISTENER
+  // ------------------------------
+  useEffect(() => {
+    const handleSessionEnd = () => setShowOpeningCash(true);
 
     window.addEventListener("pos-session-ended", handleSessionEnd);
-
-    return () => {
+    return () =>
       window.removeEventListener("pos-session-ended", handleSessionEnd);
-    };
   }, []);
-  // -----------------------------------------------------
-
 
   // ------------------------------
-  // START POS (FIXED)
+  // START POS
   // ------------------------------
   const handleStartPOS = (amount: number) => {
-
-    // ⭐ UPDATE ZUSTAND STORE
+    // Zustand
     setOpeningCash(amount);
     setDrawerCash(amount);
     setSessionStart();
 
-    // ⭐ UPDATE localStorage
+    // localStorage
     localStorage.setItem("openingCash", String(amount));
     localStorage.setItem("drawerCash", String(amount));
     localStorage.setItem("sessionStart", new Date().toISOString());
@@ -97,18 +109,24 @@ const Pos = () => {
     setShowOpeningCash(false);
   };
 
+  // ------------------------------
+  // RENDER
+  // ------------------------------
   return (
-    <div style={{ width: "100%", height: "100%", backgroundColor: "#F5F7FA" }}>
-      
-      {/* OPENING CASH MODAL */}
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        backgroundColor: "#F5F7FA",
+      }}
+    >
       {showOpeningCash && (
         <PosOpeningCash
           isOpen={showOpeningCash}
-          onSubmit={(amount) => handleStartPOS(amount)}
+          onSubmit={handleStartPOS}
         />
       )}
 
-      {/* POS BILLING */}
       {!showOpeningCash && <PosBilling />}
     </div>
   );

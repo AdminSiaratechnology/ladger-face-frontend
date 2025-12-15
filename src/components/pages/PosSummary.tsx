@@ -285,20 +285,26 @@ export default function PosSummary({
   Hold Bill
 </button>
             <button
-              disabled={!canCompleteBill}
-              onClick={() =>
-                onComplete({
-                  isSplit,
-                  splitPayment: {
-                    cash: Number(splitCash || 0),
-                    card: Number(splitCard || 0),
-                    upi: Number(splitUpi || 0),
-                  },
-                  singlePayment: payment,
-                  taxAmount,
-                  grandTotal,
-                })
-              }
+                disabled={!canCompleteBill}
+  onClick={() =>
+    onComplete({
+      paymentType: isSplit ? "SPLIT" : payment,
+      payments: isSplit
+        ? {
+            cash: Number(splitCash || 0),
+            card: Number(splitCard || 0),
+            upi: Number(splitUpi || 0),
+          }
+        : {
+            cash: payment === "Cash" ? Number(cashReceived || grandTotal) : 0,
+            card: payment === "Card" ? grandTotal : 0,
+            upi: payment === "UPI" ? grandTotal : 0,
+          },
+      taxAmount,
+      grandTotal,
+    })
+  }
+
               className={`w-full rounded-xl py-1.5 flex items-center justify-center gap-3 transition cursor-pointer ${!canCompleteBill
                 ? "bg-gray-300 text-gray-200 cursor-not-allowed"
                 : "bg-green-600 hover:bg-green-700 text-white shadow"

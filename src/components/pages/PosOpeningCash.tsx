@@ -59,7 +59,7 @@ export default function PosOpeningCash({
 
       {/* BODY */}
       <div className="p-6 pb-7">
-        <label className="text-sm font-medium text-gray-700">
+        <label className="text-sm font-medium text-gray-700 ">
           Opening Amount
         </label>
 
@@ -76,7 +76,7 @@ export default function PosOpeningCash({
             inputMode="numeric"
             className="
               ml-3 flex-1 bg-transparent text-lg text-gray-800 
-              font-medium outline-none
+              font-medium outline-none curser-pointer
             "
           />
         </div>
@@ -102,7 +102,8 @@ export default function PosOpeningCash({
           className="
             mt-6 w-full bg-teal-600 hover:bg-teal-700
             text-white rounded-lg py-3 font-semibold text-base
-            shadow-sm transition-all
+            shadow-sm transition-all curser-pointer
+            cursor-pointer
           "
         >
           Start POS

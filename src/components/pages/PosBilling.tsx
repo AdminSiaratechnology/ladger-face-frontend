@@ -192,89 +192,94 @@ export default function PosBilling() {
     setCashReceived("");
     setShowDraftModal(false);
   };
-  const handleCompleteBill = async (paymentData) => {
-    if (cart.length === 0) return;
+ 
 
-    // ---------------------------
-    // 1️⃣ Add to Drawer Cash
-    // ---------------------------
-    addToDrawerCash(paymentData.grandTotal);
+const handleCompleteBill = async (paymentData) => {
+  if (!cart || cart.length === 0) return;
 
-    // ---------------------------
-    // 2️⃣ Bill Number
-    // ---------------------------
-    const newBillNo = "INV-" + Math.floor(100000 + Math.random() * 900000);
+  const paymentType = paymentData.paymentType; // Cash | Card | UPI | SPLIT
+  const payments = paymentData.payments || { cash: 0, card: 0, upi: 0 };
 
-    // ---------------------------
-    // 3️⃣ Build paymentInfo object
-    // ---------------------------
-    let paymentInfo;
-    if (paymentData.paymentMode === "split") {
-      paymentInfo = {
-        isSplit: true,
-        splitPayment: paymentData.splitPayment,
-        singlePayment: null,
-      };
-    } else {
-      paymentInfo = {
-        isSplit: false,
-        splitPayment: null,
-        singlePayment: paymentData.paymentMode, // cash/card/upi
-      };
-    }
+  // ---------------------------
+  // 1️⃣ ADD ONLY CASH TO DRAWER
+  // ---------------------------
+  let cashAmount = 0;
 
-    // ---------------------------
-    // 4️⃣ Build bill payload
-    // ---------------------------
-    const payload = {
-      billNumber: newBillNo,
-      createdAt: new Date().toISOString(),
-      companyId: defaultSelected?._id,
+  if (paymentType === "SPLIT") {
+    cashAmount = Number(payments.cash || 0);
+  } else if (paymentType === "Cash") {
+    cashAmount = Number(payments.cash || paymentData.grandTotal || 0);
+  }
 
-      customerName: customerName || null,
-      customerPhone: customerPhone || null,
+  if (cashAmount > 0) {
+    addToDrawerCash(cashAmount);
+  }
 
-      items: cart,
-      subtotal,
-      taxAmount: gstAmount,
-      grandTotal: totalAmount,
+  // ---------------------------
+  // 2️⃣ BILL NUMBER
+  // ---------------------------
+  const newBillNo = "INV-" + Math.floor(100000 + Math.random() * 900000);
 
-      paymentInfo,
-    };
-
-    console.log("FINAL PAYLOAD →", payload);
-
-    // ---------------------------
-    // 5️⃣ API CALL
-    // ---------------------------
-    try {
-      await api.PosBillToServer(payload);
-    } catch (err) {
-      console.log("API ERROR:", err);
-    }
-
-    // ---------------------------
-    // 6️⃣ Add Sale to Session
-    // ---------------------------
-    const paymentModeFinal = paymentInfo.isSplit
-      ? "split"
-      : (paymentInfo.singlePayment || "").toLowerCase();
-
-    usePosStore.getState().addSale({
-      time: new Date().toISOString(),
-      amount: Number(totalAmount),
-      billNumber: newBillNo,
-      paymentMode: paymentModeFinal,
-      split: paymentModeFinal === "split" ? paymentInfo.splitPayment : null
-    });
-
-    // ---------------------------
-    // 7️⃣ Update UI Preview
-    // ---------------------------
-    setBillNumber(newBillNo);
-    setPreviewBill(payload);
-    setShowPreview(true);
+  // ---------------------------
+  // 3️⃣ BUILD PAYMENT INFO (DB SAFE)
+  // ---------------------------
+  const paymentInfo = {
+    paymentType,
+    payments: {
+      cash: Number(payments.cash || 0),
+      card: Number(payments.card || 0),
+      upi: Number(payments.upi || 0),
+    },
   };
+
+  // ---------------------------
+  // 4️⃣ BUILD BILL PAYLOAD
+  // ---------------------------
+  const payload = {
+    billNumber: newBillNo,
+    createdAt: new Date().toISOString(),
+    companyId: defaultSelected?._id,
+
+    customerName: customerName || null,
+    customerPhone: customerPhone || null,
+
+    items: cart,
+    subtotal,
+    taxAmount: Number(paymentData.taxAmount || 0),
+    grandTotal: Number(paymentData.grandTotal || 0),
+
+    paymentInfo,
+  };
+
+  console.log("FINAL PAYLOAD →", payload);
+
+  // ---------------------------
+  // 5️⃣ API CALL
+  // ---------------------------
+  try {
+    await api.PosBillToServer(payload);
+  } catch (err) {
+    console.log("API ERROR:", err);
+  }
+
+  // ---------------------------
+  // 6️⃣ ADD SALE TO SESSION (REPORT SAFE)
+  // ---------------------------
+  usePosStore.getState().addSale({
+    time: new Date().toISOString(),
+    amount: Number(paymentData.grandTotal || 0),
+    billNumber: newBillNo,
+    paymentMode: paymentType.toLowerCase(), // cash | card | upi | split
+    split: paymentType === "SPLIT" ? paymentInfo.payments : null,
+  });
+
+  // ---------------------------
+  // 7️⃣ UPDATE UI PREVIEW
+  // ---------------------------
+  setBillNumber(newBillNo);
+  setPreviewBill(payload);
+  setShowPreview(true);
+};
 
 
 
@@ -283,56 +288,51 @@ export default function PosBilling() {
   // ------------------------
   // DOWNLOAD BILL
   // ------------------------
-  const handleDownloadInvoice = async () => {
-    if (!previewBill) return;
-
-    await generateInvoicePdf({
-      billNumber: previewBill.billNumber,
-      createdAt: previewBill.createdAt,
-      company: {
-        CompanyName: defaultSelected?.namePrint || "",
-        Address: `${defaultSelected?.address1 || ""}, ${defaultSelected?.address2 || ""}, ${defaultSelected?.address3 || ""}, ${defaultSelected?.city || ""}, ${defaultSelected?.state || ""} - ${defaultSelected?.pincode || ""}`,
-        phone: defaultSelected?.mobile || defaultSelected?.telephone || "",
-        country: defaultSelected?.country || "",
-        gstNumber: defaultSelected?.gstNumber || "",
-        logo: defaultSelected?.logo || ""
-      },
-      customer: {
-        name: previewBill.customerName || "",
-        phone: previewBill.customerPhone || ""
-      },
-
-      items: previewBill.items,
-      subtotal: previewBill.subtotal,
-      taxAmount: previewBill.taxAmount,
-      grandTotal: previewBill.grandTotal,
-
-      // ⭐ FIXED
-      paymentInfo: previewBill.paymentInfo,
-    });
-
-    // Reset UI
-    setCart([]);
-    setPayment("");
-    setCashReceived("");
-    setCustomerName("");
-    setCustomerPhone("");
-    setBillNumber("");
-    setPreviewBill(null);
-    setShowPreview(false);
-    let oldSales = JSON.parse(localStorage.getItem("sessionSales") || "[]");
-
-    oldSales.push({
-      time: new Date().toISOString(),
-      amount: totalAmount,
-      paymentMode: paymentData.paymentMode,
-      split: paymentData.splitPayment || null,
-    });
-
-    localStorage.setItem("sessionSales", JSON.stringify(oldSales));
-  };
+ 
 
 
+const handleDownloadInvoice = async () => {
+  if (!previewBill) return;
+
+  await generateInvoicePdf({
+    billNumber: previewBill.billNumber,
+    createdAt: previewBill.createdAt,
+
+    company: {
+      CompanyName: defaultSelected?.namePrint || "",
+      Address: `${defaultSelected?.address1 || ""}, ${defaultSelected?.address2 || ""}, ${defaultSelected?.address3 || ""}, ${defaultSelected?.city || ""}, ${defaultSelected?.state || ""} - ${defaultSelected?.pincode || ""}`,
+      phone: defaultSelected?.mobile || defaultSelected?.telephone || "",
+      country: defaultSelected?.country || "",
+      gstNumber: defaultSelected?.gstNumber || "",
+      logo: defaultSelected?.logo || "",
+    },
+
+    customer: {
+      name: previewBill.customerName || "",
+      phone: previewBill.customerPhone || "",
+    },
+
+    items: previewBill.items,
+    subtotal: previewBill.subtotal,
+    taxAmount: previewBill.taxAmount,
+    grandTotal: previewBill.grandTotal,
+
+    // ✅ CORRECT SOURCE
+    paymentInfo: previewBill.paymentInfo,
+  });
+
+  // ---------------------------
+  // RESET UI STATE
+  // ---------------------------
+  setCart([]);
+  setPayment("");
+  setCashReceived("");
+  setCustomerName("");
+  setCustomerPhone("");
+  setBillNumber("");
+  setPreviewBill(null);
+  setShowPreview(false);
+};
 
 
 

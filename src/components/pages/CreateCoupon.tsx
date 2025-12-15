@@ -85,14 +85,14 @@ export default function CreateCoupon({
     description: "",
     code: "",
     enableCouponType: false,
-enableSchemeName: false,
-schemeName: "",
-couponType: "",
+    enableSchemeName: false,
+    schemeName: "",
+    couponType: "",
     discountType: null,
     discountValue: "",
     validFrom: "",
     validTo: "",
-    status :"active",
+    status: "active",
     minPurchase: "",
     maxTotal: "",
     maxPerCustomer: "",
@@ -116,19 +116,20 @@ couponType: "",
     freeProducts: [],
     freeMode: "same", // same | different
     step: 1, // 1 = template, 2 = combined buy/free left-right
+    productFreeMapping: {}
   });
 
   // initialize
-useEffect(() => {
-  if (initialData) {
-    // EDIT or VIEW → load EXACT server data, nothing else
-    setForm({ ...initialData });
-  } else {
-    // ADD MODE ONLY
-    const today = new Date().toISOString().split("T")[0];
-    setForm((p) => ({ ...p, validFrom: today }));
-  }
-}, [initialData, mode]);
+  useEffect(() => {
+    if (initialData) {
+      // EDIT or VIEW → load EXACT server data, nothing else
+      setForm({ ...initialData });
+    } else {
+      // ADD MODE ONLY
+      const today = new Date().toISOString().split("T")[0];
+      setForm((p) => ({ ...p, validFrom: today }));
+    }
+  }, [initialData, mode]);
 
 
   // fetch lists (scoped by defaultSelected._id where supported)
@@ -265,48 +266,50 @@ useEffect(() => {
   };
 
   // submit coupon (final)
- const submit = () => {
-  if (isView) return closeModal();
+  const submit = () => {
+    if (isView) return closeModal();
+    const today = new Date().setHours(0, 0, 0, 0);
+    const validFrom = new Date(form.validFrom).setHours(0, 0, 0, 0);
+    const validTo = new Date(form.validTo).setHours(0, 0, 0, 0);
 
-  const today = new Date().setHours(0, 0, 0, 0);
-  const validFrom = new Date(form.validFrom).setHours(0, 0, 0, 0);
-  const validTo = new Date(form.validTo).setHours(0, 0, 0, 0);
+    // ---------------------
+    // VALIDATION
+    // ---------------------
+    if (!form.name) {
+      toast.error("Coupon name is required");
+      return;  // ⛔ STOP SUBMIT
+    }
+    if (!form.validTo) {
+      toast.error("Valid Until date is required");
+      return;
+    }
+    if (validFrom > validTo) {
+      toast.error("Valid From cannot be greater than Valid To");
+      return;  // ⛔ STOP SUBMIT
+    }
 
-  // ---------------------
-  // VALIDATION
-  // ---------------------
-  if (!form.name) {
-    toast.error("Coupon name is required");
-    return;  // ⛔ STOP SUBMIT
-  }
+    // ---------------------
+    // ONLY AFTER VALIDATION
+    // ---------------------
+    const isActive = today >= validFrom && today <= validTo;
 
-  if (validFrom > validTo) {
-    toast.error("Valid From cannot be greater than Valid To");
-    return;  // ⛔ STOP SUBMIT
-  }
+    const payload = {
+      ...form,
+      company: defaultSelected?._id,
+      active: isActive,
+    };
 
-  // ---------------------
-  // ONLY AFTER VALIDATION
-  // ---------------------
-  const isActive = today >= validFrom && today <= validTo;
+    // ---------------------
+    // SUBMIT SHOULD HAPPEN ONLY IF VALID
+    // ---------------------
+    if (mode === "add") {
+      addCoupon(payload);
+    } else {
+      updateCoupon(payload);
+    }
 
-  const payload = {
-    ...form,
-    company: defaultSelected?._id,
-    active: isActive,
+    closeModal();
   };
-
-  // ---------------------
-  // SUBMIT SHOULD HAPPEN ONLY IF VALID
-  // ---------------------
-  if (mode === "add") {
-    addCoupon(payload);
-  } else {
-    updateCoupon(payload);
-  }
-
-  closeModal();
-};
 
 
 
@@ -317,8 +320,23 @@ useEffect(() => {
     setBogo("buyQty", buy);
     setBogo("getQty", get);
   };
-  const removeBuyProduct = (label) =>
+  const removeBuyProduct = (label) => {
+    // remove from buyProducts
     setBogo("buyProducts", bogoState.buyProducts.filter((x) => x !== label));
+
+    // remove its free mapping also
+    setBogoState((prev) => {
+      const updated = { ...prev.productFreeMapping };
+      delete updated[label];
+
+      return {
+        ...prev,
+        productFreeMapping: updated,
+      };
+    });
+  };
+
+
   const removeFreeProduct = (label) =>
     setBogo("freeProducts", bogoState.freeProducts.filter((x) => x !== label));
   const resetBogo = () =>
@@ -330,35 +348,41 @@ useEffect(() => {
       freeProducts: [],
       freeMode: "same",
       step: 1,
+      productFreeMapping: {}   // ✅ added
     });
 
-const saveBogoToForm = () => {
+  const saveBogoToForm = () => {
 
-  // ----------------------------------
-  //  VALIDATION (TOAST + RETURN)
-  // ----------------------------------
+    // ----------------------------------
+    //  VALIDATION (TOAST + RETURN)
+    // ----------------------------------
 
-  if (!bogoState.buyProducts || bogoState.buyProducts.length === 0) {
-    toast.error("Please select at least one product to buy under BOGO .");
-    return;
-  }
+    if (!bogoState.buyProducts || bogoState.buyProducts.length === 0) {
+      toast.error("Please select at least one product to buy under BOGO .");
+      return;
+    }
 
-  if (bogoState.freeMode === "different" &&
-      (!bogoState.freeProducts || bogoState.freeProducts.length === 0)
-  ) {
-    toast.error("Please select at least one free product under  BOGO.");
-    return;
-  }
+    if (bogoState.freeMode === "different") {
+      const hasAtLeastOneMapping = Object.values(
+        bogoState.productFreeMapping || {}
+      ).some((arr) => Array.isArray(arr) && arr.length > 0);
 
-  // ----------------------------------
-  //  SAVE (ONLY IF VALID)
-  // ----------------------------------
-  update("bogoConfig", { ...bogoState });
+      if (!hasAtLeastOneMapping) {
+        toast.error("Please select at least one free product under BOGO.");
+        return;
+      }
+    }
 
-  toast.success("BOGO offer saved successfully!");
 
-  setShowBogoModal(false);
-};
+    // ----------------------------------
+    //  SAVE (ONLY IF VALID)
+    // ----------------------------------
+    update("bogoConfig", { ...bogoState });
+
+    toast.success("BOGO offer saved successfully!");
+
+    setShowBogoModal(false);
+  };
 
   // UI: selected product cards (for preview)
   const SelectedProductCards = ({ labels = [], onRemove }) => {
@@ -425,181 +449,218 @@ const saveBogoToForm = () => {
             title={isView ? "View Coupon" : isEdit ? "Edit Coupon" : "Add Coupon"}
           />
 
-          <MultiStepNav steps={tabs} currentStep={activeTab} stepIcons={stepIcons} onStepChange={setActiveTab} />
+        <MultiStepNav
+  steps={tabs}
+  currentStep={activeTab}
+  onStepChange={(nextTab) => {
+    const stepOrder = [
+      "basic",
+      "discount",
+      "rules",
+      "limits",
+    ];
+
+    const currentIndex = stepOrder.indexOf(activeTab);
+    const nextIndex = stepOrder.indexOf(nextTab);
+
+    // Backward navigation is always allowed
+    if (nextIndex < currentIndex) {
+      setActiveTab(nextTab);
+      return;
+    }
+
+    // Forward navigation requires validation
+    // Step 1: Basic Information validation
+    if (activeTab === "basic") {
+      if (!form.name?.trim()) {
+        toast.error("Coupon name is required");
+        return;
+      }
+      
+      if (!form.validTo) {
+        toast.error("Coupon type is required");
+        return;
+      }
+    }
+
+    setActiveTab(nextTab);
+  }}
+  stepIcons={stepIcons}
+/>
 
           {/* BASIC */}
-{activeTab === "basic" && (
-  <div className="mt-4">
-    <Card>
-      <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {activeTab === "basic" && (
+            <div className="mt-4">
+              <Card>
+                <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        {/* COUPON CODE */}
-        <CustomInputBox
-          label="Coupon Code"
-          placeholder="Enter coupon code"
-          value={form.code}
-          readOnly={isView}
-          onChange={onCodeChange}
-        />
+                  {/* COUPON CODE */}
+                  <CustomInputBox
+                    label="Coupon Code"
+                    placeholder="Enter coupon code"
+                    value={form.code}
+                    readOnly={isView}
+                    onChange={onCodeChange}
+                  />
 
-        <SelectedCompany disabled={isView} />
+                  <SelectedCompany disabled={isView} />
 
-        {/* NAME */}
-        <CustomInputBox
-          label="Coupon Name *"
-          placeholder="Enter coupon name (alphanumeric)"
-          value={form.name}
-          readOnly={isView}
-          onChange={onNameChange}
-        />
+                  {/* NAME */}
+                  <CustomInputBox
+                    label="Coupon Name *"
+                    placeholder="Enter coupon name (alphanumeric)"
+                    value={form.name}
+                    readOnly={isView}
+                    onChange={onNameChange}
+                  />
 
-        {/* DESCRIPTION */}
-        <CustomInputBox
-          label="Coupon Description"
-          placeholder="Enter coupon description"
-          value={form.description}
-          readOnly={isView}
-          onChange={(e) => update("description", e.target.value)}
-        />
+                  {/* DESCRIPTION */}
+                  <CustomInputBox
+                    label="Coupon Description"
+                    placeholder="Enter coupon description"
+                    value={form.description}
+                    readOnly={isView}
+                    onChange={(e) => update("description", e.target.value)}
+                  />
 
-        {/* ===============================
+                  {/* ===============================
             CHECKBOXES ROW
         =============================== */}
-        <div className="col-span-2 grid grid-cols-2 gap-4">
+                  <div className="col-span-2 grid grid-cols-2 gap-4">
 
-          {/* COUPON TYPE CHECKBOX */}
-          <div className="flex items-center gap-2 border p-3 rounded-lg">
-            <input
-              type="checkbox"
-              disabled={isView}
-              checked={form.enableCouponType}
-              onChange={(e) => update("enableCouponType", e.target.checked)}
-            />
-            <label className="text-sm font-medium">Coupon Type</label>
-          </div>
+                    {/* COUPON TYPE CHECKBOX */}
+                    <div className="flex items-center gap-2 border p-3 rounded-lg">
+                      <input
+                        type="checkbox"
+                        disabled={isView}
+                        checked={form.enableCouponType}
+                        onChange={(e) => update("enableCouponType", e.target.checked)}
+                      />
+                      <label className="text-sm font-medium">Coupon Type</label>
+                    </div>
 
-          {/* SCHEME NAME CHECKBOX */}
-          <div className="flex items-center gap-2 border p-3 rounded-lg">
-            <input
-              type="checkbox"
-              disabled={isView}
-              checked={form.enableSchemeName}
-              onChange={(e) => update("enableSchemeName", e.target.checked)}
-            />
-            <label className="text-sm font-medium">Scheme Name</label>
-          </div>
+                    {/* SCHEME NAME CHECKBOX */}
+                    <div className="flex items-center gap-2 border p-3 rounded-lg">
+                      <input
+                        type="checkbox"
+                        disabled={isView}
+                        checked={form.enableSchemeName}
+                        onChange={(e) => update("enableSchemeName", e.target.checked)}
+                      />
+                      <label className="text-sm font-medium">Scheme Name</label>
+                    </div>
 
-        </div>
+                  </div>
 
-        {/* ===============================
+                  {/* ===============================
             COUPON TYPE DROPDOWN (Enable if checkbox ON)
         =============================== */}
-        <div className={`${form.enableCouponType ? "" : "opacity-50 pointer-events-none"}`}>
-          <label className="text-sm font-medium">Coupon Type *</label>
+                  <div className={`${form.enableCouponType ? "" : "opacity-50 pointer-events-none"}`}>
+                    <label className="text-sm font-medium">Coupon Type </label>
 
-          <div
-            onClick={() => {
-              if (isView || !form.enableCouponType) return;
-              setShowCouponDropdown(!showCouponDropdown);
-            }}
-            className={`border rounded-lg w-full h-12 px-3 mt-1 flex items-center justify-between 
+                    <div
+                      onClick={() => {
+                        if (isView || !form.enableCouponType) return;
+                        setShowCouponDropdown(!showCouponDropdown);
+                      }}
+                      className={`border rounded-lg w-full h-12 px-3 mt-1 flex items-center justify-between 
               bg-white shadow-sm ${isView ? "cursor-default" : "cursor-pointer hover:shadow-md"}`}
-          >
-            <span className={`${!form.couponType ? "text-slate-400" : ""}`}>
-              {form.couponType || "Select Coupon Type"}
-            </span>
+                    >
+                      <span className={`${!form.couponType ? "text-slate-400" : ""}`}>
+                        {form.couponType || "Select Coupon Type"}
+                      </span>
 
-            {!isView && form.enableCouponType && (
-              <span className="text-gray-500">⌄</span>
-            )}
-          </div>
+                      {!isView && form.enableCouponType && (
+                        <span className="text-gray-500">⌄</span>
+                      )}
+                    </div>
 
-          {showCouponDropdown && !isView && form.enableCouponType && (
-            <div className="absolute z-50 mt-1 w-full bg-white border rounded-xl shadow-xl max-h-60 overflow-y-auto">
-              {COUPON_TYPE_OPTIONS.map((item) => (
-                <div
-                  key={item}
-                  onClick={() => {
-                    update("couponType", item);
-                    setShowCouponDropdown(false);
-                  }}
-                  className={`px-4 py-3 cursor-pointer hover:bg-teal-50 
+                    {showCouponDropdown && !isView && form.enableCouponType && (
+                      <div className="absolute z-50 mt-1 w-full bg-white border rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                        {COUPON_TYPE_OPTIONS.map((item) => (
+                          <div
+                            key={item}
+                            onClick={() => {
+                              update("couponType", item);
+                              setShowCouponDropdown(false);
+                            }}
+                            className={`px-4 py-3 cursor-pointer hover:bg-teal-50 
                     ${form.couponType === item ? "bg-teal-100 font-medium" : ""}`}
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                          >
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-        {/* ===============================
+                  {/* ===============================
             SCHEME NAME FIELD (Enable if checkbox ON)
         =============================== */}
-        <div className={`${form.enableSchemeName ? "" : "opacity-50 pointer-events-none"}`}>
-          <CustomInputBox
-            label="Scheme Name"
-            placeholder="Enter scheme name"
-            value={form.schemeName || ""}
-            readOnly={isView}
-            onChange={(e) => update("schemeName", e.target.value)}
-          />
-        </div>
+                  <div className={`${form.enableSchemeName ? "" : "opacity-50 pointer-events-none"}`}>
+                    <CustomInputBox
+                      label="Scheme Name"
+                      placeholder="Enter scheme name"
+                      value={form.schemeName || ""}
+                      readOnly={isView}
+                      onChange={(e) => update("schemeName", e.target.value)}
+                    />
+                  </div>
 
-        {/* DATE FIELDS */}
-        <DatePickerField
-          label="Valid From"
-          name="validFrom"
-          value={form.validFrom}
-          readOnly={isView}
-          disabled={isView}
-          onChange={(e) => !isView && handleDateChange("validFrom", e.target.value)}
-        />
+                  {/* DATE FIELDS */}
+                  <DatePickerField
+                    label="Valid From"
+                    name="validFrom"
+                    value={form.validFrom}
+                    readOnly={isView}
+                    disabled={isView}
+                    onChange={(e) => !isView && handleDateChange("validFrom", e.target.value)}
+                  />
 
-        <DatePickerField
-          label="Valid Until *"
-          name="validTo"
-          value={form.validTo}
-          readOnly={isView}
-          disabled={isView}
-          onChange={(e) => !isView && handleDateChange("validTo", e.target.value)}
-        />
-        <div>
-  <label className="text-sm font-medium">Status</label>
-  <select
-    disabled={isView}
-    className="border rounded-lg w-full h-12 px-3 mt-1"
-    value={form.status || ""}
-    onChange={(e) => update("status", e.target.value)}
-  >
-    <option value="">Select Status</option>
-    <option value="active">Active</option>
-    <option value="inactive">Inactive</option>
-  </select>
-</div>
+                  <DatePickerField
+                    label="Valid Until *"
+                    name="validTo"
+                    value={form.validTo}
+                    readOnly={isView}
+                    disabled={isView}
+                    onChange={(e) => !isView && handleDateChange("validTo", e.target.value)}
+                  />
+                  <div>
+                    <label className="text-sm font-medium">Status</label>
+                    <select
+                      disabled={isView}
+                      className="border rounded-lg w-full h-12 px-3 mt-1"
+                      value={form.status || ""}
+                      onChange={(e) => update("status", e.target.value)}
+                    >
+                      <option value="">Select Status</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
 
-      </CardContent>
-    </Card>
+                </CardContent>
+              </Card>
 
-    {/* FOOTER NAVIGATION */}
-    {!isView && (
-      <CustomStepNavigation
-        currentStep={1}
-        totalSteps={4}
-        onNext={() => goNextFrom("basic")}
-        onSubmit={submit}
-      />
-    )}
-    {isView && (
-      <CustomStepNavigation
-        currentStep={1}
-        totalSteps={4}
-        onNext={() => goNextFrom("basic")}
-        isSubmit={false}
-      />
-    )}
-  </div>
-)}
+              {/* FOOTER NAVIGATION */}
+              {!isView && (
+                <CustomStepNavigation
+                  currentStep={1}
+                  totalSteps={4}
+                  onNext={() => goNextFrom("basic")}
+                  onSubmit={submit}
+                />
+              )}
+              {isView && (
+                <CustomStepNavigation
+                  currentStep={1}
+                  totalSteps={4}
+                  onNext={() => goNextFrom("basic")}
+                  isSubmit={false}
+                />
+              )}
+            </div>
+          )}
 
 
 
@@ -857,305 +918,527 @@ const saveBogoToForm = () => {
           )}
 
           {/* BOGO Modal - simplified and left-right combined for buy & free (Q3 -> left-right) */}
-          <Dialog open={showBogoModal} onOpenChange={(open) => {
-            setShowBogoModal(open);   // modal open/close update
+        <Dialog open={showBogoModal} onOpenChange={(open) => {
+  setShowBogoModal(open);
+}}>
+  <DialogContent
+    className="custom-dialog-container max-w-5xl !transition-none !transform-none !duration-0 !ease-none !animate-none p-0 overflow-visible"
+    style={{
+      animation: "none",
+      transition: "none",
+      transform: "none",
+    }}
+  >
+    {/* Elegant Header */}
+    <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-4 rounded-t-lg">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Configure BOGO Offer</h2>
+          <p className="text-indigo-100 text-sm mt-0.5">Set up your buy one get one promotion</p>
+        </div>
+        <button
+          onClick={() => setShowBogoModal(false)}
+          className="text-white/80 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition cursor-pointer"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
 
-            if (!open) {
-              // modal band hua → step reset
-              setBogoState((prev) => ({ ...prev, step: 1 }));
-            }
-          }}>
-            <DialogContent
-              className="
-      custom-dialog-container max-w-3xl
-      !transition-none !transform-none !duration-0 !ease-none !animate-none
-    "
-              style={{
-                animation: "none",
-                transition: "none",
-                transform: "none",
-              }}
-            >
-              <div className="space-y-4">
-                <HeaderGradient
-                  title="Customize Buy One Get One Offer"
-                  subtitle="Configure BOGO offer according to your needs"
-                />
-                {isView && (
-                  <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-300 text-yellow-800 text-sm font-medium flex items-center gap-2">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12" y2="16"></line>
-                    </svg>
-                    This BOGO offer is in <strong className="font-semibold">View Mode</strong>. All fields are read-only.
+    {isView && (
+      <div className="mx-5 mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-2">
+        <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+        <span className="text-sm">View mode - All fields are read-only</span>
+      </div>
+    )}
+
+    <div className="p-5 space-y-5 max-h-[65vh] overflow-y-auto">
+      {/* Offer Configuration */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Left Column */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Template Selection */}
+          <div className="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-md flex items-center justify-center">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-medium text-gray-800">Quick Templates</h3>
+                <p className="text-xs text-gray-500">Choose a preset for new products</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {[{ buy: 1, get: 1 }, { buy: 2, get: 1 }, { buy: 3, get: 1 }, { buy: 1, get: 2 }].map(
+                (tpl, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      if (isView) return;
+                      // Apply template to GLOBAL defaults only
+                      setBogoState(prev => ({
+                        ...prev,
+                        buyQty: tpl.buy,
+                        getQty: tpl.get
+                      }));
+                    }}
+                    className={`p-3 border rounded-lg text-center transition-all cursor-pointer ${
+                      bogoState.buyQty === tpl.buy && bogoState.getQty === tpl.get
+                        ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                        : 'border-gray-200 hover:border-indigo-300 hover:shadow'
+                    }`}
+                  >
+                    <div className="text-sm font-medium text-gray-800">Buy {tpl.buy}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Get {tpl.get} Free</div>
+                  </button>
+                )
+              )}
+            </div>
+
+            {/* Global Default Quantities */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-gray-700">Default Quantities (for new products)</span>
+                <span className="text-xs text-gray-500">Applied when adding new products</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1.5 block">Buy Quantity</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={1}
+                      disabled={isView}
+                      readOnly={isView}
+                      value={bogoState.buyQty}
+                      onChange={(e) => {
+                        const val = Math.max(1, parseInt(e.target.value) || 1);
+                        setBogoState(prev => ({
+                          ...prev,
+                          buyQty: val
+                        }));
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    />
                   </div>
-                )}
-
-
-                {/* ================= STEP PILLS ================= */}
-                <div className="flex items-center gap-3 text-sm">
-                  {[1, 2].map((s) => (
-                    <div
-                      key={s}
-                      onClick={() => setBogoState((p) => ({ ...p, step: s }))} // ⭐ Steps always clickable
-                      className={`px-3 py-1 rounded-full cursor-pointer ${bogoState.step === s
-                        ? "bg-blue-100 text-blue-700 font-medium"
-                        : "bg-gray-100 text-gray-500"
-                        }`}
-                    >
-                      Step {s}
-                    </div>
-                  ))}
                 </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1.5 block">Get Free Quantity</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={1}
+                      disabled={isView}
+                      readOnly={isView}
+                      value={bogoState.getQty}
+                      onChange={(e) => {
+                        const val = Math.max(1, parseInt(e.target.value) || 1);
+                        setBogoState(prev => ({
+                          ...prev,
+                          getQty: val
+                        }));
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                {/* ================= STEP 1 ================= */}
-                {bogoState.step === 1 && (
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Products to Buy */}
+          <div className="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-medium text-gray-800">Select Products to Buy</h3>
+                <p className="text-xs text-gray-500">Add products to configure BOGO offers</p>
+              </div>
+            </div>
 
-                        {/* LEFT */}
-                        <div>
-                          <p className="text-sm text-gray-600 mb-2">Quick Templates</p>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">Add Products</label>
+                <span className="text-xs text-gray-500">
+                  {bogoState.buyProducts.length} selected
+                </span>
+              </div>
+              <div className="relative">
+                <MultiSelect
+                  options={productOptions.filter(option => !bogoState.buyProducts.includes(option))}
+                  selected={[]}
+                  onChange={(v) => {
+                    // Always allow multiple products
+                    const newProducts = [...bogoState.buyProducts, ...v];
+                    setBogo("buyProducts", newProducts);
+                    
+                    // Initialize productQuantities for NEW products using CURRENT global defaults
+                    const newQuantities = { ...bogoState.productQuantities };
+                    const newMapping = { ...bogoState.productFreeMapping };
+                    
+                    v.forEach(product => {
+                      if (!newQuantities[product]) {
+                        // Use CURRENT global defaults (from bogoState.buyQty/getQty)
+                        newQuantities[product] = { 
+                          buyQty: bogoState.buyQty,
+                          getQty: bogoState.getQty
+                        };
+                      }
+                      if (!newMapping[product]) {
+                        newMapping[product] = [];
+                      }
+                    });
+                    
+                    setBogoState(prev => ({
+                      ...prev,
+                      productQuantities: newQuantities,
+                      productFreeMapping: newMapping
+                    }));
+                  }}
+                  disabled={isView}
+                  controller={{
+                    id: "bogoBuy",
+                    activeMultiSelect,
+                    setActiveMultiSelect,
+                  }}
+                  dropdownClassName="!z-[10000]"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
 
-                          <div className="grid grid-cols-2 gap-3">
-                            {[{ buy: 1, get: 1 }, { buy: 2, get: 1 }, { buy: 3, get: 1 }, { buy: 1, get: 2 }].map(
-                              (tpl, i) => (
-                                <div
-                                  key={i}
-                                  onClick={() => {
-                                    if (isView) return; // ⭐ View mode no click
-                                    applyTemplate(tpl.buy, tpl.get);
-                                  }}
-                                  className="p-4 border rounded-lg cursor-pointer hover:shadow transition"
-                                >
-                                  Buy {tpl.buy} Get {tpl.get} FREE
-                                </div>
-                              )
+        {/* Right Column */}
+        <div className="space-y-5">
+          {/* Preview Card */}
+          <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-4 text-white">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-10 h-10 bg-white/20 rounded-full mb-3">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+              </div>
+              <div className="text-lg font-semibold mb-1">
+               Buy {bogoState.buyQty} Get {bogoState.getQty} Free
+              </div>
+              <div className="text-indigo-100 text-xs">
+                Applied to new products only
+              </div>
+            </div>
+          </div>
+
+          {/* Free Mode Selection */}
+          <div className="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-md flex items-center justify-center">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-medium text-gray-800">Free Product Type</h3>
+                <p className="text-xs text-gray-500">Choose free product option</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  if (isView) return;
+                  setBogo("freeMode", "same");
+                  // Clear all free product mappings when switching to same product mode
+                  setBogoState(prev => ({
+                    ...prev,
+                    productFreeMapping: {}
+                  }));
+                }}
+                className={`w-full p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                  bogoState.freeMode === "same"
+                    ? 'border-emerald-500 bg-emerald-50'
+                    : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                    bogoState.freeMode === "same" ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300'
+                  }`}>
+                    {bogoState.freeMode === "same" && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">Same Product</div>
+                    <div className="text-xs text-gray-500">Get same product for free</div>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (isView) return;
+                  setBogo("freeMode", "different");
+                }}
+                className={`w-full p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                  bogoState.freeMode === "different"
+                    ? 'border-emerald-500 bg-emerald-50'
+                    : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                    bogoState.freeMode === "different" ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300'
+                  }`}>
+                    {bogoState.freeMode === "different" && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">Different Products</div>
+                    <div className="text-xs text-gray-500">Select different free products</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* BOGO Configuration Table */}
+      {bogoState.buyProducts.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-100 shadow-sm overflow-visible">
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-medium text-gray-800">Configured Products</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {bogoState.buyProducts.length} product(s) configured • Each product can have different BOGO rules
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="divide-y divide-gray-100">
+            {bogoState.buyProducts.map((buyProductLabel, index) => {
+              const buyProduct = findProductByLabel(buyProductLabel);
+              
+              // Get per-product quantities (default to global if not set)
+              const productQuantities = bogoState.productQuantities?.[buyProductLabel] || { 
+                buyQty: bogoState.buyQty, 
+                getQty: bogoState.getQty 
+              };
+              
+              return (
+                <div key={buyProductLabel} className="p-4 hover:bg-gray-50/50 transition-colors relative">
+                  <div className="grid grid-cols-12 gap-4">
+                    {/* Buy Product */}
+                    <div className="col-span-5">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center overflow-hidden border border-blue-100">
+                            {buyProduct?.productId?.images?.[0] ? (
+                              <img
+                                src={buyProduct.productId.images[0]}
+                                alt={buyProduct?.ItemName || buyProduct?.name || buyProductLabel}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="text-sm font-medium text-blue-400">
+                                {buyProduct?.ItemName ? buyProduct.ItemName[0] : "P"}
+                              </div>
                             )}
                           </div>
-
-                          {/* ⭐ Updated BOLD heading */}
-                          <p className="text-base font-bold text-gray-900 tracking-wide mt-5 mb-2">
-                            OR CREATE CUSTOM
-                          </p>
-
-                          <div className="grid grid-cols-2 gap-3 items-center">
-                            <input
-                              type="number"
-                              min={1}
-                              disabled={isView}
-                              readOnly={isView}
-                              value={bogoState.buyQty}
-                              onChange={(e) => setBogo("buyQty", Number(e.target.value || 1))}
-                              className="w-full px-4 py-3 border rounded-lg"
-                              placeholder="Buy Quantity"
-                            />
-
-                            <input
-                              type="number"
-                              min={1}
-                              disabled={isView}
-                              readOnly={isView}
-                              value={bogoState.getQty}
-                              onChange={(e) => setBogo("getQty", Number(e.target.value || 1))}
-                              className="w-full px-4 py-3 border rounded-lg"
-                              placeholder="Get Quantity"
-                            />
+                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                            {index + 1}
                           </div>
                         </div>
-
-                        {/* RIGHT */}
-                        <div>
-                          <p className="text-sm text-gray-600 mb-2">Preview</p>
-
-                          <div className="rounded-xl bg-gradient-to-r from-purple-400 to-violet-500 text-white p-6">
-                            <div className="text-center">
-                              <div className="text-xl font-semibold">
-                                Buy {bogoState.buyQty} Get {bogoState.getQty} FREE
-                              </div>
-                              <div className="text-sm opacity-90 mt-2">
-                                {bogoState.freeMode === "same"
-                                  ? "Same product will be FREE"
-                                  : "Selected products will be FREE"}
-                              </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-800 truncate">
+                            {buyProduct?.ItemName || buyProduct?.name || buyProductLabel}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            {buyProduct?.ItemCode && (
+                              <span className="text-xs text-gray-500">#{buyProduct.ItemCode}</span>
+                            )}
+                            {buyProduct?.Price && (
+                              <span className="text-sm font-medium text-gray-700">₹{buyProduct.Price}</span>
+                            )}
+                          </div>
+                          
+                          {/* BOGO badge display */}
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <div className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-md">
+                              Buy {productQuantities.buyQty}
+                            </div>
+                            <div className="text-gray-400 text-xs">→</div>
+                            <div className="px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-md">
+                              Get {productQuantities.getQty} Free
                             </div>
                           </div>
                         </div>
                       </div>
+                    </div>
 
-                      {/* Buttons hidden in view mode */}
-                      {!isView && (
-                        <div className="flex justify-end gap-3 mt-6">
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              resetBogo();
-                              setShowBogoModal(false);
-                            }}
-                          >
-                            Cancel
-                          </Button>
-
-                          <Button onClick={() => setBogo("step", 2)}>Next</Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* ================= STEP 2 ================= */}
-                {bogoState.step === 2 && (
-                  <Card className="rounded-xl shadow-sm border">
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-                        {/* BUY SIDE */}
-                        <div className="p-5 border rounded-xl bg-white shadow-sm">
-                          <p className="text-xl font-semibold mb-2 text-gray-800">Products to Buy</p>
-                          <p className="text-sm text-gray-500 mb-4">
-                            Customer must buy {bogoState.buyQty} product(s)
-                          </p>
-
-                          <MultiSelect
-                            label="Products to Buy"
-                            options={productOptions}
-                            selected={bogoState.buyProducts}
-                            onChange={(v) => setBogo("buyProducts", v)}
-                            disabled={isView}
-                            controller={{
-                              id: "bogoBuy",
-                              activeMultiSelect,
-                              setActiveMultiSelect,
-                            }}
-                          />
-
-                          <div className="mt-4 space-y-2">
-                            {bogoState.buyProducts.map((lbl) => (
-                              <div
-                                key={lbl}
-                                className="flex items-center justify-between border p-3 rounded-lg"
-                              >
-                                <span>{lbl}</span>
-
-                                {!isView && (
-                                  <button
-                                    onClick={() => removeBuyProduct(lbl)}
-                                    className="text-red-500 text-sm"
-                                  >
-                                    Remove
-                                  </button>
-                                )}
-                              </div>
-                            ))}
+                    {/* Free Products */}
+                    <div className="col-span-6">
+                      {bogoState.freeMode === "same" ? (
+                        <div className="h-full flex items-center">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-md">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span className="text-sm font-medium">Same Product</span>
                           </div>
                         </div>
-
-                        {/* FREE SIDE */}
-                        <div className="p-5 border rounded-xl bg-white shadow-sm">
-                          <p className="text-xl font-semibold mb-2 text-gray-800">Free Products</p>
-                          <p className="text-sm text-gray-500 mb-4">
-                            Customer gets {bogoState.getQty} FREE items
-                          </p>
-
-                          {/* FREE MODE buttons */}
-                          <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div
-                              onClick={() => {
-                                if (isView) return;
-                                setBogo("freeMode", "same");
-                              }}
-                              className={`p-4 rounded-lg border cursor-pointer transition ${bogoState.freeMode === "same"
-                                ? "bg-green-50 border-green-400 shadow-sm"
-                                : "hover:bg-gray-50"
-                                }`}
-                            >
-                              <div className="font-medium text-gray-800">Same Product</div>
-                            </div>
-
-                            <div
-                              onClick={() => {
-                                if (isView) return;
-                                setBogo("freeMode", "different");
-                              }}
-                              className={`p-4 rounded-lg border cursor-pointer transition ${bogoState.freeMode === "different"
-                                ? "bg-green-50 border-green-400 shadow-sm"
-                                : "hover:bg-gray-50"
-                                }`}
-                            >
-                              <div className="font-medium text-gray-800">Different Products</div>
-                            </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-medium text-gray-600">Free products</label>
+                            <span className="text-xs text-gray-500">Up to {productQuantities.getQty}</span>
                           </div>
 
-                          {bogoState.freeMode === "different" && (
-                            <>
-                              <MultiSelect
-                                label="Free Products"
-                                options={productOptions}
-                                selected={bogoState.freeProducts}
-                                onChange={(v) => setBogo("freeProducts", v)}
-                                disabled={isView}
-                                controller={{
-                                  id: "bogoFree",
-                                  activeMultiSelect,
-                                  setActiveMultiSelect,
-                                }}
-                              />
+                          {/* MultiSelect with proper z-index */}
+                          <div className="relative" style={{ zIndex: 1000 - index }}>
+                            <MultiSelect
+                            
+                              options={productOptions.filter(option => {
+                                const currentFreeProducts = bogoState.productFreeMapping?.[buyProductLabel] || [];
+                                if (currentFreeProducts.includes(option)) return true;
+                                const isAlreadyFreeInOtherRows = Object.entries(bogoState.productFreeMapping || {})
+                                  .filter(([key]) => key !== buyProductLabel)
+                                  .some(([_, freeProducts]) => freeProducts.includes(option));
+                                return !isAlreadyFreeInOtherRows;
+                              })}
+                              selected={bogoState.productFreeMapping?.[buyProductLabel] || []}
+                              onChange={(v) => {
+                                if (v.length > productQuantities.getQty) {
+                                  toast.error(`Maximum ${productQuantities.getQty} free product(s) allowed`);
+                                  return;
+                                }
+                                setBogoState(prev => ({
+                                  ...prev,
+                                  productFreeMapping: {
+                                    ...prev.productFreeMapping,
+                                    [buyProductLabel]: v
+                                  }
+                                }));
+                              }}
+                              disabled={isView}
+                              controller={{
+                                id: `bogoFree-${buyProductLabel}-${index}`,
+                                activeMultiSelect,
+                                setActiveMultiSelect,
+                              }}
+                              dropdownClassName="!z-[10000]"
+                            />
+                          </div>
 
-                              <div className="mt-4 space-y-2">
-                                {bogoState.freeProducts.map((lbl) => (
-                                  <div
-                                    key={lbl}
-                                    className="flex items-center justify-between border p-3 rounded-lg"
-                                  >
-                                    <span>{lbl}</span>
-
-                                    {!isView && (
-                                      <button
-                                        onClick={() => removeFreeProduct(lbl)}
-                                        className="text-red-500 text-sm"
-                                      >
-                                        Remove
-                                      </button>
+                          {bogoState.productFreeMapping?.[buyProductLabel]?.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {bogoState.productFreeMapping[buyProductLabel].map(freeLabel => {
+                                const freeProduct = findProductByLabel(freeLabel);
+                                return (
+                                  <div key={freeLabel} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">
+                                    <span className="truncate max-w-[120px]">
+                                      {freeProduct?.ItemName || freeProduct?.name || freeLabel}
+                                    </span>
+                                    {freeProduct?.Price && (
+                                      <span className="font-medium whitespace-nowrap">₹{freeProduct.Price}</span>
                                     )}
                                   </div>
-                                ))}
-                              </div>
-                            </>
+                                );
+                              })}
+                            </div>
                           )}
                         </div>
-                      </div>
-
-                      {!isView && (
-                        <div className="flex justify-between mt-8">
-                          <Button variant="outline" onClick={() => setBogo("step", 1)}>
-                            Back
-                          </Button>
-
-                          <div className="flex gap-3">
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                resetBogo();
-                                setShowBogoModal(false);
-                              }}
-                            >
-                              Cancel
-                            </Button>
-
-                            <Button onClick={() => saveBogoToForm()}>Save Offer</Button>
-                          </div>
-                        </div>
                       )}
-                    </CardContent>
-                  </Card>
-                )}
+                    </div>
+
+                    {/* Remove Button */}
+                    <div className="col-span-1 flex items-center justify-center">
+                      {!isView && (
+                        <button
+                          type="button"
+                          onClick={() => removeBuyProduct(buyProductLabel)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Remove product"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Summary & Actions */}
+      <div className="space-y-4">
+        {bogoState.buyProducts.length > 0 && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center">
+                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
-            </DialogContent>
-          </Dialog>
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-gray-800 mb-1">Offer Summary</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  {bogoState.buyProducts.length} product(s) configured with individual BOGO rules.
+                  Template changes only affect new products. Existing products keep their individual settings.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
-
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <div className="text-sm text-gray-500">
+            {bogoState.buyProducts.length > 0 ? (
+              <span>{bogoState.buyProducts.length} product(s) configured</span>
+            ) : (
+              <span>No products selected</span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                resetBogo();
+                setShowBogoModal(false);
+              }}
+              className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => saveBogoToForm()}
+              className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg hover:shadow-md transition-all font-medium shadow-sm cursor-pointer"
+            >
+              Save Offer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </DialogContent>
+</Dialog>
         </DialogContent>
       </Dialog>
     </div>

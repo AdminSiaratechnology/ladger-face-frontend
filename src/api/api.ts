@@ -954,8 +954,24 @@ const PosBillToServer = async (payload: any) => {
   }
 };
 
+export const getCompanyPosReport = async (params) => {
+  try {
+    const query = new URLSearchParams(params).toString();
+    console.log(query);
+    const res = await apiClient.get(`/pos?${query}`);
+    return res.data;
+  } catch (error) {
+    console.error(
+
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
 // Export API
 const api = {
+  getCompanyPosReport,
  PosBillToServer, 
   createCompany,
   getCompanies,
