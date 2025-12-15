@@ -206,6 +206,7 @@ const stepIcons = {
 // --- CUSTOM STORE FOR GODOWNS (Local Implementation) ---
 
 import { useGodownStore } from "../../../store/godownStore";
+import {availableModules} from "@/lib/availableModules";
 
 interface GodownStore {
   godowns: Godown[];
@@ -619,38 +620,7 @@ const UserManagement: React.FC = () => {
     ],
   };
 
-  // Available modules
-  const availableModules = {
-    BusinessManagement: {
-      CustomerRegistration: { create: false, read: false, update: false, delete: false, extra: [] },
-      Vendor: { create: false, read: false, update: false, delete: false, extra: [] },
-      Agent: { create: false, read: false, update: false, delete: false, extra: [] },
-      Ledger: { create: false, read: false, update: false, delete: false, extra: [] },
-    },
-    UserManagement: {
-      User: { create: false, read: false, update: false, delete: false, extra: [] },
-    },
-    InventoryManagement: {
-      Godown: { create: false, read: false, update: false, delete: false, extra: [] },
-      StockGroup: { create: false, read: false, update: false, delete: false, extra: [] },
-      StockCategory: { create: false, read: false, update: false, delete: false, extra: [] },
-      Product: { create: false, read: false, update: false, delete: false, extra: [] },
-      Unit: { create: false, read: false, update: false, delete: false, extra: [] },
-      Order: { create: false, read: false, update: false, delete: false, extra: [] },
-      Payment: { create: false, read: false, update: false, delete: false, extra: [] },
-    },
-    Pricing: {
-      PriceList: { create: false, read: false, update: false, delete: false, extra: [] },
-      Discount: { create: false, read: false, update: false, delete: false, extra: [] },
-    },
-    Reports: {
-      SalesReport: { create: false, read: false, update: false, delete: false, extra: [] },
-      PurchaseReport: { create: false, read: false, update: false, delete: false, extra: [] },
-    },
-    Order: {
-      Orders: { create: false, read: false, update: false, delete: false, extra: [] },
-    },
-  };
+
 
   const [form, setForm] = useState<UserForm>({
     name: "",
