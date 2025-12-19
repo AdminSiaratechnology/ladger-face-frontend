@@ -25,6 +25,7 @@ interface AuthState {
   login: (credentials: LoginCredentials) => Promise<User | undefined>;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
+  updateUserIfAuthUser: (updatedUser: User) => void;
 }
 
 const performFullLogoutCleanup = () => {
@@ -117,6 +118,13 @@ export const useAuthStore = create<AuthState>()(
 
       updateUser: (user: User) => {
         set({ user });
+      },
+         updateUserIfAuthUser: (updatedUser: User) => {
+        const currentUser = get().user;
+
+        if (currentUser && currentUser._id === updatedUser._id) {
+          set({ user: updatedUser });
+        }
       },
     }),
     {

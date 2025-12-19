@@ -942,25 +942,37 @@ const fetchTemplatesByCompany = async (  { companyId }: { companyId: string },
   const res = await apiClient.get(`/bill-templates/company/${companyId}?${queryParams}`);
   return res.data;
 }
-const saveSaleToServer = async (payload: any) => {
+const PosBillToServer = async (payload: any) => {
   try {
-    const res = await fetch("http://localhost:8000/api/sales", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await apiClient.post("/pos", payload);
 
-    const data = await res.json();
-    return data;
+    
+    return res;
   } catch (err) {
     console.error("SALE API ERROR:", err);
     return { success: false };
   }
 };
 
+export const getCompanyPosReport = async (params) => {
+  try {
+    const query = new URLSearchParams(params).toString();
+    console.log(query);
+    const res = await apiClient.get(`/pos?${query}`);
+    return res.data;
+  } catch (error) {
+    console.error(
+
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
 // Export API
 const api = {
-  saveSaleToServer,  
+  getCompanyPosReport,
+ PosBillToServer, 
   createCompany,
   getCompanies,
   getProducts,

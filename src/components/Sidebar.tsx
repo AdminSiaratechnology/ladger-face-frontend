@@ -34,6 +34,7 @@ import {
 } from "./ui/accordion";
 import { useAuthStore } from "../../store/authStore";
 import { useCompanyStore } from "../../store/companyStore";
+import { fullMenuItems, limitedMenuItems } from "@/lib/availableModules";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -90,6 +91,13 @@ function checkPermission(
   ) {
     return false;
   }
+  if(module == "InventoryManagement" &&
+    subModule == "Godown" &&
+    !defaultSelected?.maintainGodown
+  ) {
+    return false;
+  }
+
   
   if (user.allPermissions)
     return {
@@ -128,6 +136,8 @@ function hasMenuAccess(
   item: MenuItem | SubMenuItem,
   defaultSelected: any
 ) {
+  // console.log("Checking access for item:", item);
+
   if (!user) return false;
 
   if (
@@ -144,6 +154,20 @@ function hasMenuAccess(
   ) {
     return false;
   }
+
+  if(item?.module=="CompanyManagement" &&
+    item?.subModule=="Company" && user.role &&
+  !["Admin", "Client"].includes(user.role)
+  ) {
+    return false;
+  }
+  if(item?.module=="CompanyManagement" && item?.subModule=="BillTemplate" && user.role &&
+  !["Admin", "Client"].includes(user.role)){
+
+return false;
+  }
+
+  
   
   if (user.allPermissions) return true;
 
@@ -172,7 +196,7 @@ function hasMenuAccess(
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const location = useLocation();
   const [hasCompany, setHasCompany] = useState(false);
   const [openAccordionId, setOpenAccordionId] = useState<string | undefined>(
@@ -185,290 +209,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const { companies, defaultSelected } = useCompanyStore();
   const companyId = defaultSelected?._id;
-
-  // Menu Data (Unchanged)
-  const fullMenuItems: MenuItem[] = useMemo(() => [
-    {
-      path: "/",
-      icon: LayoutDashboard,
-      label: "Dashboard",
-      roles: ["admin", "agent", "salesman"],
-      type: "link",
-    },
-    {
-      id: "company",
-      icon: Building2, // Changed icon from LayoutDashboard to Building2 for clarity
-      label: "Company",
-      roles: ["admin", "agent", "client", "salesman"],
-      type: "accordion",
-      subItems: [
-        {
-          path: "/company",
-          icon: Building2,
-          label: "Company Management",
-          roles: ["admin", "agent", "client", "salesman"],
-          module: "BusinessManagement",
-          subModule: "Company",
-        },
-        {
-          path: "/bill-template",
-          icon: FileText,
-          label: "Bill Template",
-          roles: ["admin", "client"],
-          module: "Billing",
-          subModule: "BillTemplate",
-        },
-      ],
-    },
-    {
-      path: "/users",
-      icon: Users,
-      label: "User Management",
-      roles: ["admin"],
-      type: "link",
-      module: "UserManagement",
-      subModule: "User",
-    },
-    {
-      id: "business-partners",
-      icon: Users, // Changed icon from Building2 to Users
-      label: "Business Partners",
-      roles: ["admin", "agent", "salesman", "client"],
-      type: "accordion",
-      subItems: [
-        {
-          path: "/customer-group-management",
-          icon: UserPlus,
-          label: "Customer Group",
-          roles: ["admin", "agent"],
-          module: "BusinessManagement",
-          subModule: "CustomerGroup",
-        },
-        {
-          path: "/customer-registration",
-          icon: UserPlus,
-          label: "Customer Registration",
-          roles: ["admin", "agent"],
-          module: "BusinessManagement",
-          subModule: "CustomerRegistration",
-        },
-        {
-          path: "/vendor-registration",
-          icon: Truck,
-          label: "Vendor Registration",
-          roles: ["admin", "agent", "client"],
-          module: "BusinessManagement",
-          subModule: "Vendor",
-        },
-        {
-          path: "/agent",
-          icon: HatGlasses,
-          label: "Agent",
-          roles: ["admin", "agent", "client"],
-          module: "BusinessManagement",
-          subModule: "Agent",
-        },
-        {
-          path: "/ladger-registration",
-          icon: CreditCard, // Changed icon for clarity
-          label: "Ledger",
-          roles: ["admin", "agent", "client"],
-          module: "BusinessManagement",
-          subModule: "Ledger",
-        },
-      ],
-    },
-    {
-      id: "inventory-management",
-      icon: Package,
-      label: "Inventory Management",
-      roles: ["admin", "agent", "salesman", "client"],
-      type: "accordion",
-      subItems: [
-        {
-          path: "/godown",
-          icon: Warehouse,
-          label: "Godown",
-          roles: ["admin", "agent", "salesman", "client"],
-          module: "InventoryManagement",
-          subModule: "Godown",
-        },
-        {
-          path: "/stock-group",
-          icon: Layers,
-          label: "Stock Group",
-          roles: ["admin", "agent", "salesman", "client"],
-          module: "InventoryManagement",
-          subModule: "StockGroup",
-        },
-        {
-          path: "/stock-category",
-          icon: FolderOpen,
-          label: "Stock Category",
-          roles: ["admin", "agent", "client"],
-          module: "InventoryManagement",
-          subModule: "StockCategory",
-        },
-        {
-          path: "/uom",
-          icon: Ruler,
-          label: "UOM",
-          roles: ["admin", "agent", "client"],
-          module: "InventoryManagement",
-          subModule: "Unit",
-        },
-        {
-          path: "/product",
-          icon: Package,
-          label: "Product",
-          roles: ["admin", "agent", "client"],
-          module: "InventoryManagement",
-          subModule: "Product",
-        },
-      ],
-    },
-    {
-      id: "Order",
-      icon: ShoppingCart,
-      label: "Order Management",
-      roles: ["admin", "agent", "client", "salesman"],
-      type: "accordion",
-      subItems: [
-        {
-          path: "/orders",
-          icon: LayoutDashboard,
-          label: "Custom Order",
-          roles: ["admin", "agent", "client", "salesman"],
-        },
-        {
-          path: "/POS",
-          icon: FileText,
-          label: "POS ",
-          roles: ["admin", "client"],
-        },
-      ],
-    },
-        {
-      path: "/Coupon",
-      icon: ShoppingCart,
-      label: "Coupon",
-      roles: ["admin", "agent", "salesman","client"],
-      type: "link",
-      module: "Coupon",
-      subModule: "Coupon",
-    },
-    
-    // {
-    //   path: "/tracking",
-    //   icon: MapPin,
-    //   label: "Location Tracking",
-    //   roles: ["admin","client"],
-    //   type: "link",
-    // },
-    // {
-    //   path: "/settings",
-    //   icon: Settings,
-    //   label: "Settings",
-    //   roles: ["admin","client"],
-    //   type: "link",
-    // },
-    {
-      id: "Report",
-      icon: FileText,
-      label: "Reports",
-      roles: ["admin", "agent", "salesman", "client"],
-      type: "accordion",
-      subItems: [
-        {
-          path: "/order-report",
-          icon: ShoppingCart,
-          label: "Order Report",
-          roles: ["admin", "agent"],
-          module: "Report",
-          subModule: "orderReport",
-        },
-        {
-          path: "/payment-report",
-          icon: CreditCard,
-          label: "Payment Report",
-          roles: ["admin", "agent"],
-          module: "Report",
-          subModule: "paymentReport",
-        },
-        {
-          path: "/customer-report",
-          icon: Users,
-          label: "Customer Report",
-          roles: ["admin", "agent"],
-          module: "Report",
-          subModule: "customerReport",
-        },
-        {
-          path: "/product-report",
-          icon: Package,
-          label: "Product Report",
-          roles: ["admin", "agent"],
-          module: "Report",
-          subModule: "productReport",
-        },
-      ],
-    },
-    {
-      path: "/auditlog",
-      icon: FileText,
-      label: "Auditlog",
-      roles: ["admin", "client"],
-      type: "link",
-      module: "Settings", // Assuming these non-CRUD links have a module
-      subModule: "Auditlog",
-    },
-    {
-      path: "/restore",
-      icon: RefreshCcwDot,
-      label: "Restore",
-      roles: ["admin", "client"],
-      type: "link",
-      module: "Settings", // Assuming these non-CRUD links have a module
-      subModule: "Restore",
-    },
-    {
-        path: "/profile-settings",
-        icon: Settings,
-        label: "Settings",
-        roles: ["admin", "client", "agent", "salesman"],
-        type: "link",
-        module: "Settings",
-        subModule: "General",
-      },
-  ], []);
-
-  const limitedMenuItems: MenuItem[] = useMemo(() => [
-    {
-      path: "/",
-      icon: LayoutDashboard,
-      label: "Dashboard",
-      roles: ["admin", "agent", "salesman", "client"],
-      type: "link",
-    },
-    {
-      path: "/company",
-      icon: Building2,
-      label: "Company",
-      roles: ["admin", "agent", "client"],
-      type: "link",
-      module: "BusinessManagement",
-      subModule: "Company",
-    },
-    {
-      path: "/users",
-      icon: Users,
-      label: "User Management",
-      roles: ["admin", "client"],
-      type: "link",
-      module: "UserManagement",
-      subModule: "User",
-    },
-  ], []);
 
   const menuItems = hasCompany ? fullMenuItems : limitedMenuItems;
 
@@ -665,7 +405,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             {isSidebarOpen && (
               <div className="overflow-hidden transition-all duration-300">
                 <h1 className="font-bold text-lg leading-tight">BMS</h1>
-                <p className="text-xs text-teal-300">
+                <p className="text-[10px] text-teal-300 line-clamp-1">
                   Business Management System
                 </p>
               </div>

@@ -1,7 +1,11 @@
 import { create } from "zustand";
+import { getCompanyPosReport} from  "../src/api/api";
+
 
 export const usePosStore = create((set, get) => ({
+  // =================================================
   // CART
+  // =================================================
   cart: [],
 
   setCart: (value) =>
@@ -26,21 +30,101 @@ export const usePosStore = create((set, get) => ({
 
   clearCart: () => set({ cart: [] }),
 
-  // CUSTOMER INFO
+  // =================================================
+  // CUSTOMER
+  // =================================================
   customerName: "",
   customerPhone: "",
   setCustomerName: (v) => set({ customerName: v }),
   setCustomerPhone: (v) => set({ customerPhone: v }),
 
+  // =================================================
   // DRAWER CASH
+  // =================================================
   drawerCash: Number(localStorage.getItem("drawerCash") || 0),
-  updateDrawerCash: (amt) => {
+
+  setDrawerCash: (amt) => {
+    localStorage.setItem("drawerCash", String(amt));
+    set({ drawerCash: amt });
+  },
+
+  addToDrawerCash: (amt) => {
     const updated = get().drawerCash + amt;
     localStorage.setItem("drawerCash", String(updated));
     set({ drawerCash: updated });
   },
 
+  // =================================================
+  // SESSION START
+  // =================================================
+  sessionStart: localStorage.getItem("sessionStart") || null,
+
+  setSessionStart: () => {
+    const now = new Date().toISOString();
+    localStorage.setItem("sessionStart", now);
+    set({ sessionStart: now });
+  },
+
+  
+  sessionSales: JSON.parse(localStorage.getItem("sessionSales") || "[]"),
+
+  addSale: (sale) => {
+    const updated = [...get().sessionSales, sale];
+    localStorage.setItem("sessionSales", JSON.stringify(updated));
+    set({ sessionSales: updated });
+  },
+
+  getCashSales: () =>
+    get().sessionSales.reduce((sum, s) => {
+      if (s.paymentMode === "cash") return sum + s.amount;
+      if (s.paymentMode === "split") return sum + (s.split?.cash || 0);
+      return sum;
+    }, 0),
+
+  getCardSales: () =>
+    get().sessionSales.reduce((sum, s) => {
+      if (s.paymentMode === "card") return sum + s.amount;
+      if (s.paymentMode === "split") return sum + (s.split?.card || 0);
+      return sum;
+    }, 0),
+
+  getUpiSales: () =>
+    get().sessionSales.reduce((sum, s) => {
+      if (s.paymentMode === "upi") return sum + s.amount;
+      if (s.paymentMode === "split") return sum + (s.split?.upi || 0);
+      return sum;
+    }, 0),
+
+  // =================================================
+  // OPENING CASH
+  // =================================================
+  openingCash: Number(localStorage.getItem("openingCash") || 0),
+
+  setOpeningCash: (amt) => {
+    localStorage.setItem("openingCash", String(amt));
+    set({ openingCash: amt });
+  },
+
+  // =================================================
+  // RESET SESSION (SHIFT END)
+  // =================================================
+  resetSession: () => {
+    localStorage.removeItem("drawerCash");
+    localStorage.removeItem("openingCash");
+    localStorage.removeItem("sessionStart");
+    localStorage.removeItem("sessionSales");
+
+    set({
+      drawerCash: 0,
+      openingCash: 0,
+      sessionStart: null,
+      sessionSales: [],
+    });
+  },
+
+  // =================================================
   // DRAFT BILLS
+  // =================================================
   draftBills: JSON.parse(localStorage.getItem("draftBills") || "[]"),
 
   addDraftBill: (draft) => {
@@ -62,11 +146,44 @@ export const usePosStore = create((set, get) => ({
       customerPhone: draft.customerPhone,
     }),
 
+  removeDraft: (id) =>
+    set((state) => ({
+      draftBills: state.draftBills.filter((bill) => bill.id !== id),
+    })),
+
+  // =================================================
   // BILL NUMBER
+  // =================================================
   billNumber: "---",
   setBillNumber: (v) => set({ billNumber: v }),
 
+  // =================================================
   // BATCH MODAL
+  // =================================================
   batchProduct: null,
   setBatchProduct: (p) => set({ batchProduct: p }),
+
+  // =================================================
+  // 🔥 BACKEND POS REPORT (NEW – COMPANY WISE)
+  // =================================================
+  posReportData: [],
+  posReportStats: null,
+  posReportLoading: false,
+
+  fetchCompanyPosReport: async (params) => {
+  set({ posReportLoading: true });
+
+  try {
+    const data = await getCompanyPosReport(params);
+
+    set({
+      posReportData: data.data || [],
+      posReportStats: data.stats || null,
+      posReportLoading: false,
+    });
+  } catch (e) {
+    console.error("POS REPORT FETCH ERROR:", e);
+    set({ posReportLoading: false });
+  }
+},
 }));

@@ -220,9 +220,7 @@ export default function AdminDashboard() {
                <AlertCircle className="w-3 h-3 mr-1" /> Partial Data
              </Badge>
           )}
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            <Activity className="w-3 h-3 mr-1" /> Live Data
-          </Badge>
+         
           <button
             onClick={fetchCoreData}
             disabled={loading}

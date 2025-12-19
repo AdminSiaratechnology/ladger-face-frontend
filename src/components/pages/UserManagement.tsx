@@ -205,6 +205,7 @@ const stepIcons = {
 // --- CUSTOM STORE FOR GODOWNS (Local Implementation) ---
 
 import { useGodownStore } from "../../../store/godownStore";
+import {availableModules} from "@/lib/availableModules";
 
 interface GodownStore {
   godowns: Godown[];

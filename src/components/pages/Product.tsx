@@ -144,6 +144,10 @@ interface ProductForm {
   remarks: string;
   status: string;
   priceIncludesTax?: boolean;
+
+  // 👉 Add These
+  mfgDate?: string;
+  expiryDate?: string;
 }
 
 interface Supplier {
@@ -235,6 +239,9 @@ const ProductPage: React.FC = () => {
     images: [],
     remarks: "",
     status: "active",
+
+    mfgDate: "",
+    expiryDate: "",
   });
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -319,8 +326,8 @@ const ProductPage: React.FC = () => {
         type === "checkbox"
           ? checked
           : type === "number"
-          ? Number(value)
-          : value,
+            ? Number(value)
+            : value,
     }));
   };
 
@@ -769,11 +776,10 @@ const ProductPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Badge
-                      className={`${
-                        product.status === "active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-700"
-                      } hover:bg-current`}
+                      className={`${product.status === "active"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-700"
+                        } hover:bg-current`}
                     >
                       {product.status}
                     </Badge>
@@ -824,11 +830,10 @@ const ProductPage: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Badge
-                  className={`${
-                    product.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-700"
-                  } hover:bg-current`}
+                  className={`${product.status === "active"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-gray-100 text-gray-700"
+                    } hover:bg-current`}
                 >
                   {product.status}
                 </Badge>
@@ -1086,16 +1091,12 @@ const ProductPage: React.FC = () => {
             }}
             stepIcons={stepIcons}
           />
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 ">
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-                  icon={<Package className="w-4 h-4 text-white" />}
-                  title="Product Information"
-                  gradientFrom="from-pink-400"
-                  gradientTo="to-pink-500"
-                /> */}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                   <CustomInputBox
                     label="Product Code"
                     placeholder="e.g., PRD001"
@@ -1105,6 +1106,7 @@ const ProductPage: React.FC = () => {
                     disabled={true}
                     readOnly={true}
                   />
+
                   <CustomInputBox
                     label="Product Name"
                     placeholder="e.g., Widget A"
@@ -1113,6 +1115,7 @@ const ProductPage: React.FC = () => {
                     onChange={handleChange}
                     required={true}
                   />
+
                   <CustomInputBox
                     label="Part Number"
                     placeholder="e.g., PART123"
@@ -1120,51 +1123,41 @@ const ProductPage: React.FC = () => {
                     value={formData.partNo}
                     onChange={handleChange}
                   />
+
                   <div className="flex flex-col gap-1">
                     <SelectedCompany />
                   </div>
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Stock Group
-                    </label>
+                    <label className="text-sm font-semibold text-gray-700">Stock Group</label>
                     <select
                       value={formData.stockGroup}
-                      onChange={(e) =>
-                        handleSelectChange("stockGroup", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      onChange={(e) => handleSelectChange("stockGroup", e.target.value)}
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg"
                     >
                       <option value="">Select Stock Group</option>
                       {stockGroups.map((group) => (
-                        <option key={group._id} value={group._id}>
-                          {group.name}
-                        </option>
+                        <option key={group._id} value={group._id}>{group.name}</option>
                       ))}
                     </select>
                   </div>
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Stock Category
-                    </label>
+                    <label className="text-sm font-semibold text-gray-700">Stock Category</label>
                     <select
                       value={formData.stockCategory}
-                      onChange={(e) =>
-                        handleSelectChange("stockCategory", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      onChange={(e) => handleSelectChange("stockCategory", e.target.value)}
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg"
                     >
                       <option value="">Select Stock Category</option>
                       {stockCategories.map((category) => (
-                        <option key={category._id} value={category._id}>
-                          {category.name}
-                        </option>
+                        <option key={category._id} value={category._id}>{category.name}</option>
                       ))}
                     </select>
                   </div>
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Unit
-                    </label>
+                    <label className="text-sm font-semibold text-gray-700">Unit</label>
                     <select
                       value={formData.unit}
                       onChange={(e) => {
@@ -1175,9 +1168,7 @@ const ProductPage: React.FC = () => {
                         }
                         handleSelectChange("unit", selectedValue);
                       }}
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg 
-               focus:border-blue-500 focus:ring-4 focus:ring-blue-100 
-               focus:outline-none bg-white transition-all"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg"
                     >
                       <option value="">Select Unit</option>
                       {units.map((unit) => (
@@ -1189,24 +1180,18 @@ const ProductPage: React.FC = () => {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Alternate Unit
-                    </label>
+                    <label className="text-sm font-semibold text-gray-700">Alternate Unit</label>
                     <select
                       value={formData.alternateUnit}
                       onChange={(e) => {
                         const selectedValue = e.target.value;
                         if (selectedValue === formData.unit) {
-                          toast.error(
-                            "Alternate Unit and Unit cannot be the same."
-                          );
+                          toast.error("Alternate Unit and Unit cannot be the same.");
                           return;
                         }
                         handleSelectChange("alternateUnit", selectedValue);
                       }}
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg 
-               focus:border-blue-500 focus:ring-4 focus:ring-blue-100 
-               focus:outline-none bg-white transition-all"
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg"
                     >
                       <option value="">Select Alternate Unit</option>
                       {units.map((unit) => (
@@ -1226,25 +1211,21 @@ const ProductPage: React.FC = () => {
                     type="number"
                     min="0"
                   />
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Default Supplier
-                    </label>
+                    <label className="text-sm font-semibold text-gray-700">Default Supplier</label>
                     <select
                       value={formData.defaultSupplier}
-                      onChange={(e) =>
-                        handleSelectChange("defaultSupplier", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      onChange={(e) => handleSelectChange("defaultSupplier", e.target.value)}
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg"
                     >
                       <option value="">Select Default Supplier</option>
                       {vendors.map((supplier) => (
-                        <option key={supplier.id} value={supplier.vendorName}>
-                          {supplier.vendorName}
-                        </option>
+                        <option key={supplier.id} value={supplier.vendorName}>{supplier.vendorName}</option>
                       ))}
                     </select>
                   </div>
+
                   <CustomInputBox
                     label="Minimum Rate"
                     placeholder="e.g., 10.00"
@@ -1255,6 +1236,7 @@ const ProductPage: React.FC = () => {
                     min="0"
                     step="0.01"
                   />
+
                   <CustomInputBox
                     label="Maximum Rate"
                     placeholder="e.g., 20.00"
@@ -1265,69 +1247,103 @@ const ProductPage: React.FC = () => {
                     min="0"
                     step="0.01"
                   />
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Default Godown
-                    </label>
+                    <label className="text-sm font-semibold text-gray-700">Default Godown</label>
                     <select
                       value={formData.defaultGodown}
-                      onChange={(e) =>
-                        handleSelectChange("defaultGodown", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      onChange={(e) => handleSelectChange("defaultGodown", e.target.value)}
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg"
                     >
                       <option value="">Select Default Godown</option>
                       {godowns.map((godown) => (
-                        <option key={godown._id} value={godown._id}>
-                          {godown.name}
-                        </option>
+                        <option key={godown._id} value={godown._id}>{godown.name}</option>
                       ))}
                     </select>
                   </div>
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Product Type
-                    </label>
+                    <label className="text-sm font-semibold text-gray-700">Product Type</label>
                     <select
                       value={formData.productType}
-                      onChange={(e) =>
-                        handleSelectChange("productType", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      onChange={(e) => handleSelectChange("productType", e.target.value)}
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg"
                     >
                       <option value="">Select Product Type</option>
                       <option value="select">Goods</option>
                       <option value="godown">Services</option>
                     </select>
                   </div>
+
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Status
-                    </label>
+                    <label className="text-sm font-semibold text-gray-700">Status</label>
                     <select
                       value={formData.status}
-                      onChange={(e) =>
-                        handleSelectChange("status", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      onChange={(e) => handleSelectChange("status", e.target.value)}
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
                     </select>
                   </div>
-                  <div className="mt-2">
+
+                  {/* BATCH CHECKBOX */}
+                 <div className="mt-2 ">
                     <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
                       <input
                         type="checkbox"
                         name="batch"
-                        checked={formData.batch}
-                        onChange={handleChange}
+                        checked={!!formData.batch}
+                        onChange={(e) => {
+                          setIsFormDirty(true);
+                          setFormData(prev => ({
+                            ...prev,
+                            batch: e.target.checked,
+                          }));
+                        }}
                         className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
                       />
                       Batch Managed
                     </label>
                   </div>
+
+                  {/* ⭐ MFG + EXPIRY DATE (INSIDE GRID) */}
+                  {formData.batch && (
+                    <>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-gray-700">
+                          MFG Date
+                        </label>
+                        <input
+                          type="date"
+                          name="mfgDate"
+                          value={formData.mfgDate}
+                          onChange={handleChange}
+                          className="h-10 px-3 py-2 border-2 border-gray-300 rounded-lg 
+        focus:border-blue-500 focus:ring-2 focus:ring-blue-100 
+        bg-white transition-all text-sm"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-gray-700">
+                          Expiry Date
+                        </label>
+                        <input
+                          type="date"
+                          name="expiryDate"
+                          value={formData.expiryDate}
+                          onChange={handleChange}
+                          className="h-10 px-3 py-2 border-2 border-gray-300 rounded-lg 
+        focus:border-blue-500 focus:ring-2 focus:ring-blue-100 
+        bg-white transition-all text-sm"
+                        />
+                      </div>
+                    </>
+                  )}
+
                 </div>
+
                 <CustomStepNavigation
                   currentStep={1}
                   totalSteps={4}
@@ -1341,8 +1357,11 @@ const ProductPage: React.FC = () => {
                   }}
                   onSubmit={handleSubmit}
                 />
+
               </div>
             )}
+
+
             {activeTab === "tax" && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 {/* Tax Applicability Section */}
@@ -1527,19 +1546,19 @@ const ProductPage: React.FC = () => {
                           {formData.taxConfiguration.cgst +
                             formData.taxConfiguration.sgst >
                             formData.taxConfiguration.taxPercentage && (
-                            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                              <div className="flex items-start">
-                                <XCircle className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                                <p className="text-red-800 text-sm">
-                                  Warning: CGST + SGST (
-                                  {formData.taxConfiguration.cgst +
-                                    formData.taxConfiguration.sgst}
-                                  %) exceeds Tax Percentage (
-                                  {formData.taxConfiguration.taxPercentage}%)
-                                </p>
+                              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <div className="flex items-start">
+                                  <XCircle className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+                                  <p className="text-red-800 text-sm">
+                                    Warning: CGST + SGST (
+                                    {formData.taxConfiguration.cgst +
+                                      formData.taxConfiguration.sgst}
+                                    %) exceeds Tax Percentage (
+                                    {formData.taxConfiguration.taxPercentage}%)
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
 
                           {/* Tax Summary */}
                           <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -1650,9 +1669,8 @@ const ProductPage: React.FC = () => {
                       <span className="text-sm text-teal-600">
                         Remaining:{" "}
                         <span
-                          className={`font-semibold ${
-                            remainingQuantity < 0 ? "text-red-600" : ""
-                          }`}
+                          className={`font-semibold ${remainingQuantity < 0 ? "text-red-600" : ""
+                            }`}
                         >
                           {remainingQuantity}
                         </span>
@@ -1902,57 +1920,57 @@ const ProductPage: React.FC = () => {
                             {formData.images.find(
                               (img) => img.angle === imageType
                             ) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  removeProductImage(
-                                    formData.images.find(
-                                      (img) => img.angle === imageType
-                                    )!.id
-                                  )
-                                }
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    removeProductImage(
+                                      formData.images.find(
+                                        (img) => img.angle === imageType
+                                      )!.id
+                                    )
+                                  }
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              )}
                           </div>
                           {formData.images.find(
                             (img) => img.angle === imageType
                           ) && (
-                            <div className="mt-2">
-                              <p className="text-xs text-gray-500 truncate">
-                                {
-                                  formData.images.find(
-                                    (img) => img.angle === imageType
-                                  )?.file?.name
-                                }
-                              </p>
-                              {formData.images.find(
-                                (img) => img.angle === imageType
-                              )?.previewUrl && (
-                                <div className="mt-2">
-                                  <img
-                                    src={
-                                      formData.images.find(
-                                        (img) => img.angle === imageType
-                                      )?.previewUrl
-                                    }
-                                    alt={`${imageType} view`}
-                                    className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75"
-                                    onClick={() =>
-                                      setViewingImage(
-                                        formData.images.find(
-                                          (img) => img.angle === imageType
-                                        )!
-                                      )
-                                    }
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          )}
+                              <div className="mt-2">
+                                <p className="text-xs text-gray-500 truncate">
+                                  {
+                                    formData.images.find(
+                                      (img) => img.angle === imageType
+                                    )?.file?.name
+                                  }
+                                </p>
+                                {formData.images.find(
+                                  (img) => img.angle === imageType
+                                )?.previewUrl && (
+                                    <div className="mt-2">
+                                      <img
+                                        src={
+                                          formData.images.find(
+                                            (img) => img.angle === imageType
+                                          )?.previewUrl
+                                        }
+                                        alt={`${imageType} view`}
+                                        className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75"
+                                        onClick={() =>
+                                          setViewingImage(
+                                            formData.images.find(
+                                              (img) => img.angle === imageType
+                                            )!
+                                          )
+                                        }
+                                      />
+                                    </div>
+                                  )}
+                              </div>
+                            )}
                         </div>
                       )
                     )}

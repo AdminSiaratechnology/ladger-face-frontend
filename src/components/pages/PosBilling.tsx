@@ -2,17 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useStockItemStore } from "../../../store/stockItemStore";
 import { useCompanyStore } from "../../../store/companyStore";
 import { usePosStore } from "../../../store/posStore";
+import api from "../../api/api";
 
 import PosCart from "./PosCart";
 import PosSummary from "./PosSummary";
 import PosBatchModal from "./PosBatchModal";
 import DraftBillModal from "./DraftBillModal";
 import { generateInvoicePdf } from "../../lib/invoice";
-
+import ShiftEndModal from "./ShiftEndModal";
 export default function PosBilling() {
   const { stockItems, fetchStockItems } = useStockItemStore();
   const { defaultSelected } = useCompanyStore();
   const [billNumber, setBillNumber] = useState("");
+  const [showShiftModal, setShowShiftModal] = useState(false);
 
   // ------------------------
   // POS STORE
@@ -25,7 +27,8 @@ export default function PosBilling() {
     setCustomerName,
     setCustomerPhone,
     drawerCash,
-    updateDrawerCash,
+    setDrawerCash,
+    addToDrawerCash,
     addDraftBill,
     loadDraftBill,
     batchProduct,
@@ -47,28 +50,26 @@ export default function PosBilling() {
   // ------------------------
   // FETCH STOCK ITEMS
   // ------------------------
+
   useEffect(() => {
     if (defaultSelected?._id) {
       fetchStockItems?.(1, 1000, defaultSelected._id);
     }
 
-    // OPENING CASH LOAD LOGIC
-    let openCash = localStorage.getItem("openingCash");
     let drawer = localStorage.getItem("drawerCash");
 
-    // Agar openingCash hai but drawerCash nahi
-    if (!drawer) {
-      drawer = openCash || "0";
+    if (drawer === null) {
+      drawer = "0";
       localStorage.setItem("drawerCash", drawer);
     }
 
-    // --- MOST IMPORTANT FIX ---
-    updateDrawerCash(Number(drawer));
+    setDrawerCash(Number(drawer));
+  }, [defaultSelected]);
 
-  }, [defaultSelected?._id]);
 
 
   const products = Array.isArray(stockItems) ? stockItems : [];
+
 
   // ------------------------
   // SEARCH RESULTS
@@ -191,89 +192,154 @@ export default function PosBilling() {
     setCashReceived("");
     setShowDraftModal(false);
   };
-  const handleCompleteBill = async (paymentData) => {
-    if (cart.length === 0) return;
+ 
 
-    updateDrawerCash(paymentData.grandTotal);
+const handleCompleteBill = async (paymentData) => {
+  if (!cart || cart.length === 0) return;
 
-    const newBillNo = "INV-" + Math.floor(100000 + Math.random() * 900000);
-    setBillNumber(newBillNo);
+  const paymentType = paymentData.paymentType; // Cash | Card | UPI | SPLIT
+  const payments = paymentData.payments || { cash: 0, card: 0, upi: 0 };
 
-    const payload = {
-      billNumber: newBillNo,
-      customerName,
-      customerPhone,
-      createdAt: new Date().toISOString(),
+  // ---------------------------
+  // 1️⃣ ADD ONLY CASH TO DRAWER
+  // ---------------------------
+  let cashAmount = 0;
 
-      items: cart.map((c) => ({
-        name: c.ItemName,
-        qty: c.qty,
-        price: c.price,
-        total: c.qty * c.price,
-        batch: c.batch
-      })),
+  if (paymentType === "SPLIT") {
+    cashAmount = Number(payments.cash || 0);
+  } else if (paymentType === "Cash") {
+    cashAmount = Number(payments.cash || paymentData.grandTotal || 0);
+  }
 
-      subtotal,
-      taxAmount: paymentData.taxAmount,
-      grandTotal: paymentData.grandTotal,
+  if (cashAmount > 0) {
+    addToDrawerCash(cashAmount);
+  }
 
-      paymentInfo: paymentData
-    };
+  // ---------------------------
+  // 2️⃣ BILL NUMBER
+  // ---------------------------
+  const newBillNo = "INV-" + Math.floor(100000 + Math.random() * 900000);
 
-    setPreviewBill(payload);
-    setShowPreview(true);
+  // ---------------------------
+  // 3️⃣ BUILD PAYMENT INFO (DB SAFE)
+  // ---------------------------
+  const paymentInfo = {
+    paymentType,
+    payments: {
+      cash: Number(payments.cash || 0),
+      card: Number(payments.card || 0),
+      upi: Number(payments.upi || 0),
+    },
   };
+
+  // ---------------------------
+  // 4️⃣ BUILD BILL PAYLOAD
+  // ---------------------------
+  const payload = {
+    billNumber: newBillNo,
+    createdAt: new Date().toISOString(),
+    companyId: defaultSelected?._id,
+
+    customerName: customerName || null,
+    customerPhone: customerPhone || null,
+
+    items: cart,
+    subtotal,
+    taxAmount: Number(paymentData.taxAmount || 0),
+    grandTotal: Number(paymentData.grandTotal || 0),
+
+    paymentInfo,
+  };
+
+  console.log("FINAL PAYLOAD →", payload);
+
+  // ---------------------------
+  // 5️⃣ API CALL
+  // ---------------------------
+  try {
+    await api.PosBillToServer(payload);
+  } catch (err) {
+    console.log("API ERROR:", err);
+  }
+
+  // ---------------------------
+  // 6️⃣ ADD SALE TO SESSION (REPORT SAFE)
+  // ---------------------------
+  usePosStore.getState().addSale({
+    time: new Date().toISOString(),
+    amount: Number(paymentData.grandTotal || 0),
+    billNumber: newBillNo,
+    paymentMode: paymentType.toLowerCase(), // cash | card | upi | split
+    split: paymentType === "SPLIT" ? paymentInfo.payments : null,
+  });
+
+  // ---------------------------
+  // 7️⃣ UPDATE UI PREVIEW
+  // ---------------------------
+  setBillNumber(newBillNo);
+  setPreviewBill(payload);
+  setShowPreview(true);
+};
+
+
+
+
 
   // ------------------------
   // DOWNLOAD BILL
   // ------------------------
-  const handleDownloadInvoice = async () => {
-    if (!previewBill) return;
+ 
 
-    await generateInvoicePdf({
-      billNumber: previewBill.billNumber,
-      createdAt: previewBill.createdAt,
 
-      company: {
-        CompanyName: defaultSelected?.namePrint || "",
-        Address: `${defaultSelected?.address1 || ""}, ${defaultSelected?.address2 || ""}, ${defaultSelected?.address3 || ""}, ${defaultSelected?.city || ""}, ${defaultSelected?.state || ""} - ${defaultSelected?.pincode || ""}`,
-        phone: defaultSelected?.mobile || defaultSelected?.telephone || "",
-        country: defaultSelected?.country || "",
-        gstNumber: defaultSelected?.gstNumber || "",
-        logo: defaultSelected?.logo || ""
-      },
+const handleDownloadInvoice = async () => {
+  if (!previewBill) return;
 
-      customer: {
-        name: previewBill.customerName || "",
-        phone: previewBill.customerPhone || ""
-      },
+  await generateInvoicePdf({
+    billNumber: previewBill.billNumber,
+    createdAt: previewBill.createdAt,
 
-      items: previewBill.items || [],
+    company: {
+      CompanyName: defaultSelected?.namePrint || "",
+      Address: `${defaultSelected?.address1 || ""}, ${defaultSelected?.address2 || ""}, ${defaultSelected?.address3 || ""}, ${defaultSelected?.city || ""}, ${defaultSelected?.state || ""} - ${defaultSelected?.pincode || ""}`,
+      phone: defaultSelected?.mobile || defaultSelected?.telephone || "",
+      country: defaultSelected?.country || "",
+      gstNumber: defaultSelected?.gstNumber || "",
+      logo: defaultSelected?.logo || "",
+    },
 
-      subtotal: Number(previewBill.subtotal) || 0,
-      taxAmount: Number(previewBill.taxAmount) || 0,
-      grandTotal: Number(previewBill.grandTotal) || 0,
+    customer: {
+      name: previewBill.customerName || "",
+      phone: previewBill.customerPhone || "",
+    },
 
-      paymentInfo: previewBill.paymentInfo || {}
-    });
+    items: previewBill.items,
+    subtotal: previewBill.subtotal,
+    taxAmount: previewBill.taxAmount,
+    grandTotal: previewBill.grandTotal,
 
-    // RESET POS
-    setCart([]);
-    setPayment("");
-    setCashReceived("");
-    setCustomerName("");
-    setCustomerPhone("");
-    setBillNumber("");
-    setPreviewBill(null);
-    setShowPreview(false);
-  };
+    // ✅ CORRECT SOURCE
+    paymentInfo: previewBill.paymentInfo,
+  });
+
+  // ---------------------------
+  // RESET UI STATE
+  // ---------------------------
+  setCart([]);
+  setPayment("");
+  setCashReceived("");
+  setCustomerName("");
+  setCustomerPhone("");
+  setBillNumber("");
+  setPreviewBill(null);
+  setShowPreview(false);
+};
 
 
 
   return (
     <div className="w-full h-full bg-gray-100">
       {/* HEADER */}
-      <div className="bg-blue-600 text-white p-4 rounded-b-2xl shadow-md flex justify-between">
+      <div className="bg-blue-600 text-white p-2 rounded-b-2xl shadow-md flex justify-between">
         <h1 className="text-xl font-semibold">POS Billing</h1>
 
         <div className="flex items-center gap-5">
@@ -282,69 +348,126 @@ export default function PosBilling() {
           </div>
 
           <button
-            onClick={() => localStorage.removeItem("posSessionActive")}
+            onClick={() => setShowShiftModal(true)}
             className="bg-white text-blue-700 px-4 py-1.5 rounded-lg cursor-pointer"
           >
             Shift End
           </button>
+
         </div>
       </div>
 
       {/* BILL HEADER */}
-      <div className="bg-white mx-4 mt-3 px-4 py-3 shadow-sm border rounded-xl flex justify-between">
-        <span className="text-sm">
-          <label className="font-bold">Bill No:</label> {billNumber}
-        </span>
+      <div className="bg-white mx-2 mt-3 px-4 py-2 shadow-sm border rounded-xl flex items-center justify-between gap-4">
 
-        <span className="text-sm">
-          <label className="font-bold">Date:</label>{" "}
-          {new Date().toLocaleString()}
-        </span>
+        {/* BILL NO BOX (Figma Style) */}
+        <div className="px-4 py-2 bg-gray-100 border shadow-sm rounded-lg text-sm min-w-[150px]">
+          <label className="font-semibold">Bill No:</label> {billNumber}
+        </div>
 
+        {/* DATE BOX (Figma Style) */}
+        <div className="px-4 py-2 bg-gray-100 border shadow-sm rounded-lg text-sm min-w-[180px]">
+          <label className="font-semibold">Date:</label>{" "}
+          {new Date().toLocaleString([], {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+          })}
+        </div>
+
+        {/* BUTTON – SAME SIZE AS BEFORE */}
         <button
           onClick={() => setShowDraftModal(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer"
         >
           Draft Bills
         </button>
+
       </div>
 
+
       {/* BODY */}
-      <div className="p-5 grid grid-cols-12 gap-5">
+      <div className="p-2 grid grid-cols-12 gap-8 mt-2">
         {/* LEFT SIDE */}
         <div className="col-span-12 md:col-span-8 space-y-4">
           {/* CUSTOMER DETAILS */}
           <div className="bg-white rounded-xl shadow p-3 grid grid-cols-2 gap-4">
+
+            {/* CUSTOMER NAME */}
             <div>
-              <label>Customer Name</label>
+              <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                Customer Name
+              </label>
+
               <input
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="border rounded-xl px-4 py-2 w-full mt-1"
+                placeholder="Enter customer name"
+                className="
+        border border-gray-300 
+        rounded-xl 
+        px-2 py-1 
+        w-full 
+        bg-white 
+        shadow-sm
+        focus:outline-none
+        focus:ring-2 focus:ring-blue-300
+      "
               />
             </div>
 
+            {/* PHONE NUMBER */}
             <div>
-              <label>Phone Number</label>
+              <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                Phone Number
+              </label>
+
               <input
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                className="border rounded-xl px-4 py-2 w-full mt-1"
+                placeholder="Enter phone number"
+                className="
+        border border-gray-300 
+        rounded-xl 
+        px-2 py-1 
+        w-full 
+        bg-white 
+        shadow-sm
+        focus:outline-none
+        focus:ring-2 focus:ring-blue-300
+      "
               />
             </div>
+
           </div>
 
+
           {/* SEARCH */}
-          <div className="bg-white rounded-xl p-4 shadow border">
+          <div className="bg-white rounded-xl p-3 shadow border">
+
+            <label className="text-xs font-semibold text-gray-700 mb-1 block">
+              Search Products
+            </label>
+
             <input
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               placeholder="Search products..."
-              className="w-full h-14 pl-4 pr-4 rounded-xl border"
+              className="
+      w-full 
+      h-8 
+      pl-2 pr-2 
+      border border-gray-300 
+      rounded-xl 
+      bg-white 
+      shadow-sm 
+      focus:ring-2 focus:ring-blue-300
+    "
             />
-
             {searchText && (
-              <div className="border rounded-xl shadow max-h-64 overflow-y-auto mt-2">
+              <div className="border rounded-xl shadow max-h-50 overflow-y-auto mt-2">
                 {searchResults.length === 0 ? (
                   <p className="p-4">No products found</p>
                 ) : (
@@ -363,7 +486,10 @@ export default function PosBilling() {
                 )}
               </div>
             )}
+
           </div>
+
+
 
           {/* CART */}
           <PosCart
@@ -408,6 +534,10 @@ export default function PosBilling() {
           onSelectDraft={handleLoadDraft}
         />
       )}
+      <ShiftEndModal
+        isOpen={showShiftModal}
+        onClose={() => setShowShiftModal(false)}
+      />
 
       {/* PREVIEW */}
       {showPreview && previewBill && (
@@ -491,14 +621,24 @@ export default function PosBilling() {
                 {previewBill.items.map((it, i) => (
                   <tr key={i} className="text-sm">
                     <td className="border p-2">{i + 1}</td>
-                    <td className="border p-2">{it.name}</td>
+
+                    {/* Correct product name */}
+                    <td className="border p-2">{it.ItemName}</td>
+
                     <td className="border p-2">{it.batch || "-"}</td>
                     <td className="border p-2">{it.qty}</td>
-                    <td className="border p-2">₹{it.price.toFixed(2)}</td>
-                    <td className="border p-2 font-semibold">₹{it.total.toFixed(2)}</td>
+
+                    {/* FIX PRICE */}
+                    <td className="border p-2">₹{Number(it.price).toFixed(2)}</td>
+
+                    {/* FIX TOTAL */}
+                    <td className="border p-2 font-semibold">
+                      ₹{Number(it.price * it.qty).toFixed(2)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
+
             </table>
 
             {/* TOTALS */}
