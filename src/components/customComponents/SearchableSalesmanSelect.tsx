@@ -1,4 +1,3 @@
-// components/custom/SearchableSalesmanSelect.tsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Command,
@@ -39,101 +38,96 @@ const SearchableSalesmanSelect: React.FC<SearchableSalesmanSelectProps> = ({
   const { defaultSelected } = useCompanyStore();
   const companyId = defaultSelected?._id;
 
-  // Build options from current users in store
   const options = useMemo(() => {
     const userOptions = users.map((u: any) => ({
       value: u._id,
       label: u.name,
     }));
 
-    return [
-      { value: "all", label: "All Salesmen" },
-      ...userOptions,
-    ];
+    return [{ value: "all", label: "All Salesmen" }, ...userOptions];
   }, [users]);
 
-  // Load users on open or search
   const loadUsers = useCallback(async () => {
     if (!companyId) return;
 
-    try {
-      await filterUsers(
-        search,
-        "all",
-        "all",
-        "nameAsc",
-        1,
-        50,
-        companyId
-      );
-      // Store updates → options update via useMemo
-    } catch (error) {
-      console.error("Failed to load salesmen:", error);
-    }
+    await filterUsers(
+      search,
+      "all",
+      "all",
+      "nameAsc",
+      1,
+      50,
+      companyId
+    );
   }, [search, companyId, filterUsers]);
 
-  // Load when popover opens
   useEffect(() => {
-    if (open && companyId) {
-      loadUsers();
-    }
-  }, [open, companyId, loadUsers]);
+    if (open) loadUsers();
+  }, [open, loadUsers]);
 
-  // Debounced search
   useEffect(() => {
-    if (open && search.length >= 1) {
-      const timer = setTimeout(loadUsers, 300);
-      return () => clearTimeout(timer);
-    }
+    if (!open) return;
+    const t = setTimeout(loadUsers, 300);
+    return () => clearTimeout(t);
   }, [search, open, loadUsers]);
 
-  // Selected label
   const selectedLabel = useMemo(() => {
     if (!value || value === "all") return "All Salesmen";
-    const found = options.find((opt) => opt.value === value);
-    return found?.label || placeholder;
+    return options.find(o => o.value === value)?.label || placeholder;
   }, [value, options, placeholder]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger >
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("w-full justify-between h-11 font-normal", className)}
-        >
-          <span className="truncate">{selectedLabel}</span>
-          {loading ? (
-            // <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-            <></>
-          ) : (
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          )}
-        </Button>
+      {/* ✅ STABLE TRIGGER */}
+      <PopoverTrigger asChild>
+        <div className="w-full">
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className={cn(
+              "w-full h-11 justify-between font-normal",
+              className
+            )}
+          >
+            <span className="truncate">{selectedLabel}</span>
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin opacity-60" />
+            ) : (
+              <ChevronsUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </Button>
+        </div>
       </PopoverTrigger>
 
-      <PopoverContent className="w-full p-0" align="start">
-        <Command shouldFilter={false}>  {/* ← CRITICAL: Disable built-in filter */}
+      {/* ✅ CORRECT WIDTH DROPDOWN */}
+      <PopoverContent
+            align="start"
+  sideOffset={4}
+  className="p-0"
+  style={{
+    width: "var(--radix-popover-trigger-width)",
+  }}
+      >
+        <Command shouldFilter={false}>
           <CommandInput
             placeholder="Search salesman..."
             value={search}
             onValueChange={setSearch}
           />
+
           <CommandList>
             {loading ? (
-              <CommandEmpty className="py-6 text-center text-sm">
+              <CommandEmpty className="py-6 text-center">
                 <Loader2 className="mx-auto h-4 w-4 animate-spin" />
-                Loading...
               </CommandEmpty>
-            ) : options.length === 0 ? (
-              <CommandEmpty>No salesman found.</CommandEmpty>
             ) : (
               <CommandGroup>
-                {options.map((option) => (
+                {options.map(option => (
                   <CommandItem
                     key={option.value}
-                    value={option.label}  // ← Use label for filtering!
+                    value={option.label}
                     onSelect={() => {
                       onChange(option.value);
                       setOpen(false);

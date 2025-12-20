@@ -1,24 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useStockItemStore } from "../../../store/stockItemStore";
 import { useCompanyStore } from "../../../store/companyStore";
 import { usePosStore } from "../../../store/posStore";
+import { useCustomerStore } from "../../../store/customerStore";
 import api from "../../api/api";
 
 import PosCart from "./PosCart";
 import PosSummary from "./PosSummary";
 import PosBatchModal from "./PosBatchModal";
 import DraftBillModal from "./DraftBillModal";
-import { generateInvoicePdf } from "../../lib/invoice";
 import ShiftEndModal from "./ShiftEndModal";
+import { generateInvoicePdf } from "../../lib/invoice";
+import { toast } from "sonner";
+
 export default function PosBilling() {
   const { stockItems, fetchStockItems } = useStockItemStore();
   const { defaultSelected } = useCompanyStore();
-  const [billNumber, setBillNumber] = useState("");
-  const [showShiftModal, setShowShiftModal] = useState(false);
+  const { customers, fetchCustomers } = useCustomerStore();
 
-  // ------------------------
-  // POS STORE
-  // ------------------------
   const {
     cart,
     setCart,
@@ -33,47 +32,61 @@ export default function PosBilling() {
     loadDraftBill,
     batchProduct,
     setBatchProduct,
+    increaseQty,
+    decreaseQty,
+    removeItem,
+    clearCart
   } = usePosStore();
 
-  // ------------------------
-  // LOCAL STATE
-  // ------------------------
+  const [billNumber, setBillNumber] = useState("");
   const [searchText, setSearchText] = useState("");
-
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [payment, setPayment] = useState("");
   const [cashReceived, setCashReceived] = useState("");
-
   const [showDraftModal, setShowDraftModal] = useState(false);
+  const [showShiftModal, setShowShiftModal] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewBill, setPreviewBill] = useState(null);
+  const [previewBill, setPreviewBill] = useState<any>(null);
 
-  // ------------------------
-  // FETCH STOCK ITEMS
-  // ------------------------
+  const [bogoCoupons, setBogoCoupons] = useState([]);
 
   useEffect(() => {
-    if (defaultSelected?._id) {
-      fetchStockItems?.(1, 1000, defaultSelected._id);
-    }
+    if (!defaultSelected?._id) return;
 
-    let drawer = localStorage.getItem("drawerCash");
+    fetchStockItems(1, 1000, defaultSelected._id);
+    fetchCustomers(1, 1000, defaultSelected._id, true);
+    api.getBogoCoupons(defaultSelected._id)
+      .then(res => {
+        console.log("✅ BOGO API RESPONSE:", res.data);
 
-    if (drawer === null) {
-      drawer = "0";
-      localStorage.setItem("drawerCash", drawer);
-    }
-
-    setDrawerCash(Number(drawer));
-  }, [defaultSelected]);
+        setBogoCoupons(res.data || []);
+      });
 
 
+    const drawer = Number(localStorage.getItem("drawerCash") || 0);
+    setDrawerCash(drawer);
+  }, [defaultSelected?._id]);
 
-  const products = Array.isArray(stockItems) ? stockItems : [];
+  // MEMOIZED DATA
+  const products = useMemo(
+    () => (Array.isArray(stockItems) ? stockItems : []),
+    [stockItems]
+  );
 
+  const customerResults = useMemo(() => {
+    if (!customerSearch.trim()) return [];
 
-  // ------------------------
-  // SEARCH RESULTS
-  // ------------------------
+    const s = customerSearch.toLowerCase().trim();
+
+    return customers.filter((c) => {
+      const name = (c.customerName || "").toLowerCase();
+      const phone = String(c.phoneNumber || "");
+      const mobile = String(c.mobileNumber || "");
+      return name.includes(s) || phone.includes(s) || mobile.includes(s);
+    });
+  }, [customerSearch, customers]);
+
   const searchResults = useMemo(() => {
     if (!searchText) return [];
     const s = searchText.toLowerCase();
@@ -85,23 +98,172 @@ export default function PosBilling() {
   }, [searchText, products]);
 
   // ------------------------
-  // ADD PRODUCT TO CART
-  // ------------------------
-  const addProductToCart = (product, batch) => {
+  // CART LOGIC--
+
+const buyItemsKey = useMemo(() => {
+  return cart
+    .filter(i => i.isFreeItem !== true)
+    .map(i => `${i.cartId}:${i.qty}`)
+    .join("|");
+}, [cart]);
+
+useEffect(() => {
+  if (!bogoCoupons?.length) return;
+
+  const updated = applyBogoRules(cart, bogoCoupons, products);
+
+  // 🔥 VERY IMPORTANT CHECK
+  if (JSON.stringify(updated) !== JSON.stringify(cart)) {
+    setCart(updated);
+  }
+}, [buyItemsKey, bogoCoupons, products]);
+
+
+function applyBogoRules(cart, bogoCoupons, products) {
+  console.log("🧠 applyBogoRules START");
+
+  // 0️⃣ remove old free items
+  let updatedCart = cart.filter(i => !i.isFreeItem);
+
+  bogoCoupons.forEach((coupon, cIndex) => {
+    if (coupon.status !== "active") return;
+    if (!coupon?.bogoConfig?.rules) return;
+
+    const today = new Date();
+    const from = new Date(coupon.validFrom);
+    const to = new Date(coupon.validTo);
+    to.setHours(23, 59, 59, 999);
+    if (today < from || today > to) return;
+
+    coupon.bogoConfig.rules.forEach((rule, rIndex) => {
+      console.log(`📜 Rule [${rIndex}]`, rule);
+
+      // 1️⃣ match buy items
+      const matchedBuyItems = updatedCart.filter(i => {
+        if (i.isFreeItem) return false;
+
+        const key = `${i.ItemName} (${i.ItemCode})`;
+        return (
+          rule.buyProducts.includes(key) ||
+          rule.buyProducts.includes(i.ItemCode) ||
+          rule.buyProducts.includes(String(i._id))
+        );
+      });
+
+      console.log("🧾 matchedBuyItems:", matchedBuyItems);
+
+      // ❗ ALL buyProducts must be present
+      if (matchedBuyItems.length !== rule.buyProducts.length) {
+        console.log("⛔ Missing buy products");
+        return;
+      }
+
+      // 2️⃣ quantity validation
+      let valid = true;
+
+      if (rule.buyProducts.length === 1) {
+        // SAME PRODUCT
+        if (matchedBuyItems[0].qty < rule.buyQty) valid = false;
+      } else {
+        // DIFFERENT PRODUCTS
+        matchedBuyItems.forEach(i => {
+          if (i.qty < 1) valid = false;
+        });
+      }
+
+      if (!valid) {
+        console.log("⛔ Quantity condition failed");
+        return;
+      }
+
+      // 3️⃣ calculate sets
+      let sets = 1;
+      if (rule.buyProducts.length === 1) {
+        sets = Math.floor(matchedBuyItems[0].qty / rule.buyQty);
+      }
+
+      const freeQty = sets * rule.getQty;
+      if (freeQty <= 0) return;
+
+      console.log("🎁 freeQty:", freeQty);
+
+      // 4️⃣ parent group
+      const parentId = `BOGO-GROUP-${coupon._id}-${rIndex}`;
+      const buyNames = matchedBuyItems.map(b => b.ItemName).join(" and ");
+
+      // 5️⃣ clean old free of same rule
+      updatedCart = updatedCart.filter(
+        i => !(i.isFreeItem && i.bogoParentId === parentId)
+      );
+
+      // 6️⃣ find free product
+      const freeProductId =
+        rule.freeMode === "same"
+          ? matchedBuyItems[0]._id
+          : rule.freeProducts[0];
+
+      const freeProduct = products.find(p =>
+        String(p._id) === String(freeProductId) ||
+        p.ItemCode === freeProductId ||
+        `${p.ItemName} (${p.ItemCode})` === freeProductId
+      );
+
+      if (!freeProduct) {
+        console.warn("⛔ Free product not found");
+        return;
+      }
+
+      // 7️⃣ insert after last buy item
+      const lastBuyIndex = Math.max(
+        ...matchedBuyItems.map(b =>
+          updatedCart.findIndex(i => i.cartId === b.cartId)
+        )
+      );
+
+      const freeItem = {
+        cartId: `FREE-${freeProduct._id}-${parentId}`,
+        _id: freeProduct._id,
+        ItemName: `${freeProduct.ItemName} (FREE)`,
+        ItemCode: freeProduct.ItemCode,
+        price: 0,
+        qty: freeQty,
+        isFreeItem: true,
+        bogoParentId: parentId,
+        freeDescription: `This item is free with ${buyNames}`,
+      };
+
+      updatedCart.splice(lastBuyIndex + 1, 0, freeItem);
+
+      console.log("✅ FREE ITEM ADDED:", freeItem);
+    });
+  });
+
+  console.log("🏁 FINAL CART:", updatedCart);
+  return updatedCart;
+}
+
+
+
+
+
+  const addProductToCart = useCallback((product, batch) => {
+    console.log("🛒 addProductToCart CALLED:", product.ItemName);
     const id = batch ? `${product._id}-${batch.BatchName}` : product._id;
 
     setCart((prev) => {
-      const exists = prev.find((x) => x.cartId === id);
+      let updatedCart = [...prev];
+
+      // -------------------------
+      // 1️⃣ NORMAL PRODUCT ADD
+      // -------------------------
+      const exists = updatedCart.find((x) => x.cartId === id);
 
       if (exists) {
-        return prev.map((x) =>
+        updatedCart = updatedCart.map((x) =>
           x.cartId === id ? { ...x, qty: x.qty + 1 } : x
         );
-      }
-
-      return [
-        ...prev,
-        {
+      } else {
+        updatedCart.push({
           cartId: id,
           _id: product._id,
           ItemName: product.ItemName,
@@ -110,59 +272,58 @@ export default function PosBilling() {
           qty: 1,
           batch: batch?.BatchName || null,
           availableQty: batch?.Qty || null,
-        },
-      ];
+          isFreeItem: false,
+          bogoParentId: null,
+        });
+      }
+      return applyBogoRules(updatedCart, bogoCoupons, products);
+
     });
 
     setBatchProduct(null);
     setSearchText("");
-  };
+  }, [bogoCoupons, products]);
 
-  const addToCart = (prod) => {
-    const validBatches = (prod.GodownDetails || []).filter(
-      (b) => b.BatchName && b.BatchName !== "No Batch" && b.Qty > 0
-    );
 
-    if (validBatches.length === 0) return addProductToCart(prod, null);
 
-    setBatchProduct({ ...prod, GodownDetails: validBatches });
-  };
 
-  // ------------------------
-  // CART OPERATIONS
-  // ------------------------
-  const increaseQty = (id) =>
-    setCart(
-      cart.map((x) => (x.cartId === id ? { ...x, qty: x.qty + 1 } : x))
-    );
+  const addToCart = useCallback(
+    (prod) => {
+      const validBatches =
+        prod.GodownDetails?.filter(
+          (b) => b.BatchName && b.BatchName !== "No Batch" && b.Qty > 0
+        ) || [];
 
-  const decreaseQty = (id) =>
-    setCart(
-      cart
-        .map((x) =>
-          x.cartId === id ? { ...x, qty: Math.max(1, x.qty - 1) } : x
-        )
-        .filter((x) => x.qty > 0)
-    );
-
-  const removeItem = (id) =>
-    setCart(cart.filter((x) => x.cartId !== id));
-
-  const clearCart = () => setCart([]);
-
-  // ------------------------
-  // TOTAL CALCULATIONS
-  // ------------------------
-  const subtotal = Number(
-    cart.reduce((s, p) => s + p.qty * p.price, 0).toFixed(2)
+      if (validBatches.length === 0) {
+        addProductToCart(prod, null);
+      } else {
+        setBatchProduct({ ...prod, GodownDetails: validBatches });
+      }
+    },
+    [addProductToCart]
   );
 
-  const gstAmount = Number((subtotal * 0.18).toFixed(2));
+  // ------------------------
+  // TOTALS
+  // ------------------------
+  const subtotal = useMemo(
+    () =>
+      Number(
+        cart.reduce((s, p) => {
+          if (p.isFreeItem) return s;
+          return s + p.qty * p.price;
+        }, 0).toFixed(2)
+      ),
+    [cart]
+  );
+
+  const gstAmount = useMemo(() => Number((subtotal * 0.18).toFixed(2)), [subtotal]);
   const totalAmount = subtotal + gstAmount;
 
   // ------------------------
-  // HOLD BILL
+  // BILL ACTIONS
   // ------------------------
+  
   const handleHoldBill = () => {
     addDraftBill({
       id: Date.now(),
@@ -172,7 +333,7 @@ export default function PosBilling() {
       subtotal,
       gstAmount,
       totalAmount,
-      createdAt: new Date().toISOString(),
+      createdAt:  new Date().toLocaleDateString("en-CA"),
     });
 
     setCart([]);
@@ -183,315 +344,270 @@ export default function PosBilling() {
     setBillNumber("---");
   };
 
-  // ------------------------
-  // LOAD DRAFT BILL
-  // ------------------------
   const handleLoadDraft = (draft) => {
     loadDraftBill(draft);
     setPayment("");
     setCashReceived("");
     setShowDraftModal(false);
   };
- 
 
-const handleCompleteBill = async (paymentData) => {
-  if (!cart || cart.length === 0) return;
+  const handleCompleteBill = async (paymentData) => {
+    if (!cart || cart.length === 0) return;
 
-  const paymentType = paymentData.paymentType; // Cash | Card | UPI | SPLIT
-  const payments = paymentData.payments || { cash: 0, card: 0, upi: 0 };
+    const paymentType = paymentData.paymentType; // Cash | Card | UPI | SPLIT
+    const payments = paymentData.payments || { cash: 0, card: 0, upi: 0 };
 
-  // ---------------------------
-  // 1️⃣ ADD ONLY CASH TO DRAWER
-  // ---------------------------
-  let cashAmount = 0;
+    // ---------------------------
+    // 1️⃣ ADD ONLY CASH TO DRAWER
+    // ---------------------------
+    let cashAmount = 0;
 
-  if (paymentType === "SPLIT") {
-    cashAmount = Number(payments.cash || 0);
-  } else if (paymentType === "Cash") {
-    cashAmount = Number(payments.cash || paymentData.grandTotal || 0);
-  }
+    if (paymentType === "SPLIT") {
+      cashAmount = Number(payments.cash || 0);
+    } else if (paymentType === "Cash") {
+      cashAmount = Number(payments.cash || paymentData.grandTotal || 0);
+    }
 
-  if (cashAmount > 0) {
-    addToDrawerCash(cashAmount);
-  }
+    if (cashAmount > 0) {
+      addToDrawerCash(cashAmount);
+    }
 
-  // ---------------------------
-  // 2️⃣ BILL NUMBER
-  // ---------------------------
-  const newBillNo = "INV-" + Math.floor(100000 + Math.random() * 900000);
+    // ---------------------------
+    // 2️⃣ BILL NUMBER
+    // ---------------------------
+    const newBillNo = "INV-" + Math.floor(100000 + Math.random() * 900000);
 
-  // ---------------------------
-  // 3️⃣ BUILD PAYMENT INFO (DB SAFE)
-  // ---------------------------
-  const paymentInfo = {
-    paymentType,
-    payments: {
-      cash: Number(payments.cash || 0),
-      card: Number(payments.card || 0),
-      upi: Number(payments.upi || 0),
-    },
+    // ---------------------------
+    // 3️⃣ BUILD PAYMENT INFO (DB SAFE)
+    // ---------------------------
+    const paymentInfo = {
+      paymentType,
+      payments: {
+        cash: Number(payments.cash || 0),
+        card: Number(payments.card || 0),
+        upi: Number(payments.upi || 0),
+      },
+    };
+
+    const payload = {
+      billNumber: newBillNo,
+      createdAt: new Date().toLocaleDateString("en-CA"),
+      companyId: defaultSelected?._id,
+
+      // ⭐ CUSTOMER MUST MATCH SCHEMA
+     customer: customerSearch || customerPhone
+  ? {
+      name: customerSearch?.trim() || null,
+      phone: customerPhone?.trim() || null,
+    }
+  : null,
+
+      items: cart.map((i) => ({
+        itemId: i._id,
+        name: i.ItemName,
+        code: i.ItemCode || "",
+        qty: i.qty,
+        price: i.price,
+        total: i.qty * i.price,
+      })),
+
+      subtotal: Number(subtotal || 0),
+
+      // ⭐ VERY IMPORTANT (NAME MATCH)
+      gstAmount: Number(paymentData.taxAmount || 0),
+
+      // ⭐ THIS FIXES YOUR ERROR
+      totalAmount: Number(paymentData.grandTotal || 0),
+
+      paymentInfo: {
+        paymentType: paymentData.paymentType,
+        payments: {
+          cash: Number(paymentData.payments?.cash || 0),
+          card: Number(paymentData.payments?.card || 0),
+          upi: Number(paymentData.payments?.upi || 0),
+        },
+      },
+    };
+
+
+    console.log("FINAL PAYLOAD →", payload);
+
+    // ---------------------------
+    // 5️⃣ API CALL
+    // ---------------------------
+    try {
+      await api.PosBillToServer(payload);
+    } catch (err) {
+      console.log("API ERROR:", err);
+    }
+
+    // ---------------------------
+    // 6️⃣ ADD SALE TO SESSION (REPORT SAFE)
+    // ---------------------------
+    usePosStore.getState().addSale({
+      time: new Date().toISOString(),
+      amount: Number(paymentData.grandTotal || 0),
+      billNumber: newBillNo,
+      paymentMode: paymentType.toLowerCase(), // cash | card | upi | split
+      split: paymentType === "SPLIT" ? paymentInfo.payments : null,
+    });
+
+    // ---------------------------
+    // 7️⃣ UPDATE UI PREVIEW
+    // ---------------------------
+    setBillNumber(newBillNo);
+    setPreviewBill(payload);
+    setShowPreview(true);
+
+     setCart([]);
+    setCustomerName("");
+    setCustomerPhone("");
   };
 
-  // ---------------------------
-  // 4️⃣ BUILD BILL PAYLOAD
-  // ---------------------------
-  const payload = {
-    billNumber: newBillNo,
-    createdAt: new Date().toISOString(),
-    companyId: defaultSelected?._id,
+  const handleDownloadInvoice = async () => {
+    if (!previewBill) return;
+    await generateInvoicePdf({
+      billNumber: previewBill.billNumber,
+      createdAt: previewBill.createdAt,
+      company: defaultSelected,
+      customer: previewBill.customer,
+      items: previewBill.items,
+      subtotal: previewBill.subtotal,
+      gstAmount: previewBill.gstAmount,
+      totalAmount: previewBill.totalAmount,
+      paymentInfo: previewBill.paymentInfo,
+    });
 
-    customerName: customerName || null,
-    customerPhone: customerPhone || null,
-
-    items: cart,
-    subtotal,
-    taxAmount: Number(paymentData.taxAmount || 0),
-    grandTotal: Number(paymentData.grandTotal || 0),
-
-    paymentInfo,
+    setCart([]);
+    setCustomerName("");
+    setCustomerPhone("");
+    setShowPreview(false);
   };
-
-  console.log("FINAL PAYLOAD →", payload);
-
-  // ---------------------------
-  // 5️⃣ API CALL
-  // ---------------------------
-  try {
-    await api.PosBillToServer(payload);
-  } catch (err) {
-    console.log("API ERROR:", err);
-  }
-
-  // ---------------------------
-  // 6️⃣ ADD SALE TO SESSION (REPORT SAFE)
-  // ---------------------------
-  usePosStore.getState().addSale({
-    time: new Date().toISOString(),
-    amount: Number(paymentData.grandTotal || 0),
-    billNumber: newBillNo,
-    paymentMode: paymentType.toLowerCase(), // cash | card | upi | split
-    split: paymentType === "SPLIT" ? paymentInfo.payments : null,
-  });
-
-  // ---------------------------
-  // 7️⃣ UPDATE UI PREVIEW
-  // ---------------------------
-  setBillNumber(newBillNo);
-  setPreviewBill(payload);
-  setShowPreview(true);
-};
-
-
-
-
-
-  // ------------------------
-  // DOWNLOAD BILL
-  // ------------------------
- 
-
-
-const handleDownloadInvoice = async () => {
-  if (!previewBill) return;
-
-  await generateInvoicePdf({
-    billNumber: previewBill.billNumber,
-    createdAt: previewBill.createdAt,
-
-    company: {
-      CompanyName: defaultSelected?.namePrint || "",
-      Address: `${defaultSelected?.address1 || ""}, ${defaultSelected?.address2 || ""}, ${defaultSelected?.address3 || ""}, ${defaultSelected?.city || ""}, ${defaultSelected?.state || ""} - ${defaultSelected?.pincode || ""}`,
-      phone: defaultSelected?.mobile || defaultSelected?.telephone || "",
-      country: defaultSelected?.country || "",
-      gstNumber: defaultSelected?.gstNumber || "",
-      logo: defaultSelected?.logo || "",
-    },
-
-    customer: {
-      name: previewBill.customerName || "",
-      phone: previewBill.customerPhone || "",
-    },
-
-    items: previewBill.items,
-    subtotal: previewBill.subtotal,
-    taxAmount: previewBill.taxAmount,
-    grandTotal: previewBill.grandTotal,
-
-    // ✅ CORRECT SOURCE
-    paymentInfo: previewBill.paymentInfo,
-  });
-
-  // ---------------------------
-  // RESET UI STATE
-  // ---------------------------
-  setCart([]);
-  setPayment("");
-  setCashReceived("");
-  setCustomerName("");
-  setCustomerPhone("");
-  setBillNumber("");
-  setPreviewBill(null);
-  setShowPreview(false);
-};
 
 
 
   return (
-    <div className="w-full h-full bg-gray-100">
+    <div className="w-full min-h-screen bg-gray-100">
       {/* HEADER */}
-      <div className="bg-blue-600 text-white p-2 rounded-b-2xl shadow-md flex justify-between">
-        <h1 className="text-xl font-semibold">POS Billing</h1>
-
-        <div className="flex items-center gap-5">
-          <div className="bg-white/20 px-4 py-1.5 rounded-lg text-sm">
-            Drawer: ₹{Number(drawerCash || 0).toFixed(2)}
+      <div className="bg-blue-600 text-white p-2 flex justify-between">
+        <h1 className="text-lg md:text-xl font-semibold">POS Billing</h1>
+        <div className="flex items-center gap-3">
+          <div className="bg-white/20 px-3 py-1 rounded-lg text-sm">
+            Drawer: ₹{drawerCash.toFixed(2)}
           </div>
-
           <button
             onClick={() => setShowShiftModal(true)}
-            className="bg-white text-blue-700 px-4 py-1.5 rounded-lg cursor-pointer"
+            className="bg-white text-blue-700 px-3 py-1 rounded-lg"
           >
             Shift End
           </button>
-
         </div>
       </div>
+     <div className="bg-white mx-3 mt-3 px-4 py-2 shadow-sm rounded-xl
+                grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
 
-      {/* BILL HEADER */}
-      <div className="bg-white mx-2 mt-3 px-4 py-2 shadow-sm border rounded-xl flex items-center justify-between gap-4">
+  {/* BILL NO */}
+  <div className="sm:justify-self-start text-center sm:text-left
+                  px-4 py-2 rounded-md text-sm shadow-sm">
+    <span className="font-semibold">Bill No:</span> {billNumber || "----"}
+  </div>
 
-        {/* BILL NO BOX (Figma Style) */}
-        <div className="px-4 py-2 bg-gray-100 border shadow-sm rounded-lg text-sm min-w-[150px]">
-          <label className="font-semibold">Bill No:</label> {billNumber}
-        </div>
+  {/* DATE */}
+  <div className="sm:justify-self-center text-center
+                  px-4 py-2 rounded-md text-sm shadow-sm">
+    <span className="font-semibold">Date:</span>{" "}
+    {new Date().toLocaleDateString("en-CA")}
+  </div>
 
-        {/* DATE BOX (Figma Style) */}
-        <div className="px-4 py-2 bg-gray-100 border shadow-sm rounded-lg text-sm min-w-[180px]">
-          <label className="font-semibold">Date:</label>{" "}
-          {new Date().toLocaleString([], {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit"
-          })}
-        </div>
+  {/* BUTTON */}
+  <div className="sm:justify-self-end text-center">
+    <button
+      onClick={() => setShowDraftModal(true)}
+      className="bg-blue-600 text-white px-4 py-2 rounded-lg w-full sm:w-auto"
+    >
+      Draft Bills
+    </button>
+  </div>
 
-        {/* BUTTON – SAME SIZE AS BEFORE */}
-        <button
-          onClick={() => setShowDraftModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer"
-        >
-          Draft Bills
-        </button>
-
-      </div>
-
+</div>
+ 
 
       {/* BODY */}
-      <div className="p-2 grid grid-cols-12 gap-8 mt-2">
-        {/* LEFT SIDE */}
-        <div className="col-span-12 md:col-span-8 space-y-4">
-          {/* CUSTOMER DETAILS */}
-          <div className="bg-white rounded-xl shadow p-3 grid grid-cols-2 gap-4">
-
-            {/* CUSTOMER NAME */}
-            <div>
-              <label className="text-xs font-semibold text-gray-700 mb-1 block">
-                Customer Name
-              </label>
-
+      <div className="p-3 grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div className="md:col-span-8 space-y-4">
+          {/* CUSTOMER SEARCH */}
+          <div className="bg-white p-3 rounded-xl shadow grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
+              <label className="text-xs font-semibold"> Enter Customer Name</label>
               <input
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Enter customer name"
-                className="
-        border border-gray-300 
-        rounded-xl 
-        px-2 py-1 
-        w-full 
-        bg-white 
-        shadow-sm
-        focus:outline-none
-        focus:ring-2 focus:ring-blue-300
-      "
+                value={customerSearch}
+                onChange={(e) => {
+                  setCustomerSearch(e.target.value);
+                  setCustomerName(val);  
+                  setShowCustomerDropdown(true);
+                }}
+                placeholder="Enter customer Name"
+                className="w-full border rounded-xl px-2 py-1"
               />
+              {showCustomerDropdown && customerResults.length > 0 && (
+                <div className="absolute z-50 bg-white border rounded-xl w-full max-h-48 overflow-y-auto">
+                  {customerResults.map((c) => (
+                    <div
+                      key={c._id}
+                      onClick={() => {
+                        setCustomerName(c.customerName);
+                        setCustomerPhone(c.phoneNumber || c.mobileNumber);
+                        setCustomerSearch(c.customerName);
+                        setShowCustomerDropdown(false);
+                      }}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                    >
+                      {c.customerName}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+            <div >
+              <label htmlFor="" className="text-xs font-semibold">Enter Phone Number</label>
+              <br />
+            <input
+  value={customerPhone}
+  onChange={(e) => {
+    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+    setCustomerPhone(val);
+  }}
+  placeholder="Enter Phone Number"
+  className="w-full border rounded-xl px-2 py-1"
+/>
 
-            {/* PHONE NUMBER */}
-            <div>
-              <label className="text-xs font-semibold text-gray-700 mb-1 block">
-                Phone Number
-              </label>
-
-              <input
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="Enter phone number"
-                className="
-        border border-gray-300 
-        rounded-xl 
-        px-2 py-1 
-        w-full 
-        bg-white 
-        shadow-sm
-        focus:outline-none
-        focus:ring-2 focus:ring-blue-300
-      "
-              />
             </div>
-
           </div>
 
-
-          {/* SEARCH */}
-          <div className="bg-white rounded-xl p-3 shadow border">
-
-            <label className="text-xs font-semibold text-gray-700 mb-1 block">
-              Search Products
-            </label>
-
+          {/* PRODUCT SEARCH */}
+          <div className="bg-white p-3 rounded-xl shadow">
+            <label htmlFor="" className="text-xs font-semibold">Search Products</label>
             <input
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              placeholder="Search products..."
-              className="
-      w-full 
-      h-8 
-      pl-2 pr-2 
-      border border-gray-300 
-      rounded-xl 
-      bg-white 
-      shadow-sm 
-      focus:ring-2 focus:ring-blue-300
-    "
+              placeholder="Search products"
+              className="w-full border rounded-xl px-2 py-1"
             />
             {searchText && (
-              <div className="border rounded-xl shadow max-h-50 overflow-y-auto mt-2">
-                {searchResults.length === 0 ? (
-                  <p className="p-4">No products found</p>
-                ) : (
-                  searchResults.map((p) => (
-                    <div
-                      key={p._id}
-                      onClick={() => addToCart(p)}
-                      className="p-4 border-b hover:bg-gray-100 cursor-pointer"
-                    >
-                      <p>{p.ItemName}</p>
-                      <p className="text-xs text-gray-500">
-                        {p.ItemCode} — ₹{p.Price}
-                      </p>
-                    </div>
-                  ))
-                )}
+              <div className="mt-2 max-h-48 overflow-y-auto border rounded-xl">
+                {searchResults.map((p) => (
+                  <div
+                    key={p._id}
+                    onClick={() => addToCart(p)}
+                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                  >
+                    {p.ItemName}
+                  </div>
+                ))}
               </div>
             )}
-
           </div>
 
-
-
-          {/* CART */}
           <PosCart
             cart={cart}
             increaseQty={increaseQty}
@@ -501,8 +617,7 @@ const handleDownloadInvoice = async () => {
           />
         </div>
 
-        {/* RIGHT SIDE */}
-        <div className="col-span-12 md:col-span-4">
+        <div className="md:col-span-4">
           <PosSummary
             cart={cart}
             subtotal={subtotal}
@@ -517,7 +632,6 @@ const handleDownloadInvoice = async () => {
         </div>
       </div>
 
-      {/* BATCH MODAL */}
       {batchProduct && (
         <PosBatchModal
           product={batchProduct}
@@ -526,31 +640,30 @@ const handleDownloadInvoice = async () => {
         />
       )}
 
-      {/* DRAFT MODAL */}
       {showDraftModal && (
         <DraftBillModal
-          isOpen={true}
+          isOpen
           onClose={() => setShowDraftModal(false)}
           onSelectDraft={handleLoadDraft}
         />
       )}
+
       <ShiftEndModal
         isOpen={showShiftModal}
         onClose={() => setShowShiftModal(false)}
       />
-
-      {/* PREVIEW */}
       {showPreview && previewBill && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white w-[750px] max-h-[90vh] overflow-y-auto p-8 rounded-2xl shadow-xl border">
 
             {/* HEADER */}
-            {/* HEADER */}
             <div className="flex justify-between items-start border-b pb-4">
 
               {/* LEFT COMPANY INFO */}
               <div>
-                <h1 className="text-2xl font-bold">{defaultSelected?.namePrint || "Company Name"}</h1>
+                <h1 className="text-2xl font-bold">
+                  {defaultSelected?.namePrint || "Company Name"}
+                </h1>
 
                 <p className="text-sm text-gray-700">
                   {defaultSelected?.address1}, {defaultSelected?.address2}, {defaultSelected?.address3}
@@ -585,22 +698,20 @@ const handleDownloadInvoice = async () => {
                   alt="Company Logo"
                 />
               )}
-
             </div>
-
-
 
             {/* BILL INFO */}
             <div className="flex justify-between mt-4 border-b pb-3">
               <div>
                 <p><b>Invoice No:</b> {previewBill.billNumber}</p>
-                {new Date(previewBill.createdAt || Date.now()).toLocaleString()}
-
+                <p className="text-sm text-gray-600">
+               {new Date(previewBill.createdAt).toLocaleDateString("en-CA")}
+                </p>
               </div>
 
               <div>
-                <p><b>Customer:</b> {previewBill.customerName || "N/A"}</p>
-                <p><b>Phone:</b> {previewBill.customerPhone || "N/A"}</p>
+                <p><b>Customer:</b> {previewBill.customer?.name || "N/A"}</p>
+                <p><b>Phone:</b> {previewBill.customer?.phone || "N/A"}</p>
               </div>
             </div>
 
@@ -621,32 +732,32 @@ const handleDownloadInvoice = async () => {
                 {previewBill.items.map((it, i) => (
                   <tr key={i} className="text-sm">
                     <td className="border p-2">{i + 1}</td>
-
-                    {/* Correct product name */}
-                    <td className="border p-2">{it.ItemName}</td>
-
+                    <td className="border p-2">
+                      {it.ItemName || it.name || "-"}
+                    </td>
                     <td className="border p-2">{it.batch || "-"}</td>
                     <td className="border p-2">{it.qty}</td>
-
-                    {/* FIX PRICE */}
-                    <td className="border p-2">₹{Number(it.price).toFixed(2)}</td>
-
-                    {/* FIX TOTAL */}
+                    <td className="border p-2">
+                      ₹{Number(it.price || 0).toFixed(2)}
+                    </td>
                     <td className="border p-2 font-semibold">
-                      ₹{Number(it.price * it.qty).toFixed(2)}
+                      ₹{Number((it.price || 0) * (it.qty || 0)).toFixed(2)}
                     </td>
                   </tr>
                 ))}
               </tbody>
-
             </table>
 
             {/* TOTALS */}
             <div className="mt-6 text-right pr-3">
-              <p className="text-sm">Subtotal: ₹{previewBill.subtotal.toFixed(2)}</p>
-              <p className="text-sm">Tax: ₹{previewBill.taxAmount.toFixed(2)}</p>
+              <p className="text-sm">
+                Subtotal: ₹{Number(previewBill.subtotal || 0).toFixed(2)}
+              </p>
+              <p className="text-sm">
+                Tax: ₹{Number(previewBill.gstAmount || 0).toFixed(2)}
+              </p>
               <p className="text-xl font-bold text-green-700">
-                Grand Total: ₹{previewBill.grandTotal.toFixed(2)}
+                Grand Total: ₹{Number(previewBill.totalAmount || 0).toFixed(2)}
               </p>
             </div>
 
@@ -654,15 +765,19 @@ const handleDownloadInvoice = async () => {
             <div className="mt-6 border-t pt-4">
               <h3 className="font-semibold text-lg mb-2">Payment Details</h3>
 
-              {previewBill.paymentInfo?.isSplit ? (
-                <div className="text-sm space-y-1">
-                  <p>Cash: ₹{previewBill.paymentInfo.splitPayment.cash}</p>
-                  <p>Card: ₹{previewBill.paymentInfo.splitPayment.card}</p>
-                  <p>UPI: ₹{previewBill.paymentInfo.splitPayment.upi}</p>
-                </div>
-              ) : (
-                <p className="text-sm">Payment Mode: {previewBill.paymentInfo.singlePayment}</p>
-              )}
+              <div className="text-sm space-y-1">
+                <p>
+                  <b>Payment Mode:</b> {previewBill.paymentInfo?.paymentType}
+                </p>
+
+                {previewBill.paymentInfo?.paymentType === "SPLIT" && (
+                  <>
+                    <p>Cash: ₹{previewBill.paymentInfo.payments.cash}</p>
+                    <p>Card: ₹{previewBill.paymentInfo.payments.card}</p>
+                    <p>UPI: ₹{previewBill.paymentInfo.payments.upi}</p>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* FOOTER */}
@@ -674,7 +789,7 @@ const handleDownloadInvoice = async () => {
             <div className="mt-6 flex gap-4">
               <button
                 onClick={handleDownloadInvoice}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg w-full shadow hover:bg-green-700cursor-pointer "
+                className="bg-green-600 text-white px-4 py-2 rounded-lg w-full shadow hover:bg-green-700 cursor-pointer"
               >
                 Download Invoice
               </button>
@@ -689,7 +804,6 @@ const handleDownloadInvoice = async () => {
           </div>
         </div>
       )}
-
     </div>
   );
 }
