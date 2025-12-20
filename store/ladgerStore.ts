@@ -33,12 +33,12 @@ interface Pagination {
 interface Ledger {
   id: number;
   _id?: string;
-  ledgerType: string;
-  ledgerCode: string;
-  ledgerName: string;
+  type: string;
+  code: string;
+  name: string;
   shortName: string;
   companyId: string;
-  ledgerGroup: string;
+  group: string;
   industryType: string;
   territory: string;
   ledgerStatus: string;
@@ -89,12 +89,12 @@ interface Ledger {
 }
 
 interface LedgerForm {
-  ledgerType: string;
-  ledgerCode: string;
-  ledgerName: string;
+  type: string;
+  code: string;
+  name: string;
   shortName: string;
   companyId: string;
-  ledgerGroup: string;
+  group: string;
   industryType: string;
   territory: string;
   ledgerStatus: string;
@@ -282,7 +282,7 @@ export const useLedgerStore = create<LedgerStore>()(
           const queryParams = new URLSearchParams({
             search: searchTerm,
             status: statusFilter !== "all" ? statusFilter : "",
-            sortBy: sortBy.includes("name") ? "ledgerName" : "createdAt",
+            sortBy: sortBy.includes("name") ? "name" : "createdAt",
             sortOrder: sortBy.includes("Desc") ? "desc" : "asc",
             page: page.toString(),
             limit: limit.toString(),

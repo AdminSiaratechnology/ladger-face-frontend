@@ -106,7 +106,7 @@ export const SelectBasedLedger: React.FC<Props> = ({
       onValueChange={(id) => {
         const ledger = allLedgers.find((l) => l._id === id);
         if (ledger) {
-          onValueChange({ _id: ledger._id, ledgerName: ledger.ledgerName });
+          onValueChange({ _id: ledger._id, ledgerName: ledger.name });
         }
       }}
       onOpenChange={(open) => {
@@ -118,10 +118,10 @@ export const SelectBasedLedger: React.FC<Props> = ({
         <SelectValue placeholder={placeholder}>
           {selectedLedger ? (
             <div className="flex items-center justify-between w-full">
-              <span>{selectedLedger.ledgerName}</span>
+              <span>{selectedLedger.name}</span>
               {selectedLedger.ledgerCode && (
                 <span className="text-xs text-gray-400 ml-4">
-                  {selectedLedger.ledgerCode}
+                  {selectedLedger.code}
                 </span>
               )}
             </div>
@@ -158,10 +158,10 @@ export const SelectBasedLedger: React.FC<Props> = ({
               allLedgers.map((ledger) => (
                 <SelectItem key={ledger._id} value={ledger._id}>
                   <div className="flex items-center justify-between w-full">
-                    <span className="truncate">{ledger.ledgerName}</span>
-                    {ledger.ledgerCode && (
+                    <span className="truncate">{ledger.name}</span>
+                    {ledger.code && (
                       <span className="text-xs text-gray-400 ml-4 flex-shrink-0">
-                        {ledger.ledgerCode}
+                        {ledger.code}
                       </span>
                     )}
                   </div>

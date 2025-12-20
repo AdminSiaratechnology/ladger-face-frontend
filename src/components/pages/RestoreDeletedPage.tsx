@@ -46,6 +46,7 @@ import {
 import {useAuditLogStore} from "../../../store/auditLogStore"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
+import AuditLogCardView from "../CardViews/CustomAuditLogCardView";
 
 // Audit Event interface based on actual API response
 interface AuditEvent {
@@ -254,6 +255,7 @@ const RestoreDeletedPage: React.FC = () => {
     setSelectedEventForRestore(event);
     setIsConfirmModalOpen(true);
   };
+
 
   const confirmRestore = async () => {
     if (!selectedEventForRestore) return;
@@ -566,7 +568,11 @@ const RestoreDeletedPage: React.FC = () => {
         />
       ) : (
         <>
-          {viewMode === "table" ? <TableView /> : null} {/* Cards not implemented for logs */}
+          {viewMode === "table" ? <TableView /> : <AuditLogCardView
+          auditEvents={auditEvents}       // ✅ Pass your data array
+          actionType="restore"            // ✅ Sets style to "Restore" (Solid/Green)
+          onAction={handleRestoreClick}   // ✅ Function to run when clicked
+        />} {/* Cards not implemented for logs */}
           <PaginationControls
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}

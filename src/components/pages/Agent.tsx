@@ -1,8 +1,12 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent } from "../ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Badge } from "../ui/badge";
 import { toast } from "sonner";
 import {
   Users,
@@ -11,18 +15,10 @@ import {
   Settings2,
   Star,
   Phone,
-  Mail,
-  MapPin,
   CreditCard,
-  Globe,
   Plus,
   Upload,
   X,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  Shield,
-  AlertCircle,
   UserCheck,
   Target,
   File,
@@ -35,21 +31,24 @@ import { useCompanyStore } from "../../../store/companyStore";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
 import { CheckAccess } from "../customComponents/CheckAccess";
-import ActionsDropdown from "../customComponents/ActionsDropdown";
+
 import { TableViewSkeleton } from "../customComponents/TableViewSkeleton";
 import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 import CustomStepNavigation from "../customComponents/CustomStepNavigation";
 import MultiStepNav from "../customComponents/MultiStepNav";
 import PaginationControls from "../customComponents/CustomPaginationControls";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
-import TableHeader from "../customComponents/CustomTableHeader";
+
 
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
 import UniversalDetailsModal from "../customComponents/UniversalDetailsModal";
 import imageCompression from "browser-image-compression";
-
+import CommonTable from "../TableView/CommonTable";
+import CommonCard from "../CardViews/CommonCard";
+import CommonStats from "../customComponents/CommonStats";
+import type {Bank,RegistrationDocument,Agent,AgentForm} from  "@/types/agentRegistration"
 const stepIcons = {
   basic: <Users className="w-2 h-2 md:w-5 md:h-5" />,
   contact: <Phone className="w-2 h-2 md:w-5 md:h-5" />,
@@ -59,161 +58,6 @@ const stepIcons = {
   settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />,
 };
 
-interface Bank {
-  id: number;
-  accountHolderName: string;
-  accountNumber: string;
-  ifscCode: string;
-  swiftCode: string;
-  micrNumber: string;
-  bankName: string;
-  branch: string;
-}
-
-interface RegistrationDocument {
-  id: number;
-  type: string;
-  file: File;
-  previewUrl: string;
-  fileName: string;
-}
-
-interface Agent {
-  id: number;
-  _id?: string;
-  agentType: string;
-  agentCode: string;
-  code: string;
-  companyId: string;
-  agentName: string;
-  shortName: string;
-  agentCategory: string;
-  specialty: string;
-  territory: string;
-  supervisor: string;
-  agentStatus: string;
-  status: string;
-  experienceLevel: string;
-  contactPerson: string;
-  designation: string;
-  phoneNumber: string;
-  mobileNumber: string;
-  emailAddress: string;
-  faxNumber: string;
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  website: string;
-  currency: string;
-  commissionStructure: string;
-  paymentTerms: string;
-  commissionRate: string;
-  taxId: string;
-  vatNumber: string;
-  gstNumber: string;
-  panNumber: string;
-  tanNumber: string;
-  taxCategory: string;
-  taxTemplate: string;
-  withholdingTaxCategory: string;
-  isTaxExempt: boolean;
-  reverseCharge: boolean;
-  bankName: string;
-  branchName: string;
-  accountNumber: string;
-  accountHolderName: string;
-  ifscCode: string;
-  swiftCode: string;
-  preferredPaymentMethod: string;
-  acceptedPaymentMethods: string[];
-  paymentInstructions: string;
-  banks: Bank[];
-  approvalWorkflow: string;
-  documentRequired: string;
-  externalSystemId: string;
-  crmIntegration: string;
-  dataSource: string;
-  agentPriority: string;
-  leadSource: string;
-  internalNotes: string;
-  logo: string | null;
-  notes: string;
-  createdAt: string;
-  registrationDocs: RegistrationDocument[];
-  performanceRating: number;
-  activeContracts: number;
-  isDeleted: boolean;
-}
-
-interface AgentForm {
-  agentType: string;
-  agentCode: string;
-  code: string;
-  companyId: string;
-  agentName: string;
-  shortName: string;
-  agentCategory: string;
-  specialty: string;
-  territory: string;
-  supervisor: string;
-  agentStatus: string;
-  status: string;
-  experienceLevel: string;
-  contactPerson: string;
-  designation: string;
-  phoneNumber: string;
-  mobileNumber: string;
-  emailAddress: string;
-  faxNumber: string;
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  website: string;
-  currency: string;
-  commissionStructure: string;
-  paymentTerms: string;
-  commissionRate: string;
-  taxId: string;
-  vatNumber: string;
-  gstNumber: string;
-  panNumber: string;
-  tanNumber: string;
-  taxCategory: string;
-  taxTemplate: string;
-  withholdingTaxCategory: string;
-  isTaxExempt: boolean;
-  reverseCharge: boolean;
-  bankName: string;
-  branchName: string;
-  accountNumber: string;
-  accountHolderName: string;
-  ifscCode: string;
-  swiftCode: string;
-  preferredPaymentMethod: string;
-  acceptedPaymentMethods: string[];
-  paymentInstructions: string;
-  approvalWorkflow: string;
-  documentRequired: string;
-  externalSystemId: string;
-  crmIntegration: string;
-  dataSource: string;
-  agentPriority: string;
-  leadSource: string;
-  internalNotes: string;
-  banks: Bank[];
-  logoFile?: File;
-  logoPreviewUrl?: string;
-  notes: string;
-  registrationDocs: RegistrationDocument[];
-  performanceRating: number;
-  activeContracts: number;
-}
 const compressionOptions = {
   maxSizeMB: 1, // Max file size after compression_
   maxWidthOrHeight: 1920, // Max dimension_
@@ -323,13 +167,13 @@ const AgentRegistrationPage: React.FC = () => {
   }, [searchTerm, statusFilter, sortBy, currentPage, filterAgents]);
 
   const [formData, setFormData] = useState<AgentForm>({
-    agentType: "individual",
+    type: "individual",
     agentCode: "",
     code: "",
     companyId: "",
-    agentName: "",
+    name: "",
     shortName: "",
-    agentCategory: "",
+    group: "",
     specialty: "",
     territory: "",
     supervisor: "",
@@ -390,13 +234,13 @@ const AgentRegistrationPage: React.FC = () => {
   const [isAccountHolderManuallyEdited, setIsAccountHolderManuallyEdited] =
     useState(false);
   useEffect(() => {
-    if (!isAccountHolderManuallyEdited && formData.agentName) {
+    if (!isAccountHolderManuallyEdited && formData.name) {
       setBankForm((prev) => ({
         ...prev,
-        accountHolderName: formData.agentName,
+        accountHolderName: formData.name,
       }));
     }
-  }, [formData.agentName, isAccountHolderManuallyEdited]);
+  }, [formData.name, isAccountHolderManuallyEdited]);
   useEffect(() => {
     if (defaultSelected && companies.length > 0) {
       const selectedCompany = defaultSelected;
@@ -721,13 +565,13 @@ const AgentRegistrationPage: React.FC = () => {
   const resetForm = () => {
     cleanupImageUrls();
     setFormData({
-      agentType: "individual",
+      type: "individual",
       agentCode: "",
       code: "",
       companyId: "",
-      agentName: "",
+      name: "",
       shortName: "",
-      agentCategory: "",
+      group: "",
       specialty: "",
       territory: "",
       supervisor: "",
@@ -840,7 +684,7 @@ const AgentRegistrationPage: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    if (!formData.agentName.trim()) {
+    if (!formData.name.trim()) {
       toast.error("Please enter Agent Name");
       return;
     }
@@ -918,6 +762,7 @@ const AgentRegistrationPage: React.FC = () => {
     try {
       if (editingAgent) {
         await updateAgent({ id: editingAgent._id || "", agent: agentFormData });
+        fetchAgents(currentPage, limit, defaultSelected?._id);
         toast.success("Agent updated successfully");
       } else {
         await addAgent(agentFormData);
@@ -954,260 +799,132 @@ const AgentRegistrationPage: React.FC = () => {
     { id: "bank", label: "Banking Details" },
     { id: "settings", label: "Settings" },
   ];
+
+  const agentStats: StatItem[] = useMemo(() => {
+    // 1. Base Stats (Always visible)
+    const baseStats: StatItem[] = [
+      {
+        title: "Total Agents",
+        value: stats.totalAgents,
+        icon: UserCheck,
+        variant: "teal",
+      },
+    ];
+
+    // 2. Conditional Stats based on Country
+    if (defaultSelected?.country === "India") {
+      baseStats.push(
+        {
+          title: "GST Registered",
+          value: stats.gstRegistered,
+          icon: FileText,
+          variant: "blue",
+        },
+        {
+          title: "MSME Registered",
+          value: stats.msmeRegistered,
+          icon: Target,
+          variant: "purple",
+        }
+      );
+    } else {
+      baseStats.push({
+        title: "VAT Registered",
+        value: stats.vatRegistered,
+        icon: FileText,
+        variant: "blue", // Or use 'orange' if you prefer distinct colors
+      });
+    }
+
+    // 3. Add Active Stats (Last item)
+    baseStats.push({
+      title: "Active Agents",
+      value: stats.activeAgents,
+      variant: "green",
+      showPulse: true,
+    });
+
+    return baseStats;
+  }, [stats, defaultSelected?.country]);
   const headers = ["Agent", "Contact", "Address", "Status", "Actions"];
-  const TableView = () => (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <TableHeader headers={headers} />
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredAgents.map((agent) => (
-              <tr
-                key={agent._id}
-                className="hover:bg-gray-50 transition-colors duration-200"
-              >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <UserCheck className="h-10 w-10 text-teal-600 mr-3" />
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {agent.agentName}
-                      </div>
-                      <div className="text-sm text-teal-600">{agent.code}</div>
-                      {agent.shortName && (
-                        <div className="text-xs text-gray-500">
-                          Short: {agent.shortName}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 space-y-1">
-                    <div className="flex items-center">
-                      <Mail className="w-3 h-3 text-gray-400 mr-2" />
-                      <span className="truncate max-w-48">
-                        {agent.emailAddress}
-                      </span>
-                    </div>
-                    {agent.mobileNumber && (
-                      <div className="flex items-center">
-                        <Phone className="w-3 h-3 text-gray-400 mr-2" />
-                        <span>{agent.mobileNumber}</span>
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 space-y-1">
-                    <div className="flex items-center">
-                      <MapPin className="w-3 h-3 text-gray-400 mr-2" />
-                      <span>
-                        {[agent.city, agent.state].filter(Boolean).join(", ")}
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-500 truncate max-w-48">
-                      {agent.addressLine1}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge
-                    className={`${
-                      agent.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-700"
-                    } hover:bg-current`}
-                  >
-                    {agent.status}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown
-                    onView={() => handleViewAgent(agent)}
-                    onEdit={() => handleEditAgent(agent)}
-                    onDelete={() => handleDeleteAgent(agent._id || "")}
-                    module="BusinessManagement"
-                    subModule="Agent"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+
+  const tableActions = useMemo(
+    () => ({
+      onView: (agent: Agent) => handleViewAgent(agent),
+      onEdit: (agent: Agent) => handleEditAgent(agent),
+      onDelete: (id: string) => handleDeleteAgent(id),
+    }),
+    []
   );
 
+  const TableView = () => (
+  
+    <CommonTable<Agent>
+      headers={headers}
+      data={filteredAgents}
+      actions={tableActions}
+      module="BusinessManagement"
+      subModule="Agent"
+
+    />
+  );
+  const renderAgentExtra = useCallback((agent: Agent) => (
+    <>
+      <div className="flex justify-between items-center">
+        <span className="text-xs font-medium text-gray-500">Performance</span>
+        <div className="flex items-center">
+          {[...Array(5)].map((_, i) => (
+            <Star
+              key={i}
+              className={`w-3 h-3 ${
+                i < agent.performanceRating
+                  ? "text-yellow-500 fill-yellow-500"
+                  : "text-gray-300"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="flex justify-between items-center mt-2">
+        <span className="text-xs font-medium text-gray-500">
+          Active Contracts
+        </span>
+        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+          {agent.activeContracts}
+        </span>
+      </div>
+    </>
+  ), []);
+
+  // 2. Define Bottom Section for Agents (Tax Info)
+  const renderAgentBottom = useCallback((agent: Agent) => (
+    <>
+       {agent.gstNumber && (
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-medium text-gray-500">GST</span>
+            <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
+              {agent.gstNumber}
+            </span>
+          </div>
+        )}
+        {agent.commissionRate && (
+           <div className="flex justify-between items-center mt-2">
+             <span className="text-xs font-medium text-gray-500">Commission</span>
+             <span className="text-xs font-semibold text-teal-700">{agent.commissionRate}%</span>
+           </div>
+        )}
+    </>
+  ), []);
+
   const CardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-      {filteredAgents.map((agent: Agent) => (
-        <Card
-          key={agent._id}
-          className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group"
-        >
-          <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center">
-                {agent.logo && (
-                  <img
-                    src={agent.logo}
-                    alt="Agent Logo"
-                    className="w-10 h-10 rounded-full mr-3 object-cover"
-                  />
-                )}
-                <div>
-                  <CardTitle className="text-xl font-bold text-gray-800 mb-1">
-                    {agent.agentName}
-                  </CardTitle>
-                  {agent.shortName && (
-                    <p className="text-teal-600 font-medium">
-                      {agent.shortName}
-                    </p>
-                  )}
-                  <p className="text-sm text-gray-500">{agent.code}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  className={`${
-                    agent.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-700"
-                  } hover:bg-current`}
-                >
-                  {agent.status}
-                </Badge>
-                <CheckAccess
-                  module="BusinessManagement"
-                  subModule="Agent"
-                  type="update"
-                >
-                  <ActionsDropdown
-                    onView={() => handleViewAgent(agent)}
-                    onEdit={() => handleEditAgent(agent)}
-                    onDelete={() => handleDeleteAgent(agent._id || "")}
-                    module="BusinessManagement"
-                    subModule="Agent"
-                  />
-                </CheckAccess>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <div className="space-y-3">
-              {agent.contactPerson && (
-                <div className="flex items-center text-sm">
-                  <Users className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">{agent.contactPerson}</span>
-                </div>
-              )}
-              {(agent.city || agent.state || agent.zipCode) && (
-                <div className="flex items-center text-sm">
-                  <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">
-                    {[agent.city, agent.state, agent.zipCode]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                </div>
-              )}
-              {agent.mobileNumber && (
-                <div className="flex items-center text-sm">
-                  <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">{agent.mobileNumber}</span>
-                </div>
-              )}
-              <div className="flex items-center text-sm">
-                <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600 truncate">
-                  {agent.emailAddress}
-                </span>
-              </div>
-              {agent.website && (
-                <div className="flex items-center text-sm">
-                  <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-teal-600 truncate">
-                    {agent.website}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="pt-3 border-t border-gray-100">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-gray-500">
-                  Performance
-                </span>
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-3 h-3 ${
-                        i < agent.performanceRating
-                          ? "text-yellow-500 fill-yellow-500"
-                          : "text-gray-300"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-xs font-medium text-gray-500">
-                  Active Contracts
-                </span>
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                  {agent.activeContracts}
-                </span>
-              </div>
-            </div>
-            {(agent.gstNumber || agent.panNumber) && (
-              <div className="pt-3 border-t border-gray-100 space-y-2">
-                {agent.gstNumber && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">
-                      GST
-                    </span>
-                    <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
-                      {agent.gstNumber}
-                    </span>
-                  </div>
-                )}
-                {agent.panNumber && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">
-                      PAN
-                    </span>
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
-                      {agent.panNumber}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-            {agent.commissionRate && (
-              <div className="pt-3 border-t border-gray-100">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-medium text-gray-500">
-                    Commission Rate
-                  </span>
-                  <span className="text-xs font-semibold text-teal-700">
-                    {agent.commissionRate}%
-                  </span>
-                </div>
-              </div>
-            )}
-            <div className="pt-3 border-t border-gray-100">
-              <div className="flex items-center text-sm">
-                <FileText className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">
-                  Created: {new Date(agent.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <CommonCard<Agent>
+      data={filteredAgents}
+      actions={tableActions} // Reuse the actions created for TableView
+      module="BusinessManagement"
+      subModule="Agent"
+      renderExtraContent={renderAgentExtra}
+      renderBottomSection={renderAgentBottom}
+    />
   );
   useEffect(() => {
     return () => {
@@ -1248,79 +965,11 @@ const AgentRegistrationPage: React.FC = () => {
         </CheckAccess>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-teal-100 text-sm font-medium">
-                  Total Agents
-                </p>
-                <p className="text-2xl font-bold">{stats.totalAgents}</p>
-              </div>
-              <UserCheck className="w-6 h-6 text-teal-200" />
-            </div>
-          </CardContent>
-        </Card>
-        {defaultSelected.country === "India" && (
-          <>
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm font-medium">
-                      GST Registered
-                    </p>
-                    <p className="text-2xl font-bold">{stats.gstRegistered}</p>
-                  </div>
-                  <FileText className="w-6 h-6 text-blue-200" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-100 text-sm font-medium">
-                      MSME Registered
-                    </p>
-                    <p className="text-2xl font-bold">{stats.msmeRegistered}</p>
-                  </div>
-                  <Target className="w-6 h-6 text-purple-200" />
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-        {defaultSelected.country !== "India" && (
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">
-                    VAT Registered
-                  </p>
-                  <p className="text-2xl font-bold">{stats.vatRegistered}</p>
-                </div>
-                <FileText className="w-6 h-6 text-blue-200" />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm font-medium">
-                  Active Agents
-                </p>
-                <p className="text-2xl font-bold">{stats.activeAgents}</p>
-              </div>
-              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <CommonStats 
+         stats={agentStats} 
+         columns={4} 
+         loading={loading} 
+      />
 
       <FilterBar
         searchTerm={searchTerm}
@@ -1405,7 +1054,7 @@ const AgentRegistrationPage: React.FC = () => {
                 setActiveTab(nextTab);
               }
               if (activeTab === "basic") {
-                if (!formData.agentName) {
+                if (!formData.name) {
                   toast.error("Please fill in the required fields.");
                   return;
                 }
@@ -1435,7 +1084,7 @@ const AgentRegistrationPage: React.FC = () => {
                   toast.error("Please enter a valid email address");
                   return;
                 }
-                if (!formData.agentName) {
+                if (!formData.name) {
                   toast.error("Agent Name is required");
                   return;
                 }
@@ -1455,9 +1104,9 @@ const AgentRegistrationPage: React.FC = () => {
                       Agent Type <span className="text-red-500">*</span>
                     </label>
                     <select
-                      value={formData.agentType}
+                      value={formData.type}
                       onChange={(e) =>
-                        handleSelectChange("agentType", e.target.value)
+                        handleSelectChange("type", e.target.value)
                       }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
@@ -1470,8 +1119,8 @@ const AgentRegistrationPage: React.FC = () => {
                   <CustomInputBox
                     label="Agent Name"
                     placeholder="e.g., ABC Agents"
-                    name="agentName"
-                    value={formData.agentName}
+                    name="name"
+                    value={formData.name}
                     onChange={handleChange}
                     required={true}
                   />
@@ -1495,9 +1144,9 @@ const AgentRegistrationPage: React.FC = () => {
                   />
                   <CustomInputBox
                     label=" Agent Category"
-                    placeholder="agentCategory"
-                    name="agentCategory"
-                    value={formData.agentCategory}
+                    placeholder="group"
+                    name="group"
+                    value={formData.group}
                     onChange={handleChange}
                   />
 
@@ -1542,7 +1191,7 @@ const AgentRegistrationPage: React.FC = () => {
                   totalSteps={6}
                   showPrevious={false}
                   onNext={() => {
-                    if (!formData.agentName) {
+                    if (!formData.name) {
                       toast.error("Please fill agent name.");
                       return;
                     }

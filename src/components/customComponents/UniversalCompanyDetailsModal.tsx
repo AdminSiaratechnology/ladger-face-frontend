@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -237,4 +237,4 @@ const UniversalCompanyDetailsModal: React.FC<
   );
 };
 
-export default UniversalCompanyDetailsModal;
+export default memo(UniversalCompanyDetailsModal);

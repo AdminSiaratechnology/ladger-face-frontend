@@ -18,7 +18,7 @@ import {
   RefreshCcwDot
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { P } from "node_modules/framer-motion/dist/types.d-DagZKalS";
+
 
 
 export interface BaseMenuItem {

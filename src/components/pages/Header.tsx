@@ -150,7 +150,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   };
   useEffect(() => {
     fetchOtherAsync();
-  }, [defaultSelected]);
+  }, [defaultSelected?._id]);
   // const handleLogout = () => {
   //   setShowLogout(false);
   //   logout();

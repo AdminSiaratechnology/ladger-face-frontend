@@ -58,8 +58,7 @@ import { ScrollArea } from "@radix-ui/react-scroll-area";
 import UniversalUserDetailsModal from "../customComponents/UniversalUserDetailsModal";
 import { useCustomerGroupStore } from "../../../store/CustomerGroupStore";
 
-import axios from "axios"; 
-
+import axios from "axios";
 
 // --- Interfaces ---
 
@@ -214,7 +213,6 @@ interface GodownStore {
   fetchGodowns: (companyId: string) => Promise<void>;
 }
 
-
 const CustomerGroupSelector: React.FC<{
   companyId: string;
   selectedGroupIds: string[];
@@ -248,7 +246,7 @@ const CustomerGroupSelector: React.FC<{
   const selectedGroupsData = companyGroups.filter((g) =>
     selectedGroupIds.includes(g._id)
   );
-  
+
   const availableGroups = companyGroups.filter(
     (g) =>
       !selectedGroupIds.includes(g._id) &&
@@ -265,8 +263,7 @@ const CustomerGroupSelector: React.FC<{
     onChange(selectedGroupIds.filter((id) => id !== groupId));
   };
 
-  if (loading)
-    return <p className="text-sm text-gray-500 py-2">Loading...</p>;
+  if (loading) return <p className="text-sm text-gray-500 py-2">Loading...</p>;
 
   if (companyGroups.length === 0) {
     return (
@@ -307,7 +304,9 @@ const CustomerGroupSelector: React.FC<{
               ))
             ) : (
               <div className="p-3 text-center text-sm text-gray-500">
-                {searchTerm ? "No matching groups found" : "All groups selected"}
+                {searchTerm
+                  ? "No matching groups found"
+                  : "All groups selected"}
               </div>
             )}
           </div>
@@ -316,7 +315,9 @@ const CustomerGroupSelector: React.FC<{
 
       {selectedGroupsData.length > 0 && (
         <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <span className="text-xs text-gray-500 font-medium self-center mr-1">Selected:</span>
+          <span className="text-xs text-gray-500 font-medium self-center mr-1">
+            Selected:
+          </span>
           {selectedGroupsData.map((group) => (
             <div
               key={group._id}
@@ -346,7 +347,7 @@ const GodownSelector: React.FC<{
   selectedGodownIds: string[];
   onChange: (godownIds: string[]) => void;
 }> = ({ companyId, selectedGodownIds, onChange }) => {
-  const { godowns, fetchGodowns, loading,filterGodowns } = useGodownStore();
+  const { godowns, fetchGodowns, loading, filterGodowns } = useGodownStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -360,20 +361,13 @@ const GodownSelector: React.FC<{
       //   page = 1,
       //   limit = 10,
       //   companyId
-    //     searchTerm: string,
-    // statusFilter: "all" | "active" | "inactive" | "maintenance",
-    // sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
-    // companyId?: number | string,
-    // page?: number,
-    // limit?: number
-      filterGodowns(
-        searchTerm,
-         "all",
-        "nameAsc",
-        1,
-        10,
-        companyId
-      );
+      //     searchTerm: string,
+      // statusFilter: "all" | "active" | "inactive" | "maintenance",
+      // sortBy: "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc",
+      // companyId?: number | string,
+      // page?: number,
+      // limit?: number
+      filterGodowns(searchTerm, "all", "nameAsc", 1, 10, companyId);
     }
   }, [companyId, searchTerm]);
 
@@ -390,9 +384,8 @@ const GodownSelector: React.FC<{
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-
   const companyGodowns = godowns.filter((g) => g.company === companyId);
-  
+
   const selectedGodownsData = companyGodowns.filter((g) =>
     selectedGodownIds.includes(g._id)
   );
@@ -420,7 +413,9 @@ const GodownSelector: React.FC<{
     return (
       <div className="text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
         <Warehouse className="w-8 h-8 mx-auto text-gray-300 mb-2" />
-        <p className="text-sm text-gray-500">No godowns found in this company.</p>
+        <p className="text-sm text-gray-500">
+          No godowns found in this company.
+        </p>
       </div>
     );
   }
@@ -456,7 +451,9 @@ const GodownSelector: React.FC<{
               ))
             ) : (
               <div className="p-3 text-center text-sm text-gray-500">
-                {searchTerm ? "No matching godowns found" : "All godowns selected"}
+                {searchTerm
+                  ? "No matching godowns found"
+                  : "All godowns selected"}
               </div>
             )}
           </div>
@@ -465,7 +462,9 @@ const GodownSelector: React.FC<{
 
       {selectedGodownsData.length > 0 && (
         <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <span className="text-xs text-gray-500 font-medium self-center mr-1">Selected:</span>
+          <span className="text-xs text-gray-500 font-medium self-center mr-1">
+            Selected:
+          </span>
           {selectedGodownsData.map((godown) => (
             <div
               key={godown._id}
@@ -498,7 +497,9 @@ const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchTerm2, setSearchTerm2] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -513,11 +514,15 @@ const UserManagement: React.FC = () => {
   };
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [activeCompanyTab, setActiveCompanyTab] = useState<string | null>(null);
-  
+
   // State for IDs
-  const [selectedGroupIds, setSelectedGroupIds] = useState<Record<string, string[]>>({});
-  const [selectedGodownIds, setSelectedGodownIds] = useState<Record<string, string[]>>({}); // New State
-  
+  const [selectedGroupIds, setSelectedGroupIds] = useState<
+    Record<string, string[]>
+  >({});
+  const [selectedGodownIds, setSelectedGodownIds] = useState<
+    Record<string, string[]>
+  >({}); // New State
+
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -545,10 +550,11 @@ const UserManagement: React.FC = () => {
     filterUsers,
     pagination,
     initialLoading,
-    counts
+    counts,
   } = useUserManagementStore();
 
-  const { groups: customerGroups, fetchGroups: fetchCustomerGroups } = useCustomerGroupStore();
+  const { groups: customerGroups, fetchGroups: fetchCustomerGroups } =
+    useCustomerGroupStore();
   const { godowns: companyGodowns, fetchGodowns } = useGodownStore(); // Use new store
 
   useEffect(() => {
@@ -620,7 +626,140 @@ const UserManagement: React.FC = () => {
     ],
   };
 
-
+  // Available modules
+  const availableModules = {
+    BusinessManagement: {
+      CustomerRegistration: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+      Vendor: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+      Agent: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+      Ledger: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+    },
+    UserManagement: {
+      User: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+    },
+    InventoryManagement: {
+      Godown: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+      StockGroup: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+      StockCategory: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+      Product: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+      Unit: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+      Order: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+      Payment: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+    },
+    Pricing: {
+      PriceList: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+      Discount: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+    },
+    Reports: {
+      SalesReport: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+      PurchaseReport: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+    },
+    Order: {
+      Orders: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        extra: [],
+      },
+    },
+  };
 
   const [form, setForm] = useState<UserForm>({
     name: "",
@@ -639,7 +778,90 @@ const UserManagement: React.FC = () => {
     status: "active",
     pincode: "",
   });
+  // useEffect(() => {
+  //   if (form.role === "Admin") {
+  //     setAllPermissions(true);
+  //   } else {
+  //     setAllPermissions(false);
+  //     const defaultPermissions =
+  //       form.role === "Salesman"
+  //         ? {
+  //             BusinessManagement: {
+  //               CustomerRegistration: {
+  //                 create: true,
+  //                 read: true,
+  //                 update: true,
+  //                 delete: false,
+  //                 extra: [],
+  //               },
+  //               Vendor: {
+  //                 create: false,
+  //                 read: true,
+  //                 update: false,
+  //                 delete: false,
+  //                 extra: [],
+  //               },
+  //             },
+  //             InventoryManagement: {
+  //               Product: {
+  //                 create: false,
+  //                 read: true,
+  //                 update: false,
+  //                 delete: false,
+  //                 extra: [],
+  //               },
+  //             },
+  //           }
+  //         : {
+  //             Order: {
+  //               Orders: {
+  //                 create: false,
+  //                 read: true,
+  //                 update: false,
+  //                 delete: false,
+  //                 extra: [],
+  //               },
+  //             },
+  //           };
 
+  //     setForm((prev) => ({
+  //       ...prev,
+  //       access: prev.access.map((access) => ({
+  //         ...access,
+  //         modules: JSON.parse(JSON.stringify(defaultPermissions)),
+  //       })),
+  //     }));
+  //   }
+  // }, [form.role]);
+  useEffect(() => {
+    if (defaultSelected) {
+      setForm((prev) => ({ ...prev, company: defaultSelected?._id }));
+    }
+  }, [defaultSelected, companies]);
+
+  useEffect(() => {
+    setForm((prev) => {
+      // Create access entries for selected companies that don't exist yet
+      const newAccess = [...prev.access];
+
+      selectedCompanies.forEach((companyId) => {
+        const exists = newAccess.find((a) => a.company === companyId);
+        if (!exists) {
+          newAccess.push({
+            company: companyId,
+            modules: {},
+          });
+        }
+      });
+
+      // Remove access entries for unselected companies
+      const filteredAccess = newAccess.filter((a) =>
+        selectedCompanies.includes(a.company)
+      );
+
+      return { ...prev, access: filteredAccess };
+    });
+  }, [selectedCompanies]);
   // Function to set all permissions
   const setAllPermissions = (enabled: boolean) => {
     setForm((prev) => ({
@@ -685,7 +907,7 @@ const UserManagement: React.FC = () => {
         company: company._id,
         modules: {},
         customerGroups: [],
-        godowns: []
+        godowns: [],
       })),
       phone: "",
       area: "",
@@ -712,45 +934,57 @@ const UserManagement: React.FC = () => {
     if (activeCompanyTab) {
       const currentGroups = selectedGroupIds[activeCompanyTab] || [];
       const currentGodowns = selectedGodownIds[activeCompanyTab] || [];
-      
-      setForm(prev => {
-        // Create new state
-        const updatedAccess = prev.access.map(a => {
-          if (a.company !== activeCompanyTab) return a;
-          
-          // Map selected IDs to objects
-          const newGroups = currentGroups.map(id => {
-            const group = customerGroups.find(g => g._id === id);
-            return group ? {
-              groupId: group._id,
-              groupName: group.groupName,
-              groupCode: group.groupCode
-            } : null;
-          }).filter(Boolean) as CustomerGroup[];
 
-          const newGodowns = currentGodowns.map(id => {
-            return companyGodowns.find(g => g._id === id) || null;
-          }).filter(Boolean) as Godown[];
+      setForm((prev) => {
+        // Create new state
+        const updatedAccess = prev.access.map((a) => {
+          if (a.company !== activeCompanyTab) return a;
+
+          // Map selected IDs to objects
+          const newGroups = currentGroups
+            .map((id) => {
+              const group = customerGroups.find((g) => g._id === id);
+              return group
+                ? {
+                    groupId: group._id,
+                    groupName: group.groupName,
+                    groupCode: group.groupCode,
+                  }
+                : null;
+            })
+            .filter(Boolean) as CustomerGroup[];
+
+          const newGodowns = currentGodowns
+            .map((id) => {
+              return companyGodowns.find((g) => g._id === id) || null;
+            })
+            .filter(Boolean) as Godown[];
 
           return {
             ...a,
             customerGroups: newGroups,
-            godowns: newGodowns
+            godowns: newGodowns,
           };
         });
 
         // Simple check to avoid unnecessary updates if nothing changed
         if (JSON.stringify(updatedAccess) === JSON.stringify(prev.access)) {
-            return prev;
+          return prev;
         }
 
         return {
           ...prev,
-          access: updatedAccess
+          access: updatedAccess,
         };
       });
     }
-  }, [selectedGroupIds, selectedGodownIds, activeCompanyTab, customerGroups, companyGodowns]);
+  }, [
+    selectedGroupIds,
+    selectedGodownIds,
+    activeCompanyTab,
+    customerGroups,
+    companyGodowns,
+  ]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value, type, checked } = e.target;
@@ -890,14 +1124,16 @@ const UserManagement: React.FC = () => {
   };
 
   const handleEditUser = (user: User) => {
-if(user.role=="Client"){
-  toast.error("Access denied: Only Administrators can modify client details.")
-  return
-}
+    if (user.role == "Client") {
+      toast.error(
+        "Access denied: Only Administrators can modify client details."
+      );
+      return;
+    }
 
     setEditingUser(user);
     setIsEditing(true);
-    
+
     // ✅ Preselected company IDs
     const preselectedCompanies = user.access.map(
       (a) => a.company._id || a.company
@@ -908,9 +1144,8 @@ if(user.role=="Client"){
       company: a.company._id || a.company,
       modules: a.modules || {},
       customerGroups: a.customerGroups || [],
-      godowns: a.godowns || []
+      godowns: a.godowns || [],
     }));
-
     // ✅ Build selectedCompanyData directly from user.access (already has namePrint)
     const selectedCompanyData = user.access.map((a) => ({
       _id: a.company._id || a.company,
@@ -921,10 +1156,11 @@ if(user.role=="Client"){
     const initialGroupIds: Record<string, string[]> = {};
     const initialGodownIds: Record<string, string[]> = {};
 
-    user.access.forEach(a => {
+    user.access.forEach((a) => {
       const companyId = a.company._id || a.company;
-      initialGroupIds[companyId] = a.customerGroups?.map(g => g.groupId) || [];
-      initialGodownIds[companyId] = a.godowns?.map(g => g._id) || [];
+      initialGroupIds[companyId] =
+        a.customerGroups?.map((g) => g.groupId) || [];
+      initialGodownIds[companyId] = a.godowns?.map((g) => g._id) || [];
     });
 
     // ✅ Set form data
@@ -1014,14 +1250,15 @@ if(user.role=="Client"){
       "Unknown Company"
     );
   };
-
   const getPermissionForCompany = (
     companyId: string,
     moduleName: string,
     subModuleName: string,
     permissionType: keyof Permission
   ) => {
-    const access = form.access.find((a) => a.company === companyId);
+    const access = form.access.find((a) => {
+      return a.company === companyId;
+    });
     return (
       access?.modules?.[moduleName]?.[subModuleName]?.[permissionType] || false
     );
@@ -1828,21 +2065,26 @@ if(user.role=="Client"){
                           <div className="space-y-2">
                             <CustomerGroupSelector
                               companyId={activeCompanyTab}
-                              selectedGroupIds={selectedGroupIds[activeCompanyTab] || []}
+                              selectedGroupIds={
+                                selectedGroupIds[activeCompanyTab] || []
+                              }
                               onChange={(groupIds) => {
-                                setSelectedGroupIds(prev => ({
+                                setSelectedGroupIds((prev) => ({
                                   ...prev,
-                                  [activeCompanyTab]: groupIds
+                                  [activeCompanyTab]: groupIds,
                                 }));
                               }}
                             />
                           </div>
 
-                          {(selectedGroupIds[activeCompanyTab] || []).length > 0 && (
+                          {(selectedGroupIds[activeCompanyTab] || []).length >
+                            0 && (
                             <div className="mt-3 p-3 bg-blue-100 rounded-lg">
                               <p className="text-sm text-blue-700">
-                                <strong>Note:</strong> User will have access only to customers in the selected groups.
-                                {(selectedGroupIds[activeCompanyTab] || []).length === 0 
+                                <strong>Note:</strong> User will have access
+                                only to customers in the selected groups.
+                                {(selectedGroupIds[activeCompanyTab] || [])
+                                  .length === 0
                                   ? " Leave empty for all groups access."
                                   : ""}
                               </p>
@@ -1861,21 +2103,26 @@ if(user.role=="Client"){
                           <div className="space-y-2">
                             <GodownSelector
                               companyId={activeCompanyTab}
-                              selectedGodownIds={selectedGodownIds[activeCompanyTab] || []}
+                              selectedGodownIds={
+                                selectedGodownIds[activeCompanyTab] || []
+                              }
                               onChange={(godownIds) => {
-                                setSelectedGodownIds(prev => ({
+                                setSelectedGodownIds((prev) => ({
                                   ...prev,
-                                  [activeCompanyTab]: godownIds
+                                  [activeCompanyTab]: godownIds,
                                 }));
                               }}
                             />
                           </div>
 
-                          {(selectedGodownIds[activeCompanyTab] || []).length > 0 && (
+                          {(selectedGodownIds[activeCompanyTab] || []).length >
+                            0 && (
                             <div className="mt-3 p-3 bg-orange-100 rounded-lg">
                               <p className="text-sm text-orange-700">
-                                <strong>Note:</strong> User will have access only to selected godowns.
-                                {(selectedGodownIds[activeCompanyTab] || []).length === 0 
+                                <strong>Note:</strong> User will have access
+                                only to selected godowns.
+                                {(selectedGodownIds[activeCompanyTab] || [])
+                                  .length === 0
                                   ? " Leave empty for all godown access."
                                   : ""}
                               </p>
@@ -2228,16 +2475,19 @@ if(user.role=="Client"){
                               </div>
                             )
                           )}
-                          {access.customerGroups && access.customerGroups.length > 0 && (
-                            <div>
-                              <strong>Customer Groups:</strong>{" "}
-                              {access.customerGroups.map(g => g.groupName).join(", ")}
-                            </div>
-                          )}
+                          {access.customerGroups &&
+                            access.customerGroups.length > 0 && (
+                              <div>
+                                <strong>Customer Groups:</strong>{" "}
+                                {access.customerGroups
+                                  .map((g) => g.groupName)
+                                  .join(", ")}
+                              </div>
+                            )}
                           {access.godowns && access.godowns.length > 0 && (
                             <div>
                               <strong>Godowns:</strong>{" "}
-                              {access.godowns.map(g => g.name).join(", ")}
+                              {access.godowns.map((g) => g.name).join(", ")}
                             </div>
                           )}
                         </div>

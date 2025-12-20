@@ -1,16 +1,21 @@
-// pages/reports/CustomerWiseReportPage.tsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useCustomerWiseReportStore } from "../../../store/CustomerWiseReportStore";
 import { useCompanyStore } from "../../../store/companyStore";
 import GenericReportPage from "../customComponents/GenericReportPage";
-import ReportFilterActions from "../customComponents/ReportFilterActions";
-import UniversalReportFilter from "../customComponents/UniversalReportFilter";
+import ReportFilterBar from "../customComponents/CustomerWiseReportFilterBar"; // ✅ FIX: Importing the Type
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { DollarSign, TrendingUp, TrendingDown, Users } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Users, UserCircle } from "lucide-react";
 import { format } from "date-fns";
 import TableHeader from "../customComponents/CustomTableHeader";
 import { cn } from "@/lib/utils";
+
+interface FilterValues {
+  customerId: string;
+  salesmanId: string;
+  status: string;
+  mode: string;
+}
 
 const CustomerWiseReportPage = () => {
   const { defaultSelected } = useCompanyStore();
@@ -20,6 +25,7 @@ const CustomerWiseReportPage = () => {
   const [openFilter, setOpenFilter] = useState(false);
   const [filterCount, setFilterCount] = useState(0);
 
+  // Date Logic
   const today = new Date();
   const firstDayLastMonth = new Date(
     today.getFullYear(),
@@ -47,27 +53,54 @@ const CustomerWiseReportPage = () => {
     resetFilters,
   } = useCustomerWiseReportStore();
 
-  // ---------------------------
-  // APPLY DATE RANGE
-  // ---------------------------
-const applyDateRange = useCallback(() => {
-  setFilter(
-    "startDate",
-    localDateRange.from
-      ? format(localDateRange.from, "yyyy-MM-dd")
-      : undefined
-  );
+  const [localFilters, setLocalFilters] = useState({
+    customerId: filters.customerId || "all",
+    salesmanId: filters.salesmanId || "all",
+    status: filters.status || "all",
+    mode: filters.mode || "all",
+  });
 
-  setFilter(
-    "endDate",
-    localDateRange.to
-      ? format(localDateRange.to, "yyyy-MM-dd")
-      : undefined
-  );
+  const isCustomerSelectedInStore = useMemo(() => {
+    return filters.customerId && filters.customerId !== "all";
+  }, [filters.customerId]);
 
-  setFilter("page", 1);
-}, [localDateRange, setFilter]);
+  // --- API FETCH CONTROL ---
+  useEffect(() => {
+    if (!companyId || !isCustomerSelectedInStore) {
+      return; 
+    }
+    fetchReport(companyId);
+  }, [
+    companyId,
+    filters.page,
+    filters.limit,
+    filters.search,
+    filters.customerId,
+    filters.salesmanId,
+    filters.status,
+    filters.mode,
+    filters.startDate,
+    filters.endDate,
+    fetchReport,
+    isCustomerSelectedInStore
+  ]);
 
+  // ✅ FIX: Handler accepts values from Child to prevent Double Click issue
+  const handleApplyFilters = (values: FilterValues) => {
+    if (!values.customerId || values.customerId === "all") {
+       return;
+    }
+
+    setFilter("customerId", values.customerId);
+    setFilter("salesmanId", values.salesmanId === "all" ? undefined : values.salesmanId);
+    setFilter("status", values.status === "all" ? undefined : values.status);
+    setFilter("mode", values.mode === "all" ? undefined : values.mode);
+    
+    setFilter("startDate", localDateRange.from?.toISOString());
+    setFilter("endDate", localDateRange.to?.toISOString());
+    
+    setFilter("page", 1);
+  };
 
   const resetDateRange = useCallback(() => {
     setLocalDateRange({});
@@ -90,53 +123,28 @@ const applyDateRange = useCallback(() => {
   const handleClearAll = () => {
     setLocalDateRange({});
     resetFilters();
-    setFilterCount(0);
-  };
+    setLocalFilters({
+      customerId: "all",
+      salesmanId: "all",
+      status: "all",
+      mode: "all"
+    });
+  }, [resetFilters]);
 
-  // ---------------------------
-  // FILTER COUNT
-  // ---------------------------
-useEffect(() => {
-  let count = 0;
+  const isAnyFilterActive = useMemo(() => {
+    return (
+      !!filters.customerId || 
+      filters.salesmanId !== "all" ||
+      filters.status !== "all" ||
+      filters.mode !== "all" ||
+      !!filters.startDate
+    );
+  }, [filters]);
 
-  if (filters.customerId && filters.customerId !== "all") count++;
+  const statCards = useMemo(() => {
+    if (!isCustomerSelectedInStore) return [];
 
-  if (filters.salesmanId && filters.salesmanId !== "all") count++;
-
-  if (filters.status && filters.status !== "all") count++;
-
-  if (filters.mode && filters.mode !== "all") count++;
-
-  if (filters.startDate && filters.endDate) count++;
-
-  setFilterCount(count);
-}, [filters]);
-
-
-  // ---------------------------
-  // FETCH REPORT
-  // ---------------------------
-  useEffect(() => {
-    if (companyId) {
-      fetchReport(companyId);
-    }
-  }, [
-    companyId,
-    filters.page,
-    filters.customerId,
-    filters.salesmanId,
-    filters.status,
-    filters.mode,
-    filters.startDate,
-    filters.endDate,
-    fetchReport,
-  ]);
-
-  // ---------------------------
-  // STATS
-  // ---------------------------
-  const statCards = useMemo(
-    () => [
+    return [
       {
         label: "Total Transactions",
         value: stats?.totalTransactions || 0,
@@ -159,14 +167,10 @@ useEffect(() => {
         label: "Outstanding",
         value: `₹${stats?.outstanding?.toLocaleString() || 0}`,
         icon: <DollarSign className="w-8 h-8" />,
-        colorClass:
-          stats?.outstanding > 0
-            ? "from-red-500 to-red-600"
-            : "from-gray-500 to-gray-600",
+        colorClass: stats?.outstanding > 0 ? "from-red-500 to-red-600" : "from-gray-500 to-gray-600",
       },
-    ],
-    [stats]
-  );
+    ];
+  }, [stats, isCustomerSelectedInStore]);
 
   const headers = [
     "Date",
@@ -179,63 +183,57 @@ useEffect(() => {
     "Remarks",
   ];
 
-  // ---------------------------
-  // TABLE VIEW
-  // ---------------------------
-  const TableView = useMemo(
-    () => (
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <TableHeader headers={headers} />
-            <tbody className="divide-y divide-gray-100">
-              {transactions.map((t: any) => (
-                <tr key={t._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm">
+  const TableView = useMemo(() => (
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <TableHeader headers={headers} />
+          <tbody className="divide-y divide-gray-100">
+            {transactions.length === 0 ? (
+              <tr>
+                 <td colSpan={8} className="p-8 text-center text-gray-500">No transactions found for this period.</td>
+              </tr>
+            ) : (
+              transactions.map((t) => (
+                <tr key={t._id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm whitespace-nowrap">
                     {format(new Date(t.date), "dd MMM yyyy")}
                   </td>
-                  <td className="px-6 py-4 font-medium">
+                  <td className="px-3 md:px-6 py-3 md:py-4 font-medium text-sm md:text-base">
                     {t.customerName}
                   </td>
-                  <td className="px-6 py-4 text-gray-600">
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-600">
                     {t.salesmanName}
                   </td>
-                  <td className="px-6 py-4">
-                    <Badge className="capitalize">{t.type}</Badge>
+                  <td className="px-3 md:px-6 py-3 md:py-4">
+                    <Badge variant={t.type === "Order" ? "destructive" : "default"} className="capitalize text-xs md:text-sm">
+                      {t.type}
+                    </Badge>
                   </td>
-                  <td className="px-6 py-4 text-right text-red-600">
-                    {t.orderAmount
-                      ? `₹${t.orderAmount.toLocaleString()}`
-                      : "-"}
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-right font-medium text-red-600 text-xs md:text-sm whitespace-nowrap">
+                    {t.orderAmount ? `₹${t.orderAmount.toLocaleString()}` : "-"}
                   </td>
-                  <td className="px-6 py-4 text-right text-green-600">
-                    {t.paymentAmount
-                      ? `₹${t.paymentAmount.toLocaleString()}`
-                      : "-"}
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-right font-medium text-green-600 text-xs md:text-sm whitespace-nowrap">
+                    {t.paymentAmount ? `₹${t.paymentAmount.toLocaleString()}` : "-"}
                   </td>
-                  <td className="px-6 py-4">
-                    <Badge
-                      className={cn(
-                        t.status === "completed" &&
-                          "bg-green-100 text-green-800",
-                        t.status === "failed" &&
-                          "bg-red-100 text-red-800",
-                        t.status === "pending" &&
-                          "bg-amber-100 text-amber-800",
-                        "capitalize"
-                      )}
-                    >
+                  <td className="px-3 md:px-6 py-3 md:py-4">
+                    <Badge className={cn(
+                      t.status === "completed" && "bg-green-100 text-green-800",
+                      t.status === "failed" && "bg-red-100 text-red-800",
+                      t.status === "pending" && "bg-amber-100 text-amber-800",
+                      "capitalize text-xs md:text-sm"
+                    )}>
                       {t.status}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 text-gray-600 truncate max-w-xs">
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-600 truncate max-w-[100px] md:max-w-xs">
                     {t.remarks}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     ),
     [transactions]
@@ -278,64 +276,68 @@ useEffect(() => {
     [transactions]
   );
 
-  return (
-    <>
-      <GenericReportPage
-        title="Customer Wise Report"
-        subtitle="All Orders & Payments - Combined View"
-        stats={statCards}
-        loading={loading}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        data={transactions}
-        totalItems={pagination.total || 0}
-        totalPages={pagination.totalPages || 1}
-        currentPage={filters.page}
-        onPageChange={(p) => setFilter("page", p)}
-        limit={filters.limit}
-        onClearFilters={handleClearAll}
-        reportType="customer-wise"
-        exportFileName="Customer_Wise_Report"
-        onExportDetailed={async () => await fetchAllReport(companyId)}
-        customFilterBar={
-          <ReportFilterActions
-            count={filterCount}
-            onClear={handleClearAll}
-            onFilter={() => setOpenFilter(true)}
-          />
-        }
-      >
-        {viewMode === "table" ? TableView : CardView}
-      </GenericReportPage>
+  const NoCustomerSelectedView = () => (
+    <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-2xl border-2 border-dashed border-gray-200">
+      <div className="bg-indigo-50 p-6 rounded-full mb-4 shadow-sm">
+        <UserCircle className="w-16 h-16 text-indigo-400" />
+      </div>
+      <h3 className="text-2xl font-bold text-gray-800">No Customer Selected</h3>
+      <p className="text-gray-500 mt-2 text-center max-w-md">
+        Please select a customer from the filter bar above and click <span className="font-semibold text-teal-600">"Apply Filters"</span> to generate the report.
+      </p>
+    </div>
+  );
 
-      {/* FILTER MODAL */}
-      <UniversalReportFilter
-        variant="modal"
-        open={openFilter}
-        onClose={setOpenFilter}
-        filters={filters}
-        setFilters={(updater: any) => {
-          if (typeof updater === "function") {
-            const updated = updater(filters);
-            Object.keys(updated).forEach((k) => setFilter(k, updated[k]));
-          } else {
-            Object.keys(updater).forEach((k) => setFilter(k, updater[k]));
-          }
-        }}
-        onApply={handleApplyFilters}
-        onReset={handleClearAll}
-        companyId={companyId}
-        showCustomerSelect
-        showSalesman
-        showStatus
-        showMode
-        showDateRange
-        localDateRange={localDateRange}
-        setLocalDateRange={setLocalDateRange}
-        applyDateRange={applyDateRange}
-        resetDateRange={resetDateRange}
-      />
-    </>
+  return (
+    <GenericReportPage
+      title="Customer Wise Report"
+      subtitle="Detailed ledger and transaction history"
+      stats={statCards}
+      loading={loading}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      data={transactions}
+      totalItems={pagination.total || 0}
+      totalPages={pagination.totalPages || 1}
+      currentPage={filters.page}
+      onPageChange={(p) => setFilter("page", p)}
+      limit={filters.limit}
+      onClearFilters={handleClearAll}
+      reportType="customer-wise"
+      exportFileName={`Customer_Report_${format(new Date(), "dd-MM-yyyy")}`}
+      onExportDetailed={async () => await fetchAllReport(companyId)}
+      disableExport={!isCustomerSelectedInStore}
+      customFilterBar={
+        <ReportFilterBar
+          customerId={localFilters.customerId}
+          onCustomerChange={(v) => setLocalFilters(prev => ({ ...prev, customerId: v }))}
+          
+          salesmanId={localFilters.salesmanId}
+          onSalesmanChange={(v) => setLocalFilters(prev => ({ ...prev, salesmanId: v }))}
+          
+          status={localFilters.status}
+          onStatusChange={(v) => setLocalFilters(prev => ({ ...prev, status: v }))}
+          
+          mode={localFilters.mode}
+          onModeChange={(v) => setLocalFilters(prev => ({ ...prev, mode: v }))}
+          
+          companyId={companyId}
+          localDateRange={localDateRange}
+          setLocalDateRange={setLocalDateRange}
+          applyDateRange={() => {}} 
+          resetDateRange={resetDateRange}
+          onClearAll={handleClearAll}
+          isAnyFilterActive={isAnyFilterActive}
+          onApplyFilters={handleApplyFilters} // Passing the fixed handler
+        />
+      }
+    >
+      {!isCustomerSelectedInStore ? (
+        <NoCustomerSelectedView />
+      ) : (
+        viewMode === "table" ? TableView : CardView
+      )}
+    </GenericReportPage>
   );
 };
 
