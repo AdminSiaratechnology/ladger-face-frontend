@@ -12,6 +12,7 @@ import {
   Clock,
   CheckCircle,
   CreditCard,
+  Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader } from "../ui/card";
@@ -19,6 +20,7 @@ import TableHeader from "../customComponents/CustomTableHeader";
 
 const PaymentReportPage = () => {
   const { defaultSelected } = useCompanyStore();
+     const defaultCurrency = defaultSelected?.defaultCurrencySymbol || "₹";
   const { users } = useUserManagementStore();
   const companyId = defaultSelected?._id;
 
@@ -157,8 +159,8 @@ const PaymentReportPage = () => {
     () => [
       {
         label: "Total Amount",
-        value: `₹${stats?.totalAmount?.toLocaleString() || 0}`,
-        icon: <DollarSign className="w-8 h-8" />,
+        value: `${defaultCurrency} ${stats?.totalAmount?.toLocaleString() || 0}`,
+        icon: <Banknote className="w-8 h-8" />,
         colorClass: "from-teal-500 to-teal-600",
       },
       {
@@ -219,7 +221,7 @@ const PaymentReportPage = () => {
                     {p.remarks || "-"}
                   </td>
                   <td className="px-6 py-4 font-bold text-teal-600">
-                    ₹{p.amount.toLocaleString()}
+                    {defaultCurrency}{p.amount.toLocaleString()}
                   </td>
                 </tr>
               ))}
@@ -244,7 +246,7 @@ const PaymentReportPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-teal-600">
-                ₹{p.amount.toLocaleString()}
+                {defaultCurrency}{p.amount.toLocaleString()}
               </p>
               <p className="text-sm text-gray-600 mt-2">
                 {p.customerName || "N/A"}

@@ -5,12 +5,13 @@ import GenericReportPage from "../customComponents/GenericReportPage";
 import ReportFilterActions from "../customComponents/ReportFilterActions";
 import TableHeader from "../customComponents/CustomTableHeader";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Package, DollarSign, TrendingUp, Users } from "lucide-react";
+import { Package, DollarSign, TrendingUp, Users, Banknote } from "lucide-react";
 import { format } from "date-fns";
 import UniversalReportFilter from "../customComponents/UniversalReportFilter";
 
 const ProductWiseReportPage = () => {
   const { defaultSelected } = useCompanyStore();
+   const defaultCurrency = defaultSelected?.defaultCurrencySymbol || "₹";
   const companyId = defaultSelected?._id;
 
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
@@ -159,7 +160,7 @@ const ProductWiseReportPage = () => {
       {
         label: "Total Revenue",
         value: stats?.totalRevenue?.toLocaleString() || 0,
-        icon: <DollarSign className="w-8 h-8" />,
+        icon: <Banknote className="w-8 h-8" />,
         colorClass: "from-teal-500 to-teal-600",
       },
       {

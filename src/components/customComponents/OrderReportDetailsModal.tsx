@@ -21,6 +21,7 @@ import {
   XCircle,
   Receipt,
 } from "lucide-react";
+import { useCompanyStore } from "../../../store/companyStore";
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -39,6 +40,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const customer = order.customer || {};
   const payment = order.payment || {};
   const ship = order.shippingAddress || {};
+    const { defaultSelected } = useCompanyStore();
+      const defaultCurrency = defaultSelected?.defaultCurrencySymbol || "₹";
+  
 
   // ✨ Gradient Status Badges
   const getStatusStyle = (status: string) => {
@@ -228,10 +232,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                             {item.quantity}
                           </td>
                           <td className="px-4 sm:px-5 py-4 text-right text-slate-600">
-                            ₹{item.price?.toLocaleString()}
+                            {defaultCurrency} {item.price?.toLocaleString()}
                           </td>
                           <td className="px-4 sm:px-5 py-4 text-right font-semibold text-slate-900">
-                            ₹{item.total?.toLocaleString()}
+                            {defaultCurrency} {item.total?.toLocaleString()}
                           </td>
                         </tr>
                       ))}
@@ -242,14 +246,14 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         <td colSpan={3}></td>
                         <td className="px-4 sm:px-5 py-3 text-right text-slate-500 font-medium">Subtotal</td>
                         <td className="px-4 sm:px-5 py-3 text-right text-slate-700 font-medium">
-                          ₹{order.items?.reduce((acc:any, i:any) => acc + (i.taxableValue || 0), 0).toLocaleString()}
+                          {defaultCurrency} {order.items?.reduce((acc:any, i:any) => acc + (i.taxableValue || 0), 0).toLocaleString()}
                         </td>
                       </tr>
                       <tr>
                         <td colSpan={3}></td>
                         <td className="px-4 sm:px-5 py-3 text-right text-slate-500 font-medium">Tax</td>
                         <td className="px-4 sm:px-5 py-3 text-right text-slate-700 font-medium">
-                          ₹{order.items?.reduce((acc:any, i:any) => acc + (i.taxAmount || 0), 0).toLocaleString()}
+                          {defaultCurrency} {order.items?.reduce((acc:any, i:any) => acc + (i.taxAmount || 0), 0).toLocaleString()}
                         </td>
                       </tr>
                       <tr className="bg-slate-100/50 border-t border-slate-200">
@@ -258,7 +262,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         <td className="px-4 sm:px-5 py-4 text-right">
                           {/* ✨ Gradient Text for Total */}
                           <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                            ₹{order.grandTotal?.toLocaleString()}
+                            {defaultCurrency} {order.grandTotal?.toLocaleString()}
                           </span>
                         </td>
                       </tr>

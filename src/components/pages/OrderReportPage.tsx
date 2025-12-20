@@ -17,12 +17,14 @@ import {
   Clock,
   DollarSign,
   Eye,
+  Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TableHeader from "../customComponents/CustomTableHeader";
 
 const OrderReportPage = () => {
   const { defaultSelected } = useCompanyStore();
+    const defaultCurrency = defaultSelected?.defaultCurrencySymbol || "₹";
   const { users } = useUserManagementStore();
   const companyId = defaultSelected?._id;
 
@@ -178,8 +180,8 @@ useEffect(() => {
     () => [
       {
         label: "Total Revenue",
-        value: `₹${stats?.totalRevenue?.toLocaleString() || 0}`,
-        icon: <DollarSign className="w-8 h-8" />,
+        value: `${defaultCurrency} ${stats?.totalRevenue?.toLocaleString() || 0}`,
+        icon: <Banknote className="w-8 h-8" />,
         colorClass: "from-teal-500 to-teal-600",
       },
       {
@@ -254,7 +256,7 @@ useEffect(() => {
                     </Badge>
                   </td>
                   <td className="px-6 py-4 font-bold text-teal-600">
-                    ₹{o.grandTotal?.toLocaleString()}
+                    {defaultCurrency} {o.grandTotal?.toLocaleString()}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button
@@ -293,7 +295,7 @@ useEffect(() => {
               </p>
               <div className="mt-3 flex justify-between items-center">
                 <span className="font-bold text-teal-600">
-                  ₹{o.grandTotal?.toLocaleString()}
+                  {defaultCurrency} {o.grandTotal?.toLocaleString()}
                 </span>
                 <button
                   onClick={() => handleViewOrder(o)}
