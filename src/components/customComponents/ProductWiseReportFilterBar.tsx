@@ -51,11 +51,11 @@ const ReportFilterBar: React.FC<ReportFilterBarProps> = ({
   isModes = true,
 }) => {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6 overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6 overflow-hidden flex flex-col">
       {/* Mobile Compact View */}
-      <div className="p-4 space-y-3 lg:hidden">
+      <div className="p-4 space-y-3 lg:hidden flex flex-col">
         {/* Search + Salesman Row */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="">
           <Input
             placeholder="Search..."
             value={localSearch}
@@ -70,7 +70,7 @@ const ReportFilterBar: React.FC<ReportFilterBarProps> = ({
           />
         </div>
         {/* Status + Mode Row */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="">
           {isStatus && (
             <Select value={status} onValueChange={onStatusChange}>
               <SelectTrigger className="h-10 text-sm">
@@ -109,7 +109,7 @@ const ReportFilterBar: React.FC<ReportFilterBarProps> = ({
         />
       </div>
       {/* Desktop Full View */}
-      <div className="hidden lg:grid lg:grid-cols-5 gap-4 p-5">
+      <div className=" p-5 flex gap-3 flex-col">
         <Input
           placeholder="Search customer / remarks..."
           value={localSearch}

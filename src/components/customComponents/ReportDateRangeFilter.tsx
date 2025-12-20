@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarIcon, FilterX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { PopoverClose } from "@radix-ui/react-popover";
 
 interface DateRange {
   from?: Date;
@@ -59,21 +60,23 @@ const ReportDateRangeFilter: React.FC<ReportDateRangeFilterProps> = ({
             onSelect={setLocalDateRange}
             numberOfMonths={2}
             initialFocus
-           maxDate={new Date()}
-  disabled={(date) => date > new Date()}
+            maxDate={new Date()}
+            disabled={(date) => date > new Date()}
           />
           <div className="flex justify-between p-3 border-t bg-gray-50">
             <Button variant="ghost" size="sm" onClick={resetDateRange}>
               Reset
             </Button>
-            <Button
-              size="sm"
-              onClick={applyDateRange}
-              disabled={!localDateRange?.from}
-              className="bg-teal-600 hover:bg-teal-700 text-white"
-            >
-              Apply
-            </Button>
+            <PopoverClose asChild>
+              <Button
+                size="sm"
+                onClick={applyDateRange}
+                disabled={!localDateRange?.from}
+                className="bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                Apply
+              </Button>
+            </PopoverClose>
           </div>
         </PopoverContent>
       </Popover>

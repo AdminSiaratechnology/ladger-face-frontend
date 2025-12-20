@@ -4,8 +4,14 @@ import { usePosStore } from "../../../store/posStore";
 import { getCurrencySymbol } from "../../lib/currency.utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import api from "@/api/api";
+import { useCompanyStore } from "../../../store/companyStore";
+/* -----------------------------
+   FORMAT AMOUNT (2 DECIMALS)
+----------------------------- */
+const formatAmount = (val) => Number(val || 0).toFixed(2);
 
-export default function ShiftEndModal({ isOpen, onClose, defaultSelected }) {
+export default function ShiftEndModal({ isOpen, onClose }) {
   const {
     openingCash,
     sessionStart,
@@ -16,12 +22,13 @@ export default function ShiftEndModal({ isOpen, onClose, defaultSelected }) {
   } = usePosStore();
 
   // ------------------------------------
-  // GET CURRENCY SYMBOL
+  // CURRENCY
   // ------------------------------------
+  const {defaultSelected} =useCompanyStore();
   const currency = getCurrencySymbol(defaultSelected?.country || "India");
 
   // ------------------------------------
-  // CALCULATED VALUES
+  // SALES
   // ------------------------------------
   const cashSales = getCashSales();
   const cardSales = getCardSales();
@@ -36,7 +43,7 @@ export default function ShiftEndModal({ isOpen, onClose, defaultSelected }) {
   const sessionEndFormatted = format(new Date(), "dd MMM, hh:mm a");
 
   // ------------------------------------
-  // DENOMINATIONS (NO 2000)
+  // DENOMINATIONS
   // ------------------------------------
   const [denoms, setDenoms] = useState({
     1: 0,
@@ -50,7 +57,7 @@ export default function ShiftEndModal({ isOpen, onClose, defaultSelected }) {
     500: 0,
   });
 
-  const colorMap: any = {
+  const colorMap = {
     1: "bg-gray-100",
     2: "bg-gray-100",
     5: "bg-blue-50",
@@ -68,29 +75,58 @@ export default function ShiftEndModal({ isOpen, onClose, defaultSelected }) {
       0
     );
   }, [denoms]);
+  console.log(totalCashCounted);
 
   // ------------------------------------
-  // SHIFT END LOGOUT
+  // SHIFT CLOSE
   // ------------------------------------
-  const handleLogout = () => {
-    if (totalCashCounted <= 0) {
-      toast.error("Please enter your actual cash counted before closing the shift.");
-      return;
-    }
+const handleLogout = async () => {
+ if (cashSales > 0 && totalCashCounted <= 0) {
+  toast.error("Please enter your actual cash counted before closing the shift.");
+  return;
+}
+if (
+  cashSales > 0 &&
+  Number(totalCashCounted) > Number(expectedClosingCash)
+) {
+  toast.error("Actual cash cannot be greater than expected cash.");
+  return;
+}
+
+  const payload = {
+    companyId: defaultSelected?._id,
+    sessionStart,
+    openingCash,
+    cashSales,
+    cardSales,
+    upiSales,
+    expectedClosingCash,
+    actualCashCounted:  Number(totalCashCounted),
+    cashDenomination: {
+      denominations: denoms,
+      totalCash: totalCashCounted,
+    },
+  };
+
+  try {
+    await api.closeShiftApi(payload);
+
+    toast.success("Shift closed successfully");
 
     resetSession();
     localStorage.removeItem("posSessionActive");
     window.dispatchEvent(new Event("pos-session-ended"));
     onClose();
-  };
-
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to close shift");
+  }
+};
 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent
-        className="custom-dialog-container !p-0 max-w-[900px] w-full overflow-hidden rounded-2xl"
-      >
+      <DialogContent className="custom-dialog-container !p-0 max-w-[900px] w-full overflow-hidden rounded-2xl">
 
         {/* HEADER */}
         <div className="bg-green-600 text-white px-6 py-4 rounded-t-xl">
@@ -124,17 +160,17 @@ export default function ShiftEndModal({ isOpen, onClose, defaultSelected }) {
 
           <div className="flex justify-between py-1">
             <span>Opening Cash</span>
-            <span>{currency}{openingCash}</span>
+            <span>{currency}{formatAmount(openingCash)}</span>
           </div>
 
           <div className="flex justify-between py-1">
             <span>+ Cash Sales</span>
-            <span>{currency}{cashSales}</span>
+            <span>{currency}{formatAmount(cashSales)}</span>
           </div>
 
           <div className="border-t mt-2 pt-2 flex justify-between font-bold text-green-700 text-xl">
             <span>Expected Closing Cash</span>
-            <span>{currency}{expectedClosingCash}</span>
+            <span>{currency}{formatAmount(expectedClosingCash)}</span>
           </div>
         </div>
 
@@ -142,11 +178,11 @@ export default function ShiftEndModal({ isOpen, onClose, defaultSelected }) {
         <div className="bg-blue-50 rounded-xl p-6 mt-6 mx-6">
           <p className="font-bold">Digital Payments</p>
           <p className="text-md mt-1">
-            Card + UPI Total: {currency}{cardSales + upiSales}
+            Card + UPI Total: {currency}{formatAmount(cardSales + upiSales)}
           </p>
         </div>
 
-        {/* DENOMINATION ENTRY */}
+        {/* DENOMINATION */}
         <div className="mx-6 mt-8">
           <h3 className="font-bold text-lg mb-3">{currency} Cash Denomination Breakup</h3>
 
@@ -156,48 +192,44 @@ export default function ShiftEndModal({ isOpen, onClose, defaultSelected }) {
                 key={note}
                 className={`${colorMap[note]} p-4 rounded-2xl shadow border text-center`}
               >
-                <p className="text-lg font-semibold text-gray-800">
-                  {currency}{note}
-                </p>
+                <p className="text-lg font-semibold">{currency}{note}</p>
 
                 <input
                   type="number"
                   min="0"
-                  className="w-full border rounded-lg mt-3 py-1.5 text-center bg-white text-gray-800 outline-none"
+                  className="w-full border rounded-lg mt-3 py-1.5 text-center bg-white outline-none"
                   value={denoms[note]}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setDenoms({ ...denoms, [note]: val < 0 ? 0 : val });
-                  }}
+                  onChange={(e) =>
+                    setDenoms({ ...denoms, [note]: Math.max(0, Number(e.target.value)) })
+                  }
                 />
 
-
-                <p className="mt-2 text-sm font-medium text-gray-700">
-                  = {currency}{Number(note) * Number(denoms[note])}
+                <p className="mt-2 text-sm font-medium">
+                  = {currency}{formatAmount(Number(note) * Number(denoms[note]))}
                 </p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* TOTAL SUMMARY */}
+        {/* TOTAL */}
         <div className="mx-6 mt-6 p-6 rounded-2xl border shadow-sm bg-white">
           <div className="flex justify-between text-lg">
-            <span className="font-medium text-gray-700">Expected Cash</span>
+            <span className="font-medium">Expected Cash</span>
             <span className="font-bold text-blue-600">
-              {currency}{expectedClosingCash}
+              {currency}{formatAmount(expectedClosingCash)}
             </span>
           </div>
 
           <div className="flex justify-between mt-3 text-lg">
-            <span className="font-medium text-gray-700">Actual Cash Counted</span>
+            <span className="font-medium">Actual Cash Counted</span>
             <span className="font-bold text-green-600">
-              {currency}{totalCashCounted}
+              {currency}{formatAmount(totalCashCounted)}
             </span>
           </div>
         </div>
 
-        {/* FOOTER BUTTONS */}
+        {/* FOOTER */}
         <div className="flex gap-4 p-6">
           <button className="bg-blue-600 text-white w-full py-3 rounded-lg cursor-pointer">
             Print Report
@@ -210,16 +242,22 @@ export default function ShiftEndModal({ isOpen, onClose, defaultSelected }) {
             Close Shift & Logout
           </button>
         </div>
+
       </DialogContent>
     </Dialog>
   );
 }
 
+/* -----------------------------
+   SUMMARY BOX
+----------------------------- */
 function SummaryBox({ title, value, color, currency }) {
   return (
     <div className={`${color} p-4 rounded-xl text-center shadow`}>
       <p className="text-sm opacity-70">{title}</p>
-      <p className="text-xl font-bold">{currency}{value || 0}</p>
+      <p className="text-xl font-bold">
+        {currency}{formatAmount(value)}
+      </p>
     </div>
   );
 }

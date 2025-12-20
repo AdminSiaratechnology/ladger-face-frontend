@@ -18,6 +18,7 @@ apiClient.interceptors.request.use((config) => {
       config.headers = {
         ...config.headers,
         Authorization: `Bearer ${token}`,
+        // "auth-source": "Api"
       };
     }
   }
@@ -29,11 +30,17 @@ apiClient.interceptors.response.use(
   async (error) => {
     const msg = error?.response?.data?.message;
 
+        const authStore = useAuthStore.getState();
     if (error.response?.status === 401 && msg?.includes("another device")) {
-      const authStore = useAuthStore.getState();
+  
 
       authStore.setNewDeviceLogin(true);
     }
+   if(error.response?.status === 401){
+     authStore.logout() 
+
+
+   }
     return Promise.reject(error);
   }
 );
@@ -969,8 +976,18 @@ export const getCompanyPosReport = async (params) => {
   }
 };
 
+const getBogoCoupons = (companyId) => {
+  return apiClient.get(`/coupons/bogo/${companyId}`);
+};
+
+ const closeShiftApi = (payload: any) => {
+  console.log(payload ,"this is payload");
+  return apiClient.post("shift/close", payload);
+};
 // Export API
 const api = {
+  closeShiftApi,
+  getBogoCoupons,
   getCompanyPosReport,
  PosBillToServer, 
   createCompany,

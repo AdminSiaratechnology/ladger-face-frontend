@@ -22,11 +22,21 @@ const CustomerWiseReportPage = () => {
   const companyId = defaultSelected?._id;
 
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+  const [openFilter, setOpenFilter] = useState(false);
+  const [filterCount, setFilterCount] = useState(0);
 
   // Date Logic
   const today = new Date();
-  const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  const [localDateRange, setLocalDateRange] = useState<{ from?: Date; to?: Date }>({
+  const firstDayLastMonth = new Date(
+    today.getFullYear(),
+    today.getMonth() - 1,
+    1
+  );
+
+  const [localDateRange, setLocalDateRange] = useState<{
+    from?: Date;
+    to?: Date;
+  }>({
     from: firstDayLastMonth,
     to: today,
   });
@@ -98,7 +108,19 @@ const CustomerWiseReportPage = () => {
     setFilter("endDate", undefined);
   }, [setFilter]);
 
-  const handleClearAll = useCallback(() => {
+  // ---------------------------
+  // APPLY FILTERS (MODAL)
+  // ---------------------------
+  const handleApplyFilters = () => {
+    applyDateRange();
+    setFilter("page", 1);
+    setOpenFilter(false);
+  };
+
+  // ---------------------------
+  // CLEAR ALL
+  // ---------------------------
+  const handleClearAll = () => {
     setLocalDateRange({});
     resetFilters();
     setLocalFilters({
@@ -150,7 +172,16 @@ const CustomerWiseReportPage = () => {
     ];
   }, [stats, isCustomerSelectedInStore]);
 
-  const headers = ["Date", "Customer", "Salesman", "Type", "Bill Amount", "Deposit Amount", "Status", "Remarks"];
+  const headers = [
+    "Date",
+    "Customer",
+    "Salesman",
+    "Type",
+    "Bill Amount",
+    "Deposit Amount",
+    "Status",
+    "Remarks",
+  ];
 
   const TableView = useMemo(() => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -204,49 +235,46 @@ const CustomerWiseReportPage = () => {
           </tbody>
         </table>
       </div>
-    </div>
-  ), [transactions]);
+    ),
+    [transactions]
+  );
 
-  const CardView = useMemo(() => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {transactions.map((t) => (
-        <Card key={t._id} className="hover:shadow-xl transition-shadow">
-          <CardHeader className="pb-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium">{format(new Date(t.date), "dd MMM yyyy, hh:mm a")}</p>
-                <p className="text-xs text-gray-500">{t.customerName}</p>
-              </div>
-              <Badge variant={t.type === "Order" ? "destructive" : "default"} className="capitalize">
-                {t.type}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {t.orderAmount !== null && (
+  // ---------------------------
+  // CARD VIEW
+  // ---------------------------
+  const CardView = useMemo(
+    () => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {transactions.map((t: any) => (
+          <Card key={t._id}>
+            <CardHeader>
+              <p className="text-sm font-medium">
+                {format(new Date(t.date), "dd MMM yyyy, hh:mm a")}
+              </p>
+              <p className="text-xs text-gray-500">{t.customerName}</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Bill Amount</span>
-                  <span className="font-bold text-red-600">₹{t.orderAmount.toLocaleString()}</span>
+                  <span>Bill</span>
+                  <span className="text-red-600">
+                    ₹{t.orderAmount?.toLocaleString() || "-"}
+                  </span>
                 </div>
-              )}
-              {t.paymentAmount !== null && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Deposit Amount</span>
-                  <span className="font-bold text-green-600">₹{t.paymentAmount.toLocaleString()}</span>
+                  <span>Paid</span>
+                  <span className="text-green-600">
+                    ₹{t.paymentAmount?.toLocaleString() || "-"}
+                  </span>
                 </div>
-              )}
-              <div className="flex justify-between text-sm">
-                <span>Salesman</span>
-                <span className="font-medium">{t.salesmanName}</span>
               </div>
-              <div className="text-xs text-gray-500 pt-2 border-t">{t.remarks}</div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  ), [transactions]);
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    ),
+    [transactions]
+  );
 
   const NoCustomerSelectedView = () => (
     <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-2xl border-2 border-dashed border-gray-200">

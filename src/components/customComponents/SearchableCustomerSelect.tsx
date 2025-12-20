@@ -1,4 +1,3 @@
-// components/custom/SearchableCustomerSelect.tsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Command,
@@ -39,105 +38,101 @@ const SearchableCustomerSelect: React.FC<SearchableCustomerSelectProps> = ({
 
   const { defaultSelected } = useCompanyStore();
   const finalCompanyId = propCompanyId || defaultSelected?._id;
-  console.log(finalCompanyId,"finalCompanyId")
 
-  const { customers, loading, fetchCustomers,filterCustomers } = useCustomerStore();
+  const { customers, loading, filterCustomers } = useCustomerStore();
 
   const loadCustomers = useCallback(async () => {
     if (!finalCompanyId) return;
 
-    try {
-    //   await fetchCustomers({
-    //     search,
-    //     companyId: finalCompanyId,
-    //     page: 1,
-    //     limit: 100,
-    //   });
-     await  filterCustomers(
-          search,
-          "",
-          "",
-          "",
-          10,
-         finalCompanyId)
-    } catch (error) {
-      console.error("Failed to load customers:", error);
-    }
-  }, [search, finalCompanyId, fetchCustomers]);
+    await filterCustomers(
+      search,
+      "",
+      "",
+      "",
+      10,
+      finalCompanyId
+    );
+  }, [search, finalCompanyId, filterCustomers]);
 
   useEffect(() => {
-    if (open && finalCompanyId) {
-      loadCustomers();
-    }
-  }, [open, finalCompanyId, loadCustomers]);
+    if (open) loadCustomers();
+  }, [open, loadCustomers]);
 
   useEffect(() => {
-    if (open && search.length >= 1) {
-      const timer = setTimeout(() => {
-        loadCustomers();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
+    if (!open) return;
+    const t = setTimeout(loadCustomers, 300);
+    return () => clearTimeout(t);
   }, [search, open, loadCustomers]);
 
   const options = useMemo(() => {
     const customerOptions = customers.map((c: any) => ({
       value: c._id,
-      label: c.contactPerson || c.name || "Unnamed Customer",
+      label: c.customerName|| c.contactPerson || c.name || "Unnamed Customer",
     }));
 
-    return [
-      { value: "all", label: "All Customers" },
-      ...customerOptions,
-    ];
+    return [{ value: "all", label: "All Customers" }, ...customerOptions];
   }, [customers]);
 
   const selectedLabel = useMemo(() => {
     if (!value || value === "all") return "All Customers";
-    const found = options.find((opt) => opt.value === value);
-    return found?.label || placeholder;
+    return options.find(o => o.value === value)?.label || placeholder;
   }, [value, options, placeholder]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen} className="w-full">
-      <PopoverTrigger >
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("w-full justify-between h-11 font-normal", className)}
-        >
-          <div className="flex items-center gap-2 truncate">
-            <User className="h-4 w-4 shrink-0 opacity-60" />
-            <span className="truncate">{selectedLabel}</span>
-          </div>
-          {loading ? (
-            // <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-            <></>
-          ) : (
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          )}
-        </Button>
+    <Popover open={open} onOpenChange={setOpen}>
+      {/* ✅ STABLE FULL-WIDTH TRIGGER */}
+      <PopoverTrigger asChild>
+        <div className="w-full">
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className={cn(
+              "w-full h-11 justify-between font-normal",
+              className
+            )}
+          >
+            <div className="flex items-center gap-2 truncate">
+              <User className="h-4 w-4 shrink-0 opacity-60" />
+              <span className="truncate">{selectedLabel}</span>
+            </div>
+
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin opacity-60" />
+            ) : (
+              <ChevronsUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </Button>
+        </div>
       </PopoverTrigger>
 
-      <PopoverContent className="w-full p-0" align="start">
+      {/* ✅ DROPDOWN WIDTH = TRIGGER WIDTH */}
+      <PopoverContent
+       align="start"
+  sideOffset={4}
+  className="p-0"
+  style={{
+    width: "var(--radix-popover-trigger-width)",
+  }}
+      >
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Search customer..."
             value={search}
             onValueChange={setSearch}
           />
+
           <CommandList>
             {loading ? (
-              <CommandEmpty className="py-6 text-center text-sm">
+              <CommandEmpty className="py-6 text-center">
                 <Loader2 className="mx-auto h-4 w-4 animate-spin" />
-                Loading customers...
               </CommandEmpty>
             ) : options.length === 0 ? (
               <CommandEmpty>No customer found.</CommandEmpty>
             ) : (
               <CommandGroup>
-                {options.map((option) => (
+                {options.map(option => (
                   <CommandItem
                     key={option.value}
                     value={option.label}

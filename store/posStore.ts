@@ -1,6 +1,5 @@
 import { create } from "zustand";
-import { getCompanyPosReport} from  "../src/api/api";
-
+import { getCompanyPosReport } from "../src/api/api";
 
 export const usePosStore = create((set, get) => ({
   // =================================================
@@ -65,7 +64,9 @@ export const usePosStore = create((set, get) => ({
     set({ sessionStart: now });
   },
 
-  
+  // =================================================
+  // SESSION SALES (LOCAL)
+  // =================================================
   sessionSales: JSON.parse(localStorage.getItem("sessionSales") || "[]"),
 
   addSale: (sale) => {
@@ -106,7 +107,7 @@ export const usePosStore = create((set, get) => ({
   },
 
   // =================================================
-  // RESET SESSION (SHIFT END)
+  // RESET SESSION
   // =================================================
   resetSession: () => {
     localStorage.removeItem("drawerCash");
@@ -164,26 +165,92 @@ export const usePosStore = create((set, get) => ({
   setBatchProduct: (p) => set({ batchProduct: p }),
 
   // =================================================
-  // 🔥 BACKEND POS REPORT (NEW – COMPANY WISE)
+  // 🔥 BACKEND POS REPORT (COMPANY WISE)
   // =================================================
   posReportData: [],
   posReportStats: null,
   posReportLoading: false,
 
+  // ✅ NEW: PAGINATION STATE
+  posReportPagination: {
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  },
+  // =================================================
+  // CART ACTIONS (QTY + REMOVE)
+  // =================================================
+  increaseQty: (item) => {
+    const cart = get().cart;
+
+    const updated = cart.map((p) =>
+      p.cartId === item.cartId
+        ? { ...p, qty: p.qty + 1 }
+        : p
+    );
+
+    set({ cart: updated });
+  },
+
+  decreaseQty: (item) => {
+    const cart = get().cart;
+
+    let updated = cart
+      .map((p) =>
+        p.cartId === item.cartId
+          ? { ...p, qty: p.qty - 1 }
+          : p
+      )
+      .filter((p) => p.qty > 0);
+
+    // 🔥 BOGO FIX: buy remove → free remove
+    if (!item.isFreeItem) {
+      updated = updated.filter(
+        (p) => p.bogoParentId !== item._id
+      );
+    }
+
+    set({ cart: updated });
+  },
+
+  removeItem: (item) => {
+    let updated = get().cart.filter(
+      (p) => p.cartId !== item.cartId
+    );
+
+    // 🔥 BOGO FIX
+    if (!item.isFreeItem) {
+      updated = updated.filter(
+        (p) => p.bogoParentId !== item._id
+      );
+    }
+
+    set({ cart: updated });
+  },
+
+
+  // ✅ UPDATED FETCH (pagination wired)
   fetchCompanyPosReport: async (params) => {
-  set({ posReportLoading: true });
+    set({ posReportLoading: true });
 
-  try {
-    const data = await getCompanyPosReport(params);
+    try {
+      const res = await getCompanyPosReport(params);
 
-    set({
-      posReportData: data.data || [],
-      posReportStats: data.stats || null,
-      posReportLoading: false,
-    });
-  } catch (e) {
-    console.error("POS REPORT FETCH ERROR:", e);
-    set({ posReportLoading: false });
-  }
-},
+      set({
+        posReportData: res.data || [],
+        posReportStats: res.stats || null,
+        posReportPagination: res.pagination || {
+          total: 0,
+          page: 1,
+          limit: params.limit || 10,
+          totalPages: 1,
+        },
+        posReportLoading: false,
+      });
+    } catch (e) {
+      console.error("POS REPORT FETCH ERROR:", e);
+      set({ posReportLoading: false });
+    }
+  },
 }));
