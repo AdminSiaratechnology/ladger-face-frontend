@@ -1,8 +1,6 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Badge } from "../ui/badge";
+import { Dialog, DialogContent } from "../ui/dialog";
 import { toast } from "sonner";
 import {
   Users,
@@ -11,23 +9,11 @@ import {
   Settings2,
   Star,
   Edit,
-  Trash2,
-  MoreHorizontal,
-  Eye,
-  Table,
-  Grid3X3,
   Phone,
-  Mail,
-  MapPin,
   CreditCard,
-  Globe,
   Plus,
   Upload,
   X,
-  ChevronLeft,
-  ChevronRight,
-  Shield,
-  AlertCircle,
   UserCheck,
   Target,
 } from "lucide-react";
@@ -38,15 +24,14 @@ import CustomInputBox from "../customComponents/CustomInputBox";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
 import { CheckAccess } from "../customComponents/CheckAccess";
-import ActionsDropdown from "../customComponents/ActionsDropdown";
+
 import { TableViewSkeleton } from "../customComponents/TableViewSkeleton";
 import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 import CustomStepNavigation from "../customComponents/CustomStepNavigation";
 import MultiStepNav from "../customComponents/MultiStepNav";
 import PaginationControls from "../customComponents/CustomPaginationControls";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
-import TableHeader from "../customComponents/CustomTableHeader";
-import SectionHeader from "../customComponents/SectionHeader";
+
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
@@ -54,6 +39,11 @@ import UniversalDetailsModal from "../customComponents/UniversalDetailsModal";
 import imageCompression from "browser-image-compression";
 import { getCurrency } from "@/lib/getCurrency";
 import { currencies } from "@/lib/currency";
+import CommonTable from "../TableView/CommonTable";
+import CommonCard from "../CardViews/CommonCard";
+import CommonStats from "../customComponents/CommonStats";
+import  type {Bank,RegistrationDocument,Ledger,LedgerForm} from "@/types/ledgerRegistration";
+
 
 // Step icons for multi-step navigation
 const stepIcons = {
@@ -64,139 +54,6 @@ const stepIcons = {
   settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />,
 };
 
-// Interfaces
-interface Bank {
-  id: number;
-  accountHolderName: string;
-  accountNumber: string;
-  ifscCode: string;
-  swiftCode: string;
-  micrNumber: string;
-  bankName: string;
-  branch: string;
-}
-
-interface RegistrationDocument {
-  id: number;
-  type: string;
-  file: File;
-  previewUrl: string;
-  fileName: string;
-}
-
-interface Ledger {
-  id: number;
-  _id?: string;
-  ledgerType: string;
-  ledgerCode: string;
-  ledgerName: string;
-  shortName: string;
-  companyID: string;
-  ledgerGroup: string;
-  industryType: string;
-  territory: string;
-  ledgerStatus: string;
-  status: string;
-  companySize: string;
-  contactPerson: string;
-  designation: string;
-  phoneNumber: string;
-  mobileNumber: string;
-  emailAddress: string;
-  faxNumber: string;
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  website: string;
-  currency: string;
-  taxId: string;
-  vatNumber: string;
-  gstNumber: string;
-  panNumber: string;
-  tanNumber: string;
-  taxCategory: string;
-  taxTemplate: string;
-  withholdingTaxCategory: string;
-  isTaxExempt: boolean;
-  reverseCharge: boolean;
-  isFrozenAccount: boolean;
-  disabled: boolean;
-  bankName: string;
-  branchName: string;
-  accountNumber: string;
-  accountHolderName: string;
-  ifscCode: string;
-  swiftCode: string;
-  banks: Bank[];
-  externalSystemId: string;
-  dataSource: string;
-  ledgerPriority: string;
-  leadSource: string;
-  internalNotes: string;
-  logo: string | null;
-  notes: string;
-  createdAt: string;
-  registrationDocs: RegistrationDocument[];
-}
-
-interface LedgerForm {
-  ledgerType: string;
-  ledgerCode: string;
-  ledgerName: string;
-  shortName: string;
-  companyID: string;
-  ledgerGroup: string;
-  industryType: string;
-  territory: string;
-  ledgerStatus: string;
-  status: string;
-  companySize: string;
-  contactPerson: string;
-  designation: string;
-  phoneNumber: string;
-  mobileNumber: string;
-  emailAddress: string;
-  faxNumber: string;
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  website: string;
-  currency: string;
-  taxId: string;
-  vatNumber: string;
-  gstNumber: string;
-  panNumber: string;
-  tanNumber: string;
-  taxCategory: string;
-  taxTemplate: string;
-  withholdingTaxCategory: string;
-  isTaxExempt: boolean;
-  reverseCharge: boolean;
-  isFrozenAccount: boolean;
-  disabled: boolean;
-  bankName: string;
-  branchName: string;
-  accountNumber: string;
-  accountHolderName: string;
-  ifscCode: string;
-  swiftCode: string;
-  banks: Bank[];
-  externalSystemId: string;
-  dataSource: string;
-  ledgerPriority: string;
-  leadSource: string;
-  internalNotes: string;
-  logoFile?: File;
-  logoPreviewUrl?: string;
-  notes: string;
-  registrationDocs: RegistrationDocument[];
-}
 
 const compressionOptions = {
   maxSizeMB: 1, // Max file size after compression_
@@ -325,12 +182,12 @@ const LedgerRegistration: React.FC = () => {
   ]);
 
   const [formData, setFormData] = useState<LedgerForm>({
-    ledgerType: "individual",
-    ledgerCode: "",
-    ledgerName: "",
+    type: "individual",
+    code: "",
+    name: "",
     shortName: "",
-    companyID: "",
-    ledgerGroup: "",
+    companyId: "",
+    group: "",
     industryType: "",
     territory: "",
     ledgerStatus: "active",
@@ -380,7 +237,7 @@ const LedgerRegistration: React.FC = () => {
   });
   useEffect(() => {
     if (defaultSelected) {
-      setFormData((prev) => ({ ...prev, companyID: defaultSelected?._id }));
+      setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
     }
   }, [defaultSelected, companies]);
   // Country, State, City Data
@@ -674,12 +531,12 @@ const LedgerRegistration: React.FC = () => {
   const resetForm = () => {
     cleanupImageUrls();
     setFormData({
-      ledgerType: "individual",
-      ledgerCode: "",
-      ledgerName: "",
+      type: "individual",
+      code: "",
+      name: "",
       shortName: "",
-      companyID: "",
-      ledgerGroup: "",
+      companyId: "",
+      group: "",
       industryType: "",
       territory: "",
       ledgerStatus: "active",
@@ -763,7 +620,7 @@ const LedgerRegistration: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    if (!formData.ledgerName.trim()) {
+    if (!formData.name.trim()) {
       toast.error("Please enter Ledger Name");
       return;
     }
@@ -833,6 +690,8 @@ const LedgerRegistration: React.FC = () => {
         id: editingLedger._id || "",
         ledger: ledgerFormData,
       });
+      
+      fetchLedgers(currentPage, limit, defaultSelected?._id);
     } else {
       await addLedger(ledgerFormData);
       fetchLedgers(currentPage, limit, defaultSelected?._id);
@@ -859,242 +718,235 @@ const LedgerRegistration: React.FC = () => {
     { id: "bank", label: "Banking Details" },
     { id: "settings", label: "Settings" },
   ];
-  const headers = ["Ledger", "Contact", "Address", "Status", "Actions"];
-  const TableView = () => (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <TableHeader headers={headers} />
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredLedgers.map((ledger) => (
-              <tr
-                key={ledger._id}
-                className="hover:bg-gray-50 transition-colors duration-200"
-              >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <UserCheck className="h-10 w-10 text-teal-600 mr-3" />
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {ledger.ledgerName}
-                      </div>
-                      <div className="text-sm text-teal-600">
-                        {ledger.ledgerCode}
-                      </div>
-                      {ledger.shortName && (
-                        <div className="text-xs text-gray-500">
-                          Short: {ledger.shortName}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 space-y-1">
-                    <div className="flex items-center">
-                      <Mail className="w-3 h-3 text-gray-400 mr-2" />
-                      <span className="truncate max-w-48">
-                        {ledger.emailAddress}
-                      </span>
-                    </div>
-                    {ledger.mobileNumber && (
-                      <div className="flex items-center">
-                        <Phone className="w-3 h-3 text-gray-400 mr-2" />
-                        <span>{ledger.mobileNumber}</span>
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 space-y-1">
-                    <div className="flex items-center">
-                      <MapPin className="w-3 h-3 text-gray-400 mr-2" />
-                      <span>
-                        {[ledger.city, ledger.state].filter(Boolean).join(", ")}
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-500 truncate max-w-48">
-                      {ledger.addressLine1}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge
-                    className={`${
-                      ledger.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-700"
-                    } hover:bg-current`}
-                  >
-                    {ledger.status}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <ActionsDropdown
-                    onView={() => handleViewLedger(ledger)}
-                    onEdit={() => handleEditLedger(ledger)}
-                    onDelete={() => handleDeleteLedger(ledger._id || "")}
-                    module="BusinessManagement"
-                    subModule="Ledger"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+  const ledgerStats: StatItem[] = useMemo(() => [
+    {
+      title: "Total Ledgers",
+      value: counts?.activeLedgers + (pagination?.total || 0), // Adjust logic based on your actual total count logic
+      icon: UserCheck,
+      variant: "teal",
+    },
+    {
+      title: "Active Ledgers",
+      value: counts?.activeLedgers,
+      variant: "blue",
+      showPulse: true, // 👈 Shows the blue pulsing dot
+    },
+    {
+      title: "GST Registered",
+      value: counts?.gstRegistered,
+      icon: FileText,
+      variant: "green",
+    },
+    {
+      title: "MSME Registered",
+      value: counts?.msmeRegistered,
+      icon: Target,
+      variant: "purple",
+    },
+    {
+      title: "VAT Registered",
+      value: counts?.vatRegistered,
+      icon: Star,
+      variant: "orange",
+    },
+  ], [counts, pagination]);
+  const tableActions = useMemo(
+    () => ({
+      onView: (ledger: Ledger) => handleViewLedger(ledger),
+      onEdit: (ledger: Ledger) => handleEditLedger(ledger),
+      onDelete: (id: string) => handleDeleteLedger(id),
+    }),
+    []
   );
 
-  const CardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-      {filteredLedgers.map((ledger: Ledger) => (
-        <Card
-          key={ledger._id}
-          className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group"
-        >
-          <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center">
-                {ledger.logo && (
-                  <img
-                    src={ledger.logo}
-                    alt="Ledger Logo"
-                    className="w-10 h-10 rounded-full mr-3 object-cover"
-                  />
-                )}
-                <div>
-                  <CardTitle className="text-xl font-bold text-gray-800 mb-1">
-                    {ledger.ledgerName}
-                  </CardTitle>
-                  {ledger.shortName && (
-                    <p className="text-teal-600 font-medium">
-                      {ledger.shortName}
-                    </p>
-                  )}
-                  <p className="text-sm text-gray-500">{ledger.ledgerCode}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  className={`${
-                    ledger.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-700"
-                  } hover:bg-current`}
-                >
-                  {ledger.status}
-                </Badge>
-                <ActionsDropdown
-                  onEdit={() => handleEditLedger(ledger)}
-                  onDelete={() => handleDeleteLedger(ledger._id || "")}
-                  module="BusinessManagement"
-                  subModule="Ledger"
-                />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <div className="space-y-3">
-              {ledger.contactPerson && (
-                <div className="flex items-center text-sm">
-                  <Users className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">{ledger.contactPerson}</span>
-                </div>
-              )}
-              {(ledger.city || ledger.state || ledger.zipCode) && (
-                <div className="flex items-center text-sm">
-                  <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">
-                    {[ledger.city, ledger.state, ledger.zipCode]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                </div>
-              )}
-              {ledger.mobileNumber && (
-                <div className="flex items-center text-sm">
-                  <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-600">{ledger.mobileNumber}</span>
-                </div>
-              )}
-              <div className="flex items-center text-sm">
-                <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600 truncate">
-                  {ledger.emailAddress}
-                </span>
-              </div>
-              {ledger.website && (
-                <div className="flex items-center text-sm">
-                  <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                  <span className="text-teal-600 truncate">
-                    {ledger.website}
-                  </span>
-                </div>
-              )}
-            </div>
-            {ledger.banks.length > 0 && (
-              <div className="pt-3 border-t border-gray-100">
-                <p className="text-xs font-medium text-gray-500 mb-2">
-                  Bank Accounts
-                </p>
-                <div className="space-y-2">
-                  {ledger.banks.slice(0, 2).map((bank) => (
-                    <div
-                      key={bank.id}
-                      className="text-xs bg-gray-100 p-2 rounded"
-                    >
-                      <p className="font-medium truncate">{bank.bankName}</p>
-                      <p className="text-gray-600 truncate">
-                        A/C: ••••{bank.accountNumber.slice(-4)}
-                      </p>
-                    </div>
-                  ))}
-                  {ledger.banks.length > 2 && (
-                    <p className="text-xs text-gray-500">
-                      +{ledger.banks.length - 2} more
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-            {(ledger.gstNumber || ledger.panNumber) && (
-              <div className="pt-3 border-t border-gray-100 space-y-2">
-                {ledger.gstNumber && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">
-                      GST
-                    </span>
-                    <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
-                      {ledger.gstNumber}
-                    </span>
-                  </div>
-                )}
-                {ledger.panNumber && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-500">
-                      PAN
-                    </span>
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
-                      {ledger.panNumber}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="pt-3 border-t border-gray-100">
-              <div className="flex items-center text-sm">
-                <FileText className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                <span className="text-gray-600">
-                  Created: {new Date(ledger.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+
+  const headers = ["Ledger", "Contact", "Address", "Status", "Actions"];
+  const TableView = () => (
+  <CommonTable<Ledger>
+              headers={headers}
+              data={filteredLedgers}
+              actions={tableActions}
+              module="BusinessManagement"
+              subModule="Ledger"
+            />
+
   );
+  const renderLedgerBottom = useCallback((ledger: Ledger) => (
+    <>
+      {ledger.gstNumber && (
+        <div className="flex justify-between items-center">
+          <span className="text-xs font-medium text-gray-500">GST</span>
+          <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
+            {ledger.gstNumber}
+          </span>
+        </div>
+      )}
+       <div className="flex items-center text-sm mt-2">
+          <CreditCard className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+          <span className="text-gray-600">{ledger.currency}</span>
+       </div>
+    </>
+  ), []);
+
+  const CardView = () => (
+    <CommonCard<Ledger>
+      data={filteredLedgers}
+      actions={tableActions}
+      module="BusinessManagement"
+      subModule="Ledger"
+      renderBottomSection={renderLedgerBottom}
+    />
+  );
+
+  // const CardView = () => (
+  //   <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+  //     {filteredLedgers.map((ledger: Ledger) => (
+  //       <Card
+  //         key={ledger._id}
+  //         className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden group"
+  //       >
+  //         <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100 pb-4">
+  //           <div className="flex items-start justify-between">
+  //             <div className="flex items-center">
+  //               {ledger.logo && (
+  //                 <img
+  //                   src={ledger.logo}
+  //                   alt="Ledger Logo"
+  //                   className="w-10 h-10 rounded-full mr-3 object-cover"
+  //                 />
+  //               )}
+  //               <div>
+  //                 <CardTitle className="text-xl font-bold text-gray-800 mb-1">
+  //                   {ledger.name}
+  //                 </CardTitle>
+  //                 {ledger.shortName && (
+  //                   <p className="text-teal-600 font-medium">
+  //                     {ledger.shortName}
+  //                   </p>
+  //                 )}
+  //                 <p className="text-sm text-gray-500">{ledger.code}</p>
+  //               </div>
+  //             </div>
+  //             <div className="flex items-center gap-2">
+  //               <Badge
+  //                 className={`${
+  //                   ledger.status === "active"
+  //                     ? "bg-green-100 text-green-700"
+  //                     : "bg-gray-100 text-gray-700"
+  //                 } hover:bg-current`}
+  //               >
+  //                 {ledger.status}
+  //               </Badge>
+  //               <ActionsDropdown
+  //                 onEdit={() => handleEditLedger(ledger)}
+  //                 onDelete={() => handleDeleteLedger(ledger._id || "")}
+  //                 module="BusinessManagement"
+  //                 subModule="Ledger"
+  //               />
+  //             </div>
+  //           </div>
+  //         </CardHeader>
+  //         <CardContent className="p-6 space-y-4">
+  //           <div className="space-y-3">
+  //             {ledger.contactPerson && (
+  //               <div className="flex items-center text-sm">
+  //                 <Users className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+  //                 <span className="text-gray-600">{ledger.contactPerson}</span>
+  //               </div>
+  //             )}
+  //             {(ledger.city || ledger.state || ledger.zipCode) && (
+  //               <div className="flex items-center text-sm">
+  //                 <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+  //                 <span className="text-gray-600">
+  //                   {[ledger.city, ledger.state, ledger.zipCode]
+  //                     .filter(Boolean)
+  //                     .join(", ")}
+  //                 </span>
+  //               </div>
+  //             )}
+  //             {ledger.mobileNumber && (
+  //               <div className="flex items-center text-sm">
+  //                 <Phone className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+  //                 <span className="text-gray-600">{ledger.mobileNumber}</span>
+  //               </div>
+  //             )}
+  //             <div className="flex items-center text-sm">
+  //               <Mail className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+  //               <span className="text-gray-600 truncate">
+  //                 {ledger.emailAddress}
+  //               </span>
+  //             </div>
+  //             {ledger.website && (
+  //               <div className="flex items-center text-sm">
+  //                 <Globe className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+  //                 <span className="text-teal-600 truncate">
+  //                   {ledger.website}
+  //                 </span>
+  //               </div>
+  //             )}
+  //           </div>
+  //           {ledger.banks.length > 0 && (
+  //             <div className="pt-3 border-t border-gray-100">
+  //               <p className="text-xs font-medium text-gray-500 mb-2">
+  //                 Bank Accounts
+  //               </p>
+  //               <div className="space-y-2">
+  //                 {ledger.banks.slice(0, 2).map((bank) => (
+  //                   <div
+  //                     key={bank.id}
+  //                     className="text-xs bg-gray-100 p-2 rounded"
+  //                   >
+  //                     <p className="font-medium truncate">{bank.bankName}</p>
+  //                     <p className="text-gray-600 truncate">
+  //                       A/C: ••••{bank.accountNumber.slice(-4)}
+  //                     </p>
+  //                   </div>
+  //                 ))}
+  //                 {ledger.banks.length > 2 && (
+  //                   <p className="text-xs text-gray-500">
+  //                     +{ledger.banks.length - 2} more
+  //                   </p>
+  //                 )}
+  //               </div>
+  //             </div>
+  //           )}
+  //           {(ledger.gstNumber || ledger.panNumber) && (
+  //             <div className="pt-3 border-t border-gray-100 space-y-2">
+  //               {ledger.gstNumber && (
+  //                 <div className="flex justify-between items-center">
+  //                   <span className="text-xs font-medium text-gray-500">
+  //                     GST
+  //                   </span>
+  //                   <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
+  //                     {ledger.gstNumber}
+  //                   </span>
+  //                 </div>
+  //               )}
+  //               {ledger.panNumber && (
+  //                 <div className="flex justify-between items-center">
+  //                   <span className="text-xs font-medium text-gray-500">
+  //                     PAN
+  //                   </span>
+  //                   <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
+  //                     {ledger.panNumber}
+  //                   </span>
+  //                 </div>
+  //               )}
+  //             </div>
+  //           )}
+  //           <div className="pt-3 border-t border-gray-100">
+  //             <div className="flex items-center text-sm">
+  //               <FileText className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+  //               <span className="text-gray-600">
+  //                 Created: {new Date(ledger.createdAt).toLocaleDateString()}
+  //               </span>
+  //             </div>
+  //           </div>
+  //         </CardContent>
+  //       </Card>
+  //     ))}
+  //   </div>
+  // );
   useEffect(() => {
     return () => {
       initialLoading();
@@ -1119,7 +971,7 @@ const LedgerRegistration: React.FC = () => {
               if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
-                  companyID: defaultSelected?._id,
+                  companyId: defaultSelected?._id,
                 }));
               }
               setOpen(true);
@@ -1132,73 +984,11 @@ const LedgerRegistration: React.FC = () => {
         </CheckAccess>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-teal-100 text-sm font-medium">
-                  Total Ledgers
-                </p>
-                <p className="text-2xl font-bold">{stats.totalLedgers}</p>
-              </div>
-              <UserCheck className="w-6 h-6 text-teal-200" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm font-medium">
-                  Active Ledgers
-                </p>
-                <p className="text-2xl font-bold">{stats.activeLedgers}</p>
-              </div>
-              <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm font-medium">
-                  GST Registered
-                </p>
-                <p className="text-2xl font-bold">{stats.gstRegistered}</p>
-              </div>
-              <FileText className="w-6 h-6 text-green-200" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium">
-                  MSME Registered
-                </p>
-                <p className="text-2xl font-bold">{stats.msmeRegistered}</p>
-              </div>
-              <Target className="w-6 h-6 text-purple-200" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm font-medium">
-                  VAT Registered
-                </p>
-                <p className="text-3xl font-bold">{stats?.vatRegistered}</p>
-              </div>
-              <Star className="w-8 h-8 text-green-200" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <CommonStats 
+         stats={ledgerStats} 
+         columns={5} 
+         loading={loading} 
+      />
 
       <FilterBar
         searchTerm={searchTerm}
@@ -1276,7 +1066,7 @@ const LedgerRegistration: React.FC = () => {
                 setActiveTab(nextTab);
               }
               if (activeTab === "basic") {
-                if (!formData.ledgerName) {
+                if (!formData.name) {
                   toast.error("Please fill in the required fields.");
                   return;
                 }
@@ -1306,7 +1096,7 @@ const LedgerRegistration: React.FC = () => {
                   toast.error("Please enter a valid email address");
                   return;
                 }
-                if (!formData.ledgerName) {
+                if (!formData.name) {
                   toast.error("Agent Name is required");
                   return;
                 }
@@ -1326,9 +1116,9 @@ const LedgerRegistration: React.FC = () => {
                       Ledger Type <span className="text-red-500">*</span>
                     </label>
                     <select
-                      value={formData.ledgerType}
+                      value={formData.type}
                       onChange={(e) =>
-                        handleSelectChange("ledgerType", e.target.value)
+                        handleSelectChange("type", e.target.value)
                       }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
@@ -1346,8 +1136,8 @@ const LedgerRegistration: React.FC = () => {
                   <CustomInputBox
                     label="Ledger Name"
                     placeholder="e.g., ABC Ledger"
-                    name="ledgerName"
-                    value={formData.ledgerName}
+                    name="name"
+                    value={formData.name}
                     onChange={handleChange}
                     required={true}
                   />
@@ -1366,9 +1156,9 @@ const LedgerRegistration: React.FC = () => {
                       Ledger Group
                     </label>
                     <select
-                      value={formData.ledgerGroup}
+                      value={formData.group}
                       onChange={(e) =>
-                        handleSelectChange("ledgerGroup", e.target.value)
+                        handleSelectChange("group", e.target.value)
                       }
                       className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                     >
@@ -1461,7 +1251,7 @@ const LedgerRegistration: React.FC = () => {
                   totalSteps={5}
                   showPrevious={false}
                   onNext={() => {
-                    if (!formData.ledgerName) {
+                    if (!formData.name) {
                       toast.error("Please fill Ledger name.");
                       return;
                     }
@@ -1754,12 +1544,6 @@ const LedgerRegistration: React.FC = () => {
 
             {activeTab === "bank" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Building2 className="w-4 h-4 text-white" />}
-        title="Bank Details"
-        gradientFrom="from-purple-400"
-        gradientTo="to-purple-500"
-      /> */}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                   <CustomInputBox
@@ -1872,12 +1656,6 @@ const LedgerRegistration: React.FC = () => {
 
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                {/* <SectionHeader
-        icon={<Settings2 className="w-4 h-4 text-white" />}
-        title="Settings "
-        gradientFrom="from-cyan-400"
-        gradientTo="to-cyan-500"
-      /> */}
 
                 <div className="mb-8">
                   <h4 className="font-semibold text-gray-800 mb-4 text-lg">
@@ -2089,49 +1867,6 @@ const LedgerRegistration: React.FC = () => {
                     </select>
                   </div>
                 </div>
-
-                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="isTaxExempt"
-                      checked={formData.isTaxExempt}
-                      onChange={handleChange}
-                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
-                    />
-                    Tax Exempt
-                  </label>
-                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="reverseCharge"
-                      checked={formData.reverseCharge}
-                      onChange={handleChange}
-                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
-                    />
-                    Reverse Charge
-                  </label>
-                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="isFrozenAccount"
-                      checked={formData.isFrozenAccount}
-                      onChange={handleChange}
-                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
-                    />
-                    Frozen Account
-                  </label>
-                  <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="disabled"
-                      checked={formData.disabled}
-                      onChange={handleChange}
-                      className="mr-3 h-5 w-5 rounded border-2 border-gray-300 focus:ring-blue-500"
-                    />
-                    Disabled
-                  </label>
-                </div> */}
 
                 <div className="mb-6">
                   <p className="text-sm font-semibold text-gray-700 mb-2">

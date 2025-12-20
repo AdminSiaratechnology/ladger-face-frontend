@@ -32,13 +32,13 @@ interface Pagination {
 interface Agent {
   id: number;
   _id?: string;
-  agentType: string;
+  type: string;
   agentCode: string;
   code: string;
   companyId: string;
-  agentName: string;
+  name: string;
   shortName: string;
-  agentCategory: string;
+  group: string;
   specialty: string;
   territory: string;
   supervisor: string;
@@ -100,12 +100,12 @@ interface Agent {
 }
 
 interface AgentForm {
-  agentType: string;
+  type: string;
   agentCode: string;
   code: string;
-  agentName: string;
+  name: string;
   shortName: string;
-  agentCategory: string;
+  group: string;
   specialty: string;
   territory: string;
   supervisor: string;
@@ -299,7 +299,7 @@ export const useAgentStore = create<AgentStore>()(
           const queryParams = new URLSearchParams({
             search: searchTerm,
             status: statusFilter !== 'all' ? statusFilter : '',
-            sortBy: sortBy.includes('name') ? 'agentName' : 'createdAt',
+            sortBy: sortBy.includes('name') ? 'name' : 'createdAt',
             sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
             page: page.toString(),
             limit: limit.toString(),

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Building2, Search, CheckCircle2, ShieldAlert } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { useCompanyStore, type Company } from "../../../store/companyStore";
 import { useAuthStore } from "../../../store/authStore";
 import { cn } from "@/lib/utils"; // Assuming you have a cn utility (standard in shadcn)
@@ -36,6 +36,7 @@ const CompanySelectorModal = ({
   const [sortBy] = useState<"nameAsc" | "nameDesc" | "dateDesc" | "dateAsc">("nameAsc");
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
   const [noRights, setNoRights] = useState(false);
+  console.log("isLogin in CompanySelectorModal:");
 
   // 1. Handle Permissions
   useEffect(() => {
@@ -262,4 +263,4 @@ const CompanySelectorModal = ({
   );
 };
 
-export default CompanySelectorModal;
+export default memo(CompanySelectorModal);

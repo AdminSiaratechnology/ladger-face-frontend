@@ -17,21 +17,22 @@ export interface RegistrationDocument {
   fileName: string;
 }
 
-export interface Customer {
+export interface Agent {
   id: number;
   _id?: string;
   type: string;
-  customerCode: string;
+  agentCode: string;
   code: string;
   companyId: string;
   name: string;
   shortName: string;
   group: string;
-  industryType: string;
+  specialty: string;
   territory: string;
-  salesPerson: string;
-  customerStatus: string;
-  companySize: string;
+  supervisor: string;
+  agentStatus: string;
+  status: string;
+  experienceLevel: string;
   contactPerson: string;
   designation: string;
   phoneNumber: string;
@@ -46,15 +47,9 @@ export interface Customer {
   country: string;
   website: string;
   currency: string;
-  priceList: string;
+  commissionStructure: string;
   paymentTerms: string;
-  creditLimit: string;
-  creditDays: string;
-  discount: string;
-  agent: string;
-  isFrozenAccount: boolean;
-  disabled: boolean;
-  allowZeroValuation: boolean;
+  commissionRate: string;
   taxId: string;
   vatNumber: string;
   gstNumber: string;
@@ -63,10 +58,8 @@ export interface Customer {
   taxCategory: string;
   taxTemplate: string;
   withholdingTaxCategory: string;
-  msmeRegistration: string;
   isTaxExempt: boolean;
   reverseCharge: boolean;
-  exportCustomer: boolean;
   bankName: string;
   branchName: string;
   accountNumber: string;
@@ -75,42 +68,39 @@ export interface Customer {
   swiftCode: string;
   preferredPaymentMethod: string;
   acceptedPaymentMethods: string[];
-  creditCardDetails: string;
   paymentInstructions: string;
   banks: Bank[];
   approvalWorkflow: string;
-  creditLimitApprover: string;
   documentRequired: string;
   externalSystemId: string;
   crmIntegration: string;
   dataSource: string;
-  customerPriority: string;
+  agentPriority: string;
   leadSource: string;
   internalNotes: string;
-  allowPartialShipments: boolean;
-  allowBackOrders: boolean;
-  autoInvoice: boolean;
-  logo: string | null; // Will handle as previewUrl or file
+  logo: string | null;
   notes: string;
   createdAt: string;
   registrationDocs: RegistrationDocument[];
+  performanceRating: number;
+  activeContracts: number;
   isDeleted: boolean;
 }
 
-export interface CustomerForm {
+export interface AgentForm {
   type: string;
-  customerCode: string;
+  agentCode: string;
   code: string;
   companyId: string;
   name: string;
   shortName: string;
   group: string;
-  industryType: string;
+  specialty: string;
   territory: string;
-  salesPerson: string;
-  customerStatus: string;
+  supervisor: string;
+  agentStatus: string;
   status: string;
-  companySize: string;
+  experienceLevel: string;
   contactPerson: string;
   designation: string;
   phoneNumber: string;
@@ -125,15 +115,9 @@ export interface CustomerForm {
   country: string;
   website: string;
   currency: string;
-  priceList: string;
+  commissionStructure: string;
   paymentTerms: string;
-  creditLimit: string;
-  creditDays: string;
-  discount: string;
-  agent: string;
-  isFrozenAccount: boolean;
-  disabled: boolean;
-  allowZeroValuation: boolean;
+  commissionRate: string;
   taxId: string;
   vatNumber: string;
   gstNumber: string;
@@ -142,10 +126,8 @@ export interface CustomerForm {
   taxCategory: string;
   taxTemplate: string;
   withholdingTaxCategory: string;
-  msmeRegistration: string;
   isTaxExempt: boolean;
   reverseCharge: boolean;
-  exportCustomer: boolean;
   bankName: string;
   branchName: string;
   accountNumber: string;
@@ -154,23 +136,20 @@ export interface CustomerForm {
   swiftCode: string;
   preferredPaymentMethod: string;
   acceptedPaymentMethods: string[];
-  creditCardDetails: string;
   paymentInstructions: string;
   approvalWorkflow: string;
-  creditLimitApprover: string;
   documentRequired: string;
   externalSystemId: string;
   crmIntegration: string;
   dataSource: string;
-  customerPriority: string;
+  agentPriority: string;
   leadSource: string;
   internalNotes: string;
-  allowPartialShipments: boolean;
-  allowBackOrders: boolean;
-  autoInvoice: boolean;
   banks: Bank[];
-  logoFile?: File; // For logo upload
+  logoFile?: File;
   logoPreviewUrl?: string;
   notes: string;
   registrationDocs: RegistrationDocument[];
+  performanceRating: number;
+  activeContracts: number;
 }

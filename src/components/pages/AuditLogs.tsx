@@ -17,6 +17,11 @@ import {
   FileText,
   Eye,
   X,
+  Package,
+  Building2,
+  Layers,
+  ArrowRight,
+  Globe,
 } from "lucide-react";
 import HeaderGradient from "../customComponents/HeaderGradint";
 import FilterBar from "../customComponents/FilterBar";
@@ -58,6 +63,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
+import AuditLogCardView from "../CardViews/AuditLogCardView";
 
 // Audit Event interface based on actual API response
 interface AuditEvent {
@@ -315,6 +321,32 @@ const AuditLogsPage: React.FC = () => {
     setIsModalOpen(false);
     setSelectedEventId(null);
   };
+  const getModuleIcon = (moduleName: string) => {
+  switch (moduleName?.toLowerCase()) {
+    case "product":
+      return <Package className="w-4 h-4" />;
+    case "company":
+      return <Building2 className="w-4 h-4" />;
+    case "user":
+      return <Users className="w-4 h-4" />;
+    case "ledger":
+      return <FileText className="w-4 h-4" />;
+    default:
+      return <Layers className="w-4 h-4" />;
+  }
+};
+
+// const getActionIcon = (action: string) => {
+//   const lowerAction = action?.toLowerCase();
+//   if (lowerAction === "create") return UserCheck;
+//   if (lowerAction === "delete") return UserX;
+//   if (lowerAction === "update") return Edit;
+//   return Edit;
+// };
+  const getChangeCount = (changes: any) => {
+  if (!changes) return 0;
+  return Object?.keys(changes)?.length;
+};
 
   // Fetch on mount and filter changes
   useEffect(() => {
@@ -464,6 +496,7 @@ const AuditLogsPage: React.FC = () => {
       </div>
     </div>
   );
+
 
   const ModalContent = () => {
     if (!singleAuditEvent) return <div>Loading...</div>;
@@ -774,7 +807,10 @@ const AuditLogsPage: React.FC = () => {
         />
       ) : (
         <>
-          {viewMode === "table" ? <TableView /> : null}{" "}
+          {viewMode === "table" ? <TableView /> : <AuditLogCardView 
+                auditEvents={auditEvents} 
+                onViewDetails={openModal} 
+             />}{" "}
           {/* Cards not implemented for logs */}
           <PaginationControls
             currentPage={currentPage}

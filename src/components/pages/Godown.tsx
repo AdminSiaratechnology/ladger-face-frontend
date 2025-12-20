@@ -51,7 +51,7 @@ interface Godown {
   manager: string;
   contactNumber: string;
   createdAt: string;
-  company: string;
+  companyId: string;
 }
 
 const stepIcons = {
@@ -163,14 +163,14 @@ const GodownRegistration: React.FC = () => {
     isPrimary: false,
     status: "active",
     capacity: "",
-    company: "",
+    companyId: "",
     manager: "",
     contactNumber: "",
     createdAt: "",
   });
   useEffect(() => {
     if (defaultSelected) {
-      setFormData((prev) => ({ ...prev, company: defaultSelected?._id }));
+      setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
     }
   }, [defaultSelected, companies]);
   // Get all countries
@@ -252,7 +252,7 @@ const GodownRegistration: React.FC = () => {
       manager: "",
       contactNumber: "",
       createdAt: "",
-      company: "",
+      companyId: "",
     });
     setEditingGodown(null);
     setActiveTab("basic");
@@ -576,7 +576,7 @@ const GodownRegistration: React.FC = () => {
               if (defaultSelected && companies.length > 0) {
                 setFormData((prev) => ({
                   ...prev,
-                  company: defaultSelected?._id,
+                  companyId: defaultSelected?._id,
                 }));
               }
               setOpen(true);

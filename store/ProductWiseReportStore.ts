@@ -136,7 +136,7 @@ export const useProductWiseReportStore = create<ProductWiseReportStore>()(
     {
       name: "product-wise-report",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ filters: state.filters }),
+      partialize: (state) => ({ filters: state.filters,stats: state.stats, }),
     }
   )
 );
