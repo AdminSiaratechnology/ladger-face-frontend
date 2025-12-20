@@ -1196,6 +1196,7 @@ const CompanyPage: React.FC = () => {
                 <Building2 className="w-4 h-4" />
               </Button>
             </CheckAccess>
+            {companies.length > 0 && (
             <Button
               onClick={downloadPDF}
               disabled={pdfLoading}
@@ -1237,7 +1238,7 @@ ${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
                   Integration PDF <ArrowBigDownDash />
                 </>
               )}
-            </Button>
+            </Button>)}
           </div>
         </div>
         {/* Stats Cards */}
