@@ -33,10 +33,10 @@ interface Pagination {
 interface Vendor {
   id: number;
   _id?: string;
-  vendorType: string;
+  type: string;
   vendorCode: string;
   code: string;
-  vendorName: string;
+  name: string;
   shortName: string;
   vendorGroup: string;
   industryType: string;
@@ -110,10 +110,10 @@ interface Vendor {
 }
 
 interface VendorForm {
-  vendorType: string;
+  type: string;
   vendorCode: string;
   code: string;
-  vendorName: string;
+  name: string;
   shortName: string;
   vendorGroup: string;
   industryType: string;
@@ -231,6 +231,7 @@ export const useVendorStore = create<VendorStore>()(
             limit: limit.toString(),
           });
           const id = companyId?.toLocaleString();
+          console.log("Fetching vendors for companyId:", id);
           const result = await api.fetchVendors({companyId:id}, { queryParams: queryParams.toString() }); // Adjust api call
           set({
             vendors: result?.data?.vendors || [],
@@ -325,7 +326,7 @@ export const useVendorStore = create<VendorStore>()(
           const queryParams = new URLSearchParams({
             search: searchTerm,
             status: statusFilter !== 'all' ? statusFilter : '',
-            sortBy: sortBy.includes('name') ? 'vendorName' : 'createdAt',
+            sortBy: sortBy.includes('name') ? 'name' : 'createdAt',
             sortOrder: sortBy.includes('Desc') ? 'desc' : 'asc',
             page: page.toString(),
             limit: limit.toString(),

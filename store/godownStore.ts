@@ -20,7 +20,7 @@ export interface Godown {
   manager: string;
   contactNumber: string;
   createdAt: string;
-  company: string;
+  companyId: string;
 }
 
 interface Pagination {

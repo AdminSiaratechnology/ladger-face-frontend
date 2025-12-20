@@ -47,7 +47,7 @@ const ActionsDropdown = ({
       </CheckAccess>
 
       {/* Delete */}
-      {/* <CheckAccess module={module} subModule={subModule} type="delete">
+      <CheckAccess module={module} subModule={subModule} type="delete">
         <Button
           variant="ghost"
           size="icon"
@@ -57,7 +57,7 @@ const ActionsDropdown = ({
         >
           <Trash2 className="h-4 w-4" />
         </Button>
-      </CheckAccess> */}
+      </CheckAccess>
     </div>
   );
 };

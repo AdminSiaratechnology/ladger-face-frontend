@@ -35,12 +35,12 @@ interface Pagination {
 export interface Customer {
   id: number;
   _id?: string;
-  customerType?: string;
+  type?: string;
   customerCode?: string;
   code: string;
-  customerName: string;
+  name: string;
   shortName: string;
-  customerGroup: string;
+  group: string;
   industryType: string;
   territory: string;
   salesPerson: string;
@@ -293,7 +293,7 @@ export const useCustomerStore = create<CustomerStore>()(
           const params: Record<string, string> = {
             search: searchTerm,
             status: statusFilter !== "all" ? statusFilter : "",
-            sortBy: sortBy.includes("name") ? "customerName" : "createdAt",
+            sortBy: sortBy.includes("name") ? "name" : "createdAt",
             sortOrder: sortBy.includes("Desc") ? "desc" : "asc",
             page: page.toString(),
             limit: limit.toString(),
