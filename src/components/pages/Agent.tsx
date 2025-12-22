@@ -987,13 +987,9 @@ const AgentRegistrationPage: React.FC = () => {
       />
       {loading && <TableViewSkeleton />}
 
-      <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
+   
 
-      {pagination.total === 0 ? (
+      {!loading && ( pagination.total === 0 ? (
         <EmptyStateCard
           icon={UserCheck}
           title="No agents registered yet"
@@ -1006,6 +1002,11 @@ const AgentRegistrationPage: React.FC = () => {
         />
       ) : (
         <>
+           <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={pagination?.total}
+      />
           {viewMode === "table" ? <TableView /> : <CardView />}
           <PaginationControls
             currentPage={currentPage}
@@ -1014,7 +1015,7 @@ const AgentRegistrationPage: React.FC = () => {
             itemName="agents"
           />
         </>
-      )}
+      ))}
 
       <Dialog
         open={open}
