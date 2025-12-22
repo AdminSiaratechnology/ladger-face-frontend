@@ -103,9 +103,10 @@ export const useProductWiseReportStore = create<ProductWiseReportStore>()(
           if (filters.endDate) params.append("endDate", filters.endDate);
 
           const res = await api.productWiseReport(params);
+          console.log("Fetched Product Report:", res);
           set({
             data: res.data ||[],
-            stats: res.data|| null,
+            stats: res.stats|| null,
             isIndia: res.isIndia,
             pagination: res.pagination || { total: 0, totalPages: 0 },
             loading: false,

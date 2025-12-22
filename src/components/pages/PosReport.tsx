@@ -8,7 +8,7 @@ import CustomerWiseFilterModal from "../customComponents/CustomerWiseFilterModal
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, CreditCard, Smartphone, Receipt, Eye, X } from "lucide-react";
+import { DollarSign, CreditCard, Smartphone, Receipt, Eye, X, Banknote } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import UniversalReportFilter from "../customComponents/UniversalReportFilter";
@@ -26,6 +26,7 @@ const PosReport = () => {
   } = usePosStore();
 
   const { defaultSelected } = useCompanyStore();
+      const defaultCurrency = defaultSelected?.defaultCurrencySymbol || "₹";
   const companyId = defaultSelected?._id;
 
   // ===============================
@@ -155,19 +156,19 @@ const PosReport = () => {
       },
       {
         label: "Cash Sales",
-        value: `₹${cash.toLocaleString()}`,
-        icon: <DollarSign className="w-8 h-8" />,
+        value: `${defaultCurrency} ${cash.toLocaleString()}`,
+        icon: <Banknote className="w-8 h-8" />,
         colorClass: "from-green-500 to-green-600",
       },
       {
         label: "Card Sales",
-        value: `₹${card.toLocaleString()}`,
+        value: `${defaultCurrency} ${card.toLocaleString()}`,
         icon: <CreditCard className="w-8 h-8" />,
         colorClass: "from-indigo-500 to-indigo-600",
       },
       {
         label: "UPI Sales",
-        value: `₹${upi.toLocaleString()}`,
+        value: `${defaultCurrency} ${upi.toLocaleString()}`,
         icon: <Smartphone className="w-8 h-8" />,
         colorClass: "from-purple-500 to-purple-600",
       },
@@ -216,7 +217,7 @@ const PosReport = () => {
 
                   {/* ✅ Amount aligned properly */}
                   <td className="px-6 py-4 text-start  font-semibold text-green-600">
-                    ₹{Number(s.totalAmount || 0).toLocaleString()}
+                    {defaultCurrency} {Number(s.totalAmount || 0).toLocaleString()}
                   </td>
 
                   {/* ✅ View column */}
@@ -268,7 +269,7 @@ const PosReport = () => {
               <div className="flex justify-between font-bold text-green-600">
                 <span>Amount</span>
                 <span>
-                  ₹{Number(s.totalAmount || 0).toLocaleString()}
+                  {defaultCurrency} {Number(s.totalAmount || 0).toLocaleString()}
                 </span>
               </div>
             </CardContent>
@@ -431,10 +432,10 @@ const PosReport = () => {
                           <td className="px-4 py-3">{it.name}</td>
                           <td className="px-4 py-3 text-center">{it.qty}</td>
                           <td className="px-4 py-3 text-right">
-                            ₹{Number(it.price).toLocaleString()}
+                            {defaultCurrency} {Number(it.price).toLocaleString()}
                           </td>
                           <td className="px-4 py-3 text-right font-medium">
-                            ₹{Number(it.total).toLocaleString()}
+                            {defaultCurrency} {Number(it.total).toLocaleString()}
                           </td>
                         </tr>
                       ))}
@@ -448,14 +449,14 @@ const PosReport = () => {
                     <div className="flex justify-between text-gray-600">
                       <span>Subtotal</span>
                       <span>
-                        ₹{Number(selectedBill.subtotal || 0).toLocaleString()}
+                        {defaultCurrency} {Number(selectedBill.subtotal || 0).toLocaleString()}
                       </span>
                     </div>
 
                     <div className="flex justify-between text-gray-600">
                       <span>Tax</span>
                       <span>
-                        ₹{Number(selectedBill.taxAmount || 0).toLocaleString()}
+                        {defaultCurrency} {Number(selectedBill.taxAmount || 0).toLocaleString()}
                       </span>
                     </div>
 
@@ -463,7 +464,7 @@ const PosReport = () => {
                               text-emerald-600 border-t pt-2">
                       <span>Total</span>
                       <span>
-                        ₹{Number(selectedBill.totalAmount || 0).toLocaleString()}
+                        {defaultCurrency} {Number(selectedBill.totalAmount || 0).toLocaleString()}
                       </span>
                     </div>
                   </div>
