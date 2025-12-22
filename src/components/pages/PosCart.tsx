@@ -16,14 +16,6 @@ export default function PosCart({
   // ✅ BUY ITEMS ONLY
   const buyItems = cart.filter((i: any) => !i.isFreeItem);
 
-  // ✅ GROUP FREE ITEMS (BOGO-GROUP)
-  const groupFreeItems = cart.filter(
-    (i: any) =>
-      i.isFreeItem &&
-      typeof i.bogoParentId === "string" &&
-      i.bogoParentId.startsWith("BOGO-GROUP")
-  );
-
   return (
     <div className="bg-white rounded-2xl border shadow-sm flex flex-col w-full">
       {/* HEADER */}
@@ -74,7 +66,13 @@ export default function PosCart({
 
           <div className="overflow-y-auto max-h-[320px]">
             {buyItems.map((item: any, i: number) => {
-              const isLastBuyItem = i === buyItems.length - 1;
+              // ✅ FREE ITEMS LINKED TO THIS BUY ITEM
+              const freeItems = cart.filter(
+                (free: any) =>
+                  free.isFreeItem &&
+                  free.freeDescription &&
+                  free.freeDescription.includes(item.ItemName)
+              );
 
               return (
                 <div key={item.cartId}>
@@ -131,39 +129,38 @@ export default function PosCart({
                     </div>
                   </div>
 
-                  {/* ================= GROUP FREE ITEMS ================= */}
-                  {isLastBuyItem &&
-                    groupFreeItems.map((free: any) => (
-                      <div
-                        key={free.cartId}
-                        className="hidden lg:grid grid-cols-12 items-center py-3 border-b px-4 bg-green-50"
-                      >
-                        <div className="col-span-1"></div>
+                  {/* ================= FREE ITEMS (JUST BELOW BUY ITEM) ================= */}
+                  {freeItems.map((free: any) => (
+                    <div
+                      key={free.cartId}
+                      className="hidden lg:grid grid-cols-12 items-center py-3 border-b px-4 bg-green-50"
+                    >
+                      <div className="col-span-1"></div>
 
-                        <div className="col-span-4">
-                          <p className="font-medium">
-                            {free.ItemName}
-                          </p>
-                          <p className="text-xs italic text-gray-600">
-                            {free.freeDescription}
-                          </p>
-                        </div>
-
-                        <div className="col-span-2 text-center font-semibold">
-                          {free.qty}
-                        </div>
-
-                        <div className="col-span-2 text-right">
-                          {currency}0.00
-                        </div>
-
-                        <div className="col-span-2 text-right font-semibold">
-                          {currency}0.00
-                        </div>
-
-                        <div className="col-span-1"></div>
+                      <div className="col-span-4">
+                        <p className="font-medium">
+                          {free.ItemName}
+                        </p>
+                        <p className="text-xs italic text-gray-600">
+                          {free.freeDescription}
+                        </p>
                       </div>
-                    ))}
+
+                      <div className="col-span-2 text-center font-semibold">
+                        {free.qty}
+                      </div>
+
+                      <div className="col-span-2 text-right">
+                        {currency}0.00
+                      </div>
+
+                      <div className="col-span-2 text-right font-semibold">
+                        {currency}0.00
+                      </div>
+
+                      <div className="col-span-1"></div>
+                    </div>
+                  ))}
 
                   {/* ================= MOBILE VIEW ================= */}
                   <div className="lg:hidden border-b p-3 space-y-2">
@@ -208,20 +205,19 @@ export default function PosCart({
                     </div>
 
                     {/* MOBILE FREE ITEMS */}
-                    {isLastBuyItem &&
-                      groupFreeItems.map((free: any) => (
-                        <div
-                          key={free.cartId}
-                          className="text-sm text-green-700 mt-2"
-                        >
-                          <p className="font-medium">
-                            {free.ItemName}
-                          </p>
-                          <p className="text-xs italic">
-                            {free.freeDescription}
-                          </p>
-                        </div>
-                      ))}
+                    {freeItems.map((free: any) => (
+                      <div
+                        key={free.cartId}
+                        className="text-sm text-green-700 mt-2"
+                      >
+                        <p className="font-medium">
+                          {free.ItemName}
+                        </p>
+                        <p className="text-xs italic">
+                          {free.freeDescription}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               );
