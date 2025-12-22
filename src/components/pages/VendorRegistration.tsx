@@ -1276,13 +1276,8 @@ const vendorStats: StatItem[] = useMemo(() => [
       />
       {loading && <TableViewSkeleton />}
 
-      <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
 
-      {pagination?.total === 0 ? (
+      {!loading && (pagination?.total === 0 ? (
         <EmptyStateCard
           icon={Building2}
           title="No vendor registered yet"
@@ -1295,6 +1290,12 @@ const vendorStats: StatItem[] = useMemo(() => [
         />
       ) : (
         <>
+
+      <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={pagination?.total}
+      />
           {viewMode === "table" ? <TableView /> : <CardView />}
 
           <PaginationControls
@@ -1304,7 +1305,7 @@ const vendorStats: StatItem[] = useMemo(() => [
             itemName="stock groups"
           />
         </>
-      )}
+      ))}
 
       {/* Modal Form */}
       <Dialog

@@ -1006,13 +1006,9 @@ const LedgerRegistration: React.FC = () => {
       />
       {loading && <TableViewSkeleton />}
 
-      <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
+    
 
-      {pagination.total === 0 ? (
+      {!loading && (pagination.total === 0 ? (
         <EmptyStateCard
           icon={UserCheck}
           title="No ledgers registered yet"
@@ -1025,6 +1021,11 @@ const LedgerRegistration: React.FC = () => {
         />
       ) : (
         <>
+          <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={pagination?.total}
+      />
           {viewMode === "table" ? <TableView /> : <CardView />}
           <PaginationControls
             currentPage={currentPage}
@@ -1033,7 +1034,7 @@ const LedgerRegistration: React.FC = () => {
             itemName="ledgers"
           />
         </>
-      )}
+      ))}
 
       <Dialog
         open={open}

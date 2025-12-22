@@ -1061,13 +1061,9 @@ useEffect(() => {
       />
       {loading && <TableViewSkeleton />}
 
-      <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
+   
 
-      {pagination?.total === 0 ? (
+      {!loading && (pagination?.total === 0 ? (
         <EmptyStateCard
           icon={Users}
           title="No customers registered yet"
@@ -1080,6 +1076,11 @@ useEffect(() => {
         />
       ) : (
         <>
+           <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={pagination?.total}
+      />
           {viewMode === "table" ? <TableView /> : <CardView />}
 
           <PaginationControls
@@ -1089,7 +1090,7 @@ useEffect(() => {
             itemName="Customers"
           />
         </>
-      )}
+      ))}
 
       {/* Modal Form */}
       <Dialog
