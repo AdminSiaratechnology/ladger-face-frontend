@@ -59,6 +59,7 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       'browser-image-compression', // Pre-bundle to fix HMR/dynamic import failures
+      'papaparse',
       // Add other deps here if they cause similar issues (e.g., from your aliases)
     ],
   },

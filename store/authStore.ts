@@ -52,6 +52,7 @@ export const useAuthStore = create<AuthState>()(
       error: null,
       newDeviceLogin: false,
 
+      // authStore.ts
       login: async (credentials: LoginCredentials) => {
         set({ isLoading: true, error: null });
 
@@ -65,7 +66,7 @@ export const useAuthStore = create<AuthState>()(
           const data: LoginResponse = await response.json();
 
           if (!response.ok) {
-            throw new Error(data.message || "Login failed");
+            return { success: false, message: data.message || "Login failed" };
           }
 
           const user = data.data.user;
@@ -80,16 +81,35 @@ export const useAuthStore = create<AuthState>()(
           });
 
           localStorage.setItem("token", token);
-          return user;
+
+          return { success: true, user, token };
         } catch (error: any) {
           const message =
             error instanceof Error ? error.message : "Network error";
           set({ error: message, isLoading: false });
           console.error("Login error:", error);
-          return undefined;
+          return { success: false, message };
         }
       },
+      refreshUser: async () => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) return;
 
+          set({ isLoading: true });
+
+          const res = await api.getMe();
+
+          set({
+            user: res.data, // ApiResponse(data=user)
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error) {
+          console.error("Failed to refresh user", error);
+          set({ isLoading: false });
+        }
+      },
       logout: async () => {
         const { user } = get();
 
@@ -119,7 +139,7 @@ export const useAuthStore = create<AuthState>()(
       updateUser: (user: User) => {
         set({ user });
       },
-         updateUserIfAuthUser: (updatedUser: User) => {
+      updateUserIfAuthUser: (updatedUser: User) => {
         const currentUser = get().user;
 
         if (currentUser && currentUser._id === updatedUser._id) {

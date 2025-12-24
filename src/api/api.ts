@@ -18,7 +18,7 @@ apiClient.interceptors.request.use((config) => {
       config.headers = {
         ...config.headers,
         Authorization: `Bearer ${token}`,
-        // "auth-source": "Api"
+        "auth-source": "client-portal",
       };
     }
   }
@@ -30,17 +30,13 @@ apiClient.interceptors.response.use(
   async (error) => {
     const msg = error?.response?.data?.message;
 
-        const authStore = useAuthStore.getState();
+    const authStore = useAuthStore.getState();
     if (error.response?.status === 401 && msg?.includes("another device")) {
-  
-
       authStore.setNewDeviceLogin(true);
     }
-   if(error.response?.status === 401){
-     authStore.logout() 
-
-
-   }
+    if (error.response?.status === 401) {
+      authStore.logout();
+    }
     return Promise.reject(error);
   }
 );
@@ -786,37 +782,42 @@ const handleLogout = async (id) => {
 };
 
 const sendResetOTP = async (email: string) => {
-try {
-const res = await apiClient.post("/auth/send-otp", { email });
-return res.data;
-} catch (error: any) {
-throw error.response?.data || error;
-}
+  try {
+    const res = await apiClient.post("/auth/send-otp", { email });
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
 };
-
 
 const verifyOTP = async ({ email, otp }: { email: string; otp: string }) => {
-try {
-const res = await apiClient.post("/auth/verify-otp", { email, otp });
-return res.data;
-} catch (error: any) {
-throw error.response?.data || error;
-}
+  try {
+    const res = await apiClient.post("/auth/verify-otp", { email, otp });
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
 };
 
-
-const resetPassword = async ({ email, newPassword }: { email: string; newPassword: string }) => {
-try {
-const res = await apiClient.post("/auth/reset-password", { email, newPassword });
-return res.data;
-} catch (error: any) {
-throw error.response?.data || error;
-}
+const resetPassword = async ({
+  email,
+  newPassword,
+}: {
+  email: string;
+  newPassword: string;
+}) => {
+  try {
+    const res = await apiClient.post("/auth/reset-password", {
+      email,
+      newPassword,
+    });
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
 };
 
 // Inside api.ts
-
-
 
 // api.ts — Fixed & Perfectly
 
@@ -853,16 +854,14 @@ const deleteCustomerGroup = async (groupId: string) => {
   const res = await apiClient.delete(`/customer-group/delete/${groupId}`);
   return res.data;
 };
-const orderReport =async(params: URLSearchParams | string)=>{
+const orderReport = async (params: URLSearchParams | string) => {
   try {
-       const res = await apiClient.get(`/order/report?${params.toString()}`)
-       return res.data
-
+    const res = await apiClient.get(`/order/report?${params.toString()}`);
+    return res.data;
   } catch (error) {
-    throw error
+    throw error;
   }
-
-}
+};
 const paymentReport = async (params: string) => {
   try {
     const res = await apiClient.get(`/payment/report?${params}`);
@@ -882,10 +881,10 @@ const customerWiseReport = async (params: string) => {
 const productWiseReport = async (params: string) => {
   try {
     const res = await apiClient.get(`/order/product-wise?${params}`);
-    console.log(res,"res")
+    console.log(res, "res");
     return res.data;
   } catch (error) {
-    console.log(error,"productWiseReportError")
+    console.log(error, "productWiseReportError");
     throw error;
   }
 };
@@ -893,25 +892,27 @@ const productWiseReport = async (params: string) => {
 const fetchTemplates = async ({ queryParams }: { queryParams: string }) => {
   const res = await apiClient.get(`/bill-templates?${queryParams}`);
   return res.data;
-}
+};
 
 const getLedgerById = async (id: string) => {
   const res = await apiClient.get(`/ledgers/single/${id}`);
   return res.data;
-}
+};
 
 // COUPON
 
 const createCoupon = async (couponData: any) => {
-    if (couponData.code === "" || couponData.code == null) {
+  if (couponData.code === "" || couponData.code == null) {
     delete couponData.code;
   }
-  console.log("vikas "+ couponData);
+  console.log("vikas " + couponData);
   const res = await apiClient.post("/coupons", couponData);
   return res.data;
 };
-const getAllCouponsByCompany = async ({ companyId }: { companyId: string },
-  { queryParams }: { queryParams: string }) => {
+const getAllCouponsByCompany = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }
+) => {
   const res = await apiClient.get(`/coupons/all/${companyId}?${queryParams}`);
   return res.data;
 };
@@ -928,32 +929,34 @@ const deleteCoupon = async (id: string) => {
   return res.data;
 };
 
-
 const createTemplate = async (data: any) => {
   const res = await apiClient.post(`/bill-templates`, data);
   return res.data;
-}
+};
 
 const updateTemplate = async (id: string, data: any) => {
   const res = await apiClient.put(`/bill-templates/${id}`, data);
   return res.data;
-}
+};
 
 const deleteTemplate = async (id: string) => {
   const res = await apiClient.delete(`/bill-templates/${id}`);
   return res.data;
-}
+};
 
-const fetchTemplatesByCompany = async (  { companyId }: { companyId: string },
-  { queryParams }: { queryParams: string }) => {
-  const res = await apiClient.get(`/bill-templates/company/${companyId}?${queryParams}`);
+const fetchTemplatesByCompany = async (
+  { companyId }: { companyId: string },
+  { queryParams }: { queryParams: string }
+) => {
+  const res = await apiClient.get(
+    `/bill-templates/company/${companyId}?${queryParams}`
+  );
   return res.data;
-}
+};
 const PosBillToServer = async (payload: any) => {
   try {
     const res = await apiClient.post("/pos", payload);
 
-    
     return res;
   } catch (err) {
     console.error("SALE API ERROR:", err);
@@ -968,10 +971,7 @@ export const getCompanyPosReport = async (params) => {
     const res = await apiClient.get(`/pos?${query}`);
     return res.data;
   } catch (error) {
-    console.error(
-
-      error.response?.data || error.message
-    );
+    console.error(error.response?.data || error.message);
     throw error;
   }
 };
@@ -980,16 +980,64 @@ const getBogoCoupons = (companyId) => {
   return apiClient.get(`/coupons/bogo/${companyId}`);
 };
 
- const closeShiftApi = (payload: any) => {
-  console.log(payload ,"this is payload");
+const closeShiftApi = (payload: any) => {
+  console.log(payload, "this is payload");
   return apiClient.post("shift/close", payload);
+};
+const getMe = async () => {
+  const res = await apiClient.get("/auth/me");
+  return res.data;
+};
+const uploadCsvCustomers = async (payload: any) => {
+  const res = await apiClient.post("/customers/upload-csv", payload);
+  return res.data;
+};
+const importProductsFromCSV = async (formData: FormData) => {
+  try {
+    const res = await apiClient.post("/products/import-csv", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return res.data;
+  } catch (error: any) {
+    console.error(
+      "❌ Failed to import products:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+export const fetchItemsByStockGroup = async ( 
+  groupId: string, 
+  companyId: string, 
+  page: number 
+) => { 
+  const res = await apiClient.get( 
+    `products/stock-group/${companyId}/${groupId}?page=${page}&limit=40` 
+  ); 
+ 
+  return res.data;  
+}; 
+ 
+export const fetchPriceLevels = (companyId: string) => { 
+  return apiClient.get("/price-level", { 
+    params: { companyId }, 
+  }); 
+}; 
+ 
+export const createPriceLevel = (data: { 
+  name: string; 
+  companyId: string; 
+}) => { 
+  return apiClient.post("/price-level", data); 
 };
 // Export API
 const api = {
   closeShiftApi,
   getBogoCoupons,
   getCompanyPosReport,
- PosBillToServer, 
+  PosBillToServer,
   createCompany,
   getCompanies,
   getProducts,
@@ -1084,7 +1132,10 @@ const api = {
   createTemplate,
   updateTemplate,
   deleteTemplate,
-  fetchTemplatesByCompany
+  fetchTemplatesByCompany,
+  getMe,
+  uploadCsvCustomers,
+  importProductsFromCSV
 };
 
 export default api;
