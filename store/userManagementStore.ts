@@ -117,8 +117,14 @@ export const useUserManagementStore = create<useUserManagementStore>()(
 
           // toast.success("User updated successfully");
         } catch (error: any) {
-          set({ error: error.message, loading: false });
-          toast.error("User update failed");
+          const message =
+            error?.response?.data?.message ||
+            error?.message ||
+            "User update failed";
+
+          set({ error: message, loading: false });
+
+          toast.error(message);
         }
       },
 

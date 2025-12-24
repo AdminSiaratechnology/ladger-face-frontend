@@ -164,6 +164,7 @@ interface UserForm {
   area: string;
   pincode: string;
   status: string;
+  blocked: boolean;
 }
 
 interface CustomerGroup {
@@ -205,7 +206,9 @@ const stepIcons = {
 // --- CUSTOM STORE FOR GODOWNS (Local Implementation) ---
 
 import { useGodownStore } from "../../../store/godownStore";
-import {availableModules} from "@/lib/availableModules";
+import { availableModules } from "@/lib/availableModules";
+import LimitExceedModal from "../customComponents/LimitExceedModal";
+import { useAuthStore } from "../../../store/authStore";
 
 interface GodownStore {
   godowns: Godown[];
@@ -528,7 +531,8 @@ const UserManagement: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const [showLimitModal, setShowLimitModal] = useState<boolean>(false);
+  const { user } = useAuthStore();
   const handleViewUser = (user: any) => {
     setSelectedUser(user);
     setIsModalOpen(true);
@@ -777,62 +781,9 @@ const UserManagement: React.FC = () => {
     area: "",
     status: "active",
     pincode: "",
+    blocked: false,
   });
-  // useEffect(() => {
-  //   if (form.role === "Admin") {
-  //     setAllPermissions(true);
-  //   } else {
-  //     setAllPermissions(false);
-  //     const defaultPermissions =
-  //       form.role === "Salesman"
-  //         ? {
-  //             BusinessManagement: {
-  //               CustomerRegistration: {
-  //                 create: true,
-  //                 read: true,
-  //                 update: true,
-  //                 delete: false,
-  //                 extra: [],
-  //               },
-  //               Vendor: {
-  //                 create: false,
-  //                 read: true,
-  //                 update: false,
-  //                 delete: false,
-  //                 extra: [],
-  //               },
-  //             },
-  //             InventoryManagement: {
-  //               Product: {
-  //                 create: false,
-  //                 read: true,
-  //                 update: false,
-  //                 delete: false,
-  //                 extra: [],
-  //               },
-  //             },
-  //           }
-  //         : {
-  //             Order: {
-  //               Orders: {
-  //                 create: false,
-  //                 read: true,
-  //                 update: false,
-  //                 delete: false,
-  //                 extra: [],
-  //               },
-  //             },
-  //           };
 
-  //     setForm((prev) => ({
-  //       ...prev,
-  //       access: prev.access.map((access) => ({
-  //         ...access,
-  //         modules: JSON.parse(JSON.stringify(defaultPermissions)),
-  //       })),
-  //     }));
-  //   }
-  // }, [form.role]);
   useEffect(() => {
     if (defaultSelected) {
       setForm((prev) => ({ ...prev, company: defaultSelected?._id }));
@@ -912,6 +863,7 @@ const UserManagement: React.FC = () => {
       phone: "",
       area: "",
       pincode: "",
+      blocked: false,
     });
     setEditingUser(null);
     setIsEditing(false);
@@ -1091,6 +1043,7 @@ const UserManagement: React.FC = () => {
       parent: form.parent || "",
       clientID: form.clientID || "",
       company: form.company || "",
+      blocked: form.blocked ?? false,
     };
     try {
       let res;
@@ -1179,6 +1132,7 @@ const UserManagement: React.FC = () => {
       area: user.area || "",
       pincode: user.pincode || "",
       status: user.status || "active",
+      blocked: user.blocked || false,
     });
 
     // ✅ Update company selections for permission tab
@@ -1193,9 +1147,15 @@ const UserManagement: React.FC = () => {
     setActiveTab("basic");
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = (user: User) => {
+    if (user.role === "Client") {
+      toast.error(
+        "Access denied: Only Administrators can delete client users."
+      );
+      return;
+    }
     if (window.confirm("Are you sure you want to delete this user?")) {
-      deleteUser(userId);
+      deleteUser(user._id || "");
       toast.success("User deleted successfully");
     }
   };
@@ -1382,23 +1342,47 @@ const UserManagement: React.FC = () => {
           title="User Management"
           subtitle="Manage users, roles, and permissions across companies"
         />
-        <CheckAccess module="UserManagement" subModule="User" type="create">
-          <Button
-            onClick={() => {
-              setOpen(true);
-              if (defaultSelected && companies.length > 0) {
-                setForm((prev) => ({
-                  ...prev,
-                  company: defaultSelected?._id,
-                }));
-              }
-            }}
-            className="w-full cursor-pointer sm:w-auto bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-2 sm:px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <UserPlus className="w-4 h-4 " />
-            Add User
-          </Button>
-        </CheckAccess>
+
+        <div className="flex items-center gap-4">
+          {user?.clientLimit !== undefined && (
+            <div className="flex items-center gap-2 px-4 py-1 rounded-xl bg-linear-to-r from-blue-100 to-teal-50 border border-blue-100 shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                <span className="text-sm font-medium text-gray-600">
+                  Client Limit:
+                </span>
+                <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-blue-100">
+                  <span className="text-base font-bold text-blue-700">
+                    {user?.clientLimit}
+                  </span>
+                  <span className="text-xs text-gray-500 ml-0.5">users</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <CheckAccess module="UserManagement" subModule="User" type="create">
+            <Button
+              onClick={() => {
+                if (user?.clientLimit === 0) {
+                  setShowLimitModal(true);
+                  return;
+                }
+                setOpen(true);
+                if (defaultSelected && companies.length > 0) {
+                  setForm((prev) => ({
+                    ...prev,
+                    company: defaultSelected?._id,
+                  }));
+                }
+              }}
+              className="w-full cursor-pointer sm:w-auto bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-4 sm:px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              Add User
+            </Button>
+          </CheckAccess>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -1615,7 +1599,14 @@ const UserManagement: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {user.access && user.access.length > 0 ? (
+                        {user.role === "Client" ? (
+                          <div className="flex flex-wrap gap-1">
+                            {/* Full access badge for Client */}
+                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                              All Companies
+                            </span>
+                          </div>
+                        ) : user.access && user.access.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {user.access.map((a, index) => {
                               const company =
@@ -1784,6 +1775,7 @@ const UserManagement: React.FC = () => {
                   <label className="text-sm font-semibold text-gray-700">
                     Status
                   </label>
+
                   <select
                     value={form.status}
                     onChange={(e) => {
@@ -1794,6 +1786,20 @@ const UserManagement: React.FC = () => {
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>
+
+                  {editingUser?.blocked && (
+                    <label className="flex items-center gap-2 text-sm text-gray-700 mt-2">
+                      <input
+                        type="checkbox"
+                        checked={form.blocked === false}
+                        onChange={(e) => {
+                          handleSelectChange("blocked", !e.target.checked);
+                        }}
+                        className="cursor-pointer"
+                      />
+                      Unblock this user
+                    </label>
+                  )}
                 </div>
 
                 {/* Role Selection */}
@@ -2513,6 +2519,10 @@ const UserManagement: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         data={selectedUser}
+      />
+      <LimitExceedModal
+        isOpen={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
       />
     </div>
   );

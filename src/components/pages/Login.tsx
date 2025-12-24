@@ -93,40 +93,39 @@ localStorage.setItem("deviceId",deviceId)
     setShowCompanyPopup(false);
     navigate("/");
   };
-  const handleEmailLogin = async (e: any) => {
-    e.preventDefault();
-    setError("");
-    if (loginAttempts >= 3) {
-      setError("Too many failed attempts. Please try again later.");
-      return;
-    }
-    const success = await login({ email, password, deviceId });
-    
-    if (success) {
-       const { user } = useAuthStore.getState(); // latest user data
+const handleEmailLogin = async (e: any) => {
+  e.preventDefault();
+  setError("");
 
-    // 🔥 DEMO EXPIRY CHECK HERE
-    console.log(user)
-    if (user?.isDemo === true && user?.demoExpiry) {
-      const today = new Date();
-      const expiryDate = new Date(user.demoExpiry);
+  if (loginAttempts >= 3) {
+    const msg = "Too many failed attempts. Please try again later.";
+    setError(msg);
+    toast.error(msg);
+    return;
+  }
 
-      if (expiryDate < today) {
+  const result = await login({ email, password, deviceId });
+
+  if (result?.success) {  
+    console.log("weewee", result);
+    const { user } = result;
+
+    if (user?.isDemo && user?.demoExpiry) {
+      if (new Date(user.demoExpiry) < new Date()) {
         navigate("/demo-expired");
-        return; //  stop flow
+        return;
       }
     }
-      toast.success("Login successful!");
-      if (!companyLoading && companies.length === 0) {
-        // navigate("/company");_
-      }
-      // setShowCompanyPopup(true);_
-    } else {
-      setLoginAttempts((prev) => prev + 1);
-      setError("Invalid credentials. Please try again.");
-      toast.error("Login failed. Please check your credentials.");
-    }
-  };
+
+    toast.success("Login successful!");
+  } else {
+    setLoginAttempts(prev => prev + 1);
+    const msg = result?.message || "Login failed. Please check your credentials.";
+    setError(msg);
+    toast.error(msg);
+  }
+};
+
 
   return (
     <>

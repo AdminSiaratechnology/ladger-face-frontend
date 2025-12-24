@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
@@ -23,7 +29,6 @@ import {
   Image as ImageIcon,
   TrendingUp,
   Briefcase,
-
 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import { Country, State, City } from "country-state-city";
@@ -59,6 +64,10 @@ import type {
   Customer,
   CustomerForm,
 } from "@/types/customerRegistration";
+import SettingsDropdown from "../customComponents/SettingsDropdown";
+import { exportToExcel } from "@/lib/exportToExcel";
+import api from "@/api/api";
+import { ImportCSVModal } from "../customComponents/ImportCSVModal";
 // Interfaces (adapted from provided Customer interface)
 
 const stepIcons = {
@@ -204,22 +213,25 @@ const CustomerRegistrationPage: React.FC = () => {
     notes: "",
     registrationDocs: [],
   });
-  const { groups: customerGroups, fetchGroups: fetchCustomerGroups } = useCustomerGroupStore();
+  const { groups: customerGroups, fetchGroups: fetchCustomerGroups } =
+    useCustomerGroupStore();
   const [isAccountHolderManuallyEdited, setIsAccountHolderManuallyEdited] =
     useState(false);
-    useEffect(() => {
-      if(!isAccountHolderManuallyEdited && formData.name){
-        setBankForm((prev) => ({
-          ...prev,
-          accountHolderName: formData.name,
-        }));
+  const [importModalOpen, setImportModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isAccountHolderManuallyEdited && formData.name) {
+      setBankForm((prev) => ({
+        ...prev,
+        accountHolderName: formData.name,
+      }));
     }
   }, [formData.name, isAccountHolderManuallyEdited]);
-useEffect(() => {
-  if (defaultSelected?._id) {
-    fetchCustomerGroups(defaultSelected._id);
-  }
-}, [defaultSelected, fetchCustomerGroups]);
+  useEffect(() => {
+    if (defaultSelected?._id) {
+      fetchCustomerGroups(defaultSelected._id);
+    }
+  }, [defaultSelected, fetchCustomerGroups]);
   useEffect(() => {
     if (defaultSelected) {
       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
@@ -796,123 +808,134 @@ useEffect(() => {
   const formatSimpleDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
-  const customerStats: StatItem[] = useMemo(() => [
-    {
-      title: "Total Customers",
-      value: stats?.totalCustomers,
-      icon: Users,
-      variant: "teal",
-    },
-    {
-      title: "GST Registered",
-      value: stats?.gstRegistered,
-      icon: FileText,
-      variant: "blue",
-    },
-    {
-      title: "MSME Registered",
-      value: stats?.msmeRegistered,
-      icon: Star,
-      variant: "green",
-    },
-    {
-      title: "VAT Registered",
-      value: stats?.vatRegistered,
-      icon: Star,
-      variant: "orange",
-    },
-    {
-      title: "Active",
-      value: stats?.activeCustomers,
-      variant: "purple",
-      showPulse: true, // 👈 Shows the pulsing dot (green on purple bg by default)
-    },
-  ], [stats]);
+  const customerStats: StatItem[] = useMemo(
+    () => [
+      {
+        title: "Total Customers",
+        value: stats?.totalCustomers,
+        icon: Users,
+        variant: "teal",
+      },
+      {
+        title: "GST Registered",
+        value: stats?.gstRegistered,
+        icon: FileText,
+        variant: "blue",
+      },
+      {
+        title: "MSME Registered",
+        value: stats?.msmeRegistered,
+        icon: Star,
+        variant: "green",
+      },
+      {
+        title: "VAT Registered",
+        value: stats?.vatRegistered,
+        icon: Star,
+        variant: "orange",
+      },
+      {
+        title: "Active",
+        value: stats?.activeCustomers,
+        variant: "purple",
+        showPulse: true, // 👈 Shows the pulsing dot (green on purple bg by default)
+      },
+    ],
+    [stats]
+  );
 
   const headers = ["Customer", "Contact", "Address", "Status", "Actions"];
-    const tableActions = useMemo(() => ({
+  const tableActions = useMemo(
+    () => ({
       onView: (customer: Customer) => handleViewCustomer(customer),
       onEdit: (customer: Customer) => handleEditCustomer(customer),
       onDelete: (id: string) => handleDeleteCustomer(id),
-    }), []);
-    // Table View Component
-  
-    const TableView = () => (
+    }),
+    []
+  );
+  // Table View Component
 
-   
-      <CommonTable<Customer>
-        headers={headers}
-        data={filteredCustomers}
-        actions={tableActions}
-        module="BusinessManagement"
-        subModule="CustomerRegistration"
-        // No custom renderers needed, standard layout applies automatically
-      />
-    );
-    const renderCustomerExtra = useCallback((customer: any) => (
-    <div className="flex justify-between items-center text-xs text-gray-500">
-      <div className="flex items-center gap-1">
-        <Briefcase className="w-3 h-3" />
-        <span className="capitalize">{customer.industryType || "General"}</span>
+  const TableView = () => (
+    <CommonTable<Customer>
+      headers={headers}
+      data={filteredCustomers}
+      actions={tableActions}
+      module="BusinessManagement"
+      subModule="CustomerRegistration"
+      // No custom renderers needed, standard layout applies automatically
+    />
+  );
+  const renderCustomerExtra = useCallback(
+    (customer: any) => (
+      <div className="flex justify-between items-center text-xs text-gray-500">
+        <div className="flex items-center gap-1">
+          <Briefcase className="w-3 h-3" />
+          <span className="capitalize">
+            {customer.industryType || "General"}
+          </span>
+        </div>
+        {customer.customerType && (
+          <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded capitalize">
+            {customer.customerType}
+          </span>
+        )}
       </div>
-      {customer.customerType && (
-        <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded capitalize">
-          {customer.customerType}
-        </span>
-      )}
-    </div>
-  ), []);
+    ),
+    []
+  );
 
   // 2. Bottom Section: Credit Limit, Currency & Tax Info
-  const renderCustomerBottom = useCallback((customer: any) => (
-    <>
-      {/* Financial Info */}
-      {(customer.creditLimit || customer.currency) && (
-        <div className="flex justify-between items-center border-b border-gray-100 pb-2 mb-2">
-           <div className="flex items-center text-sm text-gray-600">
+  const renderCustomerBottom = useCallback(
+    (customer: any) => (
+      <>
+        {/* Financial Info */}
+        {(customer.creditLimit || customer.currency) && (
+          <div className="flex justify-between items-center border-b border-gray-100 pb-2 mb-2">
+            <div className="flex items-center text-sm text-gray-600">
               <CreditCard className="w-4 h-4 mr-2 text-teal-600" />
               <span>{customer.currency}</span>
-           </div>
-           {customer.creditLimit && (
-             <div className="flex items-center text-xs font-medium text-amber-600">
+            </div>
+            {customer.creditLimit && (
+              <div className="flex items-center text-xs font-medium text-amber-600">
                 <TrendingUp className="w-3 h-3 mr-1" />
                 Limit: {customer.creditLimit}
-             </div>
-           )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tax Info (GST/PAN) */}
+        <div className="space-y-1">
+          {customer.gstNumber && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-gray-500">GST</span>
+              <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
+                {customer.gstNumber}
+              </span>
+            </div>
+          )}
+          {customer.panNumber && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-gray-500">PAN</span>
+              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
+                {customer.panNumber}
+              </span>
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Tax Info (GST/PAN) */}
-      <div className="space-y-1">
-        {customer.gstNumber && (
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-gray-500">GST</span>
-            <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
-              {customer.gstNumber}
-            </span>
-          </div>
-        )}
-        {customer.panNumber && (
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-gray-500">PAN</span>
-            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
-              {customer.panNumber}
-            </span>
-          </div>
-        )}
-      </div>
-    </>
-  ), []);
-
+      </>
+    ),
+    []
+  );
 
   // Card View Component
   const CardView = () => (
     <CommonCard
-       data={filteredCustomers}
-        actions={tableActions}
-        module="BusinessManagement"
-        subModule="CustomerRegistration"
-      renderExtraContent={renderCustomerExtra}   // 👈 Industry & Type
+      data={filteredCustomers}
+      actions={tableActions}
+      module="BusinessManagement"
+      subModule="CustomerRegistration"
+      renderExtraContent={renderCustomerExtra} // 👈 Industry & Type
       renderBottomSection={renderCustomerBottom} // 👈 Credit Limit & Tax
     />
   );
@@ -937,6 +960,67 @@ useEffect(() => {
       initialLoading();
     };
   }, []);
+  const exportProductsToExcel = async () => {
+    if (!defaultSelected?._id) {
+      toast.error("No company selected");
+      return;
+    }
+
+    const queryParams = new URLSearchParams({
+      search: searchTerm,
+      status: statusFilter === "all" ? "" : statusFilter,
+      sortBy: sortBy.includes("name") ? "name" : "createdAt",
+      sortOrder: sortBy.endsWith("Asc") ? "asc" : "desc",
+      page: "1",
+      limit: "0",
+      companyId: defaultSelected._id,
+    }).toString();
+
+    try {
+      const response = await api.fetchCustomers(
+        { companyId: defaultSelected._id },
+        { queryParams }
+      );
+
+      const customers = response?.data?.customers || [];
+      console.log(customers);
+      exportToExcel({
+        data: customers,
+        company: defaultSelected,
+        sheetName: "Customers",
+        fileNamePrefix: "customers",
+        title: "Customers Export Report",
+        tableHeaders: [
+          "Code",
+          "Name",
+          "Email Address",
+          "Customer type",
+          "Industry Type",
+          "Company Size",
+          "Agent",
+          "Status",
+          "Created At",
+        ],
+        rowMapper: (p: any) => [
+          p.code || "",
+          p.name || "",
+          p.emailAddress || "",
+          p.customerType || "",
+          p.industryType || "",
+          p.companySize || 0,
+          p.agent || 0,
+          p.status || "active",
+          new Date(p.createdAt).toLocaleDateString(),
+        ],
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to export products");
+    }
+  };
+  const fetchNewCustomer=async()=>{
+  return  await fetchCustomers(currentPage, limit, defaultSelected?._id)
+}
   return (
     <div className="custom-container">
       {/* Header */}
@@ -945,29 +1029,39 @@ useEffect(() => {
           title="Customer Management"
           subtitle="Manage your customer information and registrations"
         />
-        <CheckAccess
-          module="BusinessManagement"
-          subModule="CustomerRegistration"
-          type="create"
-        >
-          <Button
-            onClick={() => {
-              resetForm();
-              setOpen(true);
-              if (defaultSelected && companies.length > 0) {
-                setFormData((prev) => ({
-                  ...prev,
-                  companyId: defaultSelected?._id,
-                }));
-              }
-              setOpen(true);
+        <div className="flex items-center gap-3">
+          <SettingsDropdown
+            onImport={() => setImportModalOpen(true)}
+            onExport={() => exportProductsToExcel()}
+            onSample={() => {
+              // Download sample CSV/Excel template
+              window.location.href = "/templates/sample-products.xlsx"; // or trigger download
             }}
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
+          />{" "}
+          <CheckAccess
+            module="BusinessManagement"
+            subModule="CustomerRegistration"
+            type="create"
           >
-            <Users className="w-4 h-4" />
-            Add Customer
-          </Button>
-        </CheckAccess>
+            <Button
+              onClick={() => {
+                resetForm();
+                setOpen(true);
+                if (defaultSelected && companies.length > 0) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    companyId: defaultSelected?._id,
+                  }));
+                }
+                setOpen(true);
+              }}
+              className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
+            >
+              <Users className="w-4 h-4" />
+              Add Customer
+            </Button>
+          </CheckAccess>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -1039,11 +1133,7 @@ useEffect(() => {
           </CardContent>
         </Card>
       </div> */}
-      <CommonStats 
-         stats={customerStats} 
-         columns={5} 
-         loading={loading} 
-      />
+      <CommonStats stats={customerStats} columns={5} loading={loading} />
 
       <FilterBar
         searchTerm={searchTerm}
@@ -1061,36 +1151,35 @@ useEffect(() => {
       />
       {loading && <TableViewSkeleton />}
 
-   
-
-      {!loading && (pagination?.total === 0 ? (
-        <EmptyStateCard
-          icon={Users}
-          title="No customers registered yet"
-          description="Create your first customer to get started"
-          buttonLabel="Add Your First Customer"
-          module="BusinessManagement"
-          subModule="CustomerRegistration"
-          type="create"
-          onButtonClick={() => setOpen(true)}
-        />
-      ) : (
-        <>
-           <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
-          {viewMode === "table" ? <TableView /> : <CardView />}
-
-          <PaginationControls
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            pagination={pagination}
-            itemName="Customers"
+      {!loading &&
+        (pagination?.total === 0 ? (
+          <EmptyStateCard
+            icon={Users}
+            title="No customers registered yet"
+            description="Create your first customer to get started"
+            buttonLabel="Add Your First Customer"
+            module="BusinessManagement"
+            subModule="CustomerRegistration"
+            type="create"
+            onButtonClick={() => setOpen(true)}
           />
-        </>
-      ))}
+        ) : (
+          <>
+            <ViewModeToggle
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              totalItems={pagination?.total}
+            />
+            {viewMode === "table" ? <TableView /> : <CardView />}
+
+            <PaginationControls
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pagination={pagination}
+              itemName="Customers"
+            />
+          </>
+        ))}
 
       {/* Modal Form */}
       <Dialog
@@ -1194,27 +1283,16 @@ useEffect(() => {
                     </select>
                   </div>
                   <SelectedCompany />
-                  {/* <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Company <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.companyId}
-                      onChange={(e) =>
-                        handleSelectChange("companyId", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Company</option>
-                      {companies.map((company) => (
-                        <option key={company._id} value={company._id}>
-                          {company.namePrint}
-                        </option>
-                      ))}
-                    </select>
-                  </div> */}
                 </div>
-
+                <CustomInputBox
+                  label="Customer Code"
+                  placeholder="e.g., PRD001"
+                  name="code"
+                  value={formData.code}
+                  onChange={handleChange}
+                  disabled={true}
+                  readOnly={true}
+                />
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Customer Name "
@@ -1234,26 +1312,28 @@ useEffect(() => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                 <div className="flex flex-col gap-1">
-  <label className="text-sm font-semibold text-gray-700">
-    Customer Group <span className="text-red-500">*</span>
-  </label>
-  <select
-    value={formData.group}
-    onChange={(e) => handleSelectChange("group", e.target.value)}
-    className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-    required
-  >
-    <option value="">Select Customer Group</option>
-    {customerGroups
-      .filter((g) => g.status === "active") // Only show active groups
-      .map((group) => (
-        <option key={group._id} value={group._id}>
-          {group.groupName}
-        </option>
-      ))}
-  </select>
-</div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Customer Group <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.group}
+                      onChange={(e) =>
+                        handleSelectChange("group", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      required
+                    >
+                      <option value="">Select Customer Group</option>
+                      {customerGroups
+                        .filter((g) => g.status === "active") // Only show active groups
+                        .map((group) => (
+                          <option key={group._id} value={group._id}>
+                            {group.groupName}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
 
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
@@ -1295,23 +1375,6 @@ useEffect(() => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  {/* <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Sales Person
-                    </label>
-                    <select
-                      value={formData.salesPerson}
-                      onChange={(e) =>
-                        handleSelectChange("salesPerson", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Sales Person</option>
-                      <option value="john">John Smith</option>
-                      <option value="jane">Jane Doe</option>
-                      <option value="mike">Mike Johnson</option>
-                    </select>
-                  </div> */}
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Agent
@@ -2143,6 +2206,14 @@ useEffect(() => {
         onClose={() => setIsModalOpen(false)}
         data={selectedCustomer}
         type="customer"
+      />
+      <ImportCSVModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        onSuccess={() => fetchNewCustomer()}
+        title="Import Customers from CSV"
+        resourceName="customer"
+        importFn={api.uploadCsvCustomers}
       />
     </div>
   );
