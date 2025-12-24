@@ -1,331 +1,361 @@
-import React, { useState, useCallback, useEffect } from "react";
-import SearchableCustomerSelect from "./SearchableCustomerSelect";
-import SearchableSalesmanSelect from "./SearchableSalesmanSelect";
-import ReportDateRangeFilter from "./ReportDateRangeFilter";
-import { Filter, FilterX, CheckCircle2, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
+// pages/reports/CustomerWiseReportPage.tsx
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { useCustomerWiseReportStore } from "../../../store/CustomerWiseReportStore";
+import { useCompanyStore } from "../../../store/companyStore";
+import GenericReportPage from "../customComponents/GenericReportPage";
+import ReportFilterActions from "../customComponents/ReportFilterActions";
+import UniversalReportFilter from "../customComponents/UniversalReportFilter";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { DollarSign, TrendingUp, TrendingDown, Users } from "lucide-react";
+import { format } from "date-fns";
+import TableHeader from "../customComponents/CustomTableHeader";
 import { cn } from "@/lib/utils";
 
-// ✅ FIX 1: Explicitly Export this Interface
-export interface FilterValues {
-  customerId: string;
-  salesmanId: string;
-  status: string;
-  mode: string;
-}
+const CustomerWiseReportPage = () => {
+  const { defaultSelected } = useCompanyStore();
+  const companyId = defaultSelected?._id;
 
-interface ReportFilterBarProps {
-  customerId: string;
-  onCustomerChange: (value: string) => void;
-  salesmanId: string;
-  onSalesmanChange: (value: string) => void;
-  companyId: string;
-  status: string;
-  onStatusChange: (value: string) => void;
-  mode: string;
-  onModeChange: (value: string) => void;
-  localDateRange: { from?: Date; to?: Date };
-  setLocalDateRange: (range: { from?: Date; to?: Date }) => void;
-  applyDateRange: () => void;
-  resetDateRange: () => void;
-  onClearAll: () => void;
-  isAnyFilterActive: boolean;
-  showCustomer?: boolean;
-  showSalesman?: boolean;
-  showStatus?: boolean;
-  showMode?: boolean;
-  
-  // ✅ FIX 2: Callback accepts the values directly
-  onApplyFilters: (values: FilterValues) => void;
-}
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+const [openFilter, setOpenFilter] = useState(true);
+  const [filterCount, setFilterCount] = useState(0);
 
-const ReportFilterBar: React.FC<ReportFilterBarProps> = ({
-  customerId,
-  onCustomerChange,
-  salesmanId,
-  onSalesmanChange,
-  companyId,
-  status,
-  onStatusChange,
-  mode,
-  onModeChange,
-  localDateRange,
-  setLocalDateRange,
-  applyDateRange,
-  resetDateRange,
-  onClearAll,
-  isAnyFilterActive,
-  onApplyFilters,
-  showCustomer = true,
-  showSalesman = true,
-  showStatus = true,
-  showMode = true,
-}) => {
-  // Local Temp State
-  const [tempCustomerId, setTempCustomerId] = useState(customerId || "all");
-  const [tempSalesmanId, setTempSalesmanId] = useState(salesmanId || "all");
-  const [tempStatus, setTempStatus] = useState(status || "all");
-  const [tempMode, setTempMode] = useState(mode || "all");
 
-  // Modal Open State
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Sync state when props change
-  useEffect(() => { setTempCustomerId(customerId || "all"); }, [customerId]);
-  useEffect(() => { setTempSalesmanId(salesmanId || "all"); }, [salesmanId]);
-  useEffect(() => { setTempStatus(status || "all"); }, [status]);
-  useEffect(() => { setTempMode(mode || "all"); }, [mode]);
 
-  // Validation
-  const isCustomerValid = tempCustomerId && tempCustomerId !== "all";
+  const today = new Date();
+  const firstDayLastMonth = new Date(
+    today.getFullYear(),
+    today.getMonth() - 1,
+    1
+  );
 
-  // Active Count for Badge
-  const activeCount = [
-    tempCustomerId !== "all",
-    tempSalesmanId !== "all",
-    tempStatus !== "all",
-    tempMode !== "all",
-    localDateRange?.from !== undefined
-  ].filter(Boolean).length;
+  const [localDateRange, setLocalDateRange] = useState<{
+    from?: Date;
+    to?: Date;
+  }>({
+    from: firstDayLastMonth,
+    to: today,
+  });
 
-  const handleApply = useCallback(() => {
-    if (showCustomer && !isCustomerValid) return;
+  const {
+    data: transactions = [],
+    stats,
+    loading,
+    filters,
+    pagination,
+    setFilter,
+    fetchReport,
+    fetchAllReport,
+    resetFilters,
+  } = useCustomerWiseReportStore();
 
-    // Update Props for UI Sync
-    onCustomerChange(tempCustomerId);
-    onSalesmanChange(tempSalesmanId);
-    onStatusChange(tempStatus);
-    onModeChange(tempMode);
+  // ---------------------------
+  // CUSTOMER SELECTED FLAG
+  // ---------------------------
+  const isCustomerSelected =
+    filters.customerId && filters.customerId !== "all";
 
-    // ✅ FIX 3: Pass values directly to bypass state lag
-    onApplyFilters({
-      customerId: tempCustomerId,
-      salesmanId: tempSalesmanId,
-      status: tempStatus,
-      mode: tempMode
-    });
+  // ---------------------------
+  // APPLY DATE RANGE
+  // ---------------------------
+  const applyDateRange = useCallback(() => {
+    setFilter(
+      "startDate",
+      localDateRange.from
+        ? format(localDateRange.from, "yyyy-MM-dd")
+        : undefined
+    );
 
-    setIsModalOpen(false); 
+    setFilter(
+      "endDate",
+      localDateRange.to
+        ? format(localDateRange.to, "yyyy-MM-dd")
+        : undefined
+    );
+
+    setFilter("page", 1);
+  }, [localDateRange, setFilter]);
+
+  const resetDateRange = useCallback(() => {
+    setLocalDateRange({});
+    setFilter("startDate", undefined);
+    setFilter("endDate", undefined);
+  }, [setFilter]);
+
+  // ---------------------------
+  // APPLY FILTERS
+  // ---------------------------
+  const handleApplyFilters = () => {
+    applyDateRange();
+    setFilter("page", 1);
+    setOpenFilter(false);
+  };
+
+  // ---------------------------
+  // CLEAR ALL
+  // ---------------------------
+  const handleClearAll = () => {
+    setLocalDateRange({});
+    resetFilters();
+    setFilterCount(0);
+  };
+
+  // ---------------------------
+  // FILTER COUNT
+  // ---------------------------
+  useEffect(() => {
+    let count = 0;
+
+    if (filters.customerId && filters.customerId !== "all") count++;
+    if (filters.salesmanId && filters.salesmanId !== "all") count++;
+    if (filters.status && filters.status !== "all") count++;
+    if (filters.mode && filters.mode !== "all") count++;
+    if (filters.startDate && filters.endDate) count++;
+
+    setFilterCount(count);
+  }, [filters]);
+
+  // ---------------------------
+  // FETCH REPORT (ONLY AFTER CUSTOMER SELECT)
+  // ---------------------------
+  useEffect(() => {
+    if (!companyId) return;
+    if (!isCustomerSelected) return;
+
+    fetchReport(companyId);
   }, [
-    tempCustomerId, tempSalesmanId, tempStatus, tempMode,
-    isCustomerValid, showCustomer,
-    onCustomerChange, onSalesmanChange, onStatusChange, onModeChange, onApplyFilters,
+    companyId,
+    isCustomerSelected,
+    filters.page,
+    filters.salesmanId,
+    filters.status,
+    filters.mode,
+    filters.startDate,
+    filters.endDate,
+    fetchReport,
   ]);
 
-  const handleClear = useCallback(() => {
-    setTempCustomerId("all");
-    setTempSalesmanId("all");
-    setTempStatus("all");
-    setTempMode("all");
-    
-    // Set Date Range: 1st of Last Month -> Today
-    const today = new Date();
-    const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  // ---------------------------
+  // STATS (ONLY WHEN CUSTOMER SELECTED)
+  // ---------------------------
+  const statCards = useMemo(
+    () => [
+      {
+        label: "Total Transactions",
+        value: stats?.totalTransactions || 0,
+        icon: <Users className="w-8 h-8" />,
+        colorClass: "from-blue-500 to-blue-600",
+      },
+      {
+        label: "Total Sales",
+        value: `₹${stats?.totalSales?.toLocaleString() || 0}`,
+        icon: <TrendingUp className="w-8 h-8" />,
+        colorClass: "from-teal-500 to-teal-600",
+      },
+      {
+        label: "Total Received",
+        value: `₹${stats?.totalReceived?.toLocaleString() || 0}`,
+        icon: <TrendingDown className="w-8 h-8" />,
+        colorClass: "from-green-500 to-green-600",
+      },
+      {
+        label: "Outstanding",
+        value: `₹${stats?.outstanding?.toLocaleString() || 0}`,
+        icon: <DollarSign className="w-8 h-8" />,
+        colorClass:
+          stats?.outstanding > 0
+            ? "from-red-500 to-red-600"
+            : "from-gray-500 to-gray-600",
+      },
+    ],
+    [stats]
+  );
 
-    setLocalDateRange({
-      from: firstDayLastMonth,
-      to: today
-    });
+  const pageStats = isCustomerSelected ? statCards : [];
 
-    onClearAll();
-  }, [onClearAll, setLocalDateRange]);
+  // ---------------------------
+  // HEADERS
+  // ---------------------------
+  const headers = [
+    "Date",
+    "Customer",
+    "Salesman",
+    "Type",
+    "Bill Amount",
+    "Deposit Amount",
+    "Status",
+    "Remarks",
+  ];
 
-  // --- RENDER INPUTS (Unified Grid) ---
-  const renderInputs = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-1">
-      {/* CUSTOMER */}
-      {showCustomer && (
-        <div className="w-full relative col-span-1">
-          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-            Customer <span className="text-red-500 ml-1">*</span>
-          </label>
-          <div className={cn("rounded-md transition-all", !isCustomerValid ? "ring-1 ring-red-200" : "")}>
-            <SearchableCustomerSelect
-              value={tempCustomerId}
-              onChange={setTempCustomerId}
-              companyId={companyId}
-              placeholder="Select Customer"
-              className="w-full flex"
-            />
-          </div>
-          {!isCustomerValid && <p className="text-xs text-red-500 mt-1">Selection required</p>}
-        </div>
-      )}
-
-      {/* SALESMAN */}
-      {showSalesman && (
-        <div className="w-full col-span-1">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Salesman</label>
-          <SearchableSalesmanSelect
-            value={tempSalesmanId}
-            onChange={setTempSalesmanId}
-            companyId={companyId}
-            placeholder="All Salesmen"
-            className="w-full flex"
-          />
-        </div>
-      )}
-
-      {/* STATUS */}
-      {showStatus && (
-        <div className="w-full col-span-1">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-          <Select value={tempStatus} onValueChange={setTempStatus}>
-            <SelectTrigger className="h-10 w-full bg-white border-gray-200">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* MODE */}
-      {showMode && (
-        <div className="w-full col-span-1">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Mode</label>
-          <Select value={tempMode} onValueChange={setTempMode}>
-            <SelectTrigger className="h-10 w-full bg-white border-gray-200">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Modes</SelectItem>
-              <SelectItem value="cash">Cash</SelectItem>
-              <SelectItem value="upi">UPI</SelectItem>
-              <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-              <SelectItem value="card">Card</SelectItem>
-              <SelectItem value="cheque">Cheque</SelectItem>
-              <SelectItem value="wallet">Wallet</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* DATE RANGE */}
-      <div className="w-full col-span-1 md:col-span-2">
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Date Range</label>
-        <div className="w-full">
-          <ReportDateRangeFilter
-            localDateRange={localDateRange}
-            setLocalDateRange={setLocalDateRange}
-            applyDateRange={applyDateRange}
-            resetDateRange={resetDateRange}
-          />
-        </div>
+  // ---------------------------
+  // TABLE VIEW
+  // ---------------------------
+  const TableView = (
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <TableHeader headers={headers} />
+          <tbody className="divide-y divide-gray-100">
+            {transactions.map((t: any) => (
+              <tr key={t._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 text-sm">
+                  {format(new Date(t.date), "dd MMM yyyy")}
+                </td>
+                <td className="px-6 py-4 font-medium">{t.customerName}</td>
+                <td className="px-6 py-4 text-gray-600">
+                  {t.salesmanName}
+                </td>
+                <td className="px-6 py-4">
+                  <Badge className="capitalize">{t.type}</Badge>
+                </td>
+                <td className="px-6 py-4 text-right text-red-600">
+                  {t.orderAmount
+                    ? `₹${t.orderAmount.toLocaleString()}`
+                    : "-"}
+                </td>
+                <td className="px-6 py-4 text-right text-green-600">
+                  {t.paymentAmount
+                    ? `₹${t.paymentAmount.toLocaleString()}`
+                    : "-"}
+                </td>
+                <td className="px-6 py-4">
+                  <Badge
+                    className={cn(
+                      t.status === "completed" &&
+                        "bg-green-100 text-green-800",
+                      t.status === "failed" &&
+                        "bg-red-100 text-red-800",
+                      t.status === "pending" &&
+                        "bg-amber-100 text-amber-800",
+                      "capitalize"
+                    )}
+                  >
+                    {t.status}
+                  </Badge>
+                </td>
+                <td className="px-6 py-4 text-gray-600 truncate max-w-xs">
+                  {t.remarks}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 
-  return (
-    <div className="mb-6 space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        
-        {/* Warning Banner */}
-        {showCustomer && !isCustomerValid ? (
-           <div className="flex-1 w-full flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-lg">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <p>Please filter to select a customer.</p>
-           </div>
-        ) : (
-           <div className="flex-1 hidden sm:block" /> 
-        )}
-
-        {/* Buttons */}
-        <div className="flex gap-2 w-full sm:w-auto">
-          {isAnyFilterActive && (
-            <Button 
-              variant="outline" 
-              onClick={handleClear}
-              className="flex-1 sm:flex-none text-red-600 hover:bg-red-50 border-red-200 h-11"
-            >
-              <FilterX className="w-4 h-4 mr-2" />
-              <span className="sm:inline hidden">Clear</span>
-            </Button>
-          )}
-
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                className={cn(
-                  "flex-1 sm:flex-none h-11 border-gray-300 shadow-sm min-w-[140px] justify-between px-4",
-                  showCustomer && !isCustomerValid ? "bg-white" : "bg-white"
-                )}
-              >
-                <div className="flex items-center text-gray-700">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <span className="font-semibold">Filter Report</span>
-                </div>
-                {activeCount > 0 && (
-                  <Badge className="ml-2 bg-teal-600 text-white hover:bg-teal-700 h-6 px-2 rounded-full">
-                    {activeCount}
-                  </Badge>
-                )}
-              </Button>
-            </DialogTrigger>
-            
-            <DialogContent className="w-[95%] sm:max-w-2xl rounded-xl max-h-[90vh] overflow-y-auto p-0 gap-0">
-              <DialogHeader className="px-6 py-5 border-b bg-gray-50/80 sticky top-0 z-10 backdrop-blur-md">
-                <DialogTitle className="flex items-center text-lg font-bold text-gray-800">
-                  <Filter className="w-5 h-5 mr-2 text-teal-600" />
-                  Filter Options
-                </DialogTitle>
-              </DialogHeader>
-
-              <div className="p-6">
-                 {renderInputs()}
+  // ---------------------------
+  // CARD VIEW
+  // ---------------------------
+  const CardView = (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {transactions.map((t: any) => (
+        <Card key={t._id}>
+          <CardHeader>
+            <p className="text-sm font-medium">
+              {format(new Date(t.date), "dd MMM yyyy, hh:mm a")}
+            </p>
+            <p className="text-xs text-gray-500">{t.customerName}</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Bill</span>
+                <span className="text-red-600">
+                  ₹{t.orderAmount?.toLocaleString() || "-"}
+                </span>
               </div>
-
-              <DialogFooter className="p-4 border-t bg-gray-50 flex flex-col sm:flex-row gap-3 sm:justify-end sticky bottom-0">
-                 {isAnyFilterActive && (
-                  <Button 
-                    variant="ghost" 
-                    onClick={handleClear} 
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    Reset All
-                  </Button>
-                 )}
-                 <Button 
-                   className={cn(
-                     "w-full sm:w-auto text-white shadow-md",
-                     showCustomer && !isCustomerValid ? "bg-gray-400" : "bg-teal-600 hover:bg-teal-700"
-                   )}
-                   disabled={showCustomer && !isCustomerValid}
-                   onClick={handleApply}
-                 >
-                   <CheckCircle2 className="w-4 h-4 mr-2" />
-                   Apply Filters
-                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+              <div className="flex justify-between">
+                <span>Paid</span>
+                <span className="text-green-600">
+                  ₹{t.paymentAmount?.toLocaleString() || "-"}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
+  );
+
+  // Dummy data only to keep header visible
+  const pageData = isCustomerSelected ? transactions : [{}];
+
+  return (
+    <>
+      <GenericReportPage
+        title="Customer Wise Report"
+        subtitle="All Orders & Payments - Combined View"
+        stats={pageStats}
+        loading={loading}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        data={pageData}
+        totalItems={pagination.total || 0}
+        totalPages={pagination.totalPages || 1}
+        currentPage={filters.page}
+        onPageChange={(p) => setFilter("page", p)}
+        limit={filters.limit}
+        onClearFilters={handleClearAll}
+        reportType="customer-wise"
+        exportFileName="Customer_Wise_Report"
+        onExportDetailed={async () => await fetchAllReport(companyId)}
+        customFilterBar={
+          <ReportFilterActions
+            count={filterCount}
+            onClear={handleClearAll}
+            onFilter={() => setOpenFilter(true)}
+          />
+        }
+      >
+        {!isCustomerSelected ? (
+          <div className="flex flex-col items-center justify-center h-[300px] text-center text-gray-500">
+            <Users className="w-12 h-12 mb-3 text-gray-400" />
+            <p className="text-sm font-medium">
+              Select customer from filter to view report
+            </p>
+          </div>
+        ) : viewMode === "table" ? (
+          TableView
+        ) : (
+          CardView
+        )}
+      </GenericReportPage>
+
+      {/* FILTER MODAL */}
+{openFilter && (
+  <UniversalReportFilter
+    key="customer-wise-auto-open"
+ open={openFilter}
+  onClose={(val: boolean) => setOpenFilter(val)}
+    filters={filters}
+    setFilters={(updater: any) => {
+      if (typeof updater === "function") {
+        const updated = updater(filters);
+        Object.keys(updated).forEach((k) => setFilter(k, updated[k]));
+      } else {
+        Object.keys(updater).forEach((k) => setFilter(k, updater[k]));
+      }
+    }}
+    onApply={handleApplyFilters}
+    onReset={handleClearAll}
+    companyId={companyId}
+    showCustomerSelect
+    showSalesman
+    showStatus
+    showMode
+    showDateRange
+    localDateRange={localDateRange}
+    setLocalDateRange={setLocalDateRange}
+    applyDateRange={applyDateRange}
+    resetDateRange={resetDateRange}
+  />
+)}
+
+
+    </>
   );
 };
 
-export default ReportFilterBar;
+export default CustomerWiseReportPage;

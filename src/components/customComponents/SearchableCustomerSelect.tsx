@@ -24,6 +24,7 @@ interface SearchableCustomerSelectProps {
   placeholder?: string;
   className?: string;
   companyId?: string;
+  isCustomer: boolean
 }
 
 const SearchableCustomerSelect: React.FC<SearchableCustomerSelectProps> = ({
@@ -32,6 +33,7 @@ const SearchableCustomerSelect: React.FC<SearchableCustomerSelectProps> = ({
   placeholder = "Select customer...",
   className,
   companyId: propCompanyId,
+  isCustomer = false
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -67,14 +69,14 @@ const SearchableCustomerSelect: React.FC<SearchableCustomerSelectProps> = ({
   const options = useMemo(() => {
     const customerOptions = customers.map((c: any) => ({
       value: c._id,
-      label: c.customerName|| c.contactPerson || c.name || "Unnamed Customer",
+      label: c.customerName || c.contactPerson || c.name || "Unnamed Customer",
     }));
 
-    return [{ value: "all", label: "All Customers" }, ...customerOptions];
+    return [{ value: "all", label: `${isCustomer ? "Select Customers" : "All Customers"}` }, ...customerOptions];
   }, [customers]);
 
   const selectedLabel = useMemo(() => {
-    if (!value || value === "all") return "All Customers";
+    if (!value || value === "all") return `${isCustomer ?"Select Customers" : "All Customers" }`;
     return options.find(o => o.value === value)?.label || placeholder;
   }, [value, options, placeholder]);
 
@@ -109,12 +111,12 @@ const SearchableCustomerSelect: React.FC<SearchableCustomerSelectProps> = ({
 
       {/* ✅ DROPDOWN WIDTH = TRIGGER WIDTH */}
       <PopoverContent
-       align="start"
-  sideOffset={4}
-  className="p-0"
-  style={{
-    width: "var(--radix-popover-trigger-width)",
-  }}
+        align="start"
+        sideOffset={4}
+        className="p-0"
+        style={{
+          width: "var(--radix-popover-trigger-width)",
+        }}
       >
         <Command shouldFilter={false}>
           <CommandInput

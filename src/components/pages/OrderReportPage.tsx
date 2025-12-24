@@ -1,8 +1,7 @@
 // pages/reports/OrderReportPage.tsx
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useOrderReportStore } from "../../../store/orderReportStore";
 import { useCompanyStore } from "../../../store/companyStore";
-import { useUserManagementStore } from "../../../store/userManagementStore";
 
 import GenericReportPage from "../customComponents/GenericReportPage";
 import ReportFilterActions from "../customComponents/ReportFilterActions";
@@ -15,7 +14,6 @@ import {
   ShoppingCart,
   CheckCircle,
   Clock,
-  DollarSign,
   Eye,
   Banknote,
 } from "lucide-react";
@@ -24,8 +22,7 @@ import TableHeader from "../customComponents/CustomTableHeader";
 
 const OrderReportPage = () => {
   const { defaultSelected } = useCompanyStore();
-    const defaultCurrency = defaultSelected?.defaultCurrencySymbol || "₹";
-  const { users } = useUserManagementStore();
+  const defaultCurrency = defaultSelected?.defaultCurrencySymbol || "₹";
   const companyId = defaultSelected?._id;
 
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
@@ -34,6 +31,8 @@ const OrderReportPage = () => {
 
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [filterKey, setFilterKey] = useState(0);
+
 
   const {
     data: orders,
@@ -47,112 +46,84 @@ const OrderReportPage = () => {
     fetchAllReport,
   } = useOrderReportStore();
 
-  const today = new Date();
-  const firstDayLastMonth = new Date(
-    today.getFullYear(),
-    today.getMonth() - 1,
-    1
-  );
-
+  // ===============================
+  // LOCAL STATES
+  // ===============================
   const [localSearch, setLocalSearch] = useState(filters.search || "");
   const [localDateRange, setLocalDateRange] = useState<{
     from?: Date;
     to?: Date;
-  }>({
-    from: filters.startDate ? new Date(filters.startDate) : firstDayLastMonth,
-    to: filters.endDate ? new Date(filters.endDate) : today,
-  });
+  }>({});
+
+  // 🔥 IMPORTANT: search ref to avoid double trigger
+  const searchRef = useRef<string>(filters.search);
 
   // ===============================
-  // SEARCH (DEBOUNCE)
+  // SEARCH (DEBOUNCE) ✅ FIXED
   // ===============================
   useEffect(() => {
     const t = setTimeout(() => {
-      if (localSearch !== filters.search) {
-        setFilter("search", localSearch);
-        setFilter("page", 1);
-      }
+      if (localSearch === searchRef.current) return;
+
+      searchRef.current = localSearch;
+
+      // ✅ page reset first
+      setFilter("page", 1);
+      setFilter("search", localSearch);
     }, 500);
 
     return () => clearTimeout(t);
-  }, [localSearch, filters.search, setFilter]);
-
-  // ===============================
-  // DATE RANGE
-  // ===============================
-  const applyDateRange = useCallback(() => {
-    setFilter(
-      "startDate",
-      localDateRange.from ? localDateRange.from.toISOString() : undefined
-    );
-    setFilter(
-      "endDate",
-      localDateRange.to ? localDateRange.to.toISOString() : undefined
-    );
-    setFilter("page", 1);
-  }, [localDateRange, setFilter]);
-
-  const resetDateRange = useCallback(() => {
-    setLocalDateRange({});
-    setFilter("startDate", undefined);
-    setFilter("endDate", undefined);
-  }, [setFilter]);
+  }, [localSearch, setFilter]);
 
   // ===============================
   // APPLY FILTERS (MODAL)
   // ===============================
-const handleApplyFilters = (updatedFilters: any) => {
-  Object.keys(updatedFilters).forEach((k) => {
-    setFilter(k, updatedFilters[k]);
-  });
+  const handleApplyFilters = (updatedFilters: any) => {
+    Object.keys(updatedFilters).forEach((k) => {
+      setFilter(k, updatedFilters[k]);
+    });
 
-  applyDateRange();
-  setFilter("page", 1);
-  setOpenFilter(false);
-};
-
-
-  // ===============================
-  // CLEAR ALL (POS SAME BEHAVIOR)
-  // ===============================
-  const resetAllFilters = useCallback(() => {
-    setLocalSearch("");
-    setLocalDateRange({});
-    resetFilters();
-    setFilterCount(0);
+    setFilter("page", 1);
     setOpenFilter(false);
-  }, [resetFilters]);
+  };
+
+const resetAllFilters = useCallback(() => {
+  // 🔥 clear local UI states
+  setLocalSearch("");
+  setLocalDateRange({});
+
+  // 🔥 reset ref so search effect doesn't re-trigger
+  searchRef.current = "";
+
+  // 🔥 reset store filters
+  resetFilters();
+
+  // 🔥 reset count & close modal
+  setFilterCount(0);
+  setOpenFilter(false);
+}, [resetFilters]);
+
 
   // ===============================
-  // FILTER COUNT (POS LOGIC)
+  // FILTER COUNT
   // ===============================
-useEffect(() => {
-  let count = 0;
+  useEffect(() => {
+    let count = 0;
 
-  if (filters.search) count++;
+    if (filters.search) count++;
+    if (filters.status && filters.status !== "all") count++;
+    if (filters.userId && filters.userId !== "all") count++;
+    if (filters.startDate && filters.endDate) count++;
 
-  // ✅ status counted ONLY if not "all"
-  if (filters.status && filters.status !== "all") count++;
-
-  // ✅ salesman / user counted ONLY if not "all"
-  if (filters.userId && filters.userId !== "all") count++;
-  if (filters.userId && filters.userId !== "all") count++;
-
-  // ✅ date counted ONLY if both present
-  if (filters.startDate && filters.endDate) count++;
-
-
-  setFilterCount(count);
-}, [filters]);
+    setFilterCount(count);
+  }, [filters]);
 
   // ===============================
-  // FETCH REPORT
+  // FETCH REPORT (SINGLE CALL)
   // ===============================
   useEffect(() => {
     if (!companyId) return;
-
     fetchReport(companyId);
-    console.log(filters,"filtersearch")
   }, [
     companyId,
     filters.page,
@@ -168,10 +139,10 @@ useEffect(() => {
   // ===============================
   // VIEW ORDER
   // ===============================
-  const handleViewOrder = useCallback((order: any) => {
+  const handleViewOrder = (order: any) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
-  }, []);
+  };
 
   // ===============================
   // STATS
@@ -180,7 +151,7 @@ useEffect(() => {
     () => [
       {
         label: "Total Revenue",
-        value: `${defaultCurrency} ${stats?.totalRevenue?.toLocaleString() || 0}`,
+        value:`${defaultCurrency} ${Math.floor(stats?.totalRevenue || 0)}`,
         icon: <Banknote className="w-8 h-8" />,
         colorClass: "from-teal-500 to-teal-600",
       },
@@ -203,7 +174,7 @@ useEffect(() => {
         colorClass: "from-green-500 to-green-600",
       },
     ],
-    [stats]
+    [stats, defaultCurrency]
   );
 
   const headers = [
@@ -216,10 +187,7 @@ useEffect(() => {
     "Action",
   ];
 
-  // ===============================
-  // TABLE VIEW
-  // ===============================
-  const TableView = useMemo(
+   const TableView = useMemo(
     () => (
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
@@ -330,7 +298,7 @@ useEffect(() => {
         onClearFilters={resetAllFilters}
         reportType="order"
         exportFileName="Order_Report"
-        onExportDetailed={async () => await fetchAllReport(companyId)}
+        onExportDetailed={() => fetchAllReport(companyId)}
         customFilterBar={
           <ReportFilterActions
             count={filterCount}
@@ -339,43 +307,35 @@ useEffect(() => {
           />
         }
       >
-        {viewMode === "table" ? TableView : CardView}
-        <OrderReportDetailsModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          data={selectedOrder}
-        />
+     
+  {viewMode === "table" ? TableView : CardView}
       </GenericReportPage>
 
-      {/* FILTER MODAL */}
-     <UniversalReportFilter
-  variant="modal"
+    <UniversalReportFilter
+  key={filterKey}   // 🔥 THIS IS THE MAGIC
   open={openFilter}
   onClose={setOpenFilter}
   filters={filters}
-  setFilters={(updater: any) => {
-    if (typeof updater === "function") {
-      const updated = updater(filters);
-      Object.keys(updated).forEach((k) => setFilter(k, updated[k]));
-    } else {
-      Object.keys(updater).forEach((k) => setFilter(k, updater[k]));
-    }
-  }}
+  setFilters={(u: any) =>
+    Object.keys(u).forEach((k) => setFilter(k, u[k]))
+  }
   onApply={handleApplyFilters}
   onReset={resetAllFilters}
   companyId={companyId}
-
-  showSearch          // ✅ SEARCH ADD
+  showSearch
   showSalesman
   showStatus
   showDateRange
-
   localDateRange={localDateRange}
   setLocalDateRange={setLocalDateRange}
-  applyDateRange={applyDateRange}
-  resetDateRange={resetDateRange}
 />
 
+
+      <OrderReportDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        data={selectedOrder}
+      />
     </>
   );
 };

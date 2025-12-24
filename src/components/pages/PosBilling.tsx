@@ -17,6 +17,7 @@ export default function PosBilling() {
   const { stockItems, fetchStockItems } = useStockItemStore();
   const { defaultSelected } = useCompanyStore();
   const { customers, fetchCustomers } = useCustomerStore();
+  const defaultCurrency = defaultSelected?.defaultCurrencySymbol || "₹";
 
   const {
     cart,
@@ -339,6 +340,7 @@ function applyBogoRules(cart, bogoCoupons, products) {
     setCart([]);
     setCustomerName("");
     setCustomerPhone("");
+    setCustomerSearch(""); // ✅ MUST
     setPayment("");
     setCashReceived("");
     setBillNumber("---");
@@ -459,9 +461,13 @@ function applyBogoRules(cart, bogoCoupons, products) {
     setPreviewBill(payload);
     setShowPreview(true);
 
-     setCart([]);
-    setCustomerName("");
-    setCustomerPhone("");
+    setCart([]);
+setCustomerName("");
+setCustomerPhone("");
+setCustomerSearch(""); // ✅ MUST
+setPayment("");
+setCashReceived("");
+
   };
 
   const handleDownloadInvoice = async () => {
@@ -493,7 +499,7 @@ function applyBogoRules(cart, bogoCoupons, products) {
         <h1 className="text-lg md:text-xl font-semibold">POS Billing</h1>
         <div className="flex items-center gap-3">
           <div className="bg-white/20 px-3 py-1 rounded-lg text-sm">
-            Drawer: ₹{drawerCash.toFixed(2)}
+            Drawer: {defaultCurrency+" "}{drawerCash.toFixed(2)}
           </div>
           <button
             onClick={() => setShowShiftModal(true)}
@@ -541,11 +547,13 @@ function applyBogoRules(cart, bogoCoupons, products) {
               <label className="text-xs font-semibold"> Enter Customer Name</label>
               <input
                 value={customerSearch}
-                onChange={(e) => {
-                  setCustomerSearch(e.target.value);
-                  setCustomerName(val);  
-                  setShowCustomerDropdown(true);
-                }}
+              onChange={(e) => {
+  const val = e.target.value;
+  setCustomerSearch(val);
+  setCustomerName(val);     // ✅ manual entry allowed
+  setShowCustomerDropdown(true);
+}}
+
                 placeholder="Enter customer Name"
                 className="w-full border rounded-xl px-2 py-1"
               />
@@ -738,10 +746,10 @@ function applyBogoRules(cart, bogoCoupons, products) {
                     <td className="border p-2">{it.batch || "-"}</td>
                     <td className="border p-2">{it.qty}</td>
                     <td className="border p-2">
-                      ₹{Number(it.price || 0).toFixed(2)}
+                      {defaultCurrency+" "}{Number(it.price || 0).toFixed(2)}
                     </td>
                     <td className="border p-2 font-semibold">
-                      ₹{Number((it.price || 0) * (it.qty || 0)).toFixed(2)}
+                      {defaultCurrency+" "}{Number((it.price || 0) * (it.qty || 0)).toFixed(2)}
                     </td>
                   </tr>
                 ))}
@@ -751,13 +759,13 @@ function applyBogoRules(cart, bogoCoupons, products) {
             {/* TOTALS */}
             <div className="mt-6 text-right pr-3">
               <p className="text-sm">
-                Subtotal: ₹{Number(previewBill.subtotal || 0).toFixed(2)}
+                Subtotal: {defaultCurrency+" "}{Number(previewBill.subtotal || 0).toFixed(2)}
               </p>
               <p className="text-sm">
-                Tax: ₹{Number(previewBill.gstAmount || 0).toFixed(2)}
+                Tax: {defaultCurrency+" "}{Number(previewBill.gstAmount || 0).toFixed(2)}
               </p>
               <p className="text-xl font-bold text-green-700">
-                Grand Total: ₹{Number(previewBill.totalAmount || 0).toFixed(2)}
+                Grand Total: {defaultCurrency+" "}{Number(previewBill.totalAmount || 0).toFixed(2)}
               </p>
             </div>
 
@@ -772,9 +780,9 @@ function applyBogoRules(cart, bogoCoupons, products) {
 
                 {previewBill.paymentInfo?.paymentType === "SPLIT" && (
                   <>
-                    <p>Cash: ₹{previewBill.paymentInfo.payments.cash}</p>
-                    <p>Card: ₹{previewBill.paymentInfo.payments.card}</p>
-                    <p>UPI: ₹{previewBill.paymentInfo.payments.upi}</p>
+                    <p>Cash: {defaultCurrency+" "}{previewBill.paymentInfo.payments.cash}</p>
+                    <p>Card: {defaultCurrency+" "}{previewBill.paymentInfo.payments.card}</p>
+                    <p>UPI: {defaultCurrency+" "}{previewBill.paymentInfo.payments.upi}</p>
                   </>
                 )}
               </div>

@@ -1,698 +1,540 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Badge } from '../ui/badge';
-import { Textarea } from '../ui/textarea';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '../ui/table';
+import { useState, useMemo, useEffect } from "react";
+import { Button } from "../ui/button";
+import { Dialog, DialogContent } from "../ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '../ui/dialog';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '../ui/select';
-import { Switch } from '../ui/switch';
-import { 
-  DollarSign, 
-  Plus, 
-  Search, 
-  Filter, 
-  Download, 
-  Upload, 
-  MoreHorizontal,
+  DollarSign,
+  Plus,
   Edit,
-  Trash2,
-  Copy,
+  FileText,
   Users,
-  MapPin,
   Calendar,
-  Percent,
-  Tag
-} from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { toast } from 'sonner';
+} from "lucide-react";
 
-interface PriceListItem {
-  id: number;
-  itemName: string;
-  sku: string;
-  basePrice: number;
-  discountPercent: number;
-  finalPrice: number;
-  minQuantity?: number;
-}
+import { useStockGroup } from "../../../store/stockGroupStore";
+import { useCompanyStore } from "../../../store/companyStore";
 
+import HeaderGradient from "../customComponents/HeaderGradint";
+import ViewModeToggle from "../customComponents/ViewModeToggle";
+import EmptyStateCard from "../customComponents/EmptyStateCard";
+import TableHeader from "../customComponents/CustomTableHeader";
+import SettingsDropdown from "../customComponents/SettingsDropdown";
+
+import { createPriceLevel, fetchPriceLevels } from "../../api/api";
+import { exportToExcel } from "../../lib/exportToExcel";
+
+/* =========================
+   TYPES
+========================= */
 interface PriceList {
   id: number;
   name: string;
-  description: string;
-  type: 'wholesale' | 'retail' | 'vip' | 'regional';
-  status: 'active' | 'inactive' | 'draft';
-  validFrom: string;
-  validUntil?: string;
-  applicableAreas?: string[];
-  applicablePincodes?: string[];
+  status: "active" | "inactive" | "draft";
   assignedCustomers: number;
-  items: PriceListItem[];
-  createdAt: string;
-  lastModified: string;
+  validFrom: string;
 }
 
 const mockPriceLists: PriceList[] = [
   {
     id: 1,
-    name: 'Wholesale Price List',
-    description: 'Special pricing for wholesale customers with bulk discounts',
-    type: 'wholesale',
-    status: 'active',
-    validFrom: '2024-08-01',
-    validUntil: '2024-12-31',
+    name: "Wholesale Price List",
+    status: "active",
     assignedCustomers: 45,
-    createdAt: '2024-08-01',
-    lastModified: '2024-08-15',
-    items: [
-      { id: 1, itemName: 'Premium Laptop', sku: 'LT-001', basePrice: 85000, discountPercent: 15, finalPrice: 72250 },
-      { id: 2, itemName: 'Office Chair', sku: 'CH-001', basePrice: 12000, discountPercent: 20, finalPrice: 9600, minQuantity: 5 },
-      { id: 3, itemName: 'Standing Desk', sku: 'DK-001', basePrice: 25000, discountPercent: 10, finalPrice: 22500 }
-    ]
+    validFrom: "2024-08-01",
   },
-  {
-    id: 2,
-    name: 'Mumbai Regional Pricing',
-    description: 'Special pricing for Mumbai customers including delivery charges',
-    type: 'regional',
-    status: 'active',
-    validFrom: '2024-07-01',
-    applicableAreas: ['Mumbai', 'Navi Mumbai', 'Thane'],
-    applicablePincodes: ['400001', '400002', '400003'],
-    assignedCustomers: 23,
-    createdAt: '2024-07-01',
-    lastModified: '2024-08-20',
-    items: [
-      { id: 1, itemName: 'Premium Laptop', sku: 'LT-001', basePrice: 85000, discountPercent: 5, finalPrice: 80750 },
-      { id: 4, itemName: 'Wireless Mouse', sku: 'MS-001', basePrice: 2500, discountPercent: 0, finalPrice: 2500 }
-    ]
-  },
-  {
-    id: 3,
-    name: 'VIP Customer Pricing',
-    description: 'Exclusive pricing for VIP customers with premium support',
-    type: 'vip',
-    status: 'active',
-    validFrom: '2024-08-01',
-    assignedCustomers: 12,
-    createdAt: '2024-08-01',
-    lastModified: '2024-08-25',
-    items: [
-      { id: 1, itemName: 'Premium Laptop', sku: 'LT-001', basePrice: 85000, discountPercent: 25, finalPrice: 63750 },
-      { id: 2, itemName: 'Office Chair', sku: 'CH-001', basePrice: 12000, discountPercent: 30, finalPrice: 8400 }
-    ]
-  },
-  {
-    id: 4,
-    name: 'Seasonal Promotion Q4',
-    description: 'Holiday season promotional pricing',
-    type: 'retail',
-    status: 'draft',
-    validFrom: '2024-10-01',
-    validUntil: '2024-12-31',
-    assignedCustomers: 0,
-    createdAt: '2024-08-30',
-    lastModified: '2024-08-31',
-    items: []
-  }
 ];
 
 export default function PriceListManagement() {
-  const [priceLists, setPriceLists] = useState<PriceList[]>(mockPriceLists);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedPriceList, setSelectedPriceList] = useState<PriceList | null>(null);
+  const { stockGroups, filterStockGroups } = useStockGroup();
+  const { defaultSelected } = useCompanyStore();
+
+  const [priceLists] = useState(mockPriceLists);
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [groupDropdownOpen, setGroupDropdownOpen] = useState(false);
+  const [groupSearch, setGroupSearch] = useState("");
 
   const [newPriceList, setNewPriceList] = useState({
-    name: '',
-    description: '',
-    type: 'retail' as PriceList['type'],
-    validFrom: '',
-    validUntil: '',
-    applicableAreas: '',
-    applicablePincodes: ''
+    groupId: "",
+    priceLevel: "",
+    applicableFrom: "",
   });
+  const [priceLevels, setPriceLevels] = useState<any[]>([]);
+  const [priceLevelOpen, setPriceLevelOpen] = useState(false);
+  const [newPriceLevelInput, setNewPriceLevelInput] = useState("");
 
-  const filteredPriceLists = priceLists.filter(priceList => {
-    const matchesSearch = priceList.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         priceList.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' || priceList.type === typeFilter;
-    const matchesStatus = statusFilter === 'all' || priceList.status === statusFilter;
-    
-    return matchesSearch && matchesType && matchesStatus;
-  });
 
-  const handleCreatePriceList = () => {
-    const priceList: PriceList = {
-      id: priceLists.length + 1,
-      name: newPriceList.name,
-      description: newPriceList.description,
-      type: newPriceList.type,
-      status: 'draft',
-      validFrom: newPriceList.validFrom,
-      validUntil: newPriceList.validUntil || undefined,
-      applicableAreas: newPriceList.applicableAreas ? newPriceList.applicableAreas.split(',').map(a => a.trim()) : undefined,
-      applicablePincodes: newPriceList.applicablePincodes ? newPriceList.applicablePincodes.split(',').map(p => p.trim()) : undefined,
-      assignedCustomers: 0,
-      items: [],
-      createdAt: new Date().toISOString().split('T')[0],
-      lastModified: new Date().toISOString().split('T')[0]
-    };
-    
-    setPriceLists([...priceLists, priceList]);
-    setNewPriceList({
-      name: '',
-      description: '',
-      type: 'retail',
-      validFrom: '',
-      validUntil: '',
-      applicableAreas: '',
-      applicablePincodes: ''
-    });
-    setIsCreateDialogOpen(false);
-    toast.success('Price list created successfully');
-  };
+  const navigate = useNavigate();
 
-  const handleToggleStatus = (priceListId: number) => {
-    setPriceLists(priceLists.map(priceList => 
-      priceList.id === priceListId 
-        ? { 
-            ...priceList, 
-            status: priceList.status === 'active' ? 'inactive' : 'active',
-            lastModified: new Date().toISOString().split('T')[0]
-          }
-        : priceList
-    ));
-    toast.success('Price list status updated');
-  };
+  /* =========================
+     EXPORT FUNCTION
+  ========================= */
+  const exportPriceListsToExcel = async () => {
+    if (!defaultSelected?._id) {
+      toast.error("No company selected");
+      return;
+    }
 
-  const handleDeletePriceList = (priceListId: number) => {
-    setPriceLists(priceLists.filter(priceList => priceList.id !== priceListId));
-    toast.success('Price list deleted successfully');
-  };
+    if (!priceLists.length) {
+      toast.error("No data to export");
+      return;
+    }
 
-  const handleDuplicatePriceList = (priceList: PriceList) => {
-    const newPriceList: PriceList = {
-      ...priceList,
-      id: priceLists.length + 1,
-      name: `${priceList.name} (Copy)`,
-      status: 'draft',
-      assignedCustomers: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-      lastModified: new Date().toISOString().split('T')[0]
-    };
-    
-    setPriceLists([...priceLists, newPriceList]);
-    toast.success('Price list duplicated successfully');
-  };
-
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case 'wholesale':
-        return <Badge className="bg-blue-100 text-blue-800">Wholesale</Badge>;
-      case 'retail':
-        return <Badge className="bg-green-100 text-green-800">Retail</Badge>;
-      case 'vip':
-        return <Badge className="bg-purple-100 text-purple-800">VIP</Badge>;
-      case 'regional':
-        return <Badge className="bg-orange-100 text-orange-800">Regional</Badge>;
-      default:
-        return <Badge variant="secondary">{type}</Badge>;
+    try {
+      exportToExcel({
+        data: priceLists,
+        company: defaultSelected,
+        sheetName: "Price Lists",
+        fileNamePrefix: "price_lists",
+        title: "Price List Export Report",
+        tableHeaders: [
+          "Price List Name",
+          "Status",
+          "Assigned Customers",
+          "Valid From",
+        ],
+        rowMapper: (p: any) => [
+          p.name || "",
+          p.status || "",
+          p.assignedCustomers || 0,
+          p.validFrom || "",
+        ],
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to export price lists");
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-      case 'inactive':
-        return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>;
-      case 'draft':
-        return <Badge className="bg-yellow-100 text-yellow-800">Draft</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+  useEffect(() => {
+    if (!defaultSelected?._id) return;
+
+    fetchPriceLevels(defaultSelected._id)
+      .then((res) => {
+        setPriceLevels(res.data.data);
+      })
+      .catch(() => {
+        toast.error("Failed to load Price Levels");
+      });
+  }, [defaultSelected?._id]);
+
+  useEffect(() => {
+    filterStockGroups(groupSearch, "", "desc", 1, 10, defaultSelected?._id);
+  }, [groupSearch]);
+
+  const filteredGroups = useMemo(() => {
+    if (!groupSearch.trim()) return stockGroups;
+    return stockGroups.filter((g) =>
+      g.name.toLowerCase().includes(groupSearch.toLowerCase())
+    );
+  }, [stockGroups, groupSearch]);
+
+
+
+  const handleAddPriceLevelInline = async () => {
+    if (!newPriceLevelInput.trim()) {
+      toast.error("Price Level is required");
+      return;
+    }
+
+    try {
+      const res = await createPriceLevel({
+        name: newPriceLevelInput,
+        companyId: defaultSelected._id,
+      });
+
+      setPriceLevels((prev) => [...prev, res.data.data]);
+
+      setNewPriceList({
+        ...newPriceList,
+        priceLevel: res.data.data.name,
+      });
+
+      setNewPriceLevelInput("");
+      setPriceLevelOpen(false);
+
+      toast.success("Price Level added");
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message || "Failed to add Price Level"
+      );
     }
   };
 
-  const stats = [
-    { label: 'Total Price Lists', value: priceLists.length, color: 'text-blue-600' },
-    { label: 'Active', value: priceLists.filter(p => p.status === 'active').length, color: 'text-green-600' },
-    { label: 'Customers Assigned', value: priceLists.reduce((sum, p) => sum + p.assignedCustomers, 0), color: 'text-purple-600' },
-    { label: 'Regional Lists', value: priceLists.filter(p => p.type === 'regional').length, color: 'text-orange-600' },
-  ];
+
+
+  const stats = {
+    total: priceLists.length,
+    active: priceLists.filter((p) => p.status === "active").length,
+    customers: priceLists.reduce((s, p) => s + p.assignedCustomers, 0),
+    draft: priceLists.filter((p) => p.status === "draft").length,
+  };
+
+  /* =========================
+     TABLE VIEW
+  ========================= */
+  const TableView = () => (
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <table className="min-w-full divide-y divide-gray-200">
+        <TableHeader
+          headers={[
+            "Price List Name",
+            "Status",
+            "Customers",
+            "Valid From",
+            "Actions",
+          ]}
+        />
+        <tbody className="divide-y divide-gray-200">
+          {priceLists.map((pl) => (
+            <tr key={pl.id} className="hover:bg-gray-50">
+              <td className="px-6 py-4 font-medium">{pl.name}</td>
+              <td className="px-6 py-4">
+                <Badge>{pl.status}</Badge>
+              </td>
+              <td className="px-6 py-4">{pl.assignedCustomers}</td>
+              <td className="px-6 py-4">{pl.validFrom}</td>
+              <td className="px-6 py-4 text-right">
+                <Button variant="ghost" size="sm">
+                  <Edit className="w-4 h-4" />
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  /* =========================
+     CARD VIEW
+  ========================= */
+  const CardView = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {priceLists.map((pl) => (
+        <Card key={pl.id}>
+          <CardHeader>
+            <div className="flex justify-between">
+              <CardTitle>{pl.name}</CardTitle>
+              <Badge>{pl.status}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <div className="flex items-center">
+              <Users className="w-4 h-4 mr-2" />
+              {pl.assignedCustomers} Customers
+            </div>
+            <div className="flex items-center">
+              <Calendar className="w-4 h-4 mr-2" />
+              {pl.validFrom}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Price List Management</h1>
-          <p className="text-gray-600 mt-1">Create and manage custom pricing for different customer segments</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <Button variant="outline" size="sm">
-            <Upload className="w-4 h-4 mr-2" />
-            Import Pricing
+    <div className="custom-container">
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-4">
+        <HeaderGradient
+          title="Price List Management"
+          subtitle="Create and manage your pricing structure"
+        />
+
+        <div className="flex items-center gap-3">
+          <SettingsDropdown onExport={exportPriceListsToExcel} />
+
+          <Button
+            onClick={() => setIsCreateDialogOpen(true)}
+            className="bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Price List
           </Button>
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Export All
-          </Button>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Price List
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Create New Price List</DialogTitle>
-                <DialogDescription>
-                  Set up a new pricing structure for specific customer segments or regions.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Price List Name</Label>
-                    <Input
-                      id="name"
-                      value={newPriceList.name}
-                      onChange={(e) => setNewPriceList({ ...newPriceList, name: e.target.value })}
-                      placeholder="e.g. Wholesale Q4 2024"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="type">Type</Label>
-                    <Select value={newPriceList.type} onValueChange={(value: PriceList['type']) => setNewPriceList({ ...newPriceList, type: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="retail">Retail</SelectItem>
-                        <SelectItem value="wholesale">Wholesale</SelectItem>
-                        <SelectItem value="vip">VIP</SelectItem>
-                        <SelectItem value="regional">Regional</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={newPriceList.description}
-                    onChange={(e) => setNewPriceList({ ...newPriceList, description: e.target.value })}
-                    placeholder="Describe the pricing strategy and target customers"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="validFrom">Valid From</Label>
-                    <Input
-                      id="validFrom"
-                      type="date"
-                      value={newPriceList.validFrom}
-                      onChange={(e) => setNewPriceList({ ...newPriceList, validFrom: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="validUntil">Valid Until (Optional)</Label>
-                    <Input
-                      id="validUntil"
-                      type="date"
-                      value={newPriceList.validUntil}
-                      onChange={(e) => setNewPriceList({ ...newPriceList, validUntil: e.target.value })}
-                    />
-                  </div>
-                </div>
-                {(newPriceList.type === 'regional') && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="areas">Applicable Areas</Label>
-                      <Input
-                        id="areas"
-                        value={newPriceList.applicableAreas}
-                        onChange={(e) => setNewPriceList({ ...newPriceList, applicableAreas: e.target.value })}
-                        placeholder="Mumbai, Delhi, Bangalore"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="pincodes">Applicable Pincodes</Label>
-                      <Input
-                        id="pincodes"
-                        value={newPriceList.applicablePincodes}
-                        onChange={(e) => setNewPriceList({ ...newPriceList, applicablePincodes: e.target.value })}
-                        placeholder="400001, 400002, 400003"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreatePriceList}>
-                  Create Price List
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                  <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+      {/* STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <Card className="bg-blue-600 text-white">
+          <CardContent className="p-4 flex justify-between">
+            <div>
+              <p>Total Lists</p>
+              <p className="text-2xl font-bold">{stats.total}</p>
+            </div>
+            <FileText />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-green-600 text-white">
+          <CardContent className="p-4 flex justify-between">
+            <div>
+              <p>Active</p>
+              <p className="text-2xl font-bold">{stats.active}</p>
+            </div>
+            <DollarSign />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-purple-600 text-white">
+          <CardContent className="p-4 flex justify-between">
+            <div>
+              <p>Customers</p>
+              <p className="text-2xl font-bold">{stats.customers}</p>
+            </div>
+            <Users />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-teal-600 text-white">
+          <CardContent className="p-4 flex justify-between">
+            <div>
+              <p>Draft</p>
+              <p className="text-2xl font-bold">{stats.draft}</p>
+            </div>
+            <FileText />
+          </CardContent>
+        </Card>
+      </div>
+
+      <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={priceLists.length}
+      />
+
+      {priceLists.length === 0 ? (
+        <EmptyStateCard
+          icon={FileText}
+          title="No price lists found"
+          description="Create your first price list"
+          buttonLabel="Create Price List"
+          onButtonClick={() => setIsCreateDialogOpen(true)}
+        />
+      ) : viewMode === "table" ? (
+        <TableView />
+      ) : (
+        <CardView />
+      )}
+
+      {/* =========================
+         CREATE PRICE LIST DIALOG
+         (EXACT SAME AS YOU SENT)
+      ========================= */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent
+          className="
+            max-w-lg 
+            max-h-[85vh] 
+            overflow-y-auto 
+            p-0 
+            rounded-2xl 
+            shadow-xl
+          "
+        >
+          {/* HEADER */}
+          <div className="px-6 py-4 border-b bg-gradient-to-r from-teal-50 to-blue-50 rounded-t-2xl">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">
+              Create Price List
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Configure pricing details for selected stock group
+            </p>
+          </div>
+
+          {/* BODY */}
+          <div className="px-6 py-5 space-y-5">
+            {/* STOCK GROUP */}
+            <div>
+              <Label className="mb-1 block text-sm font-semibold text-gray-700">
+                Stock Group
+              </Label>
+
+              <Input
+                readOnly
+                placeholder="Select stock group..."
+                value={
+                  newPriceList.groupId
+                    ? stockGroups.find(
+                      (g) => g._id === newPriceList.groupId
+                    )?.name || "All"
+                    : "All"
+                }
+                onClick={() => setGroupDropdownOpen((p) => !p)}
+                className="cursor-pointer bg-gray-50 focus:bg-white"
+              />
+
+              {groupDropdownOpen && (
+                <div className="mt-2 bg-white border rounded-xl shadow-md">
+                  <div className="p-2 border-b bg-gray-50 rounded-t-xl">
+                    <Input
+                      placeholder="Search stock group..."
+                      value={groupSearch}
+                      onChange={(e) => setGroupSearch(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="max-h-[220px] overflow-auto">
+                    <div
+                      onClick={() => {
+                        setNewPriceList({
+                          ...newPriceList,
+                          groupId: "undefined",
+                        });
+                        setGroupDropdownOpen(false);
+                        setGroupSearch("");
+                      }}
+                      className="px-4 py-2 text-sm cursor-pointer hover:bg-teal-50"
+                    >
+                      All
+                    </div>
+
+                    {filteredGroups.map((g) => (
+                      <div
+                        key={g._id}
+                        onClick={() => {
+                          setNewPriceList({
+                            ...newPriceList,
+                            groupId: g._id,
+                          });
+                          setGroupDropdownOpen(false);
+                          setGroupSearch("");
+                        }}
+                        className="px-4 py-2 text-sm cursor-pointer hover:bg-teal-50"
+                      >
+                        {g.name}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <DollarSign className={`w-8 h-8 ${stat.color}`} />
-              </div>
-            </CardContent>
-          </Card>
+              )}
+            </div>
+
+            {/* PRICE LEVEL */}
+            {/* PRICE LEVEL */}
+<div>
+  <Label className="mb-1 block text-sm font-semibold text-gray-700">
+    Price Level
+  </Label>
+
+  {/* SELECT BOX */}
+  <div
+    className="w-full border rounded-md px-3 py-2 text-sm cursor-pointer bg-white"
+    onClick={() => setPriceLevelOpen(!priceLevelOpen)}
+  >
+    {newPriceList.priceLevel || "Select Price Level"}
+  </div>
+
+  {/* DROPDOWN (NOW PUSHES CONTENT DOWN) */}
+  {priceLevelOpen && (
+    <div className="mt-2 w-full bg-white border rounded-md shadow-lg">
+      
+      {/* INPUT + PLUS */}
+      <div className="flex gap-2 p-2 border-b bg-gray-50">
+       
+        <input
+          className="flex-1 border rounded px-2 py-1 text-sm"
+          placeholder="New price level"
+          value={newPriceLevelInput}
+          onChange={(e) => setNewPriceLevelInput(e.target.value)}
+        />
+
+        <button
+          className="px-3 py-1 bg-black text-white rounded"
+          onClick={handleAddPriceLevelInline}
+        >
+          +
+        </button>
+      </div>
+
+      {/* EXISTING PRICE LEVELS */}
+      <div className="max-h-[220px] overflow-auto">
+        {priceLevels.map((pl) => (
+          <div
+            key={pl._id}
+            className="px-4 py-2 text-sm cursor-pointer hover:bg-teal-50"
+            onClick={() => {
+              setNewPriceList({
+                ...newPriceList,
+                priceLevel: pl.name,
+              });
+              setPriceLevelOpen(false);
+            }}
+          >
+            {pl.name}
+          </div>
         ))}
       </div>
+    </div>
+  )}
+</div>
 
-      {/* Price Lists Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Price Lists</CardTitle>
-          <CardDescription>
-            Manage pricing strategies for different customer segments and regions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+
+
+
+
+            {/* DATE */}
+            <div>
+              <Label className="mb-1 block text-sm font-semibold text-gray-700">
+                Applicable From
+              </Label>
               <Input
-                placeholder="Search price lists..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                type="date"
+                value={newPriceList.applicableFrom}
+                onChange={(e) =>
+                  setNewPriceList({
+                    ...newPriceList,
+                    applicableFrom: e.target.value,
+                  })
+                }
               />
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="retail">Retail</SelectItem>
-                <SelectItem value="wholesale">Wholesale</SelectItem>
-                <SelectItem value="vip">VIP</SelectItem>
-                <SelectItem value="regional">Regional</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Price List</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Validity</TableHead>
-                  <TableHead>Customers</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPriceLists.map((priceList) => (
-                  <TableRow key={priceList.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{priceList.name}</p>
-                        <p className="text-sm text-gray-600">{priceList.description}</p>
-                        <p className="text-xs text-gray-500">Modified: {priceList.lastModified}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getTypeBadge(priceList.type)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={priceList.status === 'active'}
-                          onCheckedChange={() => handleToggleStatus(priceList.id)}
-                          disabled={priceList.status === 'draft'}
-                        />
-                        {getStatusBadge(priceList.status)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="text-sm">From: {priceList.validFrom}</p>
-                        {priceList.validUntil && (
-                          <p className="text-sm">Until: {priceList.validUntil}</p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-1 text-gray-400" />
-                        <span>{priceList.assignedCustomers}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{priceList.items.length}</span>
-                      <span className="text-sm text-gray-600 ml-1">items</span>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => {
-                            setSelectedPriceList(priceList);
-                            setIsDetailDialogOpen(true);
-                          }}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit Price List
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDuplicatePriceList(priceList)}>
-                            <Copy className="w-4 h-4 mr-2" />
-                            Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Users className="w-4 h-4 mr-2" />
-                            Assign Customers
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Download className="w-4 h-4 mr-2" />
-                            Export
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => handleDeletePriceList(priceList.id)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+          {/* FOOTER */}
+          <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateDialogOpen(false)}
+            >
+              Cancel
+            </Button>
 
-      {/* Price List Details Dialog */}
-      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-6xl">
-          <DialogHeader>
-            <DialogTitle>Price List Details - {selectedPriceList?.name}</DialogTitle>
-            <DialogDescription>
-              Manage items and pricing rules for this price list
-            </DialogDescription>
-          </DialogHeader>
-          {selectedPriceList && (
-            <Tabs defaultValue="items" className="w-full">
-              <TabsList>
-                <TabsTrigger value="items">Items & Pricing</TabsTrigger>
-                <TabsTrigger value="rules">Pricing Rules</TabsTrigger>
-                <TabsTrigger value="customers">Assigned Customers</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="items" className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Price List Items</h4>
-                  <Button size="sm">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Item
-                  </Button>
-                </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item</TableHead>
-                      <TableHead>Base Price</TableHead>
-                      <TableHead>Discount</TableHead>
-                      <TableHead>Final Price</TableHead>
-                      <TableHead>Min Quantity</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedPriceList.items.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{item.itemName}</p>
-                            <p className="text-sm text-gray-600">{item.sku}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>₹{item.basePrice.toLocaleString()}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            <Percent className="w-3 h-3 mr-1" />
-                            {item.discountPercent}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">₹{item.finalPrice.toLocaleString()}</TableCell>
-                        <TableCell>
-                          {item.minQuantity ? `${item.minQuantity} units` : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TabsContent>
-              
-              <TabsContent value="rules" className="space-y-4">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Pricing Rules & Conditions</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Quantity-based Discounts</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <p className="text-sm">Automatically apply discounts based on order quantity</p>
-                          <Button variant="outline" size="sm">Configure Rules</Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Time-based Pricing</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <p className="text-sm">Set seasonal or promotional pricing</p>
-                          <Button variant="outline" size="sm">Setup Schedule</Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="customers" className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-medium">Assigned Customers</h4>
-                    <Button size="sm">Assign More Customers</Button>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {selectedPriceList.assignedCustomers} customers are currently assigned to this price list
-                  </p>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="settings" className="space-y-4">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Price List Settings</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Valid From</Label>
-                      <Input type="date" value={selectedPriceList.validFrom} />
-                    </div>
-                    <div>
-                      <Label>Valid Until</Label>
-                      <Input type="date" value={selectedPriceList.validUntil || ''} />
-                    </div>
-                  </div>
-                  {selectedPriceList.applicableAreas && (
-                    <div>
-                      <Label>Applicable Areas</Label>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {selectedPriceList.applicableAreas.join(', ')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-          )}
+            <Button
+              className="bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl"
+              onClick={() => {
+                if (
+                  !newPriceList.groupId ||
+                  !newPriceList.priceLevel ||
+                  !newPriceList.applicableFrom
+                ) {
+                  toast.error("Please fill all fields");
+                  return;
+                }
+
+                setIsCreateDialogOpen(false);
+
+                navigate("/price-list/create", {
+                  state: {
+                    priceLevel: newPriceList.priceLevel,
+                    applicableFrom: newPriceList.applicableFrom,
+                    groupIds: [newPriceList.groupId],
+                  },
+                });
+              }}
+            >
+              Continue
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
