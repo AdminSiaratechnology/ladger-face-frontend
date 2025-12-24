@@ -37,6 +37,7 @@ import SectionHeader from "../customComponents/SectionHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import SelectedCompany from "../customComponents/SelectedCompany";
 import UniversalInventoryDetailsModal from "../customComponents/UniversalInventoryDetailsModal";
+import CommonStats from "../customComponents/CommonStats";
 
 // StockGroup interface (adjusted to match store)
 interface StockGroup {
@@ -265,6 +266,32 @@ const handleSelectChange = (
     }),
     [filteredStockGroups, pagination, statusFilter]
   );
+  const groupStats = useMemo(() => [
+  {
+    title: "Total Groups",
+    value: stats?.totalGroups || 0,
+    icon: Layers,
+    variant: "blue",
+  },
+  {
+    title: "Primary Groups",
+    value: stats?.primaryGroups || 0,
+    icon: Star,
+    variant: "green",
+  },
+  {
+    title: "Active Groups",
+    value: stats?.activeGroups || 0,
+    variant: "purple",
+    showPulse: true, // Pulse effect
+  },
+  {
+    title: "Inactive Groups",
+    value: stats?.inactiveGroups || 0,
+    icon: Building2,
+    variant: "teal",
+  },
+], [stats]);
 
   // Table View Component
   const TableView = () => (
@@ -424,63 +451,11 @@ const handleSelectChange = (
         </CheckAccess>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm font-medium">
-                  Total Groups
-                </p>
-                <p className="text-2xl font-bold">{stats.totalGroups}</p>
-              </div>
-              <Layers className="w-6 h-6 text-blue-200" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm font-medium">
-                  Primary Groups
-                </p>
-                <p className="text-2xl font-bold">{stats.primaryGroups}</p>
-              </div>
-              <Star className="w-6 h-6 text-green-200" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium">
-                  Active Groups
-                </p>
-                <p className="text-2xl font-bold">{stats.activeGroups}</p>
-              </div>
-              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-teal-100 text-sm font-medium">
-                  Inactive Groups
-                </p>
-                <p className="text-2xl font-bold">{stats.inactiveGroups}</p>
-              </div>
-              <Building2 className="w-6 h-6 text-teal-200" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+     <CommonStats 
+  stats={groupStats} 
+  columns={4} 
+  loading={loading} 
+/>
 
       <FilterBar
         searchTerm={searchTerm}
@@ -498,13 +473,9 @@ const handleSelectChange = (
       />
       {loading && <TableViewSkeleton />}
 
-      <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
+    
 
-      {pagination?.total === 0 ? (
+      {!loading && ( pagination?.total === 0 ? (
         <EmptyStateCard
           icon={Layers}
           title="No stock groups registered yet"
@@ -517,6 +488,11 @@ const handleSelectChange = (
         />
       ) : (
         <>
+          <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={pagination?.total}
+      />
           {viewMode === "table" ? <TableView /> : <CardView />}
 
           <PaginationControls
@@ -526,7 +502,7 @@ const handleSelectChange = (
             itemName="stock groups"
           />
         </>
-      )}
+      ))}
 
       <Dialog
         open={open}

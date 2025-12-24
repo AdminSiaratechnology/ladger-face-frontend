@@ -7,7 +7,7 @@ import { TopProductsSection } from "./sections/TopProductsSection";
 import { CustomerQuickOrder } from "./sections/CustomerQuickOrder";
 import { CustomerOrderHistory } from "./sections/CustomerOrderHistory";
 import HeaderGradient from "../customComponents/HeaderGradint";
-import { RefreshCw, Activity } from "lucide-react";
+import { RefreshCw, Activity, Building } from "lucide-react";
 import { Badge } from "../ui/badge";
 
 export type TimePeriod = "day" | "week" | "month" | "year";

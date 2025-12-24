@@ -33,6 +33,7 @@ import ViewModeToggle from "../customComponents/ViewModeToggle";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import { set } from "react-hook-form";
 import UniversalInventoryDetailsModal from "../customComponents/UniversalInventoryDetailsModal";
+import CommonStats from "../customComponents/CommonStats";
 
 // Godown interface
 interface Godown {
@@ -312,6 +313,32 @@ const GodownRegistration: React.FC = () => {
     { id: "basic", label: "Basic Info" },
     { id: "location", label: "Location" },
   ];
+  const godownStats = useMemo(() => [
+  {
+    title: "Total Godowns",
+    value: stats?.totalGodowns || 0,
+    icon: Warehouse,
+    variant: "teal",
+  },
+  {
+    title: "Primary Godowns",
+    value: stats?.primaryGodowns || 0,
+    icon: Star,
+    variant: "blue",
+  },
+  {
+    title: "Active Godowns",
+    value: stats?.activeGodowns || 0,
+    variant: "green",
+    showPulse: true, // Ye "Active" wale dot ke liye hai
+  },
+  {
+    title: "Total Capacity",
+    value: `${stats?.totalCapacity || 0} sq.ft`,
+    icon: Building2,
+    variant: "purple",
+  },
+], [stats]);
 
   const headers = [
     "Godown",
@@ -589,65 +616,13 @@ const GodownRegistration: React.FC = () => {
         </CheckAccess>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-teal-100 text-sm font-medium">
-                  Total Godowns
-                </p>
-                <p className="text-2xl font-bold">{stats.totalGodowns}</p>
-              </div>
-              <Warehouse className="w-6 h-6 text-teal-200" />
-            </div>
-          </CardContent>
-        </Card>
+      <CommonStats 
+  stats={godownStats} 
+  columns={4} 
+  loading={loading} 
+/>
 
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm font-medium">
-                  Primary Godowns
-                </p>
-                <p className="text-2xl font-bold">{stats.primaryGodowns}</p>
-              </div>
-              <Star className="w-6 h-6 text-blue-200" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm font-medium">
-                  Active Godowns
-                </p>
-                <p className="text-2xl font-bold">{stats.activeGodowns}</p>
-              </div>
-              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium">
-                  Total Capacity
-                </p>
-                <p className="text-2xl font-bold">
-                  {stats.totalCapacity} sq.ft
-                </p>
-              </div>
-              <Building2 className="w-6 h-6 text-purple-200" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+   
 
       <FilterBar
         searchTerm={searchTerm}
@@ -666,13 +641,9 @@ const GodownRegistration: React.FC = () => {
 
       {loading && <TableViewSkeleton />}
 
-      <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
+   
 
-      {pagination.total === 0 ? (
+      {!loading && ( pagination.total === 0 ? (
         <EmptyStateCard
           icon={Warehouse}
           title="No godowns registered yet"
@@ -685,6 +656,11 @@ const GodownRegistration: React.FC = () => {
         />
       ) : (
         <>
+           <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={pagination?.total}
+      />
           {viewMode === "table" ? <TableView /> : <CardView />}
 
           <PaginationControls
@@ -694,7 +670,7 @@ const GodownRegistration: React.FC = () => {
             itemName="godowns"
           />
         </>
-      )}
+      ))}
 
       <Dialog
         open={open}

@@ -47,10 +47,11 @@ const MultiStepNav: React.FC<MultiStepNavProps> = ({ steps, currentStep, onStepC
         <React.Fragment key={step.id}>
           <div 
             ref={el => stepRefs.current[index] = el}
-            className="flex flex-col items-center min-w-[70px] flex-1 scroll-mx-3"
+            className="flex flex-col items-center min-w-[70px] flex-1 scroll-mx-3 "
+            onClick={() => onStepChange(step.id)}
           >
             <button
-              onClick={() => onStepChange(step.id)}
+              
               className={`flex items-center justify-center w-5 h-5 rounded-full transition-all duration-300 ${
                 index < currentIndex
                   ? 'bg-green-500 text-white shadow scale-105'
