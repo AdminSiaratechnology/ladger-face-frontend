@@ -284,7 +284,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   // 🔹 Calculated Sidebar State 🔹
   // The sidebar is considered expanded if it's not manually collapsed OR if the mouse is hovering over it.
-  const isSidebarOpen = !collapsed || isHovered;
+  const isMobile = window.innerWidth < 768;
+
+  const isSidebarOpen =isMobile || !collapsed || isHovered;
 
 
   const SimpleLinkComponent = ({

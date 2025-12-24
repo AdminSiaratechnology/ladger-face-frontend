@@ -25,6 +25,8 @@ import {
   Heading1,
   Calculator,
   XCircle,
+  Calendar,
+  AlertCircle
 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import { useCompanyStore } from "../../../store/companyStore";
@@ -54,6 +56,15 @@ import { useVendorStore } from "../../../store/vendorStore";
 import { DatePickerField } from "../customComponents/DatePickerField";
 import UniversalProductDetailsModal from "../customComponents/UniversalProductDetailsModal";
 import ToggleSwitch from "../customComponents/ToggleSwitch";
+import type {Company} from "@/types/companyRegistration"
+import { MonthYearPicker } from "../customComponents/MonthYearPicker";
+import SettingsDropdown from "../customComponents/SettingsDropdown";
+import api from "@/api/api"
+import * as XLSX from "xlsx";
+import {exportToExcel} from "@/lib/exportToExcel"
+import { ImportProductsModal } from "../customComponents/ImportProductsModal";
+import { ImportCSVModal } from "../customComponents/ImportCSVModal";
+
 
 // Interfaces
 interface Unit {
@@ -173,6 +184,7 @@ const ProductPage: React.FC = () => {
   const [openingQuantities, setOpeningQuantities] = useState<OpeningQuantity[]>(
     [{ id: 1, godown: "", batch: "", quantity: 0, rate: 0, amount: 0 }]
   );
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [totalOpeningQuantity, setTotalOpeningQuantity] = useState<number>(0);
   const [usedQuantity, setUsedQuantity] = useState<number>(0);
   const [remainingQuantity, setRemainingQuantity] = useState<number>(0);
@@ -249,7 +261,505 @@ const ProductPage: React.FC = () => {
     setSelectedProduct(product);
     setIsModalOpen(true);
   };
-  useEffect(() => {
+//   const exportToCSV = () => {
+//   if (filteredProducts.length === 0) {
+//     toast.error("No products to export");
+//     return;
+//   }
+
+//   // Define headers in desired order
+//   const headers = [
+//     "Code",
+//     "Name",
+//     "Part No",
+//     "Company",
+//     "Stock Group",
+//     "Stock Category",
+//     "Unit",
+//     "Alternate Unit",
+//     "Minimum Quantity",
+//     "Batch Managed",
+//     "Status",
+//     "Created At",
+//   ];
+
+//   // Map products to rows
+//   const rows = filteredProducts.map((product) => [
+//     product.code || "",
+//     product.name || "",
+//     product.partNo || "",
+//     product?.companyId?.namePrint || "",
+//     getStockGroupName(product?.stockGroup?.name || ""),
+//     getCategoryName(product?.stockCategory?.name || ""),
+//     getUnitName(product?.unit?.name || ""),
+//     product.alternateUnit || "",
+//     product.minimumQuantity || 0,
+//     product.batch ? "Yes" : "No",
+//     product.status || "active",
+//     new Date(product.createdAt).toLocaleDateString(),
+//   ]);
+
+//   // Create CSV content
+//   let csvContent = headers.join(",") + "\n";
+//   rows.forEach((row) => {
+//     const escapedRow = row.map((field) =>
+//       `"${String(field).replace(/"/g, '""')}"`
+//     );
+//     csvContent += escapedRow.join(",") + "\n";
+//   });
+
+//   // Download
+//   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+//   const url = URL.createObjectURL(blob);
+//   const link = document.createElement("a");
+//   link.setAttribute("href", url);
+//   link.setAttribute("download", `products_${new Date().toISOString().split("T")[0]}.csv`);
+//   link.style.visibility = "hidden";
+//   document.body.appendChild(link);
+//   link.click();
+//   document.body.removeChild(link);
+
+//   toast.success("Products exported successfully!");
+// };
+  
+// const exportToCSV = async () => {
+//   if (!defaultSelected?._id) {
+//     toast.error("No company selected");
+//     return;
+//   }
+
+//   // Build query params (same as table filters)
+//   const queryParams = new URLSearchParams({
+//     search: searchTerm,
+//     status: statusFilter === "all" ? "" : statusFilter,
+//     sortBy: sortBy.includes("name") ? "name" : "createdAt", // adjust if needed
+//     sortOrder: sortBy.endsWith("Asc") ? "asc" : "desc",
+//     page: "1",
+//     limit: "1000", // Critical: get ALL products, not just paginated
+//     companyId: defaultSelected._id,
+//   }).toString();
+
+//   try {
+//     const response = await api.fetchProducts(
+//       { companyId: defaultSelected._id },
+//       { queryParams }
+//     );
+
+//     // Extract products correctly from your API structure
+//     const products = response?.data?.items || [];
+
+//     if (products.length === 0) {
+//       toast.error("No products found to export");
+//       return;
+//     }
+
+//     // CSV Headers
+//     const headers = [
+//       "Code",
+//       "Name",
+//       "Part No",
+//       "Company",
+//       "Stock Group",
+//       "Stock Category",
+//       "Unit",
+//       "Alternate Unit",
+//       "Minimum Quantity",
+//       "Minimum Rate",
+//       "Maximum Rate",
+//       "Batch Managed",
+//       "Mfg Date (YYYY-MM)",
+//       "Expiry Date (YYYY-MM)",
+//       "Tax Applicable",
+//       "Tax %",
+//       "Status",
+//       "Created At",
+//     ];
+
+//     // Helper to format ISO date → YYYY-MM
+//     const formatMonthYear = (isoDate: string | null | undefined): string => {
+//       if (!isoDate) return "";
+//       const date = new Date(isoDate);
+//       const year = date.getUTCFullYear();
+//       const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+//       return `${year}-${month}`;
+//     };
+
+//     // Map products to CSV rows
+//     const rows = products.map((product: any) => [
+//       product.code || "",
+//       product.name || "",
+//       product.partNo || "",
+//       product.companyId?.namePrint || "",
+//       product.stockGroup?.name || "",
+//       product.stockCategory?.name || "",
+//       product.unit?.name || "",
+//       product.alternateUnit || "",
+//       product.minimumQuantity || 0,
+//       product.minimumRate || 0,
+//       product.maximumRate || 0,
+//       product.batch ? "Yes" : "No",
+//       formatMonthYear(product.mfgDate),
+//       formatMonthYear(product.expiryDate),
+//       product.taxConfiguration?.applicable ? "Yes" : "No",
+//       product.taxConfiguration?.taxPercentage || 0,
+//       product.status || "active",
+//       new Date(product.createdAt).toLocaleDateString(),
+//     ]);
+
+//     // Generate CSV
+//     let csvContent = headers.join(",") + "\n";
+//     rows.forEach((row) => {
+//       const escaped = row.map((field) =>
+//         `"${String(field).replace(/"/g, '""')}"`
+//       );
+//       csvContent += escaped.join(",") + "\n";
+//     });
+
+//     // Download file
+//     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+//     const url = URL.createObjectURL(blob);
+//     const link = document.createElement("a");
+//     link.href = url;
+//     link.download = `products_export_${new Date()
+//       .toISOString()
+//       .split("T")[0]}.csv`;
+//     document.body.appendChild(link);
+//     link.click();
+//     document.body.removeChild(link);
+//     URL.revokeObjectURL(url);
+
+//     toast.success(`Exported ${products.length} products successfully!`);
+//   } catch (error: any) {
+//     console.error("Export failed:", error);
+//     toast.error(
+//       error?.message || "Failed to export products. Please try again."
+//     );
+//   }
+// };
+// const exportToCSV = async () => {
+//   if (!defaultSelected?._id) {
+//     toast.error("No company selected");
+//     return;
+//   }
+
+//   // Build query params (same as table filters)
+//   const queryParams = new URLSearchParams({
+//     search: searchTerm,
+//     status: statusFilter === "all" ? "" : statusFilter,
+//     sortBy: sortBy.includes("name") ? "name" : "createdAt",
+//     sortOrder: sortBy.endsWith("Asc") ? "asc" : "desc",
+//     page: "1",
+//     limit: "0", // Get ALL products (your backend supports this)
+//     companyId: defaultSelected._id,
+//   }).toString();
+
+//   try {
+//     const response = await api.fetchProducts(
+//       { companyId: defaultSelected._id },
+//       { queryParams }
+//     );
+
+//     // Extract products from response
+//     const products = response?.data?.items || [];
+
+//     if (products.length === 0) {
+//       toast.error("No products found to export");
+//       return;
+//     }
+
+//     // === COMPANY HEADER SECTION ===
+//     let csvContent = `Company Export Report - ${new Date().toLocaleDateString()}\n\n`;
+
+//     csvContent += `Company Name:,${(defaultSelected.namePrint || "").trim()}\n`;
+    
+//     const addressParts = [
+//       defaultSelected.address1,
+//       defaultSelected.address2,
+//       defaultSelected.address3,
+//       defaultSelected.city,
+//       defaultSelected.state,
+//       defaultSelected.pincode,
+//       defaultSelected.country,
+//     ].filter(Boolean).map(part => part.trim());
+
+//     csvContent += `Address:,${addressParts.join(", ")}\n`;
+    
+//     csvContent += `GST Number:,${(defaultSelected.gstNumber || "").trim()}\n`;
+//     csvContent += `Email:,${(defaultSelected.email || "").trim()}\n`;
+//     csvContent += `Mobile:,${(defaultSelected.mobile || "").trim()}\n`;
+//     csvContent += `Telephone:,${(defaultSelected.telephone || "").trim()}\n`;
+//     csvContent += `Website:,${(defaultSelected.website || "").trim()}\n`;
+//     csvContent += `Currency:,${defaultSelected.defaultCurrency || ""} (${defaultSelected.defaultCurrencySymbol || ""})\n`;
+//     csvContent += `Notes:,${(defaultSelected.notes || "").trim()}\n\n`;
+
+//     // Optional: Add inventory flags
+//     csvContent += `Inventory Settings:\n`;
+//     csvContent += `Maintain Batch:,${defaultSelected.maintainBatch ? "Yes" : "No"}\n`;
+//     csvContent += `Maintain Godown:,${defaultSelected.maintainGodown ? "Yes" : "No"}\n`;
+//     csvContent += `Allow Negative Order:,${defaultSelected.negativeOrder ? "Yes" : "No"}\n`;
+//     csvContent += `Closing Quantity Order:,${defaultSelected.closingQuantityOrder ? "Yes" : "No"}\n\n`;
+
+//     // === PRODUCTS SECTION ===
+//     csvContent += `Products List (Total: ${products.length})\n\n`;
+
+//     const headers = [
+//       "Code",
+//       "Name",
+//       "Part No",
+//       "Company",
+//       "Stock Group",
+//       "Stock Category",
+//       "Unit",
+//       "Alternate Unit",
+//       "Minimum Quantity",
+//       "Minimum Rate",
+//       "Maximum Rate",
+//       "Batch Managed",
+//       "Mfg Date (YYYY-MM)",
+//       "Expiry Date (YYYY-MM)",
+//       "Tax Applicable",
+//       "Tax %",
+//       "Status",
+//       "Created At",
+//     ];
+
+//     csvContent += headers.join(",") + "\n";
+
+//     // Helper to format ISO date → YYYY-MM
+//     const formatMonthYear = (isoDate: string | null | undefined): string => {
+//       if (!isoDate) return "";
+//       const date = new Date(isoDate);
+//       const year = date.getUTCFullYear();
+//       const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+//       return `${year}-${month}`;
+//     };
+
+//     // Map products to rows
+//     products.forEach((product: any) => {
+//       const row = [
+//         product.code || "",
+//         product.name || "",
+//         product.partNo || "",
+//         product.companyId?.namePrint || "",
+//         product.stockGroup?.name || "",
+//         product.stockCategory?.name || "",
+//         product.unit?.name || "",
+//         product.alternateUnit || "",
+//         product.minimumQuantity || 0,
+//         product.minimumRate || 0,
+//         product.maximumRate || 0,
+//         product.batch ? "Yes" : "No",
+//         formatMonthYear(product.mfgDate),
+//         formatMonthYear(product.expiryDate),
+//         product.taxConfiguration?.applicable ? "Yes" : "No",
+//         product.taxConfiguration?.taxPercentage || 0,
+//         product.status || "active",
+//         new Date(product.createdAt).toLocaleDateString(),
+//       ];
+
+//       const escapedRow = row.map((field) =>
+//         `"${String(field).replace(/"/g, '""')}"`
+//       );
+//       csvContent += escapedRow.join(",") + "\n";
+//     });
+
+//     // Trigger download
+//     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+//     const url = URL.createObjectURL(blob);
+//     const link = document.createElement("a");
+//     link.href = url;
+//     link.download = `products_export_${defaultSelected.namePrint
+//       .replace(/[^a-z0-9]/gi, "_")
+//       .toLowerCase()}_${new Date().toISOString().split("T")[0]}.csv`;
+//     document.body.appendChild(link);
+//     link.click();
+//     document.body.removeChild(link);
+//     URL.revokeObjectURL(url);
+
+//     toast.success(`Exported ${products.length} products with company details!`);
+//   } catch (error: any) {
+//     console.error("Export failed:", error);
+//     toast.error(
+//       error?.message || "Failed to export products. Please try again."
+//     );
+//   }
+// };
+
+
+const exportToCSV = async () => {
+  if (!defaultSelected?._id) {
+    toast.error("No company selected");
+    return;
+  }
+
+  try {
+    const queryParams = new URLSearchParams({
+      search: searchTerm,
+      status: statusFilter === "all" ? "" : statusFilter,
+      sortBy: sortBy.includes("name") ? "name" : "createdAt",
+      sortOrder: sortBy.endsWith("Asc") ? "asc" : "desc",
+      page: "1",
+      limit: "0",
+      companyId: defaultSelected._id,
+    }).toString();
+
+    const response = await api.fetchProducts(
+      { companyId: defaultSelected._id },
+      { queryParams }
+    );
+
+    const products = response?.data?.items || [];
+
+    if (products.length === 0) {
+      toast.error("No products found to export");
+      return;
+    }
+
+    /* ===============================
+       COMPANY DETAILS SECTION
+    =============================== */
+
+    const address = [
+      defaultSelected.address1,
+      defaultSelected.address2,
+      defaultSelected.address3,
+      defaultSelected.city,
+      defaultSelected.state,
+      defaultSelected.pincode,
+      defaultSelected.country,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    const companySection = [
+      ["COMPANY DETAILS"],
+      [],
+      ["Company Name", defaultSelected.namePrint || ""],
+      ["Address", address],
+      ["GST Number", defaultSelected.gstNumber || "N/A"],
+      ["Email", defaultSelected.email || "N/A"],
+      ["Mobile", defaultSelected.mobile || "N/A"],
+      ["Telephone", defaultSelected.telephone || "N/A"],
+      ["Website", defaultSelected.website || "N/A"],
+      [
+        "Currency",
+        `${defaultSelected.defaultCurrency || ""} (${defaultSelected.defaultCurrencySymbol || ""})`,
+      ],
+      ["Notes", defaultSelected.notes || ""],
+      [],
+      ["INVENTORY SETTINGS"],
+      [],
+      ["Maintain Batch", defaultSelected.maintainBatch ? "Yes" : "No"],
+      ["Maintain Godown", defaultSelected.maintainGodown ? "Yes" : "No"],
+      ["Allow Negative Order", defaultSelected.negativeOrder ? "Yes" : "No"],
+      [
+        "Closing Quantity Order",
+        defaultSelected.closingQuantityOrder ? "Yes" : "No",
+      ],
+      [],
+      [`PRODUCT LIST (Total: ${products.length})`],
+      [],
+    ];
+
+    /* ===============================
+       PRODUCT TABLE
+    =============================== */
+
+    const tableHeaders = [
+      "Code",
+      "Name",
+      "Part No",
+      "Stock Group",
+      "Stock Category",
+      "Unit",
+      "Min Qty",
+      "Min Rate",
+      "Max Rate",
+      "Batch Managed",
+      "MFG Date",
+      "Expiry Date",
+      "Tax %",
+      "Status",
+      "Created At",
+    ];
+
+    const tableRows = products.map((p: any) => [
+      p.code || "",
+      p.name || "",
+      p.partNo || "",
+      p.stockGroup?.name || "",
+      p.stockCategory?.name || "",
+      p.unit?.name || "",
+      p.minimumQuantity || 0,
+      p.minimumRate || 0,
+      p.maximumRate || 0,
+      p.batch ? "Yes" : "No",
+      p.mfgDate ? p.mfgDate.slice(0, 7) : "",
+      p.expiryDate ? p.expiryDate.slice(0, 7) : "",
+      p.taxConfiguration?.taxPercentage || 0,
+      p.status || "active",
+      new Date(p.createdAt).toLocaleDateString(),
+    ]);
+
+    const sheetData = [
+      ...companySection,
+      tableHeaders,
+      ...tableRows,
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+
+    /* ===============================
+       STYLING
+    =============================== */
+
+    const headerRowIndex = companySection.length;
+
+    const range = XLSX.utils.decode_range(worksheet["!ref"]!);
+
+    // Style table header
+    for (let c = 0; c < tableHeaders.length; c++) {
+      const cellRef = XLSX.utils.encode_cell({
+        r: headerRowIndex,
+        c,
+      });
+
+      if (worksheet[cellRef]) {
+        worksheet[cellRef].s = {
+          fill: { fgColor: { rgb: "0F766E" } }, // teal
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          alignment: { horizontal: "center" },
+          border: {
+            top: { style: "thin" },
+            bottom: { style: "thin" },
+            left: { style: "thin" },
+            right: { style: "thin" },
+          },
+        };
+      }
+    }
+
+    // Auto column width
+    worksheet["!cols"] = tableHeaders.map(() => ({ wch: 18 }));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+
+    XLSX.writeFile(
+      workbook,
+      `products_${defaultSelected.namePrint
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase()}_${new Date().toISOString().split("T")[0]}.xlsx`
+    );
+
+    toast.success("Excel exported successfully with company details!");
+  } catch (error: any) {
+    console.error(error);
+    toast.error("Failed to export products");
+  }
+};
+
+useEffect(() => {
     if (defaultSelected) {
       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
     }
@@ -560,6 +1070,8 @@ const ProductPage: React.FC = () => {
       remarks: product.remarks || "",
       status: product.status || "active",
       priceIncludesTax: product.priceIncludesTax || false,
+      mfgDate: product.mfgDate || "",
+      expiryDate: product.expiryDate || "",
     });
     if (product.openingQuantities && product.openingQuantities.length > 0) {
       setOpeningQuantities(product.openingQuantities);
@@ -584,6 +1096,10 @@ const ProductPage: React.FC = () => {
     }
     if (!formData.companyId) {
       toast.error("Please select Company");
+      return;
+    }
+    if (!formData.unit) {
+      toast.error("Please select Unit");
       return;
     }
     if (formData.taxConfiguration.applicable && !isTaxValid()) {
@@ -671,15 +1187,18 @@ const ProductPage: React.FC = () => {
     return unit ? unit.name : unitId;
   };
 
-  const getMaintainGodownStatus = (companyId: string) => {
-    const company = companies?.find((c) => c._id === companyId);
-    return company ? company?.maintainGodown : false;
+  const getMaintainGodownStatus = () => {
+    console.log(defaultSelected,"defaultSelected in maintain godown");
+ 
+    return defaultSelected ? defaultSelected?.maintainGodown : false;
   };
 
-  const getMaintainBatchStatus = (companyId: string) => {
-    const company = companies?.find((c) => c._id === companyId);
-    return company ? company?.maintainBatch : false;
+  const getMaintainBatchStatus = () => {
+    return defaultSelected ? defaultSelected?.maintainBatch : false;
   };
+
+  const getInventoryFlag = (key: Company): boolean =>
+  defaultSelected?.[key] ?? false;
 
   const selectedCompanyId = defaultSelected?._id;
 
@@ -918,6 +1437,163 @@ const ProductPage: React.FC = () => {
     };
   }, []);
 
+ 
+
+// Reusable Component for Month/Year Selection
+// const MonthYearPicker = ({ label, value, name, onChange }) => {
+//   // Parse current value (e.g., "2024-05") into year and month
+//   const [year, month] = value ? value.split("-") : ["", ""];
+  
+//   const currentYear = new Date().getFullYear();
+//   // Generate years: 10 years back to 10 years future
+//   const years = Array.from({ length: 21 }, (_, i) => currentYear - 10 + i);
+  
+//   const months = [
+//     { val: "01", label: "January" }, { val: "02", label: "February" },
+//     { val: "03", label: "March" }, { val: "04", label: "April" },
+//     { val: "05", label: "May" }, { val: "06", label: "June" },
+//     { val: "07", label: "July" }, { val: "08", label: "August" },
+//     { val: "09", label: "September" }, { val: "10", label: "October" },
+//     { val: "11", label: "November" }, { val: "12", label: "December" },
+//   ];
+
+//   // Handle individual dropdown changes
+//   const handlePartChange = (type, partValue) => {
+//     let newYear = year || currentYear;
+//     let newMonth = month || "01";
+
+//     if (type === "month") newMonth = partValue;
+//     if (type === "year") newYear = partValue;
+
+//     // Simulate standard event object for parent handler
+//     onChange({
+//       target: {
+//         name: name,
+//         value: `${newYear}-${newMonth}`,
+//       },
+//     });
+//   };
+
+//   return (
+//     <div className="flex flex-col gap-1.5">
+//       <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+//         <Calendar className="w-4 h-4 text-blue-500" />
+//         {label}
+//       </label>
+//       <div className="flex gap-2">
+//         {/* Month Dropdown */}
+//         <select
+//           value={month}
+//           onChange={(e) => handlePartChange("month", e.target.value)}
+//           className="flex-1 h-10 px-3 border-2 border-gray-300 rounded-lg 
+//             focus:border-blue-500 focus:ring-2 focus:ring-blue-100 
+//             bg-white text-sm cursor-pointer"
+//         >
+//           <option value="" disabled>Month</option>
+//           {months.map((m) => (
+//             <option key={m.val} value={m.val}>{m.label}</option>
+//           ))}
+//         </select>
+
+//         {/* Year Dropdown */}
+//         <select
+//           value={year}
+//           onChange={(e) => handlePartChange("year", e.target.value)}
+//           className="w-1/3 h-10 px-3 border-2 border-gray-300 rounded-lg 
+//             focus:border-blue-500 focus:ring-2 focus:ring-blue-100 
+//             bg-white text-sm cursor-pointer"
+//         >
+//           <option value="" disabled>Year</option>
+//           {years.map((y) => (
+//             <option key={y} value={y}>{y}</option>
+//           ))}
+//         </select>
+//       </div>
+//     </div>
+//   );
+// };
+const isDateInvalid = 
+    formData.mfgDate && 
+    formData.expiryDate && 
+    formData.expiryDate < formData.mfgDate;
+    // Inside your ProductPage component
+
+
+const exportProductsToExcel = async () => {
+  if (!defaultSelected?._id) {
+    toast.error("No company selected");
+    return;
+  }
+
+  const queryParams = new URLSearchParams({
+    search: searchTerm,
+    status: statusFilter === "all" ? "" : statusFilter,
+    sortBy: sortBy.includes("name") ? "name" : "createdAt",
+    sortOrder: sortBy.endsWith("Asc") ? "asc" : "desc",
+    page: "1",
+    limit: "0",
+    companyId: defaultSelected._id,
+  }).toString();
+
+  try {
+    const response = await api.fetchProducts(
+      { companyId: defaultSelected._id },
+      { queryParams }
+    );
+
+    const products = response?.data?.items || [];
+
+    exportToExcel({
+      data: products,
+      company: defaultSelected,
+      sheetName: "Products",
+      fileNamePrefix: "products",
+      title: "Products Export Report",
+      tableHeaders: [
+        "Code",
+        "Name",
+        "Part No",
+        "Stock Group",
+        "Stock Category",
+        "Unit",
+        "Min Qty",
+        "Min Rate",
+        "Max Rate",
+        "Batch Managed",
+        "MFG Date",
+        "Expiry Date",
+        "Tax %",
+        "Status",
+        "Created At",
+      ],
+      rowMapper: (p: any) => [
+        p.code || "",
+        p.name || "",
+        p.partNo || "",
+        p.stockGroup?.name || "",
+        p.stockCategory?.name || "",
+        p.unit?.name || "",
+        p.minimumQuantity || 0,
+        p.minimumRate || 0,
+        p.maximumRate || 0,
+        p.batch ? "Yes" : "No",
+        p.mfgDate ? p.mfgDate.slice(0, 7) : "",
+        p.expiryDate ? p.expiryDate.slice(0, 7) : "",
+        p.taxConfiguration?.taxPercentage || 0,
+        p.status || "active",
+        new Date(p.createdAt).toLocaleDateString(),
+      ],
+    });
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to export products");
+  }
+};
+
+const fetchNewProduct=async()=>{
+  return  await fetchProducts(currentPage, limit, defaultSelected?._id)
+}
+
   return (
     <div className="custom-container">
       <div className="flex justify-between items-center mb-4">
@@ -925,6 +1601,21 @@ const ProductPage: React.FC = () => {
           title="Product Management"
           subtitle="Manage your product inventory and details"
         />
+        <div className="flex items-center gap-3">
+   
+    <SettingsDropdown
+      // onImport={() => {
+      //   // Handle import (e.g., open file input or modal)
+      //   toast.info("Import feature coming soon!");
+      // }}
+      onImport={() => setImportModalOpen(true)}
+      onExport={() => exportProductsToExcel()}
+      onSample={() => {
+        // Download sample CSV/Excel template
+        window.location.href = "/templates/sample-products.xlsx"; // or trigger download
+      }}
+    />
+        
         <CheckAccess
           module="InventoryManagement"
           subModule="Product"
@@ -950,61 +1641,9 @@ const ProductPage: React.FC = () => {
           </Button>
         </CheckAccess>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-teal-100 text-sm font-medium">
-                  Total Products
-                </p>
-                <p className="text-2xl font-bold">{stats?.totalProducts}</p>
-              </div>
-              <Package className="w-6 h-6 text-teal-200" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm font-medium">
-                  Active Products
-                </p>
-                <p className="text-2xl font-bold">{stats?.activeProducts}</p>
-              </div>
-              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm font-medium">
-                  Batch Managed
-                </p>
-                <p className="text-2xl font-bold">{stats?.batchProducts}</p>
-              </div>
-              <Tag className="w-6 h-6 text-green-200" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium">
-                  Taxable Products
-                </p>
-                <p className="text-2xl font-bold">{stats.taxableProducts}</p>
-              </div>
-              <FileText className="w-6 h-6 text-purple-200" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+ 
 
       <FilterBar
         searchTerm={searchTerm}
@@ -1084,6 +1723,10 @@ const ProductPage: React.FC = () => {
               if (activeTab === "basic") {
                 if (!formData.name.trim()) {
                   toast.error("Please enter Product Name");
+                  return;
+                }
+                if (!formData.unit.trim()) {
+                  toast.error("Please select unit");
                   return;
                 }
               }
@@ -1288,11 +1931,12 @@ const ProductPage: React.FC = () => {
                   </div>
 
                   {/* BATCH CHECKBOX */}
-                 <div className="mt-2 ">
-                    <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="batch"
+                  {/* {defaultSelected && getInventoryFlag("maintainBatch") && (
+                    <div className="mt-2 ">
+                      <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="batch"
                         checked={!!formData.batch}
                         onChange={(e) => {
                           setIsFormDirty(true);
@@ -1305,44 +1949,60 @@ const ProductPage: React.FC = () => {
                       />
                       Batch Managed
                     </label>
-                  </div>
+                  </div>)} */}
+                  {defaultSelected && getInventoryFlag("maintainBatch") && (
+  <div className="mt-6">
+    <ToggleSwitch
+      title="Batch Managed"
+      subtitle="Enable batch-wise tracking for this product (required for Mfg & Expiry dates)"
+      checked={!!formData.batch}
+      onChange={(value) => {
+        setIsFormDirty(true);
+        setFormData((prev) => ({
+          ...prev,
+          batch: value,
+        }));
+      }}
+    />
+  </div>
+)}
 
                   {/* ⭐ MFG + EXPIRY DATE (INSIDE GRID) */}
                   {formData.batch && (
-                    <>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-sm font-semibold text-gray-700">
-                          MFG Date
-                        </label>
-                        <input
-                          type="date"
-                          name="mfgDate"
-                          value={formData.mfgDate}
-                          onChange={handleChange}
-                          className="h-10 px-3 py-2 border-2 border-gray-300 rounded-lg 
-        focus:border-blue-500 focus:ring-2 focus:ring-blue-100 
-        bg-white transition-all text-sm"
-                        />
-                      </div>
+      
+      <>
+        <MonthYearPicker
+          label="Manufacturing Date"
+          name="mfgDate"
+          value={formData.mfgDate}
+          onChange={handleChange}
+        />
 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-sm font-semibold text-gray-700">
-                          Expiry Date
-                        </label>
-                        <input
-                          type="date"
-                          name="expiryDate"
-                          value={formData.expiryDate}
-                          onChange={handleChange}
-                          className="h-10 px-3 py-2 border-2 border-gray-300 rounded-lg 
-        focus:border-blue-500 focus:ring-2 focus:ring-blue-100 
-        bg-white transition-all text-sm"
-                        />
-                      </div>
-                    </>
-                  )}
+        <MonthYearPicker
+          label="Expiry Date"
+          name="expiryDate"
+          value={formData.expiryDate}
+          onChange={handleChange}
+          error={isDateInvalid} // Pass error state to make it Red
+        />
+    
+
+      {/* Error Message Section */}
+      {isDateInvalid && (
+        <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 animate-pulse">
+          <AlertCircle className="w-5 h-5" />
+          <p className="text-sm font-medium">
+            Error: Expiry date cannot be earlier than Manufacturing date.
+          </p>
+        </div>
+      )}
+      </>
+      
+  
+ )}
 
                 </div>
+  
 
                 <CustomStepNavigation
                   currentStep={1}
@@ -1351,6 +2011,10 @@ const ProductPage: React.FC = () => {
                   onNext={() => {
                     if (!formData.name.trim()) {
                       toast.error("Please enter Product Name");
+                      return;
+                    }
+                    if (!formData.unit) {
+                      toast.error("Please Select unit");
                       return;
                     }
                     setActiveTab("tax");
@@ -1707,12 +2371,12 @@ const ProductPage: React.FC = () => {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="bg-teal-50">
-                        {getMaintainGodownStatus(selectedCompanyId || "") && (
+                        {getMaintainGodownStatus() && (
                           <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">
                             Godown
                           </th>
                         )}
-                        {getMaintainBatchStatus(selectedCompanyId || "") &&
+                        {getMaintainBatchStatus() &&
                           formData.batch && (
                             <th className="p-2 border border-teal-200 text-left text-sm font-semibold text-gray-700">
                               Batch
@@ -2086,6 +2750,25 @@ const ProductPage: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         data={selectedProduct}
       />
+      {/* <ImportProductsModal
+  open={importModalOpen}
+  onOpenChange={setImportModalOpen}
+  onSuccess={() => {
+    // Refresh product list after import
+    // You may want to refetch products here
+    toast.success("Products imported! Refreshing list...");
+    // Optionally call your fetch function
+  }}
+/> */}
+<ImportCSVModal
+  open={importModalOpen}
+  onOpenChange={setImportModalOpen}
+  onSuccess={() => fetchNewProduct()}
+  title="Import Products from CSV"
+  resourceName="product"
+  importFn={api.importProductsFromCSV}
+/>
+
     </div>
   );
 };

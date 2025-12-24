@@ -105,6 +105,7 @@ export default function ForgotPasswordModal({
       setStep("otp");
       setResendCountdown(60);
     } catch (err: any) {
+      console.log(err," error in sending OTP");
       const msg = err?.message || "Failed to send verification code";
       setError(msg);
       toast.error(msg);
