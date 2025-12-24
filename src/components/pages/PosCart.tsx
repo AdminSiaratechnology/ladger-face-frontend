@@ -12,9 +12,7 @@ export default function PosCart({
 }: any) {
   const { defaultSelected } = useCompanyStore();
   const currency = getCurrencySymbol(defaultSelected?.country);
-
-  // ✅ BUY ITEMS ONLY
-  const buyItems = cart.filter((i: any) => !i.isFreeItem);
+  const defaultCurrency = defaultSelected?.defaultCurrencySymbol || "₹";
 
   return (
     <div className="bg-white rounded-2xl border shadow-sm flex flex-col w-full">
@@ -30,31 +28,25 @@ export default function PosCart({
         {cart.length > 0 && (
           <button
             onClick={clearCart}
-            className="text-xs font-medium text-red-500 hover:underline cursor-pointer"
+            className="text-xs font-medium text-red-500 hover:underline"
           >
             Clear All
           </button>
         )}
       </div>
 
-      {/* EMPTY STATE */}
+      {/* EMPTY */}
       {cart.length === 0 && (
-        <div className="flex flex-col items-center justify-center h-[220px] text-gray-400 px-4 text-center">
-          <ShoppingCart
-            size={60}
-            strokeWidth={1.2}
-            className="text-gray-300 mb-3"
-          />
-          <p className="text-sm">
-            Search and add products to start billing
-          </p>
+        <div className="flex flex-col items-center justify-center h-[220px] text-gray-400">
+          <ShoppingCart size={60} className="mb-3 text-gray-300" />
+          <p className="text-sm">Search and add products to start billing</p>
         </div>
       )}
 
-      {/* CART ITEMS */}
+      {/* CART LIST */}
       {cart.length > 0 && (
         <>
-          {/* DESKTOP HEADER */}
+          {/* HEADER */}
           <div className="hidden lg:grid grid-cols-12 text-xs font-semibold text-gray-500 border-b px-4 py-2">
             <div className="col-span-1">#</div>
             <div className="col-span-4">Product</div>
@@ -65,20 +57,12 @@ export default function PosCart({
           </div>
 
           <div className="overflow-y-auto max-h-[320px]">
-            {buyItems.map((item: any, i: number) => {
-              // ✅ FREE ITEMS LINKED TO THIS BUY ITEM
-              const freeItems = cart.filter(
-                (free: any) =>
-                  free.isFreeItem &&
-                  free.freeDescription &&
-                  free.freeDescription.includes(item.ItemName)
-              );
-
-              return (
-                <div key={item.cartId}>
-                  {/* ================= BUY ITEM ================= */}
+            {cart.map((item: any, index: number) => (
+              <div key={item.cartId}>
+                {/* ================= BUY ITEM ================= */}
+                {!item.isFreeItem && (
                   <div className="hidden lg:grid grid-cols-12 items-center py-3 border-b px-4">
-                    <div className="col-span-1">{i + 1}</div>
+                    <div className="col-span-1">{index + 1}</div>
 
                     <div className="col-span-4">
                       <p className="font-medium">{item.ItemName}</p>
@@ -91,18 +75,16 @@ export default function PosCart({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => decreaseQty(item)}
-                          className="w-7 h-7 bg-gray-200 rounded-md"
+                          className="w-7 h-7 bg-gray-200 rounded"
                         >
                           -
                         </button>
 
-                        <span className="text-lg font-semibold">
-                          {item.qty}
-                        </span>
+                        <span className="font-semibold">{item.qty}</span>
 
                         <button
                           onClick={() => increaseQty(item)}
-                          className="w-7 h-7 bg-blue-600 text-white rounded-md"
+                          className="w-7 h-7 bg-blue-600 text-white rounded"
                         >
                           +
                         </button>
@@ -110,13 +92,11 @@ export default function PosCart({
                     </div>
 
                     <div className="col-span-2 text-right">
-                      {currency}
-                      {item.price.toFixed(2)}
+                      {defaultCurrency+" "}{item.price.toFixed(2)}
                     </div>
 
                     <div className="col-span-2 text-right font-semibold">
-                      {currency}
-                      {(item.qty * item.price).toFixed(2)}
+                      {defaultCurrency+" "}{(item.qty * item.price).toFixed(2)}
                     </div>
 
                     <div className="col-span-1 text-center">
@@ -128,100 +108,37 @@ export default function PosCart({
                       </button>
                     </div>
                   </div>
+                )}
 
-                  {/* ================= FREE ITEMS (JUST BELOW BUY ITEM) ================= */}
-                  {freeItems.map((free: any) => (
-                    <div
-                      key={free.cartId}
-                      className="hidden lg:grid grid-cols-12 items-center py-3 border-b px-4 bg-green-50"
-                    >
-                      <div className="col-span-1"></div>
+                {/* ================= FREE ITEM ================= */}
+                {item.isFreeItem && (
+                  <div className="hidden lg:grid grid-cols-12 items-center py-3 border-b px-4 bg-green-50">
+                    <div className="col-span-1"></div>
 
-                      <div className="col-span-4">
-                        <p className="font-medium">
-                          {free.ItemName}
-                        </p>
-                        <p className="text-xs italic text-gray-600">
-                          {free.freeDescription}
-                        </p>
-                      </div>
-
-                      <div className="col-span-2 text-center font-semibold">
-                        {free.qty}
-                      </div>
-
-                      <div className="col-span-2 text-right">
-                        {currency}0.00
-                      </div>
-
-                      <div className="col-span-2 text-right font-semibold">
-                        {currency}0.00
-                      </div>
-
-                      <div className="col-span-1"></div>
-                    </div>
-                  ))}
-
-                  {/* ================= MOBILE VIEW ================= */}
-                  <div className="lg:hidden border-b p-3 space-y-2">
-                    <p className="font-medium text-sm">
-                      {item.ItemName}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {item.ItemCode}
-                    </p>
-
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => decreaseQty(item)}
-                          className="w-8 h-8 bg-gray-200 rounded-md"
-                        >
-                          -
-                        </button>
-
-                        <span className="font-semibold">
-                          {item.qty}
-                        </span>
-
-                        <button
-                          onClick={() => increaseQty(item)}
-                          className="w-8 h-8 bg-blue-600 text-white rounded-md"
-                        >
-                          +
-                        </button>
-                      </div>
-
-                      <div className="text-right text-sm">
-                        <p>
-                          {currency}
-                          {item.price.toFixed(2)}
-                        </p>
-                        <p className="font-semibold">
-                          {currency}
-                          {(item.qty * item.price).toFixed(2)}
-                        </p>
-                      </div>
+                    <div className="col-span-4">
+                      <p className="font-medium">{item.ItemName}</p>
+                      <p className="text-xs italic text-gray-600">
+                        {item.freeDescription || "This item is free"}
+                      </p>
                     </div>
 
-                    {/* MOBILE FREE ITEMS */}
-                    {freeItems.map((free: any) => (
-                      <div
-                        key={free.cartId}
-                        className="text-sm text-green-700 mt-2"
-                      >
-                        <p className="font-medium">
-                          {free.ItemName}
-                        </p>
-                        <p className="text-xs italic">
-                          {free.freeDescription}
-                        </p>
-                      </div>
-                    ))}
+                    <div className="col-span-2 text-center font-semibold">
+                      {item.qty}
+                    </div>
+
+                    <div className="col-span-2 text-right">
+                      {defaultCurrency}0.00
+                    </div>
+
+                    <div className="col-span-2 text-right font-semibold">
+                      {defaultCurrency}0.00
+                    </div>
+
+                    <div className="col-span-1"></div>
                   </div>
-                </div>
-              );
-            })}
+                )}
+              </div>
+            ))}
           </div>
         </>
       )}

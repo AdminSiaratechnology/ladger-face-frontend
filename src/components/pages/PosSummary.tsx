@@ -14,6 +14,7 @@ export default function PosSummary({
 }: any) {
 
   const country = defaultSelected?.country || "India";
+  const defaultCurrency = defaultSelected?.defaultCurrencySymbol || "₹";
 
   const taxLabel =
     country === "India" ? "GST"
@@ -87,18 +88,18 @@ export default function PosSummary({
         <div className="space-y-2 text-sm sm:text-base">
           <div className="flex justify-between">
             <span className="text-gray-600">Subtotal</span>
-            <span>₹{subtotal.toFixed(2)}</span>
+            <span>{defaultCurrency+" "}{ subtotal.toFixed(2)}</span>
           </div>
 
           <div className="flex justify-between">
             <span className="text-gray-600">{taxLabel}</span>
-            <span>₹{taxAmount.toFixed(2)}</span>
+            <span>{defaultCurrency+" "}{taxAmount.toFixed(2)}</span>
           </div>
 
           <div className="border-t pt-3 flex justify-between text-lg sm:text-xl font-semibold">
             <span>Total</span>
             <span className="text-green-600">
-              ₹{grandTotal.toFixed(2)}
+              {defaultCurrency+" "}{grandTotal.toFixed(2)}
             </span>
           </div>
         </div>
@@ -157,7 +158,7 @@ export default function PosSummary({
 
                     {Number(cashReceived || 0) < grandTotal && (
                       <p className="text-red-500 text-xs mt-2">
-                        Full cash required ₹{grandTotal.toFixed(2)}
+                        Full cash required {defaultCurrency+" "}{grandTotal.toFixed(2)}
                       </p>
                     )}
 
@@ -165,7 +166,7 @@ export default function PosSummary({
                       <div className="flex justify-between text-sm mt-3 font-semibold">
                         <span>Change:</span>
                         <span className="text-blue-600">
-                          ₹{(Number(cashReceived) - grandTotal).toFixed(2)}
+                          {defaultCurrency+" "}{(Number(cashReceived) - grandTotal).toFixed(2)}
                         </span>
                       </div>
                     )}
@@ -197,14 +198,14 @@ export default function PosSummary({
                   <div className="flex justify-between">
                     <span>Total Paid</span>
                     <span className="text-blue-600 font-semibold">
-                      ₹{totalPaid.toFixed(2)}
+                      {defaultCurrency +" "}{totalPaid.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span>Balance Due</span>
                     <span className="text-red-500 font-semibold">
-                      ₹{balanceDue.toFixed(2)}
+                      { defaultCurrency+" " }{balanceDue.toFixed(2)}
                     </span>
                   </div>
 
@@ -212,7 +213,7 @@ export default function PosSummary({
                     <div className="flex justify-between">
                       <span>Return</span>
                       <span className="text-green-600 font-semibold">
-                        ₹{extraReturn.toFixed(2)}
+                        {defaultCurrency+" " }{extraReturn.toFixed(2)}
                       </span>
                     </div>
                   )}

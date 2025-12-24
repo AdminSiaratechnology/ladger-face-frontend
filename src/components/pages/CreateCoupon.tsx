@@ -526,7 +526,7 @@ const publishOffer = () => {
                 }
 
                 if (!form.validTo) {
-                  toast.error("Coupon type is required");
+                  toast.error("Valid Until Date is required");
                   return;
                 }
               }
@@ -737,7 +737,7 @@ const publishOffer = () => {
                   {/* ======== UPDATED DISCOUNT VALUE WITH % SUFFIX ========== */}
                   <div className="relative">
                     <CustomInputBox
-                      label="Discount Value *"
+                      label="Discount Value "
                       placeholder="e.g., 50"
                       type="number"
                       value={form.discountValue}

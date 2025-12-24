@@ -159,7 +159,7 @@ const PaymentReportPage = () => {
     () => [
       {
         label: "Total Amount",
-        value: `${defaultCurrency} ${stats?.totalAmount?.toLocaleString() || 0}`,
+        value: `${defaultCurrency} ${Math.floor(stats?.totalAmount || 0)}`,
         icon: <Banknote className="w-8 h-8" />,
         colorClass: "from-teal-500 to-teal-600",
       },

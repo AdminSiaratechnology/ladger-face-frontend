@@ -46,7 +46,7 @@ const PosReport = () => {
     endDate: "",
     customer: "",
   });
-
+console.log(filters)
   // ===============================
   // DATE FORMAT
   // ===============================
@@ -264,15 +264,22 @@ const PosReport = () => {
                 </Badge>
               </div>
             </CardHeader>
+<CardContent>
+  <div className="flex justify-between items-center">
+    <div className="font-bold text-green-600">
+      {defaultCurrency} {Number(s.totalAmount || 0).toLocaleString()}
+    </div>
 
-            <CardContent>
-              <div className="flex justify-between font-bold text-green-600">
-                <span>Amount</span>
-                <span>
-                  {defaultCurrency} {Number(s.totalAmount || 0).toLocaleString()}
-                </span>
-              </div>
-            </CardContent>
+    <button
+      onClick={() => handleViewBill(s)}
+      className="text-teal-600 hover:text-teal-800 cursor-pointer"
+      title="View Bill"
+    >
+      <Eye className="w-5 h-5" />
+    </button>
+  </div>
+</CardContent>
+
           </Card>
         ))}
       </div>
@@ -356,7 +363,6 @@ const PosReport = () => {
           }));
         }}
       />
-
 
       <Dialog open={openBillModal} onOpenChange={setOpenBillModal}>
         <DialogContent className="custom-dialog-container p-0 overflow-hidden">
@@ -476,8 +482,6 @@ const PosReport = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-
 
     </>
   );

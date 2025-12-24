@@ -7,7 +7,9 @@ export default function DraftBillModal({ isOpen, onClose, onSelectDraft }: any) 
   const { draftBills, removeDraft } = usePosStore();
   const [search, setSearch] = useState("");
 
+  // =========================
   // SEARCH FILTER LOGIC
+  // =========================
   const filteredDrafts = useMemo(() => {
     if (!search.trim()) return draftBills;
 
@@ -15,14 +17,16 @@ export default function DraftBillModal({ isOpen, onClose, onSelectDraft }: any) 
 
     return draftBills.filter((d: any) => {
       const matchId = String(d.id).includes(text);
-      const matchAmount = String(d.totalAmount).includes(text);
-      const matchCustomer = (d.customerName || "").toLowerCase().includes(text);
+      const matchAmount = String(d.totalAmount || "").includes(text);
+      const matchCustomer = (d.customerName || "")
+        .toLowerCase()
+        .includes(text);
 
-      // 🔍 SEARCH BY PRODUCT NAME OR ID
-      const matchProducts = d.items?.some((item: any) => {
+      // ✅ SEARCH BY PRODUCT ID OR PRODUCT NAME (FROM CART)
+      const matchProducts = d.cart?.some((item: any) => {
         return (
-          String(item.productId).toLowerCase().includes(text) ||
-          String(item.productName || "").toLowerCase().includes(text)
+          String(item._id || "").toLowerCase().includes(text) ||
+          String(item.ItemName || "").toLowerCase().includes(text)
         );
       });
 
@@ -30,25 +34,26 @@ export default function DraftBillModal({ isOpen, onClose, onSelectDraft }: any) 
     });
   }, [search, draftBills]);
 
-
+  // =========================
   // HANDLE BILL SELECT
+  // =========================
   const handleSelect = (bill: any) => {
-    onSelectDraft(bill);     // Render into cart
-    removeDraft(bill.id);    // Remove from draft store
-    onClose();               // Close modal
+    onSelectDraft(bill);     // load into cart
+    removeDraft(bill.id);    // remove from draft store
+    onClose();               // close modal
   };
-
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
       <div className="bg-white w-[500px] rounded-2xl shadow-xl p-6">
 
+        {/* HEADER */}
         <div className="flex justify-between border-b pb-3">
           <h1 className="text-xl font-bold">Draft Bills</h1>
           <button onClick={onClose} className="text-2xl">✕</button>
         </div>
 
-        {/* 🔍 SEARCH BAR */}
+        {/* SEARCH */}
         <input
           type="text"
           placeholder="Search by ID, customer, amount, product..."
@@ -57,16 +62,21 @@ export default function DraftBillModal({ isOpen, onClose, onSelectDraft }: any) 
           className="w-full bg-gray-100 rounded-xl px-4 py-2 mt-4 outline-none"
         />
 
-        {/* No results */}
+        {/* NO DATA */}
         {filteredDrafts.length === 0 && (
-          <div className="py-10 text-gray-500 text-center">No Draft Bills Found</div>
+          <div className="py-10 text-gray-500 text-center">
+            No Draft Bills Found
+          </div>
         )}
 
-        {/* Draft List */}
+        {/* DRAFT LIST */}
         <div className="max-h-[60vh] overflow-y-auto mt-4 space-y-3">
           {filteredDrafts.map((d: any) => {
-            const productIds = d.items?.map((i: any) => i.productId).join(", ") || "N/A";
-            const productNames = d.items?.map((i: any) => i.productName).join(", ") || "N/A";
+            const productIds =
+              d.cart?.map((i: any) => i._id).join(", ") || "N/A";
+
+            const productNames =
+              d.cart?.map((i: any) => i.ItemName).join(", ") || "N/A";
 
             return (
               <div
@@ -76,19 +86,21 @@ export default function DraftBillModal({ isOpen, onClose, onSelectDraft }: any) 
               >
                 <div className="flex justify-between">
                   <span className="font-semibold">Draft #{d.id}</span>
-                  <span className="font-semibold text-blue-600">₹{d.totalAmount}</span>
+                  <span className="font-semibold text-blue-600">
+                    ₹{d.totalAmount}
+                  </span>
                 </div>
 
                 <p className="text-sm text-gray-600">
                   Customer: {d.customerName || "N/A"}
                 </p>
 
-                {/* ⭐ PRODUCT IDS */}
+                {/* PRODUCT IDS */}
                 <p className="text-sm text-gray-700 mt-1">
                   Product IDs: {productIds}
                 </p>
 
-                {/* ⭐ PRODUCT NAMES */}
+                {/* PRODUCT NAMES */}
                 <p className="text-sm text-gray-700">
                   Products: {productNames}
                 </p>

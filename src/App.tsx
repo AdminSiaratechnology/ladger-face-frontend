@@ -54,6 +54,9 @@ import DemoExpired from "./components/pages/DemoExpired";
 
 import Coupon from './components/pages/Coupon'
 import PosReport from "./components/pages/PosReport";
+import CreatePriceListPage from "./components/pages/CreatePriceListEditor";
+
+
 function UnauthorizedAccess() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -276,15 +279,26 @@ export default function App() {
 
           {/* Pricing */}
           <Route
-            path="/pricing"
+            path="/price-list"
             element={
-              <ProtectedRoute module="Pricing" subModule="PriceList">
+              <ProtectedRoute module="InventoryManagement" subModule="Pricelist">
                 <AppLayout>
                   <PriceListManagement />
                 </AppLayout>
               </ProtectedRoute>
             }
           />
+          <Route
+  path="/price-list/create"
+  element={
+    <ProtectedRoute module="InventoryManagement" subModule="Pricelist">
+      <AppLayout>
+        <CreatePriceListPage />
+      </AppLayout>
+    </ProtectedRoute>
+  }
+/>
+
           <Route
             path="/bill-template"
             element={

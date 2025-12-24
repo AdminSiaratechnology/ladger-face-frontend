@@ -42,6 +42,7 @@ export default function UniversalReportFilter({
     setLocalDateRange,
     applyDateRange,
     resetDateRange,
+    isCustomer = false
 }: any) {
 
     const [searchText, setSearchText] = useState(filters.search || "");
@@ -53,44 +54,75 @@ export default function UniversalReportFilter({
     const [tempStatus, setTempStatus] = useState(filters.status || "all");
     const [tempMode, setTempMode] = useState(filters.paymentType || "all");
 
-  
+
+useEffect(() => {
+  setSearchText(filters.search || "");
+  setCustomerText(filters.customer || "");
+
+  setTempCustomerId(filters.customerId || "all");
+  setTempSalesmanId(filters.salesmanId || "all");
+  setTempUserId(filters.userId || "all");
+  setTempStatus(filters.status || "all");
+  setTempMode(filters.paymentType || "all");
+}, [
+  filters.search,
+  filters.customer,
+  filters.customerId,
+  filters.salesmanId,
+  filters.userId,
+  filters.status,
+  filters.paymentType,
+]);
 
 
 
     /* ---------------- APPLY ---------------- */
-const handleApply = () => {
+   const handleApply = () => {
+  const salesmanId =
+    tempSalesmanId &&
+    tempSalesmanId !== "all" &&
+    typeof tempSalesmanId === "object"
+      ? tempSalesmanId._id
+      : tempSalesmanId;
+
+  
+
   const updatedFilters = {
     ...filters,
 
-    // ✅ SEARCH APPLY HERE
     search: searchText?.trim() || undefined,
+    customer: customerText?.trim() || undefined,
 
     paymentType: tempMode === "all" ? undefined : tempMode,
-    customerId: tempCustomerId === "all" ? undefined : tempCustomerId,
-    salesmanId: tempSalesmanId === "all" ? undefined : tempSalesmanId,
+customerId:
+    tempCustomerId && tempCustomerId !== "all"
+      ? tempCustomerId
+      : undefined,
+
+    salesmanId: salesmanId === "all" ? undefined : salesmanId,
     userId: tempUserId === "all" ? undefined : tempUserId,
     status: tempStatus === "all" ? undefined : tempStatus,
   };
 
   setFilters(updatedFilters);
-
-//   if (applyDateRange) applyDateRange();
-
   onApply(updatedFilters);
 };
 
-const handleClear = () => {
-  setSearchText(""); // ✅ ADD THIS
 
-  setTempCustomerId("all");
-  setTempSalesmanId("all");
-  setTempUserId("all");
-  setTempStatus("all");
-  setTempMode("all");
+    const handleClear = () => {
+        setSearchText("");
+        setCustomerText(""); // ✅ ADD THIS
 
-  if (resetDateRange) resetDateRange();
-  onReset();
-};
+        setTempCustomerId("all");
+        setTempSalesmanId("all");
+        setTempUserId("all");
+        setTempStatus("all");
+        setTempMode("all");
+
+        if (resetDateRange) resetDateRange();
+        onReset();
+    };
+
 
 
     return (
@@ -117,34 +149,34 @@ const handleClear = () => {
                 {/* BODY */}
                 <div className="px-6 py-5 space-y-5">
 
-            {showSearch && (
-  <div className="w-full">
-    <label className="text-sm font-medium text-gray-700">Search</label>
+                    {showSearch && (
+                        <div className="w-full">
+                            <label className="text-sm font-medium text-gray-700">Search</label>
 
-    <div className="relative mt-1 w-full">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <div className="relative mt-1 w-full">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
 
-      <Input
-        placeholder="Search by Order ID or Customer..."
-        value={searchText}
-        onChange={(e) => setSearchText(e.target.value)}
-        className="pl-10 h-10 border-gray-300 focus-visible:ring-teal-500/50"
-      />
+                                <Input
+                                    placeholder="Search by Order ID or Customer..."
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    className="pl-10 h-10 border-gray-300 focus-visible:ring-teal-500/50"
+                                />
 
-      {searchText && (
-        <button
-          onClick={() => setSearchText("")}
-          className="absolute right-3 top-1/2 -translate-y-1/2
+                                {searchText && (
+                                    <button
+                                        onClick={() => setSearchText("")}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2
                      text-gray-400 hover:text-gray-600
                      p-1 rounded-full transition cursor-pointer"
-          aria-label="Clear search"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      )}
-    </div>
-  </div>
-)}
+                                        aria-label="Clear search"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
 
                     {showBillNo && (
@@ -152,6 +184,7 @@ const handleClear = () => {
                             <label className="text-sm font-medium text-gray-700">Bill No</label>
                             <input
                                 value={filters.billNumber || ""}
+                                placeholder="Enter Bill Number"
                                 onChange={(e) =>
                                     setFilters({ ...filters, billNumber: e.target.value })
                                 }
@@ -166,6 +199,7 @@ const handleClear = () => {
                             <label className="text-sm font-medium text-gray-700">Customer</label>
                             <input
                                 value={customerText}
+                                placeholder="Enter Customer Name"
                                 onChange={(e) => setCustomerText(e.target.value)}
                                 className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm
                 focus:outline-none focus:ring-2 focus:ring-teal-500"
@@ -183,6 +217,7 @@ const handleClear = () => {
                                     onChange={setTempCustomerId}
                                     companyId={companyId}
                                     className="w-full"
+                                    isCustomer={isCustomer}
                                 />
                             </div>
                         </div>
