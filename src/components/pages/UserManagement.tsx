@@ -532,7 +532,7 @@ const UserManagement: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState<boolean>(false);
-  const { user } = useAuthStore();
+  const { user, refreshUser } = useAuthStore();
   const handleViewUser = (user: any) => {
     setSelectedUser(user);
     setIsModalOpen(true);
@@ -1070,6 +1070,7 @@ const UserManagement: React.FC = () => {
         setOpen(false);
         setActiveTab("basic");
       }
+      refreshUser();
     } catch (error) {
       console.error("Error submitting user:", error);
       toast.error("Failed to save user. Please try again.");

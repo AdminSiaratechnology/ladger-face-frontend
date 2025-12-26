@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useStockItemStore } from "../../../store/stockItemStore";
+import {useProductStore} from "../../../store/productStore"
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { Button } from "../ui/button";
@@ -13,7 +14,6 @@ const safeName = (value: any) => {
   return value;
 };
 
-// ✅ Product Card Component
 const ProductCard = ({
   product,
   images,
@@ -36,7 +36,6 @@ const ProductCard = ({
 
   return (
     <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
-      {/* Image Carousel */}
       <div className="h-32 bg-gray-100 relative group">
         <img
           src={images[currentImageIndex]}
@@ -44,7 +43,6 @@ const ProductCard = ({
           className="object-cover h-full w-full"
           loading="lazy"
         />
-
         {images.length > 1 && (
           <>
             <button
@@ -138,7 +136,7 @@ const ProductSelection = () => {
   // ✅ Use stockItemStore instead of productStore
   const { fetchStockItems, filterStockItems, stockItems, pagination } =
     useStockItemStore();
-
+  
   const [cart, setCart] = useState<any[]>([]);
   const [showReview, setShowReview] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);

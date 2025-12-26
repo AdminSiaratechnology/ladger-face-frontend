@@ -1138,11 +1138,7 @@ export default function OrderManagement() {
             await updateOrder(selectedItem._id, updated);
 
             toast.success("Order updated successfully");
-
-            // ✅ optional: refresh list
             // await fetchOrders(defaultSelected?._id);
-
-            // ✅ update selected item locally so modal shows updated values next time
             setSelectedItem(updated);
           } catch (err) {
             console.error("Update failed", err);

@@ -26,6 +26,7 @@ interface AuthState {
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
   updateUserIfAuthUser: (updatedUser: User) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const performFullLogoutCleanup = () => {
