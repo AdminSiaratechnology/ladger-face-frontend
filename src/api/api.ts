@@ -18,7 +18,7 @@ apiClient.interceptors.request.use((config) => {
       config.headers = {
         ...config.headers,
         Authorization: `Bearer ${token}`,
-        "auth-source": "client-portal",
+        "auth-source": "api",
       };
     }
   }
@@ -1032,6 +1032,37 @@ export const createPriceLevel = (data: {
 }) => { 
   return apiClient.post("/price-level", data); 
 };
+export const savePriceListPage = (payload: any) => {
+  console.log(payload);
+  return apiClient.post("/price-list/items", payload);
+};
+export const fetchPriceList = (companyId: string) => {
+  return apiClient.get("/price-list", {
+    params: { companyId },
+  });
+};
+export const importPriceListFromCSV = async (formData: FormData) => {
+  try {
+    const res = await apiClient.post("/price-list/import-csv", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return res.data;
+  } catch (error: any) {
+    console.error(
+      "❌ Failed to import price list:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const fetchPriceListById = (id: string) => {
+  return apiClient.get(`/price-list/${id}`);
+};
+
+
 // Export API
 const api = {
   closeShiftApi,

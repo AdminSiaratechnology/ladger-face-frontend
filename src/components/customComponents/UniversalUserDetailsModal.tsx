@@ -1,7 +1,8 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogContent } from "../ui/dialog";
 import { Card, CardContent } from "../ui/card";
-import { Badge } from "../ui/badge";
+import { X } from "lucide-react";
+import { useCompanyStore } from "../../../store/companyStore";
 
 interface UniversalUserDetailsModalProps {
   isOpen: boolean;
@@ -9,11 +10,13 @@ interface UniversalUserDetailsModalProps {
   data: any;
 }
 
+/* ================= INFO ROW ================= */
 const InfoRow = ({ label, value }: { label: string; value: any }) => {
   if (value === undefined || value === null || value === "") return null;
+
   return (
-    <div className="py-1 border-b border-gray-100 last:border-b-0">
-      <p className="text-sm text-gray-600 mb-1">{label}</p>
+    <div className="py-2 border-b border-gray-100 last:border-b-0">
+      <p className="text-xs text-gray-500">{label}</p>
       <p className="text-sm font-medium text-gray-900 break-words">
         {String(value)}
       </p>
@@ -21,21 +24,30 @@ const InfoRow = ({ label, value }: { label: string; value: any }) => {
   );
 };
 
+/* ================= SECTION TITLE ================= */
 const SectionTitle = ({ title }: { title: string }) => (
-  <div className="flex items-center mb-2 bg-gradient-to-r from-blue-50 to-blue-100">
-    <div className="w-1 h-4 bg-blue-500 rounded mr-3"></div>
-    <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+  <div className="flex items-center mb-3">
+    <div className="w-1 h-4 bg-blue-500 rounded mr-2" />
+    <h3 className="text-sm font-semibold text-gray-800">
+      {title}
+    </h3>
   </div>
 );
 
-const UniversalUserDetailsModal: React.FC<UniversalUserDetailsModalProps> = ({
-  isOpen,
-  onClose,
-  data,
-}) => {
-  if (!data) return null;
+/* ================= MAIN COMPONENT ================= */
+const UniversalUserDetailsModal: React.FC<
+  UniversalUserDetailsModalProps
+> = ({ isOpen, onClose, data }) => {
+  if (!isOpen || !data) return null;
 
-  const status = data.status || "—";
+  /* 🔹 COMPANY FROM STORE */
+  const { defaultSelected } = useCompanyStore();
+
+  const companyName =
+    defaultSelected?.name || "—";
+
+  const companyId =
+    defaultSelected?._id || "—";
 
   const sections = [
     {
@@ -46,8 +58,7 @@ const UniversalUserDetailsModal: React.FC<UniversalUserDetailsModalProps> = ({
         ["Email", data.email],
         ["Phone", data.phone],
         ["Role", data.role],
-        // ["Sub Roles", data.subRole?.length ? data.subRole.join(", ") : "—"],
-        ["Status", status],
+        ["Status", data.status],
       ],
     },
     {
@@ -64,7 +75,9 @@ const UniversalUserDetailsModal: React.FC<UniversalUserDetailsModalProps> = ({
       fields: [
         [
           "Last Login",
-          data.lastLogin ? new Date(data.lastLogin).toLocaleString() : "—",
+          data.lastLogin
+            ? new Date(data.lastLogin).toLocaleString()
+            : "—",
         ],
       ],
       customContent:
@@ -73,36 +86,37 @@ const UniversalUserDetailsModal: React.FC<UniversalUserDetailsModalProps> = ({
             <p className="font-semibold">Login History:</p>
             <ul className="list-disc ml-5 space-y-1">
               {data.loginHistory.map((entry: string, i: number) => (
-                <li key={i}>{new Date(entry).toLocaleString()}</li>
+                <li key={i}>
+                  {new Date(entry).toLocaleString()}
+                </li>
               ))}
             </ul>
           </div>
         ) : (
-          <p className="text-sm text-gray-500">No login history available</p>
+          <p className="text-sm text-gray-500">
+            No login history available
+          </p>
         ),
     },
     {
       title: "Access Permissions",
-      fields: [],
       customContent:
         data.access?.length > 0 ? (
           <div className="space-y-4">
             {data.access.map((acc: any, idx: number) => (
               <Card
                 key={idx}
-                className="border border-gray-200 shadow-sm bg-gray-50"
+                className="border shadow-sm bg-gray-50"
               >
-                <CardContent className="pt-3 space-y-2">
+                <CardContent className="p-4 space-y-3">
                   <p className="text-sm font-semibold text-gray-800">
                     {acc.company?.namePrint || "Unnamed Company"}
                   </p>
+
                   {acc.modules && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {Object.entries(acc.modules).map(
-                        (
-                          [moduleName, moduleData]: [string, any],
-                          i: number
-                        ) => (
+                        ([moduleName, moduleData]: [string, any], i) => (
                           <div
                             key={i}
                             className="border p-2 rounded-lg bg-white"
@@ -110,17 +124,17 @@ const UniversalUserDetailsModal: React.FC<UniversalUserDetailsModalProps> = ({
                             <p className="font-semibold text-sm mb-1 text-gray-700">
                               {moduleName}
                             </p>
+
                             <div className="space-y-1">
                               {Object.entries(moduleData).map(
-                                (
-                                  [subModule, perms]: [string, any],
-                                  j: number
-                                ) => (
+                                ([subModule, perms]: [string, any], j) => (
                                   <div
                                     key={j}
                                     className="text-xs border-t pt-1 text-gray-700"
                                   >
-                                    <p className="font-medium">{subModule}</p>
+                                    <p className="font-medium">
+                                      {subModule}
+                                    </p>
                                     <p className="text-gray-600">
                                       {[
                                         perms.create && "Create",
@@ -145,7 +159,9 @@ const UniversalUserDetailsModal: React.FC<UniversalUserDetailsModalProps> = ({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-500">No company access defined</p>
+          <p className="text-sm text-gray-500">
+            No company access defined
+          </p>
         ),
     },
     {
@@ -160,60 +176,69 @@ const UniversalUserDetailsModal: React.FC<UniversalUserDetailsModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="custom-dialog-container p-0">
-        <DialogHeader className="bg-gradient-to-r from-blue-200 to-blue-500 border-b border-gray-200 rounded-t-xl shadow-sm p-4 mb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-lg font-semibold text-gray-900">
-                {data.name}
-              </DialogTitle>
-              <p className="text-sm text-gray-600">User Details</p>
-            </div>
-            <Badge
-              className={
-                status === "active"
-                  ? "bg-green-100 text-green-800"
-                  : status === "inactive"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-gray-100 text-gray-800"
-              }
-            >
-              {status}
-            </Badge>
-          </div>
-        </DialogHeader>
+      <DialogContent className="p-0 custom-dialog-container overflow-hidden">
 
-        <div className="max-h-[70vh] overflow-y-auto space-y-5">
+        {/* ================= HEADER (COUPON STYLE) ================= */}
+        <div className="bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-white text-lg font-semibold">
+              View User
+            </p>
+            <p className="text-xs text-blue-100">
+              {data.name}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+          
+
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-full "
+            >
+           
+            </button>
+          </div>
+        </div>
+
+        {/* ================= BODY ================= */}
+        <div className="max-h-[70vh] overflow-y-auto p-4 space-y-4 bg-gray-50">
           {sections.map((section, idx) => (
-            <Card key={idx} className="border-0 shadow-md">
-              <CardContent>
+            <Card key={idx} className="border shadow-sm">
+              <CardContent className="p-4">
                 <SectionTitle title={section.title} />
-                {section.fields?.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3">
+
+                {section.fields && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
                     {section.fields.map(
                       ([label, value], i) =>
-                        value && <InfoRow key={i} label={label} value={value} />
+                        value && (
+                          <InfoRow
+                            key={i}
+                            label={label}
+                            value={value}
+                          />
+                        )
                     )}
                   </div>
                 )}
+
                 {section.customContent && (
-                  <div className="mt-3">{section.customContent}</div>
+                  <div className="mt-3">
+                    {section.customContent}
+                  </div>
                 )}
               </CardContent>
             </Card>
           ))}
 
-          <div className="text-xs text-gray-500 pt-3">
-            {data.createdAt && (
-              <div className="p-2">
-                Created: {new Date(data.createdAt).toLocaleString()}
-              </div>
-            )}
-            {/* {data.updatedAt && (
-              <div>Updated: {new Date(data.updatedAt).toLocaleString()}</div>
-            )} */}
-          </div>
+          {data.createdAt && (
+            <div className="text-xs text-gray-400 pt-2">
+              Created: {new Date(data.createdAt).toLocaleString()}
+            </div>
+          )}
         </div>
+
       </DialogContent>
     </Dialog>
   );
