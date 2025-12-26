@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -146,6 +146,15 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
 // Main App
 export default function App() {
+   const refreshUser = useAuthStore((state) => state.refreshUser);
+  const token = useAuthStore((state) => state.token);
+
+  useEffect(() => {
+    console.log("hdgfgjg")
+    if (token) {
+      refreshUser();
+    }
+  }, []);
   return (
     <Router>
       <div className="min-h-screen w-screen">
