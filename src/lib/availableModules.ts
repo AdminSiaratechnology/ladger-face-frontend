@@ -181,14 +181,7 @@ export const fullMenuItems: MenuItem[] = [
         module: "InventoryManagement",
         subModule: "Unit",
       },
-      {
-        path: "/price-list",
-        icon: Ruler,
-        label: "Pricelist",
-        roles: ["admin", "agent", "client"],
-        module: "InventoryManagement",
-        subModule: "Pricelist",
-      },
+     
       {
         path: "/product",
         icon: Package,
@@ -196,6 +189,14 @@ export const fullMenuItems: MenuItem[] = [
         roles: ["admin", "agent", "client"],
         module: "InventoryManagement",
         subModule: "Product",
+      },
+       {
+        path: "/price-list",
+        icon: Ruler,
+        label: "Pricelist",
+        roles: ["admin", "agent", "client"],
+        module: "InventoryManagement",
+        subModule: "Pricelist",
       },
     ],
   },
