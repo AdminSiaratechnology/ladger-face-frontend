@@ -1031,6 +1031,12 @@ const UserManagement: React.FC = () => {
       toast.error("Please enter a password");
       return;
     }
+    if (form.role === "Customer" && form.access.length === 0) {
+      toast.error(
+        "Please select at least one company from permissions under which you want to register this user as customer"
+      );
+      return;
+    }
 
     // --- Prepare data ---
     const userData: User = {
@@ -1176,7 +1182,7 @@ const UserManagement: React.FC = () => {
   // Statistics
   const stats = useMemo(
     () => ({
-      totalUsers: pagination.total,
+      totalUsers: pagination?.total,
       activeUsers: counts?.activeUsers,
       adminUsers: counts?.adminCount,
       salesUsers: counts?.salesmanCount,
@@ -1295,9 +1301,9 @@ const UserManagement: React.FC = () => {
   const PaginationControls = () => (
     <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-lg shadow-sm">
       <div className="text-sm text-gray-600">
-        Showing {(currentPage - 1) * pagination.limit + 1} -{" "}
-        {Math.min(currentPage * pagination.limit, pagination.total)} of{" "}
-        {pagination.total} users
+        Showing {(currentPage - 1) * pagination?.limit + 1} -{" "}
+        {Math.min(currentPage * pagination?.limit, pagination?.total)} of{" "}
+        {pagination?.total} users
       </div>
       <div className="flex items-center gap-2">
         <Button
@@ -1311,15 +1317,15 @@ const UserManagement: React.FC = () => {
           Previous
         </Button>
         <span className="text-sm text-gray-600">
-          Page {currentPage} of {pagination.totalPages}
+          Page {currentPage} of {pagination?.totalPages}
         </span>
         <Button
           variant="outline"
           size="sm"
           onClick={() =>
-            setCurrentPage((prev) => Math.min(pagination.totalPages, prev + 1))
+            setCurrentPage((prev) => Math.min(pagination?.totalPages, prev + 1))
           }
-          disabled={currentPage === pagination.totalPages}
+          disabled={currentPage === pagination?.totalPages}
           className="flex items-center gap-1"
         >
           Next
@@ -1508,7 +1514,7 @@ const UserManagement: React.FC = () => {
       {loading && <TableViewSkeleton />}
 
       {/* User List */}
-      {pagination.total === 0 ? (
+      {pagination?.total === 0 ? (
         <EmptyStateCard
           icon={Users}
           title="No users registered yet"
@@ -1812,12 +1818,19 @@ const UserManagement: React.FC = () => {
                     {roles.map((role) => (
                       <div
                         key={role}
-                        className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        onClick={() => {
+                          // Prevent selecting Customer if no companies exist
+                          if (role === "Customer" && companies.length === 0)
+                            return;
+                          handleSelectChange("role", role);
+                        }}
+                        className={`p-3 border-2 rounded-lg transition-all ${
                           form.role === role
                             ? "border-teal-500 bg-teal-50"
-                            : "border-gray-200 hover:border-teal-300"
+                            : role === "Customer" && companies.length === 0
+                            ? "border-gray-200 bg-gray-100 cursor-not-allowed opacity-50"
+                            : "border-gray-200 hover:border-teal-300 cursor-pointer"
                         }`}
-                        onClick={() => handleSelectChange("role", role)}
                       >
                         <div className="flex items-center space-x-2">
                           <div
@@ -1838,7 +1851,14 @@ const UserManagement: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                  {companies.length === 0 && (
+                    <p className="text-red-500 text-sm mt-2">
+                      Customer role is disabled now beacuse you have not
+                      registered any company yet.*
+                    </p>
+                  )}
                 </div>
+
                 <CustomStepNavigation
                   currentStep={1}
                   totalSteps={3}

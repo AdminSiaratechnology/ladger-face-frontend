@@ -53,13 +53,13 @@ const SettingsDropdown: React.FC<SettingsDropdownProps> = ({
           Export Data
         </DropdownMenuItem>
 
-        <DropdownMenuItem
+        {/* <DropdownMenuItem
           onClick={onSample}
           className="flex items-center gap-3 cursor-pointer text-sm font-medium hover:bg-teal-50 focus:bg-teal-50"
         >
           <FileDown className="h-4 w-4 text-teal-600" />
           Download Sample
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
       </DropdownMenuContent>
     </DropdownMenu>
   );

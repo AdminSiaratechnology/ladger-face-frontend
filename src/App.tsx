@@ -48,14 +48,13 @@ import PaymentReport from "./components/pages/PaymentReportPage";
 import CustomerWiseReportPage from "./components/pages/CustomerWiseReportPage";
 import ProductWiseReport from "./components/pages/ProductWiseReportPage";
 import TemplateManagement from "./components/pages/TemplateManagement";
-import POS from "./components/pages/POS"
+import POS from "./components/pages/POS";
 import DemoExpired from "./components/pages/DemoExpired";
 
-
-import Coupon from './components/pages/Coupon'
+import Coupon from "./components/pages/Coupon";
 import PosReport from "./components/pages/PosReport";
 import CreatePriceListPage from "./components/pages/CreatePriceListEditor";
-
+import ProductPreview from "./components/pages/ProductPreview";
 
 function UnauthorizedAccess() {
   return (
@@ -101,7 +100,7 @@ function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
 
-    if (user?.isDemo === true && user?.demoExpiry) {
+  if (user?.isDemo === true && user?.demoExpiry) {
     const today = new Date();
     const expiryDate = new Date(user.demoExpiry);
 
@@ -146,11 +145,11 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
 // Main App
 export default function App() {
-   const refreshUser = useAuthStore((state) => state.refreshUser);
+  const refreshUser = useAuthStore((state) => state.refreshUser);
   const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
-    console.log("hdgfgjg")
+    console.log("hdgfgjg");
     if (token) {
       refreshUser();
     }
@@ -211,7 +210,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-             <Route
+          <Route
             path="/coupon"
             element={
               <ProtectedRoute allowedRoles={["admin", "client"]}>
@@ -245,7 +244,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-             <Route
+          <Route
             path="/pos"
             element={
               <ProtectedRoute module="Order" subModule="Orders">
@@ -285,12 +284,24 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
+          <Route
+            path="/preview-products/:id"
+            element={
+              <ProtectedRoute module="Order" subModule="Orders">
+                <AppLayout>
+                  <ProductPreview />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
           {/* Pricing */}
           <Route
             path="/price-list"
             element={
-              <ProtectedRoute module="InventoryManagement" subModule="Pricelist">
+              <ProtectedRoute
+                module="InventoryManagement"
+                subModule="Pricelist"
+              >
                 <AppLayout>
                   <PriceListManagement />
                 </AppLayout>
@@ -298,15 +309,18 @@ export default function App() {
             }
           />
           <Route
-  path="/price-list/create"
-  element={
-    <ProtectedRoute module="InventoryManagement" subModule="Pricelist">
-      <AppLayout>
-        <CreatePriceListPage />
-      </AppLayout>
-    </ProtectedRoute>
-  }
-/>
+            path="/price-list/create"
+            element={
+              <ProtectedRoute
+                module="InventoryManagement"
+                subModule="Pricelist"
+              >
+                <AppLayout>
+                  <CreatePriceListPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/bill-template"
@@ -515,9 +529,15 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/pos-report" element={
-            <AppLayout> <PosReport /></AppLayout>
-            } />
+          <Route
+            path="/pos-report"
+            element={
+              <AppLayout>
+                {" "}
+                <PosReport />
+              </AppLayout>
+            }
+          />
 
           <Route path="/demo-expired" element={<DemoExpired />} />
 
