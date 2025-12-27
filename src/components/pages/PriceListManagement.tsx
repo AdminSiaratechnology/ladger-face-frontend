@@ -66,9 +66,9 @@ export default function PriceListManagement() {
   const [priceLevelOpen, setPriceLevelOpen] = useState(false);
   const [newPriceLevelInput, setNewPriceLevelInput] = useState("");
   const [importModalOpen, setImportModalOpen] = useState(false);
- 
+
   const [isViewOpen, setIsViewOpen] = useState(false);
-const [viewData, setViewData] = useState<any>(null);
+  const [viewData, setViewData] = useState<any>(null);
 
 
   const [newPriceList, setNewPriceList] = useState({
@@ -77,6 +77,19 @@ const [viewData, setViewData] = useState<any>(null);
     priceLevel: "",
     applicableFrom: "",
   });
+
+  const todayDate = () => new Date().toISOString().split("T")[0];
+
+  //fetch date
+  useEffect(() => {
+    if (isCreateDialogOpen) {
+      setNewPriceList((prev) => ({
+        ...prev,
+        applicableFrom: prev.applicableFrom || todayDate(),
+      }));
+    }
+  }, [isCreateDialogOpen]);
+
 
   /* =========================
      FETCH DATA
@@ -127,7 +140,7 @@ const [viewData, setViewData] = useState<any>(null);
     filterStockGroups(groupSearch, "", "desc", 1, 10, defaultSelected?._id);
   }, [groupSearch, defaultSelected?._id]);
 
-  /* =========================
+  /* ========================
      CLICK OUTSIDE GROUP DROPDOWN
   ========================= */
   useEffect(() => {
@@ -259,16 +272,22 @@ const [viewData, setViewData] = useState<any>(null);
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-blue-600 hover:text-blue-700"
+                    className="text-blue-600 hover:text-blue-700 cursor-pointer"
                     onClick={async () => {
-  try {
-    const res = await fetchPriceListById(pl.id);
-    setViewData(res.data.data);   // 🔥 FULL document with items
-    setIsViewOpen(true);
-  } catch {
-    toast.error("Failed to load price list");
-  }
-}}
+                      try {
+                        const res = await fetchPriceListById(pl.id);
+
+                        navigate("/price-list/create", {
+                          state: {
+                            mode: "view",
+                            priceListData: res.data.data,
+                          },
+                        });
+                      } catch {
+                        toast.error("Failed to load price list");
+                      }
+                    }}
+
 
 
                   >
@@ -281,9 +300,25 @@ const [viewData, setViewData] = useState<any>(null);
                     variant="ghost"
                     size="sm"
                     className="text-green-600 hover:text-green-700 cursor-pointer"
+                    onClick={async () => {
+                      try {
+                        const res = await fetchPriceListById(pl.id);
+
+                        navigate("/price-list/create", {
+                          state: {
+                            mode: "edit",                      // 🔥 IMPORTANT
+                            priceListId: pl.id,
+                            data: res.data.data,               // FULL price list doc
+                          },
+                        });
+                      } catch {
+                        toast.error("Failed to load price list for edit");
+                      }
+                    }}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
+
 
                 </div>
               </td>
@@ -337,15 +372,21 @@ const [viewData, setViewData] = useState<any>(null);
                 size="sm"
                 className="text-blue-600 hover:text-blue-700 cursor-pointer"
               >
-                onClick={async () => {
+               onClick={async () => {
   try {
     const res = await fetchPriceListById(pl.id);
-    setViewData(res.data.data);   // 🔥 FULL document with items
-    setIsViewOpen(true);
+
+    navigate("/price-list/create", {
+      state: {
+        mode: "view",
+        priceListData: res.data.data,
+      },
+    });
   } catch {
     toast.error("Failed to load price list");
   }
 }}
+
 
                 <Eye className="w-4 h-4" />
               </Button>
@@ -354,19 +395,26 @@ const [viewData, setViewData] = useState<any>(null);
               <Button
                 variant="outline"
                 size="sm"
-                className="text-blue-600 hover:text-blue-700"
-                onClick={() => {
-  const fullDoc = priceLevels.find(
-    (p) => p._id === pl.id
-  );
+                className="text-green-600 hover:text-green-700 cursor-pointer"
+                onClick={async () => {
+                  try {
+                    const res = await fetchPriceListById(pl.id);
 
-  setViewData(fullDoc);
-  setIsViewOpen(true);
-}}
-
+                    navigate("/price-list/create", {
+                      state: {
+                        mode: "edit",
+                        priceListId: pl.id,
+                        data: res.data.data,
+                      },
+                    });
+                  } catch {
+                    toast.error("Failed to load price list for edit");
+                  }
+                }}
               >
-                <Eye className="w-4 h-4" />
+                <Edit className="w-4 h-4" />
               </Button>
+
 
 
             </div>
@@ -533,20 +581,24 @@ const [viewData, setViewData] = useState<any>(null);
                   <div className="max-h-[220px] overflow-auto">
 
                     {/* ALL */}
-                    <div
-                      onClick={() => {
-                        setNewPriceList({
-                          ...newPriceList,
-                          groupId: "All",
-                          groupName: "All",
-                        });
-                        setGroupDropdownOpen(false);
-                        setGroupSearch("");
-                      }}
-                      className="px-4 py-2 text-sm cursor-pointer hover:bg-teal-50"
-                    >
-                      All
-                    </div>
+                    {/* ALL – show only if stock groups exist */}
+                    {filteredGroups.length > 0 && (
+                      <div
+                        onClick={() => {
+                          setNewPriceList({
+                            ...newPriceList,
+                            groupId: "All",
+                            groupName: "All",
+                          });
+                          setGroupDropdownOpen(false);
+                          setGroupSearch("");
+                        }}
+                        className="px-4 py-2 text-sm cursor-pointer hover:bg-teal-50"
+                      >
+                        All
+                      </div>
+                    )}
+
 
 
                     {/* GROUPS */}
@@ -644,6 +696,7 @@ const [viewData, setViewData] = useState<any>(null);
               </Label>
               <Input
                 type="date"
+                min={todayDate()}   // 🔥 past date block
                 value={newPriceList.applicableFrom}
                 onChange={(e) =>
                   setNewPriceList({
@@ -652,6 +705,7 @@ const [viewData, setViewData] = useState<any>(null);
                   })
                 }
               />
+
             </div>
           </div>
 
@@ -663,51 +717,51 @@ const [viewData, setViewData] = useState<any>(null);
             >
               Cancel
             </Button>
-<Button
-  onClick={() => {
-    if (
-      !newPriceList.groupId ||
-      !newPriceList.priceLevel ||
-      !newPriceList.applicableFrom
-    ) {
-      toast.error("Please fill all fields");
-      return;
-    }
+            <Button
+              onClick={() => {
+                if (
+                  !newPriceList.groupId ||
+                  !newPriceList.priceLevel ||
+                  !newPriceList.applicableFrom
+                ) {
+                  toast.error("Please fill all fields");
+                  return;
+                }
 
-    const isAlreadyCreated = priceLevelLists.some((pl: any) =>
-      pl.stockGroupName === newPriceList.groupName &&
-      pl.name === newPriceList.priceLevel &&
-      pl.validFrom === newPriceList.applicableFrom
-    );
+                const isAlreadyCreated = priceLevelLists.some((pl: any) =>
+                  pl.stockGroupName === newPriceList.groupName &&
+                  pl.name === newPriceList.priceLevel &&
+                  pl.validFrom === newPriceList.applicableFrom
+                );
 
-   if (isAlreadyCreated) {
-  toast.error("Price list is already created");
+                if (isAlreadyCreated) {
+                  toast.error("Price list is already created");
 
-  setNewPriceList({
-    groupId: "",
-    groupName: "",
-    priceLevel: "",
-    applicableFrom: "",
-  });
+                  setNewPriceList({
+                    groupId: "",
+                    groupName: "",
+                    priceLevel: "",
+                    applicableFrom: "",
+                  });
 
-  return;
-}
+                  return;
+                }
 
 
-    setIsCreateDialogOpen(false);
+                setIsCreateDialogOpen(false);
 
-    navigate("/price-list/create", {
-      state: {
-        priceLevel: newPriceList.priceLevel,
-        applicableFrom: newPriceList.applicableFrom,
-        groupIds: [newPriceList.groupId],
-        groupNames: [newPriceList.groupName],
-      },
-    });
-  }}
->
-  Continue
-</Button>
+                navigate("/price-list/create", {
+                  state: {
+                    priceLevel: newPriceList.priceLevel,
+                    applicableFrom: newPriceList.applicableFrom,
+                    groupIds: [newPriceList.groupId],
+                    groupNames: [newPriceList.groupName],
+                  },
+                });
+              }}
+            >
+              Continue
+            </Button>
 
 
 
@@ -732,8 +786,8 @@ const [viewData, setViewData] = useState<any>(null);
           setViewData(null);
         }}
         data={viewData}
-        
-        type="priceList"  
+
+        type="priceList"
       />
 
 
