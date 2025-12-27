@@ -15,6 +15,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import {useCompanyStore} from "../../../store/companyStore"
 
 interface ImportCSVModalProps<T = any> {
   open: boolean;
@@ -54,6 +55,7 @@ export const ImportCSVModal = <T,>({
     failed: number;
     errors: string[];
   } | null>(null);
+  const {defaultSelected} =useCompanyStore()
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -126,6 +128,7 @@ export const ImportCSVModal = <T,>({
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("companyId",defaultSelected?._id)
 
       const result = await importFn(formData);
 

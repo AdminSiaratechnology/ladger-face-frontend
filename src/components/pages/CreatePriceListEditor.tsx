@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "../ui/table";
 
-import { fetchItemsByStockGroup, savePriceListPage } from "../../api/api";
+import { fetchItemsByStockGroup, savePriceListPage, updatePriceListPage } from "../../api/api";
 import { useCompanyStore } from "../../../store/companyStore";
 import { useStockGroup } from "../../../store/stockGroupStore";
 import { toast } from "sonner";
@@ -25,8 +25,36 @@ const CircleLoader = () => (
 
 export default function CreatePriceListPage() {
   const { state } = useLocation();
+const mode = state?.mode || "create";
+const isEdit = mode === "edit";
+const isView = mode === "view";
+
+
+  const editData = state?.priceListData || state?.data;
   const navigate = useNavigate();
-  const { priceLevel, applicableFrom, groupIds, groupNames } = state || {};
+const priceLevel =
+  isEdit || isView
+    ? editData?.priceLevel
+    : state?.priceLevel;
+
+const applicableFrom =
+  isEdit || isView
+    ? editData?.applicableFrom
+    : state?.applicableFrom;
+
+
+const groupIds = isEdit
+  ? editData?.stockGroupId
+    ? [editData.stockGroupId]
+    : []
+  : state?.groupIds || [];
+
+const groupNames = isEdit
+  ? editData?.stockGroupName
+    ? [editData.stockGroupName]
+    : []
+  : state?.groupNames || [];
+
   const { defaultSelected } = useCompanyStore();
   const { stockGroups } = useStockGroup();
 
@@ -39,10 +67,7 @@ export default function CreatePriceListPage() {
   const [total, setTotal] = useState(0);
 
 
-  const selectedGroupNames = stockGroups
-    .filter((g) => groupIds?.includes(g._id))
-    .map((g) => g.name)
-    .join(", ");
+
 
   /* =========================
      LOAD ITEMS
@@ -51,41 +76,69 @@ export default function CreatePriceListPage() {
     new Promise((resolve) => setTimeout(resolve, ms));
 
   useEffect(() => {
-    if (!defaultSelected?._id || !groupIds?.length) return;
+  if (isEdit) return;   // 🔥 EDIT MODE → STOP FETCH
+  if (!defaultSelected?._id || !groupIds?.length) return;
 
-    const load = async () => {
-      setLoading(true);
-      try {
-        const gid = groupIds[0]; // ek group ke liye
-        const res = await fetchItemsByStockGroup(
-          gid,
-          defaultSelected._id,
-          page
-        );
+  const load = async () => {
+    setLoading(true);
+    try {
+      const gid = groupIds[0];
+      const res = await fetchItemsByStockGroup(
+        gid,
+        defaultSelected._id,
+        page
+      );
 
-        setRows(
-          res.data.products.map((item: any, idx: number) => ({
-            id: item._id + "-" + idx,
-            itemId: item._id,
-            name: item.name,
-            fromQty: 1,
-            lessThanQty: 0,
-            rate: 0,
-            discount: 0,
-          }))
-        );
+      setRows(
+        res.data.products.map((item: any, idx: number) => ({
+          id: item._id + "-" + idx,
+          itemId: item._id,
+          name: item.name,
+          fromQty: 1,
+          lessThanQty: 0,
+          rate: 0,
+          discount: 0,
+        }))
+      );
 
-        setHasMore(res.data.hasMore);
-        setTotal(res.data.total);
-      } catch {
-        toast.error("Failed to load items");
-      } finally {
-        setLoading(false);
-      }
-    };
+      setHasMore(res.data.hasMore);
+      setTotal(res.data.total);
+    } catch {
+      toast.error("Failed to load items");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    load();
-  }, [page, groupIds, defaultSelected?._id]);
+  load();
+}, [page, groupIds, defaultSelected?._id, isEdit  ,isView]);
+
+useEffect(() => {
+  if ((!isEdit && !isView) || !editData?.items) return;
+
+  const editRows = [];
+
+  editData.items.forEach((item) => {
+    item.slabs.forEach((slab, idx) => {
+      editRows.push({
+        id: item.itemId + "-view-" + idx,
+        itemId: item.itemId,
+        name: item.itemName,
+        fromQty: slab.fromQty,
+        lessThanQty: slab.lessThanQty,
+        rate: slab.rate,
+        discount: slab.discount,
+      });
+    });
+  });
+
+  setRows(editRows);
+  setHasMore(false);
+  setTotal(editRows.length);
+}, [isEdit, isView, editData]);
+
+
+
   const totalPages = Math.ceil(total / limit);
 
   const goNext = () => {
@@ -99,11 +152,36 @@ export default function CreatePriceListPage() {
   /* =========================
      HELPERS
   ========================= */
-  const sanitizeNumber = (v: string) => {
-    if (v === "") return "";
-    const n = Number(v.replace(/[^0-9]/g, ""));
-    return isNaN(n) ? "" : n;
-  };
+const sanitizeNumber = (v: string) => {
+  if (v === "") return "";
+
+  // allow digits + dot
+  let cleaned = v.replace(/[^0-9.]/g, "");
+
+  // allow only one dot
+  const parts = cleaned.split(".");
+  if (parts.length > 2) {
+    cleaned = parts[0] + "." + parts.slice(1).join("");
+  }
+
+  // ❌ yahan Number() mat lagao
+  return cleaned;
+};
+
+const removeAutoZero = (oldVal, newVal) => {
+  if (oldVal === "0" && newVal.length > 1) {
+    return newVal.replace(/^0+/, "");
+  }
+  return newVal;
+};
+
+
+const formatTwoDecimal = (value) => {
+  if (value === "" || value === null || value === undefined) return "";
+  const n = Number(value);
+  if (isNaN(n)) return "";
+  return n.toFixed(2);
+};
 
   const updateRow = (index: number, field: string, value: any) => {
     setRows((prev) => {
@@ -133,11 +211,11 @@ export default function CreatePriceListPage() {
     const base = rows[index];
 
     // CASE: Less Than blank → just focus, no toast
-    if (base.lessThanQty === "") {
-      const lessThanRefIndex = index * 4 + 1;
-      inputRefs.current[lessThanRefIndex]?.focus();
-      return;
-    }
+    // if (base.lessThanQty === "") {
+    //   const lessThanRefIndex = index * 4 + 1;
+    //   inputRefs.current[lessThanRefIndex]?.focus();
+    //   return;
+    // }
 
     // CASE: Less Than = 0
     if (Number(base.lessThanQty) === 0) {
@@ -220,77 +298,116 @@ const getValidRowsOfCurrentPage = () => {
   });
 };
 
+  const selectedGroupNames =
+  groupNames?.length > 0
+    ? groupNames.join(", ")
+    : "All";
 
-  const buildSavePagePayload = () => {
-    const validRows = getValidRowsOfCurrentPage();
-    console.log("hiiihhihi")
-    if (validRows.length === 0) return null;
-    console.log("faileddddd")
+ const buildSavePagePayload = () => {
+  const validRows = getValidRowsOfCurrentPage();
+  if (validRows.length === 0) return null;
 
-    const itemMap = {};
+  const itemMap = {};
 
-    validRows.forEach((r) => {
-      if (!itemMap[r.itemId]) {
-        itemMap[r.itemId] = {
-          itemId: r.itemId,
-          itemName: r.name,
-          slabs: [],
-        };
-      }
+  validRows.forEach((r) => {
+    if (!itemMap[r.itemId]) {
+      itemMap[r.itemId] = {
+        itemId: r.itemId,
+        itemName: r.name,
+        slabs: [],
+      };
+    }
 
-      itemMap[r.itemId].slabs.push({
-        fromQty: r.fromQty,
-        lessThanQty: r.lessThanQty,
-        rate: r.rate,
-        discount: r.discount,
-      });
+    itemMap[r.itemId].slabs.push({
+      fromQty: r.fromQty,
+      lessThanQty: r.lessThanQty,
+      rate: r.rate,
+      discount: r.discount,
     });
+  });
 
-    return {
-      companyId: defaultSelected._id,
-      clientId: state?.clientId || null,
+  const isAllGroups = !groupIds || groupIds.length === 0;
 
-      priceLevel,
-      stockGroupId: groupIds?.[0],
-      stockGroupName: selectedGroupNames,
+  return {
+    companyId: defaultSelected._id,
+    clientId: state?.clientId || null,
+    priceLevel,
+    applicableFrom,
+    page,
+    items: Object.values(itemMap),
 
-      applicableFrom,
-      page,
-      items: Object.values(itemMap),
-    };
+    ...(isAllGroups
+      ? {
+          stockGroupName: "All",        // ✅ ONLY name
+        }
+      : {
+          stockGroupId: groupIds[0],    // ✅ ObjectId only
+          stockGroupName: selectedGroupNames,
+        }),
   };
+};
+const saveCurrentPage = async () => {
+  const payload = buildSavePagePayload();
 
-  const saveCurrentPage = async () => {
-    const payload = buildSavePagePayload();
+  if (!payload) {
+    toast.error("No valid data");
+    return;
+  }
 
-    if (!payload) {
-      toast.error("No item is present");
-      return;
-    }
-
-    try {
+  try {
+    if (isEdit) {
+      await updatePriceListPage(editData._id, payload);
+      toast.success("Price list updated successfully");
+    } else {
       await savePriceListPage(payload);
-
       toast.success(`Page ${page} saved successfully`);
-
-      // 🔥 CLEAR CURRENT PAGE DATA
-      setRows((prev) =>
-        prev.map((r) => ({
-          ...r,
-          lessThanQty: 0,
-          rate: 0,
-          discount: 0,
-        }))
-      );
-    } catch (e) {
-      toast.error("Error Occured while uploading the pricelist");
     }
-  };
+  
+    // ✅ REDIRECT AFTER SUCCESS
+  
+    setTimeout(() => {
+      navigate("/price-list");
+    }, 300);
+
+  } catch (err) {
+    toast.error("Failed to save price list");
+  }
+};
+
 
 
 
   return (
     <div className="custom-container pt-2 space-y-3">
+      <div className="flex items-center justify-between mb-2">
+  <div className="flex items-center gap-3">
+   
+
+   <h2 className="text-xl font-semibold text-gray-800">
+  {isView
+    ? "View Price List"
+    : isEdit
+    ? "Edit Price List"
+    : "Create Price List"}
+</h2>
+
+{isView && (
+  <span className="px-2 py-1 text-xs font-semibold rounded-full
+    bg-blue-100 text-blue-700 border border-blue-300">
+    VIEW MODE
+  </span>
+)}
+
+
+    {isEdit && (
+      <span className="px-2 py-1 text-xs font-semibold rounded-full
+        bg-yellow-100 text-yellow-700 border border-yellow-300">
+        EDIT MODE
+      </span>
+    )}
+  </div>
+</div>
+
 
       {/* BASIC INFO */}
       <div className="bg-white border rounded-lg px-4 py-3">
@@ -307,6 +424,7 @@ const getValidRowsOfCurrentPage = () => {
             <Label className="text-xs">Applicable From</Label>
             <Input value={applicableFrom} disabled className="h-8" />
           </div>
+          
         </div>
       </div>
 
@@ -352,10 +470,12 @@ const getValidRowsOfCurrentPage = () => {
                 <TableHead className="border border-gray-300 px-3 py-2 w-[15%] text-xs font-semibold text-gray-700 text-center">
                   Discount
                 </TableHead>
+{!isView && (
+  <TableHead className="border ...">
+    Action
+  </TableHead>
+)}
 
-                <TableHead className="border border-gray-300 px-3 py-2 w-[10%] text-xs font-semibold text-gray-700 text-center">
-                  Action
-                </TableHead>
 
               </TableRow>
             </TableHeader>
@@ -390,14 +510,21 @@ const getValidRowsOfCurrentPage = () => {
                         <Input
                           ref={(el) => (inputRefs.current[index * 4 + i] = el)}
                           value={row[f]}
-                          readOnly={f === "fromQty"}
-                          className={`${inputCls} h-8 ${f === "fromQty"
-                              ? "bg-gray-100 cursor-not-allowed"
-                              : "cursor-pointer"
-                            }`}
-                          onChange={(e) =>
-                            updateRow(index, f, sanitizeNumber(e.target.value))
-                          }
+                          readOnly={isView || f === "fromQty"}
+  disabled={isView}
+                      className={`${inputCls} h-8 ${
+    isView
+      ? "bg-gray-100 cursor-not-allowed"
+      : f === "fromQty"
+      ? "bg-gray-100 cursor-not-allowed"
+      : "cursor-pointer"
+  }`}
+                     onChange={(e) => {
+  const cleaned = sanitizeNumber(e.target.value);
+  const finalVal = removeAutoZero(String(row[f]), cleaned);
+  updateRow(index, f, finalVal);
+}}
+
                           /* ✅ ENTER → NEXT EDITABLE CELL */
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
@@ -410,49 +537,82 @@ const getValidRowsOfCurrentPage = () => {
 
                     {/* DISCOUNT */}
                     <TableCell className="border border-gray-300">
-                      <Input
-                        ref={(el) => (inputRefs.current[index * 4 + 3] = el)}
-                        value={`${row.discount}%`}
-                        className={`${inputCls} h-8 cursor-pointer`}
-                        onChange={(e) =>
-                          updateRow(
-                            index,
-                            "discount",
-                            sanitizeNumber(e.target.value.replace("%", ""))
-                          )
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key !== "Enter") return;
+<Input
+  ref={(el) => (inputRefs.current[index * 4 + 3] = el)}
+  value={`${row.discount}%`}
+  className={`${inputCls} h-8 cursor-pointer`}
+  readOnly={isView}
+  disabled={isView}
 
-                          const lessThan = rows[index].lessThanQty;
+  /* 🔥 ADD: auto zero remove + sanitize */
+  onChange={(e) => {
+    if (isView) return;
 
-                          // CASE 1: Less Than filled → add slab
-                          if (lessThan !== "" && Number(lessThan) > 0) {
-                            addSlabAfter(index);
-                            return;
-                          }
+    const raw = e.target.value.replace("%", "");
+    const cleaned = sanitizeNumber(raw);
+    const finalVal = removeAutoZero(String(row.discount), cleaned);
 
-                          // CASE 2: Less Than empty → next row lessThan
-                          const nextRow = index + 1;
-                          if (!rows[nextRow]) return;
+    updateRow(index, "discount", finalVal);
+  }}
 
-                          const nextLessThanRef = nextRow * 4 + 1;
-                          inputRefs.current[nextLessThanRef]?.focus();
-                        }}
-                      />
+  /* 🔥 ADD: proper formatting on blur */
+  onBlur={() => {
+    if (isView) return;
+
+    if (row.discount === "" || row.discount === ".") {
+      updateRow(index, "discount", "");
+      return;
+    }
+
+    updateRow(
+      index,
+      "discount",
+      Number(Number(row.discount).toFixed(2))
+    );
+  }}
+
+  /* ✅ EXISTING: Enter → next slab logic (UNCHANGED) */
+  onKeyDown={(e) => {
+    if (e.key !== "Enter") return;
+
+    const lessThan = rows[index].lessThanQty;
+
+    if (Number(lessThan) === 0) {
+      toast.error(
+        "Please enter Less Than quantity before going to next slab"
+      );
+      return;
+    }
+
+    addSlabAfter(index);
+
+    const nextRow = index + 1;
+    if (!rows[nextRow]) return;
+
+    const nextLessThanRef = nextRow * 4 + 1;
+    inputRefs.current[nextLessThanRef]?.focus();
+  }}
+/>
+
+
+
+
+
                     </TableCell>
 
                     {/* ACTION */}
-                    <TableCell className="border border-gray-300 text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeRow(index)}
-                        className="text-gray-400 hover:text-red-500 cursor-pointer"
-                      >
-                        ✕
-                      </Button>
-                    </TableCell>
+                  {!isView && (
+  <TableCell className="border text-center">
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => removeRow(index)}
+      className="text-gray-400 hover:text-red-500"
+    >
+      ✕
+    </Button>
+  </TableCell>
+)}
 
                   </TableRow>
                 ))
@@ -472,9 +632,15 @@ const getValidRowsOfCurrentPage = () => {
           </div>
         )}
       </div>
+{isEdit && (
+  <p className="text-xs text-orange-600 mt-1">
+    You are editing an existing price list. Changes will overwrite previous data.
+  </p>
+)}
 
       {/* ACTION BAR BELOW TABLE */}
       <div className="mt-4 flex justify-between items-center">
+
         <Button
           variant="outline"
           size="sm"
@@ -482,16 +648,19 @@ const getValidRowsOfCurrentPage = () => {
         >
           ← Back
         </Button>
+{!isView && (
+  <Button
+    className="bg-teal-600 hover:bg-teal-700 text-white px-7 py-3 rounded-full"
+    onClick={saveCurrentPage}
+  >
+    {isEdit ? "Update Price List" : "Set Price List"}
+  </Button>
+)}
 
-        <Button
-          className="bg-teal-600 hover:bg-teal-700 text-white px-7 py-3 rounded-full"
-          onClick={saveCurrentPage}
-        >
-          Set Price List
-        </Button>
+
       </div>
 
-      {total > limit && (
+      {!isEdit && total > limit && (
         <div className="w-full bg-white rounded-xl shadow-sm px-4 py-3 flex items-center justify-between border">
 
           {/* LEFT TEXT */}

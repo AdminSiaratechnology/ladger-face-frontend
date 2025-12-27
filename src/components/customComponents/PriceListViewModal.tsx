@@ -65,7 +65,7 @@ const PriceListViewModal: React.FC<PriceListViewModalProps> = ({
     {
       title: "Basic Details",
       fields: [
-        ["Code / ID", data._id || data.id],
+        ["Code ", data.code],
         ["Price Level", data.priceLevel || data.name],
         ["Stock Group", data.stockGroupName],
       ],
