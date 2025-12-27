@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline | LedgerFace</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
+    }
+
+    body {
+      height: 100vh;
+      background: linear-gradient(135deg, #0f766e, #115e59);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 420px;
+      padding: 40px 30px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      opacity: 0.85;
+      margin-bottom: 28px;
+    }
+
+    .icon {
+      font-size: 56px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      opacity: 0.9;
+      margin-bottom: 24px;
+    }
+
+    button {
+      padding: 12px 24px;
+      border-radius: 10px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #ffffff;
+      color: #0f766e;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .footer {
+      margin-top: 24px;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">LedgerFace</div>
+    <div class="subtitle">Smart Accounting & Business Management</div>
+
+    <div class="icon">📴</div>
+
+    <h1>You’re Offline</h1>
+    <p>
+      Your internet connection seems to be unavailable.<br />
+      Please check your network and try again.
+    </p>
+
+    <button onclick="window.location.reload()">
+      Retry Connection
+    </button>
+
+    <div class="footer">
+      © 2025 LedgerFace • All rights reserved
+    </div>
+  </div>
+</body>
+</html>

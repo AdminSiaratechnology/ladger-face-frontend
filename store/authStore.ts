@@ -66,6 +66,7 @@ export const useAuthStore = create<AuthState>()(
           const data: LoginResponse = await response.json();
 
           if (!response.ok) {
+            set({ isLoading: false, error: data.message });
             return { success: false, message: data.message || "Login failed" };
           }
 
