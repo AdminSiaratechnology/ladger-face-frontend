@@ -1612,7 +1612,7 @@ const fetchNewProduct=async()=>{
       onExport={() => exportProductsToExcel()}
       onSample={() => {
         // Download sample CSV/Excel template
-        window.location.href = "/templates/sample-products.xlsx"; // or trigger download
+        // window.location.href = "/templates/sample-products.xlsx"; // or trigger download
       }}
     />
         
