@@ -92,13 +92,7 @@ export const exportToExcel = <T>({
     ],
     ["Notes", company.notes || "N/A"],
     [],
-    ["INVENTORY SETTINGS"],
-    [],
-    ["Maintain Batch", company.maintainBatch ? "Yes" : "No"],
-    ["Maintain Godown", company.maintainGodown ? "Yes" : "No"],
-    ["Allow Negative Order", company.negativeOrder ? "Yes" : "No"],
-    ["Closing Quantity Order", company.closingQuantityOrder ? "Yes" : "No"],
-    [],
+
     [`${title || sheetName} LIST (Total: ${data.length})`],
     [],
   ];

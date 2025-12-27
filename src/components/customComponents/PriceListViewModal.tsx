@@ -4,13 +4,19 @@ import { Card, CardContent } from "../ui/card";
 import { X } from "lucide-react";
 import { useCompanyStore } from "../../../store/companyStore";
 
-interface UniversalProductDetailsModalProps {
+/* =========================
+   PROPS
+========================= */
+interface PriceListViewModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: any;
+  type: "priceList";
 }
 
-/* ================= INFO ROW ================= */
+/* =========================
+   SMALL COMPONENTS
+========================= */
 const InfoRow = ({ label, value }: { label: string; value: any }) => {
   if (value === undefined || value === null || value === "") return null;
 
@@ -24,7 +30,6 @@ const InfoRow = ({ label, value }: { label: string; value: any }) => {
   );
 };
 
-/* ================= SECTION TITLE ================= */
 const SectionTitle = ({ title }: { title: string }) => (
   <div className="flex items-center mb-3">
     <div className="w-1 h-4 bg-blue-500 rounded mr-2" />
@@ -34,11 +39,15 @@ const SectionTitle = ({ title }: { title: string }) => (
   </div>
 );
 
-/* ================= MAIN MODAL ================= */
-const UniversalProductDetailsModal: React.FC<
-  UniversalProductDetailsModalProps
-> = ({ isOpen, onClose, data }) => {
-  if (!data) return null;
+/* =========================
+   MAIN COMPONENT
+========================= */
+const PriceListViewModal: React.FC<PriceListViewModalProps> = ({
+  isOpen,
+  onClose,
+  data,
+}) => {
+  if (!isOpen || !data) return null;
 
   /* 🔹 COMPANY FROM STORE */
   const { defaultSelected } = useCompanyStore();
@@ -49,78 +58,27 @@ const UniversalProductDetailsModal: React.FC<
   const companyId =
     defaultSelected?.code || "—";
 
-  const {
-    name,
-    code,
-    partNo,
-    productType,
-    defaultSupplier,
-    minimumRate,
-    maximumRate,
-    minimumQuantity,
-    defaultGodown,
-    stockGroup,
-    stockCategory,
-    unit,
-    alternateUnit,
-    taxConfiguration,
-    createdAt,
-  } = data;
-
-  /* ================= SECTIONS ================= */
+  /* =========================
+     BASIC SECTIONS
+  ========================= */
   const sections = [
     {
       title: "Basic Details",
       fields: [
-        ["Product Name", name],
-        ["Code", code],
-        ["Part Number", partNo],
-        ["Type", productType],
-        ["Default Supplier", defaultSupplier],
+        ["Code / ID", data._id || data.id],
+        ["Price Level", data.priceLevel || data.name],
+        ["Stock Group", data.stockGroupName],
       ],
     },
     {
-      title: "Inventory Details",
+      title: "Price List Details",
       fields: [
-        ["Default Godown", defaultGodown?.name],
-        ["Stock Group", stockGroup?.name],
-        ["Stock Category", stockCategory?.name],
-        ["Unit", unit?.name],
-        ["Alternate Unit", alternateUnit?.name],
+        ["Applicable From", data.applicableFrom || data.validFrom],
+        ["Page", data.page],
+        ["Total Items", data.items?.length || data.itemCount || 0],
       ],
     },
-    {
-      title: "Pricing & Quantity",
-      fields: [
-        ["Minimum Quantity", minimumQuantity],
-        ["Minimum Rate", minimumRate],
-        ["Maximum Rate", maximumRate],
-      ],
-    },
-    taxConfiguration && {
-      title: "Tax Configuration",
-      fields: [
-        ["Applicable", taxConfiguration.applicable ? "Yes" : "No"],
-        ["HSN Code", taxConfiguration.hsnCode],
-        ["Tax %", taxConfiguration.taxPercentage],
-        ["CGST", taxConfiguration.cgst],
-        ["SGST", taxConfiguration.sgst],
-        ["Cess", taxConfiguration.cess],
-        ["Additional Cess", taxConfiguration.additionalCess],
-        [
-          "Applicable Date",
-          taxConfiguration.applicableDate
-            ? new Date(
-                taxConfiguration.applicableDate
-              ).toLocaleDateString()
-            : "—",
-        ],
-      ],
-    },
-  ].filter(Boolean) as {
-    title: string;
-    fields: [string, any][];
-  }[];
+  ];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -131,10 +89,10 @@ const UniversalProductDetailsModal: React.FC<
           {/* LEFT */}
           <div>
             <p className="text-white text-lg font-semibold">
-              View Product
+              View Price List
             </p>
             <p className="text-xs text-blue-100">
-              {name || "Unnamed Product"}
+              {data.priceLevel || data.name}
             </p>
           </div>
 
@@ -153,13 +111,15 @@ const UniversalProductDetailsModal: React.FC<
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-full "
             >
-          
+        
             </button>
           </div>
         </div>
 
         {/* ================= BODY ================= */}
         <div className="max-h-[70vh] overflow-y-auto p-4 space-y-4 bg-gray-50">
+
+          {/* BASIC + DETAILS */}
           {sections.map(
             (section, idx) =>
               section.fields.some(([, value]) => value) && (
@@ -183,10 +143,63 @@ const UniversalProductDetailsModal: React.FC<
               )
           )}
 
-          {/* ================= META ================= */}
-          {createdAt && (
+          {/* ================= ITEMS + SLABS ================= */}
+          {Array.isArray(data.items) && data.items.length > 0 && (
+            <Card className="border shadow-sm">
+              <CardContent className="p-4">
+                <SectionTitle title="Items & Slabs" />
+
+                {data.items.map((item: any, i: number) => (
+                  <div
+                    key={i}
+                    className="mb-5 border rounded-lg p-3 bg-white"
+                  >
+                    {/* ITEM NAME */}
+                    <p className="font-semibold text-sm mb-2">
+                      {item.itemName}
+                    </p>
+
+                    {/* SLABS TABLE */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border border-gray-300">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="border px-2 py-1">From Qty</th>
+                            <th className="border px-2 py-1">Less Than</th>
+                            <th className="border px-2 py-1">Rate</th>
+                            <th className="border px-2 py-1">Discount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {item.slabs?.map((s: any, si: number) => (
+                            <tr key={si}>
+                              <td className="border px-2 py-1 text-center">
+                                {s.fromQty}
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                {s.lessThanQty ?? "∞"}
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                {s.rate}
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                {s.discount}%
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ================= METADATA ================= */}
+          {data.createdAt && (
             <div className="text-xs text-gray-400 pt-2">
-              Created: {new Date(createdAt).toLocaleString()}
+              Created: {new Date(data.createdAt).toLocaleString()}
             </div>
           )}
         </div>
@@ -196,4 +209,4 @@ const UniversalProductDetailsModal: React.FC<
   );
 };
 
-export default UniversalProductDetailsModal;
+export default PriceListViewModal;

@@ -1,20 +1,23 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogContent } from "../ui/dialog";
 import { Card, CardContent } from "../ui/card";
-import { Badge } from "../ui/badge";
+import { X } from "lucide-react";
+import { useCompanyStore } from "../../../store/companyStore";
 
 interface UniversalDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  data: any; // Customer, Vendor, Agent, Ledger
+  data: any;
   type: "customer" | "vendor" | "agent" | "ledger";
 }
 
+/* ================= INFO ROW ================= */
 const InfoRow = ({ label, value }: { label: string; value: any }) => {
   if (value === undefined || value === null || value === "") return null;
+
   return (
     <div className="py-2 border-b border-gray-100 last:border-b-0">
-      <p className="text-sm text-gray-600 mb-1">{label}</p>
+      <p className="text-xs text-gray-500">{label}</p>
       <p className="text-sm font-medium text-gray-900 break-words">
         {String(value)}
       </p>
@@ -22,10 +25,13 @@ const InfoRow = ({ label, value }: { label: string; value: any }) => {
   );
 };
 
+/* ================= SECTION TITLE ================= */
 const SectionTitle = ({ title }: { title: string }) => (
-  <div className="flex items-center mb-2 bg-gradient-to-r from-blue-50 to-blue-100">
-    <div className="w-1 h-4 bg-blue-500 rounded mr-3"></div>
-    <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+  <div className="flex items-center mb-3">
+    <div className="w-1 h-4 bg-blue-500 rounded mr-2" />
+    <h3 className="text-sm font-semibold text-gray-800">
+      {title}
+    </h3>
   </div>
 );
 
@@ -35,7 +41,16 @@ const UniversalDetailsModal: React.FC<UniversalDetailsModalProps> = ({
   data,
   type,
 }) => {
-  if (!data) return null;
+  if (!isOpen || !data) return null;
+
+  /* 🔹 COMPANY FROM STORE */
+  const { defaultSelected } = useCompanyStore();
+
+  const companyName =
+    defaultSelected?.namePrint || "—";
+
+  const companyId =
+    defaultSelected?.code || "—";
 
   const {
     logo,
@@ -50,15 +65,17 @@ const UniversalDetailsModal: React.FC<UniversalDetailsModalProps> = ({
     state,
     country,
     zipCode,
-    status,
     createdAt,
-    updatedAt,
     banks = [],
     registrationDocs = [],
   } = data;
 
   const nameField =
-    data.customerName || data.vendorName || data.agentName || data.ledgerName;
+    data.customerName ||
+    data.vendorName ||
+    data.agentName ||
+    data.ledgerName ||
+    "—";
 
   const typeLabelMap: Record<string, string> = {
     customer: "Customer",
@@ -67,7 +84,7 @@ const UniversalDetailsModal: React.FC<UniversalDetailsModalProps> = ({
     ledger: "Ledger",
   };
 
-  // 🔹 Grouped Sections by Field Category
+  /* ================= SECTIONS ================= */
   const sections = [
     {
       title: "Basic Information",
@@ -98,12 +115,14 @@ const UniversalDetailsModal: React.FC<UniversalDetailsModalProps> = ({
         ["Company Size", data.companySize],
         [
           "Priority",
-          data.customerPriority || data.vendorPriority || data.agentPriority,
+          data.customerPriority ||
+            data.vendorPriority ||
+            data.agentPriority,
         ],
         ["Territory", data.territory],
         ["Lead Source", data.leadSource],
         [
-          "Sales/Procurement Person",
+          "Sales / Procurement Person",
           data.salesPerson || data.procurementPerson,
         ],
         ["Agent", data.agent?.agentName],
@@ -135,51 +154,67 @@ const UniversalDetailsModal: React.FC<UniversalDetailsModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="custom-dialog-container p-0">
-        <DialogHeader className="bg-gradient-to-r from-blue-200 to-blue-500 border-b border-gray-200 rounded-t-xl shadow-sm p-4 mb-3">
-          <div className="flex items-center gap-2">
+      <DialogContent className="p-0 custom-dialog-container overflow-hidden">
+
+        {/* ================= HEADER (COUPON STYLE) ================= */}
+        <div className="bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-4 flex items-center justify-between">
+          {/* LEFT */}
+          <div className="flex items-center gap-3">
             {logo && (
               <img
                 src={logo}
                 alt="Logo"
-                className="w-12 h-12 rounded-lg border object-cover"
+                className="w-10 h-10 rounded-lg border object-cover"
               />
             )}
-            <div className="flex-1">
-              <DialogTitle className="text-lg font-semibold text-gray-900">
-                {nameField}
-              </DialogTitle>
-              <p className="text-sm text-gray-600">
-                {code} {shortName && `• ${shortName}`}
+            <div>
+              <p className="text-white text-lg font-semibold">
+                View {typeLabelMap[type]}
               </p>
-              {/* <p className="text-xs text-gray-500 mt-1">{typeLabelMap[type]}</p> */}
+              <p className="text-xs text-blue-100">
+                {nameField}
+                {shortName && ` • ${shortName}`}
+              </p>
             </div>
-            {status && (
-              <Badge
-                className={
-                  status === "active"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-gray-100 text-gray-800"
-                }
-              >
-                {status}
-              </Badge>
-            )}
           </div>
-        </DialogHeader>
 
-        <div className="max-h-[70vh] overflow-y-auto space-y-2">
+          {/* RIGHT */}
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-sm font-semibold text-white">
+                {companyName}
+              </p>
+              <p className="text-xs text-blue-100">
+                ID: {code}
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-full"
+            >
+            
+            </button>
+          </div>
+        </div>
+
+        {/* ================= BODY ================= */}
+        <div className="max-h-[70vh] overflow-y-auto p-4 space-y-4 bg-gray-50">
           {sections.map(
             (section, idx) =>
               section.fields.some(([, value]) => value) && (
-                <Card key={idx} className="border-0 ">
-                  <CardContent className="">
+                <Card key={idx} className="border shadow-sm">
+                  <CardContent className="p-4">
                     <SectionTitle title={section.title} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 shadow-md">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
                       {section.fields.map(
                         ([label, value], i) =>
                           value && (
-                            <InfoRow key={i} label={label} value={value} />
+                            <InfoRow
+                              key={i}
+                              label={label}
+                              value={value}
+                            />
                           )
                       )}
                     </div>
@@ -188,27 +223,21 @@ const UniversalDetailsModal: React.FC<UniversalDetailsModalProps> = ({
               )
           )}
 
-          {/* Bank Details */}
+          {/* ================= BANK DETAILS ================= */}
           {banks.length > 0 && (
-            <Card className="border-0 shadow-md">
-              <CardContent className="">
+            <Card className="border shadow-sm">
+              <CardContent className="p-4">
                 <SectionTitle title="Bank Details" />
                 {banks.map((bank: any, idx: number) => (
                   <div
                     key={idx}
-                    className="p-3 border border-gray-200 rounded-lg mb-3"
+                    className="p-3 border rounded-lg mb-3 bg-white"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
                       <InfoRow label="Bank Name" value={bank.bankName} />
                       <InfoRow label="Branch" value={bank.branch} />
-                      <InfoRow
-                        label="Account Holder"
-                        value={bank.accountHolderName}
-                      />
-                      <InfoRow
-                        label="Account Number"
-                        value={bank.accountNumber}
-                      />
+                      <InfoRow label="Account Holder" value={bank.accountHolderName} />
+                      <InfoRow label="Account Number" value={bank.accountNumber} />
                       <InfoRow label="IFSC Code" value={bank.ifscCode} />
                       <InfoRow label="SWIFT Code" value={bank.swiftCode} />
                       <InfoRow label="MICR Number" value={bank.micrNumber} />
@@ -219,19 +248,19 @@ const UniversalDetailsModal: React.FC<UniversalDetailsModalProps> = ({
             </Card>
           )}
 
-          {/* Documents */}
+          {/* ================= DOCUMENTS ================= */}
           {registrationDocs.length > 0 && (
-            <Card className="border-0 shadow-md">
-              <CardContent className="">
+            <Card className="border shadow-sm">
+              <CardContent className="p-4">
                 <SectionTitle title="Documents" />
-                <div className="grid grid-cols-1">
+                <div className="space-y-2">
                   {registrationDocs.map((doc: any, idx: number) => (
                     <a
                       key={idx}
                       href={doc.file}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex justify-between items-center p-2 border border-gray-200 rounded hover:bg-gray-50"
+                      className="flex justify-between items-center p-2 border rounded hover:bg-gray-50"
                     >
                       <span className="text-sm">{doc.type}</span>
                       <span className="text-sm text-blue-600">View</span>
@@ -242,16 +271,14 @@ const UniversalDetailsModal: React.FC<UniversalDetailsModalProps> = ({
             </Card>
           )}
 
-          {/* Meta Info */}
-          <div className="text-xs text-gray-500 pt-4">
-            {createdAt && (
-              <div className="p-2">Created: {new Date(createdAt).toLocaleString()}</div>
-            )}
-            {/* {updatedAt && (
-              <div>Updated: {new Date(updatedAt).toLocaleString()}</div>
-            )} */}
-          </div>
+          {/* ================= META ================= */}
+          {createdAt && (
+            <div className="text-xs text-gray-400 pt-2">
+              Created: {new Date(createdAt).toLocaleString()}
+            </div>
+          )}
         </div>
+
       </DialogContent>
     </Dialog>
   );
