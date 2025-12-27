@@ -7,6 +7,8 @@ const apiClient = axios.create({
   baseURL: baseUrl,
   headers: {
     // "Content-Type": "application/json",
+        "auth-source": "api",
+
   },
 });
 
@@ -1032,6 +1034,25 @@ export const createPriceLevel = (data: {
 }) => { 
   return apiClient.post("/price-level", data); 
 };
+
+const fetchBatches = async (productId, companyId) => {
+  const res = await apiClient.get(`/products/batches/stock-item/${productId}`, {
+    params: {
+      companyId
+    }
+  });
+  return res.data;
+}
+
+const updateCartItem = async (companyId: string, payload: { productId: string; quantity: number }) => {
+    try {
+      const response = await apiClient.put(`/cart/update/${companyId}`, payload);
+      return response.data;
+    } catch (error: any) {
+      console.error("Failed to update cart item:", error);
+      throw error.response?.data || error;
+    }
+}
 export const savePriceListPage = (payload: any) => {
   console.log(payload);
   return apiClient.post("/price-list/items", payload);
@@ -1166,7 +1187,9 @@ const api = {
   fetchTemplatesByCompany,
   getMe,
   uploadCsvCustomers,
-  importProductsFromCSV
+  importProductsFromCSV,
+  fetchBatches,
+  updateCartItem
 };
 
 export default api;

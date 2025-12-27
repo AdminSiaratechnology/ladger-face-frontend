@@ -29,6 +29,7 @@ import {
   Image as ImageIcon,
   TrendingUp,
   Briefcase,
+  User,
 } from "lucide-react";
 import CustomInputBox from "../customComponents/CustomInputBox";
 import { Country, State, City } from "country-state-city";
@@ -68,6 +69,7 @@ import SettingsDropdown from "../customComponents/SettingsDropdown";
 import { exportToExcel } from "@/lib/exportToExcel";
 import api from "@/api/api";
 import { ImportCSVModal } from "../customComponents/ImportCSVModal";
+import { useAuthStore } from "../../../store/authStore";
 // Interfaces (adapted from provided Customer interface)
 
 const stepIcons = {
@@ -118,7 +120,7 @@ const CustomerRegistrationPage: React.FC = () => {
   const { agents } = useAgentStore();
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const {user} = useAuthStore();
   const handleViewCustomer = (customer: any) => {
     setSelectedCustomer(customer);
     setIsModalOpen(true);
@@ -1035,7 +1037,7 @@ const CustomerRegistrationPage: React.FC = () => {
             onExport={() => exportProductsToExcel()}
             onSample={() => {
               // Download sample CSV/Excel template
-              window.location.href = "/templates/sample-products.xlsx"; // or trigger download
+              // window.location.href = "/templates/sample-products.xlsx"; 
             }}
           />{" "}
           <CheckAccess
@@ -1487,6 +1489,7 @@ const CustomerRegistrationPage: React.FC = () => {
                     onChange={handleChange}
                     type="email"
                     required={true}
+                    disabled={user.email === formData.emailAddress && formData.createdFromUser === true}
                   />
                   <CustomInputBox
                     label="Fax Number"

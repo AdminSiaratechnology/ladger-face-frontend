@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useStockItemStore } from "../../../store/stockItemStore";
-import {useProductStore} from "../../../store/productStore"
+import { useProductStore } from "../../../store/productStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { Button } from "../ui/button";
@@ -22,6 +22,7 @@ const ProductCard = ({
   onIncrease,
   onDecrease,
 }: any) => {
+  console.log(product);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const nextImage = (e: React.MouseEvent) => {
@@ -132,11 +133,8 @@ const ProductSelection = () => {
   const location = useLocation();
   const { selectedCustomer, selectedRoute, company } = location.state || {};
   const { defaultSelected } = useCompanyStore();
-
-  // ✅ Use stockItemStore instead of productStore
-  const { fetchStockItems, filterStockItems, stockItems, pagination } =
-    useStockItemStore();
-  
+  const { fetchProducts, filterProducts, products, pagination } =
+    useProductStore();
   const [cart, setCart] = useState<any[]>([]);
   const [showReview, setShowReview] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -146,8 +144,8 @@ const ProductSelection = () => {
 
   const navigate = useNavigate();
   useEffect(() => {
-    fetchStockItems(currentPage, pagination.limit || 10, defaultSelected?._id);
-  }, [fetchStockItems, currentPage, pagination.limit, defaultSelected]);
+    fetchProducts(currentPage, pagination.limit || 10, defaultSelected?._id);
+  }, [fetchProducts, currentPage, pagination.limit, defaultSelected]);
 
   useEffect(() => {
     if (defaultSelected && company && defaultSelected._id !== company._id) {
@@ -159,7 +157,7 @@ const ProductSelection = () => {
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (searchTerm.trim()) {
-        filterStockItems(
+        filterProducts(
           searchTerm,
           "",
           "nameAsc",
@@ -168,7 +166,7 @@ const ProductSelection = () => {
           10
         );
       } else {
-        fetchStockItems(currentPage, 10, defaultSelected?._id);
+        fetchProducts(currentPage, 10, defaultSelected?._id);
       }
     }, 500);
 
@@ -185,13 +183,14 @@ const ProductSelection = () => {
 
         const normalized = serverCart.cart.map((c: any) => ({
           _id: c.product._id,
-          name: c.product.ItemName,
-          code: c.product.ItemCode,
-          stockGroup: c.product.Group,
-          stockCategory: c.product.Category,
-          minimumRate: c.product.Price,
+          name: c.product.name,
+          code: c.product.code,
+          stockGroup: c.product.stockGroup.name,
+          stockCategory: c.product.stockCategory.name,
+          minimumRate: c.product.minimumRate,
           quantity: c.quantity,
           images: c.product.productId?.images ?? [],
+          batch: c.product.batch,
         }));
 
         setCart(normalized);
@@ -212,88 +211,84 @@ const ProductSelection = () => {
 
   // ✅ Add to Cart
   const handleAddToCart = async (product: any) => {
-    const newItem ={
-      "items": [{
-      productId: product._id,
-      quantity: 1,
-    }]};
+    // 🔴 CASE 1: Batch product → Preview page
+    if (product.batch === true) {
+      navigate(`/preview-products/${product._id}`, {
+        state: {
+          product,
+          company: defaultSelected,
+          selectedCustomer,
+          selectedRoute,
+        },
+      });
+      return;
+    }
 
-    // Update local cart instantly
+    // 🟢 CASE 2: Normal product → Direct cart add
+    const payload = {
+      items: [{ productId: product._id, quantity: 1 }],
+    };
+
+    // optimistic UI
     setCart((prev) => [...prev, { ...product, quantity: 1 }]);
     setShowReview(true);
 
     try {
-      await api.addCart(newItem, defaultSelected?._id);
+      await api.addCart(payload, defaultSelected?._id);
     } catch (err) {
-      console.error("Failed to sync cart with server", err);
+      console.error("Failed to add cart", err);
     }
   };
 
-  // ✅ Increase Quantity
   const handleIncrease = async (productId: string) => {
-    const updatedCart = cart.map((item) =>
-      item._id === productId ? { ...item, quantity: item.quantity + 1 } : item
+    const product = cart.find((i) => i._id === productId);
+    if (!product) return;
+
+    const newQty = product.quantity + 1;
+
+    setCart((prev) =>
+      prev.map((i) => (i._id === productId ? { ...i, quantity: newQty } : i))
     );
 
-    setCart(updatedCart);
-
-    const product = updatedCart.find((i) => i._id === productId);
-    if (!product) return;
-    const newItem={
-      "items": [{
-    
-          productId,
-          quantity: product.quantity,
-        
-    }]}
-
     try {
-      await api.addCart(
-      newItem ,
-        defaultSelected?._id
-      );
+      await api.updateCartItem(defaultSelected?._id!, {
+        productId,
+        quantity: newQty,
+      });
     } catch (err) {
-      console.error("Failed to sync increase", err);
+      console.error("Failed to increase quantity", err);
     }
   };
 
-  // ✅ Decrease Quantity
   const handleDecrease = async (productId: string) => {
-    const updated = cart
-      .map((item) =>
-        item._id === productId ? { ...item, quantity: item.quantity - 1 } : item
-      )
-      .filter((item) => item.quantity > 0);
+    const product = cart.find((i) => i._id === productId);
+    if (!product) return;
 
-    setCart(updated);
+    const newQty = product.quantity - 1;
 
-    // Hide drawer if nothing left
-    if (updated.length === 0) setShowReview(false);
-
-    const product = updated.find((i) => i._id === productId);
-    const newItem={
-      "items": [{
-               productId,
-          quantity: product ? product.quantity : 0, // if removed
-    }]}
+    setCart((prev) =>
+      newQty > 0
+        ? prev.map((i) =>
+            i._id === productId ? { ...i, quantity: newQty } : i
+          )
+        : prev.filter((i) => i._id !== productId)
+    );
 
     try {
-      await api.addCart(
-        newItem,
-        defaultSelected?._id
-      );
+      await api.updateCartItem(defaultSelected?._id!, {
+        productId,
+        quantity: newQty > 0 ? newQty : 0,
+      });
     } catch (err) {
-      console.error("Failed to sync decrease", err);
+      console.error("Failed to decrease quantity", err);
     }
   };
 
-  // ✅ Total Amount
   const totalAmount = cart.reduce(
     (sum, item) => sum + (item.minimumRate || 0) * item.quantity,
     0
   );
 
-  // ✅ Navigate to checkout
   const handleContinue = () => {
     navigate("/checkout", {
       state: { cart, selectedCustomer, selectedRoute, company, totalAmount },
@@ -340,15 +335,15 @@ const ProductSelection = () => {
   );
 
   // ✅ Normalize StockItems → Product format
-  const normalizedItems = stockItems?.map((item: any) => ({
+  const normalizedItems = products?.map((item: any) => ({
     _id: item._id,
-    name: item.ItemName,
-    code: item.ItemCode,
-    stockGroup: item.Group,
-    stockCategory: item.Category,
-    minimumRate: item.Price,
-
-    images: item.productId?.images?.map((img: any) => img.fileUrl) ?? [], // ✅ fallback
+    name: item.name,
+    code: item.code,
+    stockGroup: item.stockGroup.name,
+    stockCategory: item.stockCategory.name,
+    minimumRate: item.minimumRate,
+    batch: item.batch,
+    images: item.images,
   }));
   const handleClearCart = async () => {
     try {
