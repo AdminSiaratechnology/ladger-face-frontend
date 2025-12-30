@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api";
+import { toast } from "sonner";
 
 // ==== Interfaces ====
 interface Unit {
@@ -111,7 +112,9 @@ export const useUOMStore = create<UnitStore>()(
             units: [...get().units, newUnit],
             loading: false,
           });
+          toast.success("unit add sucessfully")
         } catch (error: any) {
+          toast.error(error?.response?.data?.message || error?.message || "Failed to add unit",)
           set({
             loading: false,
             error: true,
@@ -131,6 +134,7 @@ export const useUOMStore = create<UnitStore>()(
             units: get().units.map((u) => (u._id === unitId ? updatedUnit : u)),
             loading: false,
           });
+          toast.success("Unit update sucessfully")
         } catch (error: any) {
           set({
             loading: false,
@@ -138,6 +142,7 @@ export const useUOMStore = create<UnitStore>()(
             errorMessage:
               error?.response?.data?.message || "Failed to update unit",
           });
+          toast.error(  error?.response?.data?.message || error?.message || "Failed to update unit",)
         }
       },
 
