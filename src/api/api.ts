@@ -1102,12 +1102,16 @@ const createCounterCustomer = async (customer: any) => {
 
 export const importPriceListFromCSV = async (formData: FormData) => {
   try {
-    const res = await apiClient.post("/price-list/import-csv", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      responseType: "blob",
-    });
+    const res = await apiClient.post(
+      "/price-list/import-csv",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        responseType: "blob",
+      }
+    );
 
     const contentType = res.headers["content-type"];
 
@@ -1127,6 +1131,7 @@ export const importPriceListFromCSV = async (formData: FormData) => {
     const text = await res.data.text();
     const json = JSON.parse(text);
     return json;
+
   } catch (error: any) {
     console.error(
       "❌ Failed to import price list:",
@@ -1135,8 +1140,13 @@ export const importPriceListFromCSV = async (formData: FormData) => {
     throw error;
   }
 };
+
 export const deletePriceList = (id: string) => {
   return apiClient.delete(`/price-list/${id}`);
+};
+
+export const fetchPriceListById = (id: string) => {
+  return apiClient.get(`/price-list/${id}`);
 };
 
 // Export API

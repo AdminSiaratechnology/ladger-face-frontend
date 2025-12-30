@@ -1,9 +1,8 @@
-import React from "react";
-import { Dialog, DialogContent } from "../ui/dialog";
-import { Card, CardContent } from "../ui/card";
-import { X } from "lucide-react";
+import React, { memo, useState, useMemo } from "react";
+import RightSideOverlay from "../../components/customComponents/RightSideOverlay";
 import { useCompanyStore } from "../../../store/companyStore";
 
+/* ================= PROPS ================= */
 interface UniversalUserDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -15,233 +14,246 @@ const InfoRow = ({ label, value }: { label: string; value: any }) => {
   if (value === undefined || value === null || value === "") return null;
 
   return (
-    <div className="py-2 border-b border-gray-100 last:border-b-0">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-sm font-medium text-gray-900 break-words">
+    <div className="py-2">
+      <p className="text-base font-semibold text-gray-700">
+        {label}
+      </p>
+      <p className="text-base text-gray-600 break-words">
         {String(value)}
       </p>
     </div>
   );
 };
 
-/* ================= SECTION TITLE ================= */
-const SectionTitle = ({ title }: { title: string }) => (
-  <div className="flex items-center mb-3">
-    <div className="w-1 h-4 bg-blue-500 rounded mr-2" />
-    <h3 className="text-sm font-semibold text-gray-800">
-      {title}
-    </h3>
-  </div>
+/* ================= SECTION HEADER ================= */
+const SectionHeader = ({ title }: { title: string }) => (
+  <h3 className="text-xl font-semibold text-teal-700 mb-4">
+    {title}
+  </h3>
 );
 
 /* ================= MAIN COMPONENT ================= */
 const UniversalUserDetailsModal: React.FC<
   UniversalUserDetailsModalProps
 > = ({ isOpen, onClose, data }) => {
-  if (!isOpen || !data) return null;
 
-  /* 🔹 COMPANY FROM STORE */
+  /* ✅ HOOKS ALWAYS RUN */
+  const [activeTab, setActiveTab] = useState<
+    "basic" | "association" | "access"
+  >("basic");
+
   const { defaultSelected } = useCompanyStore();
 
-  const companyName =
-    defaultSelected?.name || "—";
+  const companyName = defaultSelected?.namePrint || "—";
+  const companyCode = defaultSelected?.code || "—";
+  const logo = defaultSelected?.logo;
 
-  const companyId =
-    defaultSelected?._id || "—";
-
-  const sections = [
-    {
-      title: "Basic Information",
-      fields: [
-        ["User ID", data._id],
-        ["Name", data.name],
-        ["Email", data.email],
-        ["Phone", data.phone],
-        ["Role", data.role],
-        ["Status", data.status],
-      ],
-    },
-    {
-      title: "Association Details",
-      fields: [
-        ["Parent User", data.parent],
-        ["Client ID", data.clientID],
-        ["Company ID", data.company],
-        ["Created By", data.createdBy],
-      ],
-    },
-    {
-      title: "Login Activity",
-      fields: [
-        [
-          "Last Login",
-          data.lastLogin
-            ? new Date(data.lastLogin).toLocaleString()
-            : "—",
-        ],
-      ],
-      customContent:
-        data.loginHistory?.length > 0 ? (
-          <div className="text-sm text-gray-700 space-y-1">
-            <p className="font-semibold">Login History:</p>
-            <ul className="list-disc ml-5 space-y-1">
-              {data.loginHistory.map((entry: string, i: number) => (
-                <li key={i}>
-                  {new Date(entry).toLocaleString()}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">
-            No login history available
-          </p>
-        ),
-    },
-    {
-      title: "Access Permissions",
-      customContent:
-        data.access?.length > 0 ? (
-          <div className="space-y-4">
-            {data.access.map((acc: any, idx: number) => (
-              <Card
-                key={idx}
-                className="border shadow-sm bg-gray-50"
-              >
-                <CardContent className="p-4 space-y-3">
-                  <p className="text-sm font-semibold text-gray-800">
-                    {acc.company?.namePrint || "Unnamed Company"}
-                  </p>
-
-                  {acc.modules && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {Object.entries(acc.modules).map(
-                        ([moduleName, moduleData]: [string, any], i) => (
-                          <div
-                            key={i}
-                            className="border p-2 rounded-lg bg-white"
-                          >
-                            <p className="font-semibold text-sm mb-1 text-gray-700">
-                              {moduleName}
-                            </p>
-
-                            <div className="space-y-1">
-                              {Object.entries(moduleData).map(
-                                ([subModule, perms]: [string, any], j) => (
-                                  <div
-                                    key={j}
-                                    className="text-xs border-t pt-1 text-gray-700"
-                                  >
-                                    <p className="font-medium">
-                                      {subModule}
-                                    </p>
-                                    <p className="text-gray-600">
-                                      {[
-                                        perms.create && "Create",
-                                        perms.read && "Read",
-                                        perms.update && "Update",
-                                        perms.delete && "Delete",
-                                      ]
-                                        .filter(Boolean)
-                                        .join(", ") || "No Access"}
-                                    </p>
-                                  </div>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">
-            No company access defined
-          </p>
-        ),
-    },
-    {
-      title: "Flags & Settings",
-      fields: [
-        ["All Permissions", data.allPermissions ? "Yes" : "No"],
-        ["Area", data.area],
-        ["Pincode", data.pincode],
-      ],
-    },
-  ];
+  /* 🔟 LAST 10 LOGIN HISTORY */
+  const lastTenLogins = useMemo(() => {
+    if (!data?.loginHistory?.length) return [];
+    return [...data.loginHistory].reverse().slice(0, 10);
+  }, [data?.loginHistory]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0 custom-dialog-container overflow-hidden">
-
-        {/* ================= HEADER (COUPON STYLE) ================= */}
-        <div className="bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-4 flex items-center justify-between">
-          <div>
-            <p className="text-white text-lg font-semibold">
-              View User
-            </p>
-            <p className="text-xs text-blue-100">
-              {data.name}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-          
-
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full "
-            >
-           
-            </button>
-          </div>
-        </div>
-
-        {/* ================= BODY ================= */}
-        <div className="max-h-[70vh] overflow-y-auto p-4 space-y-4 bg-gray-50">
-          {sections.map((section, idx) => (
-            <Card key={idx} className="border shadow-sm">
-              <CardContent className="p-4">
-                <SectionTitle title={section.title} />
-
-                {section.fields && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                    {section.fields.map(
-                      ([label, value], i) =>
-                        value && (
-                          <InfoRow
-                            key={i}
-                            label={label}
-                            value={value}
-                          />
-                        )
-                    )}
-                  </div>
-                )}
-
-                {section.customContent && (
-                  <div className="mt-3">
-                    {section.customContent}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-
-          {data.createdAt && (
-            <div className="text-xs text-gray-400 pt-2">
-              Created: {new Date(data.createdAt).toLocaleString()}
-            </div>
+    <RightSideOverlay
+      open={isOpen}
+      onClose={onClose}
+      width="65vw"
+      title={
+        <div className="flex gap-2">
+          {logo && (
+            <img
+              src={logo}
+              className="rounded-full w-10 h-10"
+              alt="company-logo"
+            />
           )}
+          <div className="flex flex-col">
+            <span className="text-white font-semibold text-base">
+              {companyName}
+            </span>
+            <span className="text-teal-100 text-sm">
+              Code: {companyCode}
+            </span>
+          </div>
         </div>
+      }
+    >
+      {/* ================= BODY WRAPPER ================= */}
+      {!data ? (
+        <div className="p-6 text-gray-500">
+          No user data available
+        </div>
+      ) : (
+        <>
+          {/* ================= TABS ================= */}
+          <div className="border-b px-6">
+            <div className="flex gap-8 text-base overflow-x-auto no-scrollbar">
+              {[
+                { key: "basic", label: "Basic" },
+                { key: "association", label: "Association" },
+                { key: "access", label: "Access" },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key as any)}
+                  className={`py-2 px-2 relative font-semibold cursor-pointer ${
+                    activeTab === tab.key
+                      ? "text-teal-700"
+                      : "text-gray-600 hover:text-gray-800 hover:bg-teal-50"
+                  }`}
+                >
+                  {tab.label}
+                  {activeTab === tab.key && (
+                    <span className="absolute left-0 right-0 -bottom-[1px] h-[3px] bg-teal-600 rounded" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      </DialogContent>
-    </Dialog>
+          {/* ================= CONTENT ================= */}
+          <div className="px-5 py-4 bg-white space-y-8">
+
+            {/* ========== BASIC TAB ========== */}
+            {activeTab === "basic" && (
+              <section>
+                <SectionHeader title="Basic Information" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+                  <InfoRow label="User Code" value={data.code} />
+                  <InfoRow label="Name" value={data.name} />
+                  <InfoRow label="Email" value={data.email} />
+                  <InfoRow label="Phone" value={data.phone} />
+                  <InfoRow label="Role" value={data.role} />
+                  <InfoRow label="Status" value={data.status} />
+                  {/* <InfoRow label="Is Demo User" value={data.isDemo ? "Yes" : "No"} /> */}
+                </div>
+              </section>
+            )}
+
+            {/* ========== ASSOCIATION TAB ========== */}
+            {activeTab === "association" && (
+              <section>
+                <SectionHeader title="Association Details" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+                  <InfoRow label="Parent User ID" value={data.parent} />
+                  <InfoRow label="Client ID" value={data.clientID} />
+                  <InfoRow label="Created By" value={data.createdBy} />
+                  <InfoRow label="Current Device ID" value={data.currentDeviceId} />
+                </div>
+
+                <hr className="border-gray-300 my-6" />
+
+                <SectionHeader title="Login Activity (Last 10)" />
+                <InfoRow
+                  label="Last Login"
+                  value={
+                    data.lastLogin
+                      ? new Date(data.lastLogin).toLocaleString()
+                      : "—"
+                  }
+                />
+
+                {lastTenLogins.length ? (
+                  <ul className="list-disc ml-5 mt-2 space-y-1 text-gray-700">
+                    {lastTenLogins.map((entry: string, i: number) => (
+                      <li key={i}>
+                        {new Date(entry).toLocaleString()}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 mt-2">
+                    No login history available
+                  </p>
+                )}
+              </section>
+            )}
+
+            {/* ========== ACCESS TAB ========== */}
+            {activeTab === "access" && (
+              <section>
+                <SectionHeader title="Access Permissions" />
+
+             
+
+                {data.access?.length ? (
+                  <div className="space-y-6 mt-4">
+                    {data.access.map((acc: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="border rounded-lg p-4 bg-gray-50"
+                      >
+                        <p className="text-base font-semibold text-gray-800 mb-3">
+                          {acc.company?.namePrint || "Unnamed Company"}
+                        </p>
+
+                        {acc.modules && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {Object.entries(acc.modules).map(
+                              ([moduleName, moduleData]: [string, any], i) => (
+                                <div
+                                  key={i}
+                                  className="border p-3 rounded-lg bg-white"
+                                >
+                                  <p className="font-semibold text-sm mb-2 text-gray-700">
+                                    {moduleName}
+                                  </p>
+
+                                  {Object.entries(moduleData).map(
+                                    ([subModule, perms]: [string, any], j) => (
+                                      <div
+                                        key={j}
+                                        className="text-sm border-t pt-2 text-gray-700"
+                                      >
+                                        <p className="font-medium">
+                                          {subModule}
+                                        </p>
+                                        <p className="text-gray-600">
+                                          {[
+                                            perms.create && "Create",
+                                            perms.read && "Read",
+                                            perms.update && "Update",
+                                            perms.delete && "Delete",
+                                          ]
+                                            .filter(Boolean)
+                                            .join(", ") || "No Access"}
+                                        </p>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              )
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 mt-2">
+                    No company access defined
+                  </p>
+                )}
+              </section>
+            )}
+
+            {/* ========== META ========== */}
+            <hr className="border-gray-200" />
+            <div className="text-sm text-gray-500">
+              <p>
+                Created At:{" "}
+                {data.createdAt
+                  ? new Date(data.createdAt).toLocaleString()
+                  : "—"}
+              </p>
+           
+            </div>
+          </div>
+        </>
+      )}
+    </RightSideOverlay>
   );
 };
 
-export default UniversalUserDetailsModal;
+export default memo(UniversalUserDetailsModal);

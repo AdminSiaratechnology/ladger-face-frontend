@@ -466,14 +466,11 @@ const CustomerGroupManagement: React.FC = () => {
       )}
 
       {/* Add/Edit Dialog */}
-      <Dialog
-        open={open}
-        onOpenChange={(o) => {
-          setOpen(o);
-          if (!o) resetForm();
-        }}
-      >
-        <DialogContent className="custom-dialog-container  ">
+      <Dialog open={open} onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) resetForm();
+      }}>
+        <DialogContent className="custom-dialog-container">
           <CustomFormDialogHeader
             title={
               editingGroup ? "Edit Customer Group" : "Create Customer Group"

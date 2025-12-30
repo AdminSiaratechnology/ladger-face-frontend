@@ -1,9 +1,8 @@
-import React from "react";
-import { Dialog, DialogContent } from "../ui/dialog";
-import { Card, CardContent } from "../ui/card";
-import { X } from "lucide-react";
+import React, { memo, useState } from "react";
+import RightSideOverlay from "../../components/customComponents/RightSideOverlay";
 import { useCompanyStore } from "../../../store/companyStore";
 
+/* ================= PROPS ================= */
 interface UniversalProductDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -15,185 +14,261 @@ const InfoRow = ({ label, value }: { label: string; value: any }) => {
   if (value === undefined || value === null || value === "") return null;
 
   return (
-    <div className="py-2 border-b border-gray-100 last:border-b-0">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-sm font-medium text-gray-900 break-words">
-        {String(value)}
-      </p>
+    <div className="py-2">
+      <p className="text-base font-semibold text-gray-700">{label}</p>
+      <p className="text-base text-gray-600 break-words">{String(value)}</p>
     </div>
   );
 };
 
-/* ================= SECTION TITLE ================= */
-const SectionTitle = ({ title }: { title: string }) => (
-  <div className="flex items-center mb-3">
-    <div className="w-1 h-4 bg-blue-500 rounded mr-2" />
-    <h3 className="text-sm font-semibold text-gray-800">
-      {title}
-    </h3>
-  </div>
+/* ================= SECTION HEADER ================= */
+const SectionHeader = ({ title }: { title: string }) => (
+  <h3 className="text-xl font-semibold text-teal-700 mb-4">{title}</h3>
 );
 
-/* ================= MAIN MODAL ================= */
+/* ================= MAIN COMPONENT ================= */
 const UniversalProductDetailsModal: React.FC<
   UniversalProductDetailsModalProps
 > = ({ isOpen, onClose, data }) => {
+  const [activeTab, setActiveTab] = useState<
+    "basic" | "inventoryOpening" | "pricingTax" | "images"
+  >("basic");
+
+   const { defaultSelected } = useCompanyStore();
   if (!data) return null;
 
-  /* 🔹 COMPANY FROM STORE */
-  const { defaultSelected } = useCompanyStore();
-
-  const companyName =
-    defaultSelected?.namePrint || "—";
-
-  const companyId =
-    defaultSelected?.code || "—";
-
-  const {
-    name,
-    code,
-    partNo,
-    productType,
-    defaultSupplier,
-    minimumRate,
-    maximumRate,
-    minimumQuantity,
-    defaultGodown,
-    stockGroup,
-    stockCategory,
-    unit,
-    alternateUnit,
-    taxConfiguration,
-    createdAt,
-  } = data;
-
-  /* ================= SECTIONS ================= */
-  const sections = [
-    {
-      title: "Basic Details",
-      fields: [
-        ["Product Name", name],
-        ["Code", code],
-        ["Part Number", partNo],
-        ["Type", productType],
-        ["Default Supplier", defaultSupplier],
-      ],
-    },
-    {
-      title: "Inventory Details",
-      fields: [
-        ["Default Godown", defaultGodown?.name],
-        ["Stock Group", stockGroup?.name],
-        ["Stock Category", stockCategory?.name],
-        ["Unit", unit?.name],
-        ["Alternate Unit", alternateUnit?.name],
-      ],
-    },
-    {
-      title: "Pricing & Quantity",
-      fields: [
-        ["Minimum Quantity", minimumQuantity],
-        ["Minimum Rate", minimumRate],
-        ["Maximum Rate", maximumRate],
-      ],
-    },
-    taxConfiguration && {
-      title: "Tax Configuration",
-      fields: [
-        ["Applicable", taxConfiguration.applicable ? "Yes" : "No"],
-        ["HSN Code", taxConfiguration.hsnCode],
-        ["Tax %", taxConfiguration.taxPercentage],
-        ["CGST", taxConfiguration.cgst],
-        ["SGST", taxConfiguration.sgst],
-        ["Cess", taxConfiguration.cess],
-        ["Additional Cess", taxConfiguration.additionalCess],
-        [
-          "Applicable Date",
-          taxConfiguration.applicableDate
-            ? new Date(
-                taxConfiguration.applicableDate
-              ).toLocaleDateString()
-            : "—",
-        ],
-      ],
-    },
-  ].filter(Boolean) as {
-    title: string;
-    fields: [string, any][];
-  }[];
+  console.log(data);
+  /* 🔹 COMPANY */
+ 
+  const companyName = defaultSelected?.namePrint || "—";
+  const companyCode = defaultSelected?.code || "—";
+  const logo = defaultSelected?.logo;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0 custom-dialog-container overflow-hidden">
-
-        {/* ================= HEADER (COUPON STYLE) ================= */}
-        <div className="bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-4 flex items-center justify-between">
-          {/* LEFT */}
-          <div>
-            <p className="text-white text-lg font-semibold">
-              View Product
-            </p>
-            <p className="text-xs text-blue-100">
-              {name || "Unnamed Product"}
-            </p>
+    <RightSideOverlay
+      open={isOpen}
+      onClose={onClose}
+      width="65vw"
+      title={
+        <div className="flex gap-2">
+          {logo && (
+            <img
+              src={logo}
+              className="rounded-full w-10 h-10"
+              alt="company-logo"
+            />
+          )}
+          <div className="flex flex-col">
+            <span className="text-white font-semibold text-base">
+              {companyName}
+            </span>
+            <span className="text-teal-100 text-sm">
+              Code: {companyCode}
+            </span>
           </div>
-
-          {/* RIGHT */}
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm font-semibold text-white leading-tight">
-                {companyName}
-              </p>
-              <p className="text-xs text-blue-100">
-                ID: {companyId}
-              </p>
-            </div>
-
+        </div>
+      }
+    >
+      {/* ================= TABS ================= */}
+      <div className="border-b px-6">
+        <div className="flex gap-8 text-base overflow-x-auto no-scrollbar">
+          {[
+            { key: "basic", label: "Basic" },
+            { key: "inventoryOpening", label: "Inventory & Opening" },
+            { key: "pricingTax", label: "Pricing & Tax" },
+            { key: "images", label: "Images" },
+          ].map((tab) => (
             <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full "
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`py-2 px-2 relative font-semibold cursor-pointer ${
+                activeTab === tab.key
+                  ? "text-teal-700"
+                  : "text-gray-600 hover:text-gray-800 hover:bg-teal-50"
+              }`}
             >
-          
+              {tab.label}
+              {activeTab === tab.key && (
+                <span className="absolute left-0 right-0 -bottom-[1px] h-[3px] bg-teal-600 rounded" />
+              )}
             </button>
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* ================= BODY ================= */}
-        <div className="max-h-[70vh] overflow-y-auto p-4 space-y-4 bg-gray-50">
-          {sections.map(
-            (section, idx) =>
-              section.fields.some(([, value]) => value) && (
-                <Card key={idx} className="border shadow-sm">
-                  <CardContent className="p-4">
-                    <SectionTitle title={section.title} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                      {section.fields.map(
-                        ([label, value], i) =>
-                          value && (
-                            <InfoRow
-                              key={i}
-                              label={label}
-                              value={value}
-                            />
-                          )
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-          )}
+      {/* ================= BODY ================= */}
+      <div className="px-5 py-4 bg-white space-y-8">
 
-          {/* ================= META ================= */}
-          {createdAt && (
-            <div className="text-xs text-gray-400 pt-2">
-              Created: {new Date(createdAt).toLocaleString()}
+        {/* ================= BASIC ================= */}
+        {activeTab === "basic" && (
+          <section>
+            <SectionHeader title="Basic Details" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+              <InfoRow label="Product Name" value={data.name} />
+              <InfoRow label="Product Code" value={data.code} />
+              <InfoRow label="Part Number" value={data.partNo} />
+              <InfoRow label="Status" value={data.status} />
+              <InfoRow label="Batch Managed" value={data.batch ? "Yes" : "No"} />
+              <InfoRow
+                label="Manufacturing Date"
+                value={
+                  data.mfgDate
+                    ? new Date(data.mfgDate).toISOString().split("T")[0]
+                    : "—"
+                }
+              />
+              <InfoRow
+                label="Expiry Date"
+                value={
+                  data.expiryDate
+                    ? new Date(data.expiryDate).toISOString().split("T")[0]
+                    : "—"
+                }
+              />
             </div>
-          )}
-        </div>
+          </section>
+        )}
 
-      </DialogContent>
-    </Dialog>
+        {/* ========== INVENTORY + OPENING ========== */}
+        {activeTab === "inventoryOpening" && (
+          <>
+            <section>
+              <SectionHeader title="Inventory Details" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+                <InfoRow label="Stock Group" value={data.stockGroup?.name} />
+                <InfoRow label="Stock Category" value={data.stockCategory?.name} />
+                <InfoRow label="Unit" value={data.unit?.name} />
+                <InfoRow label="Unit Symbol" value={data.unit?.symbol} />
+                <InfoRow
+                  label="Minimum Quantity"
+                  value={data.minimumQuantity}
+                />
+              </div>
+            </section>
+
+            <hr className="border-gray-300" />
+
+            <section>
+              <SectionHeader title="Opening Stock" />
+              {data.openingQuantities?.length ? (
+                data.openingQuantities.map((oq: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-x-12"
+                  >
+                    <InfoRow label="Godown ID" value={oq.godown} />
+                    <InfoRow label="Batch" value={oq.batch} />
+                    <InfoRow label="Quantity" value={oq.quantity} />
+                    <InfoRow label="Rate" value={oq.rate} />
+                    <InfoRow label="Amount" value={oq.amount} />
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500">
+                  No opening stock available
+                </p>
+              )}
+            </section>
+          </>
+        )}
+
+        {/* ========== PRICING + TAX ========== */}
+        {activeTab === "pricingTax" && (
+          <>
+            <section>
+              <SectionHeader title="Pricing Details" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+                <InfoRow label="Minimum Rate" value={data.minimumRate} />
+                <InfoRow label="Maximum Rate" value={data.maximumRate} />
+                <InfoRow
+                  label="Price Includes Tax"
+                  value={data.priceIncludesTax ? "Yes" : "No"}
+                />
+              </div>
+            </section>
+
+            <hr className="border-gray-300" />
+
+            <section>
+              <SectionHeader title="Tax Configuration" />
+              {data.taxConfiguration ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+                  <InfoRow
+                    label="Applicable"
+                    value={data.taxConfiguration.applicable ? "Yes" : "No"}
+                  />
+                  <InfoRow
+                    label="HSN Code"
+                    value={data.taxConfiguration.hsnCode}
+                  />
+                  <InfoRow
+                    label="Tax %"
+                    value={data.taxConfiguration.taxPercentage}
+                  />
+                  <InfoRow label="CGST" value={data.taxConfiguration.cgst} />
+                  <InfoRow label="SGST" value={data.taxConfiguration.sgst} />
+                  <InfoRow label="Cess" value={data.taxConfiguration.cess} />
+                  <InfoRow
+                    label="Additional Cess"
+                    value={data.taxConfiguration.additionalCess}
+                  />
+                  <InfoRow
+                    label="Applicable Date"
+                    value={
+                      data.taxConfiguration.applicableDate
+                        ? new Date(
+                            data.taxConfiguration.applicableDate
+                          ).toISOString().split("T")[0]
+                        : "—"
+                    }
+                  />
+                </div>
+              ) : (
+                <p className="text-gray-500">
+                  No tax configuration available
+                </p>
+              )}
+            </section>
+          </>
+        )}
+
+        {/* ================= IMAGES ================= */}
+        {activeTab === "images" && (
+          <section>
+            <SectionHeader title="Product Images" />
+            {data.images?.length ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {data.images.map((img: any, idx: number) => (
+                  <div key={idx} className="border rounded-lg p-2">
+                    <p className="text-sm font-semibold text-gray-700 mb-1">
+                      {img.angle}
+                    </p>
+                    <img
+                      src={img.previewUrl}
+                      alt={img.angle}
+                      className="w-full h-40 object-cover rounded"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No images uploaded</p>
+            )}
+          </section>
+        )}
+
+        {/* ================= META ================= */}
+        {data.createdAt && (
+          <>
+            <hr className="border-gray-200" />
+            <div className="text-sm text-gray-500">
+              Created At: {new Date(data.createdAt).toLocaleString()}
+            </div>
+          </>
+        )}
+      </div>
+    </RightSideOverlay>
   );
 };
 
-export default UniversalProductDetailsModal;
+export default memo(UniversalProductDetailsModal);

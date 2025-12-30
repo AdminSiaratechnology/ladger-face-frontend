@@ -1,9 +1,8 @@
-import React from "react";
-import { Dialog, DialogContent } from "../ui/dialog";
-import { Card, CardContent } from "../ui/card";
-import { X } from "lucide-react";
+import React, { memo, useState } from "react";
+import RightSideOverlay from "../../components/customComponents/RightSideOverlay";
 import { useCompanyStore } from "../../../store/companyStore";
 
+/* ================= PROPS ================= */
 interface UniversalDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -16,45 +15,40 @@ const InfoRow = ({ label, value }: { label: string; value: any }) => {
   if (value === undefined || value === null || value === "") return null;
 
   return (
-    <div className="py-2 border-b border-gray-100 last:border-b-0">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-sm font-medium text-gray-900 break-words">
-        {String(value)}
-      </p>
+    <div className="py-2">
+      <p className="text-base font-semibold text-gray-700">{label}</p>
+      <p className="text-base text-gray-600 break-words">{String(value)}</p>
     </div>
   );
 };
 
-/* ================= SECTION TITLE ================= */
-const SectionTitle = ({ title }: { title: string }) => (
-  <div className="flex items-center mb-3">
-    <div className="w-1 h-4 bg-blue-500 rounded mr-2" />
-    <h3 className="text-sm font-semibold text-gray-800">
-      {title}
-    </h3>
-  </div>
+/* ================= SECTION HEADER ================= */
+const SectionHeader = ({ title }: { title: string }) => (
+  <h3 className="text-xl font-semibold text-teal-700 mb-4">{title}</h3>
 );
 
+/* ================= MAIN COMPONENT ================= */
 const UniversalDetailsModal: React.FC<UniversalDetailsModalProps> = ({
   isOpen,
   onClose,
   data,
   type,
 }) => {
-  if (!isOpen || !data) return null;
+  /* ✅ HOOKS ALWAYS ON TOP */
+  const [activeTab, setActiveTab] = useState<
+    "basic" | "business" | "taxAccount" | "bank" | "documents"
+  >("basic");
 
-  /* 🔹 COMPANY FROM STORE */
   const { defaultSelected } = useCompanyStore();
 
-  const companyName =
-    defaultSelected?.namePrint || "—";
+  if (!isOpen || !data) return null;
 
-  const companyId =
-    defaultSelected?.code || "—";
+  const companyName = defaultSelected?.namePrint || "—";
+  const companyCode = defaultSelected?.code || "—";
+  const companyLogo = defaultSelected?.logo;
 
   const {
     logo,
-    code,
     shortName,
     contactPerson,
     emailAddress,
@@ -75,213 +69,254 @@ const UniversalDetailsModal: React.FC<UniversalDetailsModalProps> = ({
     data.vendorName ||
     data.agentName ||
     data.ledgerName ||
+    data.name ||
     "—";
 
-  const typeLabelMap: Record<string, string> = {
-    customer: "Customer",
-    vendor: "Vendor",
-    agent: "Agent",
-    ledger: "Ledger",
-  };
-
-  /* ================= SECTIONS ================= */
-  const sections = [
-    {
-      title: "Basic Information",
-      fields: [
-        ["Contact Person", contactPerson],
-        ["Email", emailAddress],
-        ["Phone", phoneNumber],
-        ["Address Line 1", addressLine1],
-        ["Address Line 2", addressLine2],
-        ["City", city],
-        ["State", state],
-        ["Country", country],
-        ["ZIP Code", zipCode],
-      ],
-    },
-    {
-      title: "Business Details",
-      fields: [
-        [
-          "Type",
-          data.customerType ||
-            data.vendorType ||
-            data.agentType ||
-            data.ledgerType,
-        ],
-        ["Industry Type", data.industryType],
-        ["Group", data.customerGroup || data.vendorGroup || data.ledgerGroup],
-        ["Company Size", data.companySize],
-        [
-          "Priority",
-          data.customerPriority ||
-            data.vendorPriority ||
-            data.agentPriority,
-        ],
-        ["Territory", data.territory],
-        ["Lead Source", data.leadSource],
-        [
-          "Sales / Procurement Person",
-          data.salesPerson || data.procurementPerson,
-        ],
-        ["Agent", data.agent?.agentName],
-      ],
-    },
-    {
-      title: "Tax Information",
-      fields: [
-        ["GST Number", data.gstNumber],
-        ["PAN Number", data.panNumber],
-        ["TAN Number", data.tanNumber],
-        ["VAT Number", data.vatNumber],
-        ["MSME Registration", data.msmeRegistration],
-      ],
-    },
-    {
-      title: "Account Settings",
-      fields: [
-        ["Allow Back Orders", data.allowBackOrders ? "Yes" : "No"],
-        ["Allow Partial Shipments", data.allowPartialShipments ? "Yes" : "No"],
-        ["Allow Zero Valuation", data.allowZeroValuation ? "Yes" : "No"],
-        ["Frozen Account", data.isFrozenAccount ? "Yes" : "No"],
-        ["Tax Exempt", data.isTaxExempt ? "Yes" : "No"],
-        ["Auto Invoice", data.autoInvoice ? "Yes" : "No"],
-        ["Disabled", data.disabled ? "Yes" : "No"],
-      ],
-    },
-  ];
+  const showBusinessTab = type !== "ledger";
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0 custom-dialog-container overflow-hidden">
-
-        {/* ================= HEADER (COUPON STYLE) ================= */}
-        <div className="bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-4 flex items-center justify-between">
-          {/* LEFT */}
-          <div className="flex items-center gap-3">
-            {logo && (
-              <img
-                src={logo}
-                alt="Logo"
-                className="w-10 h-10 rounded-lg border object-cover"
-              />
-            )}
-            <div>
-              <p className="text-white text-lg font-semibold">
-                View {typeLabelMap[type]}
-              </p>
-              <p className="text-xs text-blue-100">
-                {nameField}
-                {shortName && ` • ${shortName}`}
-              </p>
-            </div>
-          </div>
-
-          {/* RIGHT */}
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm font-semibold text-white">
-                {companyName}
-              </p>
-              <p className="text-xs text-blue-100">
-                ID: {code}
-              </p>
-            </div>
-
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full"
-            >
-            
-            </button>
+    <RightSideOverlay
+      open={isOpen}
+      onClose={onClose}
+      width="60vw"
+      title={
+        <div className="flex gap-3 items-center">
+    
+            <img
+              src={ companyLogo}
+              className="w-10 h-10 rounded-lg object-cover"
+              alt="logo"
+            />
+       
+          <div className="flex flex-col">
+            <span className="text-white font-semibold text-base">
+              {companyName}
+            </span>
+            <span className="text-teal-100 text-sm">
+              Code: {companyCode}
+            </span>
           </div>
         </div>
+      }
+    >
+      {/* ================= TABS ================= */}
+      <div className="border-b px-6">
+        <div className="flex gap-8 text-base overflow-x-auto no-scrollbar">
+          {["basic", showBusinessTab && "business", "taxAccount", "bank", "documents"]
+            .filter(Boolean)
+            .map((tab) => (
+              <button
+                key={tab as string}
+                onClick={() => setActiveTab(tab as any)}
+                className={`py-2 relative font-semibold ${
+                  activeTab === tab
+                    ? "text-teal-700"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                {tab === "basic"
+                  ? "Basic"
+                  : tab === "business"
+                  ? "Business"
+                  : tab === "taxAccount"
+                  ? "Tax & Account"
+                  : tab === "bank"
+                  ? "Bank"
+                  : "Documents"}
+                {activeTab === tab && (
+                  <span className="absolute left-0 right-0 -bottom-[1px] h-[3px] bg-teal-600" />
+                )}
+              </button>
+            ))}
+        </div>
+      </div>
 
-        {/* ================= BODY ================= */}
-        <div className="max-h-[70vh] overflow-y-auto p-4 space-y-4 bg-gray-50">
-          {sections.map(
-            (section, idx) =>
-              section.fields.some(([, value]) => value) && (
-                <Card key={idx} className="border shadow-sm">
-                  <CardContent className="p-4">
-                    <SectionTitle title={section.title} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                      {section.fields.map(
-                        ([label, value], i) =>
-                          value && (
-                            <InfoRow
-                              key={i}
-                              label={label}
-                              value={value}
-                            />
-                          )
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-          )}
+      {/* ================= BODY ================= */}
+      <div className="px-5 py-4 bg-white space-y-8">
 
-          {/* ================= BANK DETAILS ================= */}
-          {banks.length > 0 && (
-            <Card className="border shadow-sm">
-              <CardContent className="p-4">
-                <SectionTitle title="Bank Details" />
-                {banks.map((bank: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="p-3 border rounded-lg mb-3 bg-white"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                      <InfoRow label="Bank Name" value={bank.bankName} />
-                      <InfoRow label="Branch" value={bank.branch} />
-                      <InfoRow label="Account Holder" value={bank.accountHolderName} />
-                      <InfoRow label="Account Number" value={bank.accountNumber} />
-                      <InfoRow label="IFSC Code" value={bank.ifscCode} />
-                      <InfoRow label="SWIFT Code" value={bank.swiftCode} />
-                      <InfoRow label="MICR Number" value={bank.micrNumber} />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+        {/* ================= BASIC ================= */}
+        {activeTab === "basic" && (
+          <>
+            <section>
+              <SectionHeader title="Basic Information" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+                <InfoRow label="Name" value={nameField} />
+                <InfoRow label="Short Name" value={shortName} />
+                <InfoRow label="Contact Person" value={contactPerson} />
+                <InfoRow label="Email" value={emailAddress} />
+                <InfoRow label="Phone" value={phoneNumber || data.mobileNumber} />
+                <InfoRow label="Status" value={data.status} />
+                <InfoRow label="Currency" value={data.currency} />
+                <InfoRow
+                  label="Priority"
+                  value={
+                    data.customerPriority ||
+                    data.vendorPriority ||
+                    data.agentPriority ||
+                    data.ledgerPriority
+                  }
+                />
+              </div>
+            </section>
 
-          {/* ================= DOCUMENTS ================= */}
-          {registrationDocs.length > 0 && (
-            <Card className="border shadow-sm">
-              <CardContent className="p-4">
-                <SectionTitle title="Documents" />
-                <div className="space-y-2">
-                  {registrationDocs.map((doc: any, idx: number) => (
-                    <a
-                      key={idx}
-                      href={doc.file}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex justify-between items-center p-2 border rounded hover:bg-gray-50"
-                    >
-                      <span className="text-sm">{doc.type}</span>
-                      <span className="text-sm text-blue-600">View</span>
-                    </a>
-                  ))}
+            <hr className="border-gray-300" />
+
+            <section>
+              <SectionHeader title="Address" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+                <InfoRow label="Address Line 1" value={addressLine1} />
+                <InfoRow label="Address Line 2" value={addressLine2} />
+                <InfoRow label="City" value={city} />
+                <InfoRow label="State" value={state} />
+                <InfoRow label="Country" value={country} />
+                <InfoRow label="ZIP Code" value={zipCode} />
+                <InfoRow label="Website" value={data.website} />
+                <InfoRow label="Fax Number" value={data.faxNumber} />
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* ================= BUSINESS ================= */}
+        {showBusinessTab && activeTab === "business" && (
+          <section>
+            <SectionHeader title="Business Details" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+
+              {/* COMMON */}
+              <InfoRow label="Industry Type" value={data.industryType} />
+              <InfoRow label="Group" value={data.group} />
+              <InfoRow label="Company Size" value={data.companySize} />
+              <InfoRow label="Territory" value={data.territory} />
+              <InfoRow label="Lead Source" value={data.source || data.leadSource} />
+              <InfoRow label="Designation" value={data.designation} />
+
+              {/* AGENT ONLY */}
+              {type === "agent" && (
+                <>
+                  <InfoRow label="Agent Priority" value={data.agentPriority} />
+                  <InfoRow label="Commission Rate" value={data.commissionRate} />
+                  <InfoRow
+                    label="Commission Structure"
+                    value={data.commissionStructure}
+                  />
+                  <InfoRow label="Experience Level" value={data.experienceLevel} />
+                  <InfoRow
+                    label="Performance Rating"
+                    value={data.performanceRating}
+                  />
+                  <InfoRow
+                    label="Active Contracts"
+                    value={data.activeContracts}
+                  />
+                  <InfoRow label="Payment Terms" value={data.paymentTerms} />
+                  <InfoRow label="Internal Notes" value={data.internalNotes} />
+                </>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ================= TAX & ACCOUNT ================= */}
+        {activeTab === "taxAccount" && (
+          <>
+            <section>
+              <SectionHeader title="Tax Information" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+                <InfoRow label="GST Number" value={data.gstNumber} />
+                <InfoRow label="PAN Number" value={data.panNumber} />
+                <InfoRow label="TAN Number" value={data.tanNumber} />
+                <InfoRow label="Tax Category" value={data.taxCategory} />
+                <InfoRow label="Tax ID" value={data.taxId} />
+                <InfoRow label="MSME Registration" value={data.msmeRegistration} />
+              </div>
+            </section>
+
+            <hr className="border-gray-300" />
+
+            <section>
+              <SectionHeader title="Account Settings" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+                <InfoRow
+                  label="Tax Exempt"
+                  value={data.isTaxExempt ? "Yes" : "No"}
+                />
+                <InfoRow
+                  label="Reverse Charge"
+                  value={data.reverseCharge ? "Yes" : "No"}
+                />
+                <InfoRow
+                  label="Frozen Account"
+                  value={data.isFrozenAccount ? "Yes" : "No"}
+                />
+                <InfoRow label="Disabled" value={data.disabled ? "Yes" : "No"} />
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* ================= BANK ================= */}
+        {activeTab === "bank" && (
+          <section>
+            <SectionHeader title="Bank Details" />
+            {banks.length ? (
+              banks.map((bank: any, idx: number) => (
+                <div key={idx} className="grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+                  <InfoRow label="Bank Name" value={bank.bankName} />
+                  <InfoRow label="Branch" value={bank.branch} />
+                  <InfoRow
+                    label="Account Holder"
+                    value={bank.accountHolderName}
+                  />
+                  <InfoRow label="Account Number" value={bank.accountNumber} />
+                  <InfoRow label="IFSC Code" value={bank.ifscCode} />
+                  <InfoRow label="SWIFT Code" value={bank.swiftCode} />
+                  <InfoRow label="MICR Number" value={bank.micrNumber} />
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ))
+            ) : (
+              <p className="text-gray-500">No bank details available</p>
+            )}
+          </section>
+        )}
 
-          {/* ================= META ================= */}
-          {createdAt && (
-            <div className="text-xs text-gray-400 pt-2">
-              Created: {new Date(createdAt).toLocaleString()}
+        {/* ================= DOCUMENTS ================= */}
+        {activeTab === "documents" && (
+          <section>
+            <SectionHeader title="Documents" />
+            {registrationDocs.length ? (
+              <div className="space-y-3">
+                {registrationDocs.map((doc: any, idx: number) => (
+                  <a
+                    key={idx}
+                    href={doc.file}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex justify-between items-center border rounded-lg px-4 py-2 hover:bg-gray-50"
+                  >
+                    <span>{doc.type}</span>
+                    <span className="text-teal-600 font-medium">View</span>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No documents available</p>
+            )}
+          </section>
+        )}
+
+        {/* ================= META ================= */}
+        {createdAt && (
+          <>
+            <hr className="border-gray-200" />
+            <div className="text-sm text-gray-500">
+              Created At: {new Date(createdAt).toLocaleString()}
             </div>
-          )}
-        </div>
-
-      </DialogContent>
-    </Dialog>
+          </>
+        )}
+      </div>
+    </RightSideOverlay>
   );
 };
 
-export default UniversalDetailsModal;
+export default memo(UniversalDetailsModal);
