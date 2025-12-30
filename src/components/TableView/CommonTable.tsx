@@ -88,7 +88,7 @@ const DefaultIdentity = ({ item }: { item: BaseTableItem }) => (
 const DefaultContact = ({ item }: { item: BaseTableItem }) => (
   <div className="text-sm text-gray-900">
     <div>Email: {item.emailAddress}</div>
-    <div>Phone: {item.mobileNumber}</div>
+    <div>Phone: {item.mobileNumber || item.phoneNumber}</div>
   </div>
 );
 

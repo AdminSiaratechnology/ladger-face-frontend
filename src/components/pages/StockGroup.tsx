@@ -60,7 +60,7 @@ interface StockGroupForm {
   stockGroupId: string;
   companyId: string;
   parent: string | null;
-  code: string |null;
+  code: string | null;
 }
 
 const StockGroupRegistration: React.FC = () => {
@@ -185,19 +185,18 @@ const StockGroupRegistration: React.FC = () => {
     }));
   };
 
-const handleSelectChange = (
-  name: keyof StockGroupForm,
-  value: string
-): void => {
-  const normalizedValue =
-    name === "parent" && (value === "" || value === "null") ? null : value;
+  const handleSelectChange = (
+    name: keyof StockGroupForm,
+    value: string
+  ): void => {
+    const normalizedValue =
+      name === "parent" && (value === "" || value === "null") ? null : value;
 
-  setFormData((prev) => ({
-    ...prev,
-    [name]: normalizedValue, // ✅ use normalizedValue instead of value
-  }));
-};
-
+    setFormData((prev) => ({
+      ...prev,
+      [name]: normalizedValue, // ✅ use normalizedValue instead of value
+    }));
+  };
 
   const resetForm = () => {
     setFormData({
@@ -266,32 +265,35 @@ const handleSelectChange = (
     }),
     [filteredStockGroups, pagination, statusFilter]
   );
-  const groupStats = useMemo(() => [
-  {
-    title: "Total Groups",
-    value: stats?.totalGroups || 0,
-    icon: Layers,
-    variant: "blue",
-  },
-  {
-    title: "Primary Groups",
-    value: stats?.primaryGroups || 0,
-    icon: Star,
-    variant: "green",
-  },
-  {
-    title: "Active Groups",
-    value: stats?.activeGroups || 0,
-    variant: "purple",
-    showPulse: true, // Pulse effect
-  },
-  {
-    title: "Inactive Groups",
-    value: stats?.inactiveGroups || 0,
-    icon: Building2,
-    variant: "teal",
-  },
-], [stats]);
+  const groupStats = useMemo(
+    () => [
+      {
+        title: "Total Groups",
+        value: stats?.totalGroups || 0,
+        icon: Layers,
+        variant: "blue",
+      },
+      {
+        title: "Primary Groups",
+        value: stats?.primaryGroups || 0,
+        icon: Star,
+        variant: "green",
+      },
+      {
+        title: "Active Groups",
+        value: stats?.activeGroups || 0,
+        variant: "purple",
+        showPulse: true, // Pulse effect
+      },
+      {
+        title: "Inactive Groups",
+        value: stats?.inactiveGroups || 0,
+        icon: Building2,
+        variant: "teal",
+      },
+    ],
+    [stats]
+  );
 
   // Table View Component
   const TableView = () => (
@@ -315,8 +317,8 @@ const handleSelectChange = (
                 className="hover:bg-gray-50 transition-colors duration-200"
               >
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {group.name}  
-                  <br/>
+                  {group.name}
+                  <br />
                   <span className="text-gray-500 text-xs">{group?.code}</span>
                 </td>
 
@@ -371,7 +373,10 @@ const handleSelectChange = (
         >
           <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100">
             <div className="flex justify-between items-start">
-              <CardTitle className="text-lg">{group.name} <br/><span className="text-gray-500 text-xs">{group?.code}</span></CardTitle>
+              <CardTitle className="text-lg">
+                {group.name} <br />
+                <span className="text-gray-500 text-xs">{group?.code}</span>
+              </CardTitle>
               <Badge
                 className={`${
                   group.status === "active"
@@ -451,11 +456,7 @@ const handleSelectChange = (
         </CheckAccess>
       </div>
 
-     <CommonStats 
-  stats={groupStats} 
-  columns={4} 
-  loading={loading} 
-/>
+      <CommonStats stats={groupStats} columns={4} loading={loading} />
 
       <FilterBar
         searchTerm={searchTerm}
@@ -473,36 +474,35 @@ const handleSelectChange = (
       />
       {loading && <TableViewSkeleton />}
 
-    
-
-      {!loading && ( pagination?.total === 0 ? (
-        <EmptyStateCard
-          icon={Layers}
-          title="No stock groups registered yet"
-          description="Create your first stock group to get started"
-          buttonLabel="Add Your First Group"
-          module="InventoryManagement"
-          subModule="StockGroup"
-          type="create"
-          onButtonClick={() => setOpen(true)}
-        />
-      ) : (
-        <>
-          <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
-          {viewMode === "table" ? <TableView /> : <CardView />}
-
-          <PaginationControls
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            pagination={pagination}
-            itemName="stock groups"
+      {!loading &&
+        (pagination?.total === 0 ? (
+          <EmptyStateCard
+            icon={Layers}
+            title="No stock groups registered yet"
+            description="Create your first stock group to get started"
+            buttonLabel="Add Your First Group"
+            module="InventoryManagement"
+            subModule="StockGroup"
+            type="create"
+            onButtonClick={() => setOpen(true)}
           />
-        </>
-      ))}
+        ) : (
+          <>
+            <ViewModeToggle
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              totalItems={pagination?.total}
+            />
+            {viewMode === "table" ? <TableView /> : <CardView />}
+
+            <PaginationControls
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pagination={pagination}
+              itemName="stock groups"
+            />
+          </>
+        ))}
 
       <Dialog
         open={open}
@@ -534,14 +534,15 @@ const handleSelectChange = (
           <div className="">
             <div className="bg-white p-4 rounded-lg">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <SelectedCompany />
                 <CustomInputBox
-                    label="Group Code"
-                    placeholder="e.g., PRD001"
-                    name="code"
-                    value={formData.code}
-                    disabled={true}
-                    readOnly={true}
-                  />
+                  label="Group Code"
+                  placeholder="e.g., PRD001"
+                  name="code"
+                  value={formData.code}
+                  disabled={true}
+                  readOnly={true}
+                />
                 <CustomInputBox
                   placeholder="Group Name *"
                   name="name"
@@ -549,7 +550,27 @@ const handleSelectChange = (
                   onChange={handleChange}
                   label="Group Name"
                 />
-                <SelectedCompany />
+                <div className="flex flex-col gap-1 mb-4">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Parent Group
+                  </label>
+                  <select
+                    value={formData.parent || null}
+                    onChange={(e) =>
+                      handleSelectChange("parent", e.target.value)
+                    }
+                    className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                  >
+                    <option value="">Primary (No Parent)</option>
+                    {stockGroups
+                      .filter((g) => g._id !== editingStockGroup?._id)
+                      .map((group) => (
+                        <option key={group._id} value={group._id}>
+                          {group.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
               </div>
 
               <div className="mb-4">
@@ -564,26 +585,6 @@ const handleSelectChange = (
                   rows={3}
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
                 />
-              </div>
-
-              <div className="flex flex-col gap-1 mb-4">
-                <label className="text-sm font-semibold text-gray-700">
-                  Parent Group
-                </label>
-                <select
-                  value={formData.parent || null}
-                  onChange={(e) => handleSelectChange("parent", e.target.value)}
-                  className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                >
-                  <option value="">Primary (No Parent)</option>
-                  {stockGroups
-                    .filter((g) => g._id !== editingStockGroup?._id)
-                    .map((group) => (
-                      <option key={group._id} value={group._id}>
-                        {group.name}
-                      </option>
-                    ))}
-                </select>
               </div>
 
               <div className="flex flex-col gap-1 mb-4">

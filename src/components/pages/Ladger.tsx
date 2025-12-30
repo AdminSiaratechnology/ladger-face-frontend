@@ -42,8 +42,12 @@ import { currencies } from "@/lib/currency";
 import CommonTable from "../TableView/CommonTable";
 import CommonCard from "../CardViews/CommonCard";
 import CommonStats from "../customComponents/CommonStats";
-import  type {Bank,RegistrationDocument,Ledger,LedgerForm} from "@/types/ledgerRegistration";
-
+import type {
+  Bank,
+  RegistrationDocument,
+  Ledger,
+  LedgerForm,
+} from "@/types/ledgerRegistration";
 
 // Step icons for multi-step navigation
 const stepIcons = {
@@ -53,7 +57,6 @@ const stepIcons = {
   bank: <Building2 className="w-2 h-2 md:w-5 md:h-5" />,
   settings: <Settings2 className="w-2 h-2 md:w-5 md:h-5" />,
 };
-
 
 const compressionOptions = {
   maxSizeMB: 1, // Max file size after compression_
@@ -690,7 +693,7 @@ const LedgerRegistration: React.FC = () => {
         id: editingLedger._id || "",
         ledger: ledgerFormData,
       });
-      
+
       fetchLedgers(currentPage, limit, defaultSelected?._id);
     } else {
       await addLedger(ledgerFormData);
@@ -718,38 +721,41 @@ const LedgerRegistration: React.FC = () => {
     { id: "bank", label: "Banking Details" },
     { id: "settings", label: "Settings" },
   ];
-  const ledgerStats: StatItem[] = useMemo(() => [
-    {
-      title: "Total Ledgers",
-      value: counts?.activeLedgers + (pagination?.total || 0), // Adjust logic based on your actual total count logic
-      icon: UserCheck,
-      variant: "teal",
-    },
-    {
-      title: "Active Ledgers",
-      value: counts?.activeLedgers,
-      variant: "blue",
-      showPulse: true, // 👈 Shows the blue pulsing dot
-    },
-    {
-      title: "GST Registered",
-      value: counts?.gstRegistered,
-      icon: FileText,
-      variant: "green",
-    },
-    {
-      title: "MSME Registered",
-      value: counts?.msmeRegistered,
-      icon: Target,
-      variant: "purple",
-    },
-    {
-      title: "VAT Registered",
-      value: counts?.vatRegistered,
-      icon: Star,
-      variant: "orange",
-    },
-  ], [counts, pagination]);
+  const ledgerStats: StatItem[] = useMemo(
+    () => [
+      {
+        title: "Total Ledgers",
+        value: counts?.activeLedgers + (pagination?.total || 0), // Adjust logic based on your actual total count logic
+        icon: UserCheck,
+        variant: "teal",
+      },
+      {
+        title: "Active Ledgers",
+        value: counts?.activeLedgers,
+        variant: "blue",
+        showPulse: true, // 👈 Shows the blue pulsing dot
+      },
+      {
+        title: "GST Registered",
+        value: counts?.gstRegistered,
+        icon: FileText,
+        variant: "green",
+      },
+      {
+        title: "MSME Registered",
+        value: counts?.msmeRegistered,
+        icon: Target,
+        variant: "purple",
+      },
+      {
+        title: "VAT Registered",
+        value: counts?.vatRegistered,
+        icon: Star,
+        variant: "orange",
+      },
+    ],
+    [counts, pagination]
+  );
   const tableActions = useMemo(
     () => ({
       onView: (ledger: Ledger) => handleViewLedger(ledger),
@@ -759,34 +765,35 @@ const LedgerRegistration: React.FC = () => {
     []
   );
 
-
   const headers = ["Ledger", "Contact", "Address", "Status", "Actions"];
   const TableView = () => (
-  <CommonTable<Ledger>
-              headers={headers}
-              data={filteredLedgers}
-              actions={tableActions}
-              module="BusinessManagement"
-              subModule="Ledger"
-            />
-
+    <CommonTable<Ledger>
+      headers={headers}
+      data={filteredLedgers}
+      actions={tableActions}
+      module="BusinessManagement"
+      subModule="Ledger"
+    />
   );
-  const renderLedgerBottom = useCallback((ledger: Ledger) => (
-    <>
-      {ledger.gstNumber && (
-        <div className="flex justify-between items-center">
-          <span className="text-xs font-medium text-gray-500">GST</span>
-          <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
-            {ledger.gstNumber}
-          </span>
-        </div>
-      )}
-       <div className="flex items-center text-sm mt-2">
+  const renderLedgerBottom = useCallback(
+    (ledger: Ledger) => (
+      <>
+        {ledger.gstNumber && (
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-medium text-gray-500">GST</span>
+            <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
+              {ledger.gstNumber}
+            </span>
+          </div>
+        )}
+        <div className="flex items-center text-sm mt-2">
           <CreditCard className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
           <span className="text-gray-600">{ledger.currency}</span>
-       </div>
-    </>
-  ), []);
+        </div>
+      </>
+    ),
+    []
+  );
 
   const CardView = () => (
     <CommonCard<Ledger>
@@ -984,11 +991,7 @@ const LedgerRegistration: React.FC = () => {
         </CheckAccess>
       </div>
 
-      <CommonStats 
-         stats={ledgerStats} 
-         columns={5} 
-         loading={loading} 
-      />
+      <CommonStats stats={ledgerStats} columns={5} loading={loading} />
 
       <FilterBar
         searchTerm={searchTerm}
@@ -1006,35 +1009,34 @@ const LedgerRegistration: React.FC = () => {
       />
       {loading && <TableViewSkeleton />}
 
-    
-
-      {!loading && (pagination.total === 0 ? (
-        <EmptyStateCard
-          icon={UserCheck}
-          title="No ledgers registered yet"
-          description="Create your first ledger to get started"
-          buttonLabel="Add Your First Ledger"
-          module="BusinessManagement"
-          subModule="Ledger"
-          type="create"
-          onButtonClick={() => setOpen(true)}
-        />
-      ) : (
-        <>
-          <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
-          {viewMode === "table" ? <TableView /> : <CardView />}
-          <PaginationControls
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            pagination={pagination}
-            itemName="ledgers"
+      {!loading &&
+        (pagination.total === 0 ? (
+          <EmptyStateCard
+            icon={UserCheck}
+            title="No ledgers registered yet"
+            description="Create your first ledger to get started"
+            buttonLabel="Add Your First Ledger"
+            module="BusinessManagement"
+            subModule="Ledger"
+            type="create"
+            onButtonClick={() => setOpen(true)}
           />
-        </>
-      ))}
+        ) : (
+          <>
+            <ViewModeToggle
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              totalItems={pagination?.total}
+            />
+            {viewMode === "table" ? <TableView /> : <CardView />}
+            <PaginationControls
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pagination={pagination}
+              itemName="ledgers"
+            />
+          </>
+        ))}
 
       <Dialog
         open={open}
@@ -1112,28 +1114,17 @@ const LedgerRegistration: React.FC = () => {
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Ledger Type <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.type}
-                      onChange={(e) =>
-                        handleSelectChange("type", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="individual">Individual</option>
-                      <option value="company">Company</option>
-                      <option value="partnership">Partnership</option>
-                      <option value="trust">Trust</option>
-                      <option value="trust">Others</option>
-                    </select>
-                  </div>
                   <SelectedCompany />
-                </div>
 
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <CustomInputBox
+                    label="Ledger Code"
+                    placeholder="e.g., PRD001"
+                    name="code"
+                    value={formData.code}
+                    disabled={true}
+                    readOnly={true}
+                  />
+
                   <CustomInputBox
                     label="Ledger Name"
                     placeholder="e.g., ABC Ledger"
@@ -1152,6 +1143,24 @@ const LedgerRegistration: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Ledger Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) =>
+                        handleSelectChange("type", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="individual">Individual</option>
+                      <option value="company">Company</option>
+                      <option value="partnership">Partnership</option>
+                      <option value="trust">Trust</option>
+                      <option value="trust">Others</option>
+                    </select>
+                  </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Ledger Group
@@ -1189,25 +1198,6 @@ const LedgerRegistration: React.FC = () => {
                       <option value="technology">Technology</option>
                     </select>
                   </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Territory
-                    </label>
-                    <select
-                      value={formData.territory}
-                      onChange={(e) =>
-                        handleSelectChange("territory", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="">Select Territory</option>
-                      <option value="north">North</option>
-                      <option value="south">South</option>
-                      <option value="east">East</option>
-                      <option value="west">West</option>
-                    </select>
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
@@ -1243,6 +1233,24 @@ const LedgerRegistration: React.FC = () => {
                       <option value="medium">Medium (51-250)</option>
                       <option value="large">Large (251-1000)</option>
                       <option value="enterprise">Enterprise (1000+)</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Territory
+                    </label>
+                    <select
+                      value={formData.territory}
+                      onChange={(e) =>
+                        handleSelectChange("territory", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="">Select Territory</option>
+                      <option value="north">North</option>
+                      <option value="south">South</option>
+                      <option value="east">East</option>
+                      <option value="west">West</option>
                     </select>
                   </div>
                 </div>
@@ -1545,10 +1553,9 @@ const LedgerRegistration: React.FC = () => {
 
             {activeTab === "bank" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 bg-white rounded-lg border-2 border-gray-200 shadow-inner">
                   <CustomInputBox
-                    label="Account Holder Name *"
+                    label="Account Holder Name "
                     placeholder="e.g., John Doe"
                     name="accountHolderName"
                     value={bankForm.accountHolderName}
@@ -1556,7 +1563,7 @@ const LedgerRegistration: React.FC = () => {
                     required={true}
                   />
                   <CustomInputBox
-                    label="Account Number *"
+                    label="Account Number "
                     placeholder="e.g., 123456789012"
                     name="accountNumber"
                     value={bankForm.accountNumber}
@@ -1585,7 +1592,7 @@ const LedgerRegistration: React.FC = () => {
                     onChange={handleBankChange}
                   />
                   <CustomInputBox
-                    label="Bank Name *"
+                    label="Bank Name "
                     placeholder="e.g., State Bank of India"
                     name="bankName"
                     value={bankForm.bankName}
@@ -1657,7 +1664,6 @@ const LedgerRegistration: React.FC = () => {
 
             {activeTab === "settings" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-
                 <div className="mb-8">
                   <h4 className="font-semibold text-gray-800 mb-4 text-lg">
                     Ledger Logo

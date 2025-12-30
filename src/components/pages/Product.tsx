@@ -1739,6 +1739,7 @@ const fetchNewProduct=async()=>{
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <SelectedCompany />
 
                   <CustomInputBox
                     label="Product Code"
@@ -1766,10 +1767,6 @@ const fetchNewProduct=async()=>{
                     value={formData.partNo}
                     onChange={handleChange}
                   />
-
-                  <div className="flex flex-col gap-1">
-                    <SelectedCompany />
-                  </div>
 
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">Stock Group</label>
