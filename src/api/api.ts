@@ -1089,9 +1089,6 @@ export const fetchPriceList = (companyId: string) => {
   });
 };
 
-export const fetchPriceListById = (id: string) => {
-  return apiClient.get(`/price-list/${id}`);
-};
 export const updatePriceListPage = (id, payload) => {
   return apiClient.put(`/price-list/${id}`, payload);
 };
