@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -390,16 +396,17 @@ const VendorRegistrationPage: React.FC = () => {
     notes: "",
     registrationDocs: [],
   });
-  const [isAccountHolderManuallyEdited, setIsAccountHolderManuallyEdited] = useState(false);
+  const [isAccountHolderManuallyEdited, setIsAccountHolderManuallyEdited] =
+    useState(false);
 
-    useEffect(() => {
-      if (!isAccountHolderManuallyEdited && formData.name) {
-        setBankForm((prev) => ({
-          ...prev,
-          accountHolderName: formData.name,
-        }));
-      }
-    }, [formData.name, isAccountHolderManuallyEdited]);
+  useEffect(() => {
+    if (!isAccountHolderManuallyEdited && formData.name) {
+      setBankForm((prev) => ({
+        ...prev,
+        accountHolderName: formData.name,
+      }));
+    }
+  }, [formData.name, isAccountHolderManuallyEdited]);
   useEffect(() => {
     if (defaultSelected) {
       setFormData((prev) => ({ ...prev, companyId: defaultSelected?._id }));
@@ -497,7 +504,7 @@ const VendorRegistrationPage: React.FC = () => {
       ...prev,
       [name]: newValue,
     }));
-        if (name === "accountHolderName") {
+    if (name === "accountHolderName") {
       setIsAccountHolderManuallyEdited(true);
     }
   };
@@ -897,7 +904,7 @@ const VendorRegistrationPage: React.FC = () => {
         vendor: vendorFormData,
       });
       console.log("Fetching vendors after update...");
-       await fetchVendors(currentPage, limit, defaultSelected?._id);
+      await fetchVendors(currentPage, limit, defaultSelected?._id);
     } else {
       await addVendor(vendorFormData);
       await fetchVendors(currentPage, limit, defaultSelected?._id);
@@ -987,15 +994,17 @@ const VendorRegistrationPage: React.FC = () => {
     filterVendors,
     defaultSelected,
   ]);
-  const tableActions = useMemo(() => ({
-    onView: (vendor: Vendor) => handleViewVendor(vendor),
-    onEdit: (vendor: Vendor) => handleEditVendor(vendor),
-    onDelete: (id: string) => handleDeleteVendor(id),
-  }), []);
+  const tableActions = useMemo(
+    () => ({
+      onView: (vendor: Vendor) => handleViewVendor(vendor),
+      onEdit: (vendor: Vendor) => handleEditVendor(vendor),
+      onDelete: (id: string) => handleDeleteVendor(id),
+    }),
+    []
+  );
   // Table View Component
   const headers = ["Vendor", "Contact", "Address", "Status", "Actions"];
   const TableView = () => (
-  
     <CommonTable<Vendor>
       headers={headers}
       data={filteredVendors}
@@ -1005,30 +1014,35 @@ const VendorRegistrationPage: React.FC = () => {
       // No custom renderers needed, standard layout applies automatically
     />
   );
-  const renderVendorBottom = useCallback((vendor: Vendor) => (
-    <>
-      {/* Tax Info */}
-      {vendor.gstNumber && (
-        <div className="flex justify-between items-center">
-          <span className="text-xs font-medium text-gray-500">GST</span>
-          <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
-            {vendor.gstNumber}
-          </span>
-        </div>
-      )}
-      
-      {/* Bank Info */}
-      {vendor.banks.length > 0 && (
-         <div className="mt-2 pt-2 border-t border-gray-100">
+  const renderVendorBottom = useCallback(
+    (vendor: Vendor) => (
+      <>
+        {/* Tax Info */}
+        {vendor.gstNumber && (
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-medium text-gray-500">GST</span>
+            <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
+              {vendor.gstNumber}
+            </span>
+          </div>
+        )}
+
+        {/* Bank Info */}
+        {vendor.banks.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
             <p className="text-xs font-medium text-gray-500 mb-1">Bank</p>
             <div className="text-xs bg-gray-50 p-2 rounded">
               <p className="font-medium truncate">{vendor.banks[0].bankName}</p>
-              <p className="text-gray-500">••••{vendor.banks[0].accountNumber.slice(-4)}</p>
+              <p className="text-gray-500">
+                ••••{vendor.banks[0].accountNumber.slice(-4)}
+              </p>
             </div>
-         </div>
-      )}
-    </>
-  ), []);
+          </div>
+        )}
+      </>
+    ),
+    []
+  );
 
   const CardView = () => (
     <CommonCard<Vendor>
@@ -1217,13 +1231,41 @@ const VendorRegistrationPage: React.FC = () => {
     };
   }, []);
 
-const vendorStats: StatItem[] = useMemo(() => [
-    { title: "Total Vendors", value: stats?.totalVendors, icon: Users, variant: "teal" },
-    { title: "GST Registered", value: stats?.gstRegistered, icon: FileText, variant: "blue" },
-    { title: "MSME Registered", value: stats?.msmeRegistered, icon: Star, variant: "green" },
-    { title: "VAT Registered", value: stats?.vatRegistered, icon: Star, variant: "orange" },
-    { title: "Active Vendors", value: stats?.activeVendors, variant: "purple", showPulse: true },
-  ], [stats]);
+  const vendorStats: StatItem[] = useMemo(
+    () => [
+      {
+        title: "Total Vendors",
+        value: stats?.totalVendors,
+        icon: Users,
+        variant: "teal",
+      },
+      {
+        title: "GST Registered",
+        value: stats?.gstRegistered,
+        icon: FileText,
+        variant: "blue",
+      },
+      {
+        title: "MSME Registered",
+        value: stats?.msmeRegistered,
+        icon: Star,
+        variant: "green",
+      },
+      {
+        title: "VAT Registered",
+        value: stats?.vatRegistered,
+        icon: Star,
+        variant: "orange",
+      },
+      {
+        title: "Active Vendors",
+        value: stats?.activeVendors,
+        variant: "purple",
+        showPulse: true,
+      },
+    ],
+    [stats]
+  );
   return (
     <div className="custom-container">
       {/* Header */}
@@ -1257,7 +1299,6 @@ const vendorStats: StatItem[] = useMemo(() => [
         </CheckAccess>
       </div>
 
-     
       <CommonStats stats={vendorStats} columns={5} loading={loading} />
 
       <FilterBar
@@ -1276,36 +1317,35 @@ const vendorStats: StatItem[] = useMemo(() => [
       />
       {loading && <TableViewSkeleton />}
 
-
-      {!loading && (pagination?.total === 0 ? (
-        <EmptyStateCard
-          icon={Building2}
-          title="No vendor registered yet"
-          description="Create your first vendor to get started"
-          buttonLabel="Add Your First Vendor"
-          module="BusinessManagement"
-          subModule="Vendor"
-          type="create"
-          onButtonClick={() => setOpen(true)}
-        />
-      ) : (
-        <>
-
-      <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
-          {viewMode === "table" ? <TableView /> : <CardView />}
-
-          <PaginationControls
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            pagination={pagination}
-            itemName="stock groups"
+      {!loading &&
+        (pagination?.total === 0 ? (
+          <EmptyStateCard
+            icon={Building2}
+            title="No vendor registered yet"
+            description="Create your first vendor to get started"
+            buttonLabel="Add Your First Vendor"
+            module="BusinessManagement"
+            subModule="Vendor"
+            type="create"
+            onButtonClick={() => setOpen(true)}
           />
-        </>
-      ))}
+        ) : (
+          <>
+            <ViewModeToggle
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              totalItems={pagination?.total}
+            />
+            {viewMode === "table" ? <TableView /> : <CardView />}
+
+            <PaginationControls
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pagination={pagination}
+              itemName="stock groups"
+            />
+          </>
+        ))}
 
       {/* Modal Form */}
       <Dialog
@@ -1394,24 +1434,15 @@ const vendorStats: StatItem[] = useMemo(() => [
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Vendor Type <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.type}
-                      onChange={(e) =>
-                        handleSelectChange("type", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="individual">Individual</option>
-                      <option value="company">Company</option>
-                      <option value="partnership">Partnership</option>
-                      <option value="trust">Trust</option>
-                    </select>
-                  </div>
                   <SelectedCompany />
+                  <CustomInputBox
+                    label="Vendor Code"
+                    placeholder="e.g., PRD001"
+                    name="code"
+                    value={formData.code}
+                    disabled={true}
+                    readOnly={true}
+                  />
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1432,7 +1463,24 @@ const vendorStats: StatItem[] = useMemo(() => [
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-1 ">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Vendor Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) =>
+                        handleSelectChange("type", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="individual">Individual</option>
+                      <option value="company">Company</option>
+                      <option value="partnership">Partnership</option>
+                      <option value="trust">Trust</option>
+                    </select>
+                  </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Vendor Group
@@ -1451,7 +1499,9 @@ const vendorStats: StatItem[] = useMemo(() => [
                       <option value="service">Service Provider</option>
                     </select>
                   </div>
+                </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Industry Type
@@ -1489,17 +1539,16 @@ const vendorStats: StatItem[] = useMemo(() => [
                       <option value="west">West</option>
                     </select>
                   </div>
+                  <CustomInputBox
+                    label="Procurement Person"
+                    placeholder="e.g., ABC "
+                    name="procurementPerson"
+                    value={formData.procurementPerson}
+                    onChange={handleChange}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <CustomInputBox
- label="Procurement Person"
-placeholder="e.g., ABC "
-name="procurementPerson"
-value={formData.procurementPerson}
-onChange={handleChange}
-/>
-
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Vendor Status

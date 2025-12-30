@@ -419,33 +419,36 @@ const StockCategoryRegistration: React.FC = () => {
       initialLoading();
     };
   }, []);
-  
-  const categoryStats = useMemo(() => [
-  {
-    title: "Total Categories",
-    value: stats?.totalCategories || 0,
-    icon: Package,
-    variant: "blue",
-  },
-  {
-    title: "Primary Categories",
-    value: stats?.primaryCategories || 0,
-    icon: Star,
-    variant: "green",
-  },
-  {
-    title: "Active Categories",
-    value: stats?.activeCategories || 0,
-    variant: "purple",
-    showPulse: true, // Pulse animation
-  },
-  {
-    title: "Inactive Categories",
-    value: stats?.inactiveCategories || 0,
-    icon: Building2,
-    variant: "teal",
-  },
-], [stats]);
+
+  const categoryStats = useMemo(
+    () => [
+      {
+        title: "Total Categories",
+        value: stats?.totalCategories || 0,
+        icon: Package,
+        variant: "blue",
+      },
+      {
+        title: "Primary Categories",
+        value: stats?.primaryCategories || 0,
+        icon: Star,
+        variant: "green",
+      },
+      {
+        title: "Active Categories",
+        value: stats?.activeCategories || 0,
+        variant: "purple",
+        showPulse: true, // Pulse animation
+      },
+      {
+        title: "Inactive Categories",
+        value: stats?.inactiveCategories || 0,
+        icon: Building2,
+        variant: "teal",
+      },
+    ],
+    [stats]
+  );
 
   return (
     <div className="custom-container">
@@ -480,11 +483,7 @@ const StockCategoryRegistration: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-    <CommonStats 
-  stats={categoryStats} 
-  columns={4} 
-  loading={loading} 
-/>
+      <CommonStats stats={categoryStats} columns={4} loading={loading} />
 
       <FilterBar
         searchTerm={searchTerm}
@@ -502,36 +501,35 @@ const StockCategoryRegistration: React.FC = () => {
       />
       {loading && <TableViewSkeleton />}
 
-
-
-      {!loading && ( pagination?.total === 0 ? (
-        <EmptyStateCard
-          icon={Package}
-          title="No categories registered yet"
-          description="Create your first category to get started"
-          buttonLabel="Add Your First Category"
-          module="InventoryManagement"
-          subModule="StockCategory"
-          type="create"
-          onButtonClick={() => setOpen(true)}
-        />
-      ) : (
-        <>
-              <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
-          {viewMode === "table" ? <TableView /> : <CardView />}
-
-          <PaginationControls
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            pagination={pagination}
-            itemName="stock categories"
+      {!loading &&
+        (pagination?.total === 0 ? (
+          <EmptyStateCard
+            icon={Package}
+            title="No categories registered yet"
+            description="Create your first category to get started"
+            buttonLabel="Add Your First Category"
+            module="InventoryManagement"
+            subModule="StockCategory"
+            type="create"
+            onButtonClick={() => setOpen(true)}
           />
-        </>
-      ))}
+        ) : (
+          <>
+            <ViewModeToggle
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              totalItems={pagination?.total}
+            />
+            {viewMode === "table" ? <TableView /> : <CardView />}
+
+            <PaginationControls
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pagination={pagination}
+              itemName="stock categories"
+            />
+          </>
+        ))}
 
       <Dialog
         open={open}
@@ -562,14 +560,9 @@ const StockCategoryRegistration: React.FC = () => {
             }
           />
 
-          <div className="">
-            <div className="bg-white p-4 rounded-lg">
-              {/* <SectionHeader
-                icon={<Package className="w-4 h-4 text-white" />}
-                title="Category Information"
-                gradientFrom="from-pink-400"
-                gradientTo="to-pink-500"
-              /> */}
+          <div className="bg-white p-4 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <SelectedCompany />
               <CustomInputBox
                 label="Category Code"
                 placeholder="e.g., PRD001"
@@ -578,108 +571,79 @@ const StockCategoryRegistration: React.FC = () => {
                 disabled={true}
                 readOnly={true}
               />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <CustomInputBox
-                  label="Category Name "
-                  placeholder="e.g., Electronics"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required={true}
-                />
-                <SelectedCompany
-                  editing={editingStockCategory}
-                  handleSelectChange={handleSelectChange}
-                  companyId={formData.companyId}
-                />
-                {/* <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Company <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.companyId}
-                    onChange={(e) =>
-                      handleSelectChange("companyId", e.target.value)
-                    }
-                    className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                  >
-                    <option value="">Select Company</option>
-                    {companies.map((company) => (
-                      <option key={company._id} value={company._id}>
-                        {company.namePrint}
-                      </option>
-                    ))}
-                  </select>
-                </div> */}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Parent Category
-                  </label>
-                  <select
-                    value={formData.parent?._id || formData.parent || ""}
-                    onChange={(e) =>
-                      handleSelectChange("parent", e.target.value)
-                    }
-                    className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                  >
-                    <option value={null}>Primary (No Parent)</option>
-                    {stockCategories
-                      .filter((c) => c._id !== editingStockCategory?._id)
-                      .map((category) => (
-                        <option key={category._id} value={category._id}>
-                          {category.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="text-sm font-semibold text-gray-700 mb-1 block">
-                  Description
-                </label>
-                <textarea
-                  placeholder="Enter category description..."
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1 mb-4">
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <CustomInputBox
+                label="Category Name "
+                placeholder="e.g., Electronics"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required={true}
+              />
+              <div className="flex flex-col gap-1">
                 <label className="text-sm font-semibold text-gray-700">
-                  Status
+                  Parent Category
                 </label>
                 <select
-                  value={formData.status}
-                  onChange={(e) => handleSelectChange("status", e.target.value)}
+                  value={formData.parent?._id || formData.parent || ""}
+                  onChange={(e) => handleSelectChange("parent", e.target.value)}
                   className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value={null}>Primary (No Parent)</option>
+                  {stockCategories
+                    .filter((c) => c._id !== editingStockCategory?._id)
+                    .map((category) => (
+                      <option key={category._id} value={category._id}>
+                        {category.name}
+                      </option>
+                    ))}
                 </select>
               </div>
+            </div>
 
-              <div className="flex justify-end mt-6">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className={`${
-                    isSubmitting ? "opacity-70 cursor-not-allowed" : ""
-                  } bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base`}
-                >
-                  {isSubmitting
-                    ? "Saving..."
-                    : editingStockCategory
-                    ? "Update Category"
-                    : "Save Category"}
-                </Button>
-              </div>
+            <div className="mb-4">
+              <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                Description
+              </label>
+              <textarea
+                placeholder="Enter category description..."
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows={3}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none resize-none transition-all"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1 mb-4">
+              <label className="text-sm font-semibold text-gray-700">
+                Status
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => handleSelectChange("status", e.target.value)}
+                className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className={`${
+                  isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+                } bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg flex items-center gap-1 md:gap-2 shadow-lg hover:shadow-xl transition-all text-sm md:text-base`}
+              >
+                {isSubmitting
+                  ? "Saving..."
+                  : editingStockCategory
+                  ? "Update Category"
+                  : "Save Category"}
+              </Button>
             </div>
           </div>
         </DialogContent>

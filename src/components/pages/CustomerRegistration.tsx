@@ -120,7 +120,7 @@ const CustomerRegistrationPage: React.FC = () => {
   const { agents } = useAgentStore();
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const {user} = useAuthStore();
+  const { user } = useAuthStore();
   const handleViewCustomer = (customer: any) => {
     setSelectedCustomer(customer);
     setIsModalOpen(true);
@@ -661,12 +661,12 @@ const CustomerRegistrationPage: React.FC = () => {
       toast.error("Please enter Contact Person");
       return;
     }
-    if (!formData?.emailAddress?.trim()) {
+    if (!editingCustomer && !formData?.emailAddress?.trim()) {
       toast.error("Please enter Email Address");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex?.test(formData.emailAddress)) {
+    if (!editingCustomer && !emailRegex?.test(formData.emailAddress)) {
       toast.error("Please enter a valid email address");
       return;
     }
@@ -1020,9 +1020,9 @@ const CustomerRegistrationPage: React.FC = () => {
       toast.error("Failed to export products");
     }
   };
-  const fetchNewCustomer=async()=>{
-  return  await fetchCustomers(currentPage, limit, defaultSelected?._id)
-}
+  const fetchNewCustomer = async () => {
+    return await fetchCustomers(currentPage, limit, defaultSelected?._id);
+  };
   return (
     <div className="custom-container">
       {/* Header */}
@@ -1037,7 +1037,7 @@ const CustomerRegistrationPage: React.FC = () => {
             onExport={() => exportProductsToExcel()}
             onSample={() => {
               // Download sample CSV/Excel template
-              // window.location.href = "/templates/sample-products.xlsx"; 
+              // window.location.href = "/templates/sample-products.xlsx";
             }}
           />{" "}
           <CheckAccess
@@ -1228,12 +1228,19 @@ const CustomerRegistrationPage: React.FC = () => {
                 }
               }
               if (activeTab === "contact") {
-                if (!formData.contactPerson || !formData.emailAddress) {
-                  toast.error("Please fill in the required fields.");
+                if (!formData.contactPerson) {
+                  toast.error("Please fill Contact Person.");
+                  return;
+                }
+                if (!editingCustomer && !formData.emailAddress) {
+                  toast.error("Please fill Email Address.");
                   return;
                 }
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(formData.emailAddress)) {
+                if (
+                  !editingCustomer &&
+                  !emailRegex.test(formData.emailAddress)
+                ) {
                   toast.error("Please enter a valid email address");
                   return;
                 }
@@ -1243,12 +1250,15 @@ const CustomerRegistrationPage: React.FC = () => {
                   toast.error("Contact Person is required");
                   return;
                 }
-                if (!formData.emailAddress) {
+                if (!editingCustomer && !formData.emailAddress) {
                   toast.error("Email is required");
                   return;
                 }
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(formData.emailAddress)) {
+                if (
+                  !editingCustomer &&
+                  !emailRegex.test(formData.emailAddress)
+                ) {
                   toast.error("Please enter a valid email address");
                   return;
                 }
@@ -1267,34 +1277,16 @@ const CustomerRegistrationPage: React.FC = () => {
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Customer Type <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.type}
-                      onChange={(e) =>
-                        handleSelectChange("type", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="individual">Individual</option>
-                      <option value="company">Company</option>
-                      <option value="partnership">Partnership</option>
-                      <option value="trust">Trust</option>
-                    </select>
-                  </div>
                   <SelectedCompany />
+                  <CustomInputBox
+                    label="Customer Code"
+                    placeholder="e.g., PRD001"
+                    name="code"
+                    value={formData.code}
+                    disabled={true}
+                    readOnly={true}
+                  />
                 </div>
-                <CustomInputBox
-                  label="Customer Code"
-                  placeholder="e.g., PRD001"
-                  name="code"
-                  value={formData.code}
-                  onChange={handleChange}
-                  disabled={true}
-                  readOnly={true}
-                />
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <CustomInputBox
                     label="Customer Name "
@@ -1312,8 +1304,24 @@ const CustomerRegistrationPage: React.FC = () => {
                     onChange={handleChange}
                   />
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-1 ">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Customer Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) =>
+                        handleSelectChange("type", e.target.value)
+                      }
+                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                    >
+                      <option value="individual">Individual</option>
+                      <option value="company">Company</option>
+                      <option value="partnership">Partnership</option>
+                      <option value="trust">Trust</option>
+                    </select>
+                  </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Customer Group <span className="text-red-500">*</span>
@@ -1327,16 +1335,33 @@ const CustomerRegistrationPage: React.FC = () => {
                       required
                     >
                       <option value="">Select Customer Group</option>
+
                       {customerGroups
-                        .filter((g) => g.status === "active") // Only show active groups
-                        .map((group) => (
-                          <option key={group._id} value={group._id}>
-                            {group.groupName}
-                          </option>
-                        ))}
+                        .filter((group) => group.status === "active")
+                        .map((group) => {
+                          const isDisabled =
+                            group.groupName === "Sundry Debtors" ||
+                            group.groupName === "User" ||
+                            group.groupName === "Counter";
+
+                          return (
+                            <option
+                              key={group._id}
+                              value={group._id}
+                              disabled={isDisabled}
+                              className={
+                                isDisabled ? "text-gray-400 bg-gray-100" : ""
+                              }
+                            >
+                              {group.groupName}
+                            </option>
+                          );
+                        })}
                     </select>
                   </div>
+                </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Industry Type
@@ -1374,9 +1399,6 @@ const CustomerRegistrationPage: React.FC = () => {
                       <option value="west">West</option>
                     </select>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Agent
@@ -1396,6 +1418,9 @@ const CustomerRegistrationPage: React.FC = () => {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Customer Status
@@ -1489,7 +1514,10 @@ const CustomerRegistrationPage: React.FC = () => {
                     onChange={handleChange}
                     type="email"
                     required={true}
-                    disabled={user.email === formData.emailAddress && formData.createdFromUser === true}
+                    disabled={
+                      user.email === formData.emailAddress &&
+                      formData.createdFromUser === true
+                    }
                   />
                   <CustomInputBox
                     label="Fax Number"
@@ -1596,14 +1624,19 @@ const CustomerRegistrationPage: React.FC = () => {
                   totalSteps={6}
                   onPrevious={() => setActiveTab("basic")}
                   onNext={() => {
-                    if (!formData.contactPerson || !formData.emailAddress) {
-                      toast.error(
-                        "Please enter contact person and email address."
-                      );
+                    if (!formData.contactPerson) {
+                      toast.error("Please enter contact person");
+                      return;
+                    }
+                    if (!editingCustomer && !formData.emailAddress) {
+                      toast.error("Please enter email address");
                       return;
                     }
                     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!emailRegex.test(formData.emailAddress)) {
+                    if (
+                      !editingCustomer &&
+                      !emailRegex.test(formData.emailAddress)
+                    ) {
                       toast.error("Please enter a valid email address");
                       return;
                     }

@@ -114,7 +114,7 @@ interface Company {
   brandingImages?: BrandingImage[];
   status: "active" | "inactive";
   autoApprove?: boolean;
-  maintainAgent?:boolean
+  maintainAgent?: boolean;
 }
 // Form interface (updated with brandingImages)
 interface CompanyForm {
@@ -154,7 +154,8 @@ interface CompanyForm {
   closingQuantityOrder?: boolean;
   negativeOrder?: boolean;
   autoApprove?: boolean;
-  maintainAgent?:boolean;
+  maintainAgent?: boolean;
+  defaultDecimalPlaces?: number | null;
 }
 // Registration document interface (unchanged)
 interface RegistrationDocument {
@@ -267,7 +268,8 @@ const CompanyPage: React.FC = () => {
     closingQuantityOrder: false,
     negativeOrder: false,
     autoApprove: false,
-    maintainAgent:false
+    maintainAgent: false,
+    defaultDecimalPlaces: null,
   });
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -382,7 +384,6 @@ const CompanyPage: React.FC = () => {
     }));
   };
 
-  
   useEffect(() => {
     const fetchCompanyStates = async () => {
       try {
@@ -690,7 +691,8 @@ const CompanyPage: React.FC = () => {
       closingQuantityOrder: false,
       negativeOrder: false,
       autoApprove: false,
-      maintainAgent:false
+      maintainAgent: false,
+      defaultDecimalPlaces: null,
     });
     setEditingCompany(null);
     setActiveTab("basic");
@@ -740,9 +742,9 @@ const CompanyPage: React.FC = () => {
   };
   const handleDeleteCompany = async (id: string): void => {
     try {
-      if(id==defaultSelected_id){
+      if (id == defaultSelected_id) {
         toast.error("Default company cannot be deleted");
-        return
+        return;
       }
       await deleteCompany(id);
     } catch (error: any) {
@@ -775,7 +777,7 @@ const CompanyPage: React.FC = () => {
         key === "brandingImages" ||
         key === "logoFile" ||
         key === "logoPreviewUrl" ||
-         key === "defaultCurrencySymbol" 
+        key === "defaultCurrencySymbol"
       ) {
         return;
       }
@@ -799,22 +801,22 @@ const CompanyPage: React.FC = () => {
         JSON.stringify(newRegistrationDocs.map((doc) => doc.type))
       );
     }
-     const currencyObj = currencies.find(
-    (c) => c.code === formData.defaultCurrency
-  );
+    const currencyObj = currencies.find(
+      (c) => c.code === formData.defaultCurrency
+    );
 
-  const currencySymbol = currencyObj ? currencyObj.symbol : "";
+    const currencySymbol = currencyObj ? currencyObj.symbol : "";
 
-  // Detect if currency changed during update
-  const currencyChanged =
-    editingCompany &&
-    editingCompany.defaultCurrency !== formData.defaultCurrency;
+    // Detect if currency changed during update
+    const currencyChanged =
+      editingCompany &&
+      editingCompany.defaultCurrency !== formData.defaultCurrency;
 
-  // CREATE → Always set
-  // UPDATE → Only set if currency changed
-  if (!editingCompany || currencyChanged) {
-    companyFormData.set("defaultCurrencySymbol", currencySymbol);
-  }
+    // CREATE → Always set
+    // UPDATE → Only set if currency changed
+    if (!editingCompany || currencyChanged) {
+      companyFormData.set("defaultCurrencySymbol", currencySymbol);
+    }
     // Handle branding images
     const newBrandingImages = formData.brandingImages.filter(
       (img) => img.file && img.file instanceof Blob
@@ -1197,10 +1199,10 @@ const CompanyPage: React.FC = () => {
               </Button>
             </CheckAccess>
             {companies.length > 0 && (
-            <Button
-              onClick={downloadPDF}
-              disabled={pdfLoading}
-              className={`
+              <Button
+                onClick={downloadPDF}
+                disabled={pdfLoading}
+                className={`
  bg-gradient-to-r from-teal-600 to-teal-700
  hover:from-teal-700 hover:to-teal-800
  text-white px-3 py-3 rounded-xl shadow-lg
@@ -1208,37 +1210,38 @@ const CompanyPage: React.FC = () => {
  flex items-center gap-2
 ${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
 `}
-            >
-              {pdfLoading ? (
-                <>
-                  <svg
-                    className="animate-spin h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    />
-                  </svg>
-                  Downloading...
-                </>
-              ) : (
-                <>
-                  Integration PDF <ArrowBigDownDash />
-                </>
-              )}
-            </Button>)}
+              >
+                {pdfLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    Integration PDF <ArrowBigDownDash />
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
         {/* Stats Cards */}
@@ -1562,8 +1565,11 @@ ${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
                       >
                         <option value="">Select Currency</option>
 
-                        {currencies.map((c,index) => (
-                          <option key={`curr-${c.code}-${index}`} value={c.code}>
+                        {currencies.map((c, index) => (
+                          <option
+                            key={`curr-${c.code}-${index}`}
+                            value={c.code}
+                          >
                             {c.code} - {c.name}{" "}
                             {c.symbol ? `(${c.symbol})` : ""}
                           </option>
@@ -2123,6 +2129,7 @@ ${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
                         handleCheckSelectChange("maintainGodown", value)
                       }
                     />
+
                     <ToggleSwitch
                       title="Maintain Batch"
                       checked={formData.maintainBatch}
@@ -2130,6 +2137,7 @@ ${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
                         handleCheckSelectChange("maintainBatch", value)
                       }
                     />
+
                     <ToggleSwitch
                       title="Closing Quantity Order"
                       checked={formData.closingQuantityOrder}
@@ -2137,6 +2145,7 @@ ${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
                         handleCheckSelectChange("closingQuantityOrder", value)
                       }
                     />
+
                     <ToggleSwitch
                       title="Negative Order"
                       checked={formData.negativeOrder}
@@ -2144,6 +2153,7 @@ ${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
                         handleCheckSelectChange("negativeOrder", value)
                       }
                     />
+
                     <ToggleSwitch
                       title="Auto Approve"
                       checked={formData.autoApprove}
@@ -2151,6 +2161,7 @@ ${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
                         handleCheckSelectChange("autoApprove", value)
                       }
                     />
+
                     <ToggleSwitch
                       title="Maintain Agent"
                       checked={formData.maintainAgent}
@@ -2158,7 +2169,33 @@ ${pdfLoading ? "opacity-70 cursor-not-allowed" : ""}
                         handleCheckSelectChange("maintainAgent", value)
                       }
                     />
+
+                    <div className="flex items-center justify-between gap-3 rounded-md py-2 min-w-[200px]">
+                      <span className="text-sm font-medium text-gray-700">
+                        Decimal Places
+                      </span>
+
+                      <input
+                        type="number"
+                        min={0}
+                        max={6}
+                        step={1}
+                        value={formData.defaultDecimalPlaces}
+                        onChange={(e) =>
+                          handleCheckSelectChange(
+                            "defaultDecimalPlaces",
+                            Number(e.target.value)
+                          )
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "-" || e.key === ".")
+                            e.preventDefault();
+                        }}
+                        className="w-16 rounded border px-2 py-1 text-sm text-center focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
                   </div>
+
                   <CustomStepNavigation
                     currentStep={6}
                     totalSteps={6}

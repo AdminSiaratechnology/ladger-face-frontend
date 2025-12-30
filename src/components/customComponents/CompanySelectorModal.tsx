@@ -90,7 +90,7 @@ const CompanySelectorModal = ({
   // 3. Sync Default Selection
   useEffect(() => {
     if (defaultSelected && filteredCompanies.length > 0) {
-       const found = filteredCompanies.find(c => c._id === defaultSelected);
+       const found = filteredCompanies.find(c => c?._id === defaultSelected);
        if (found) setSelectedCompany(found);
     } else {
         setSelectedCompany(null);
@@ -168,7 +168,7 @@ const CompanySelectorModal = ({
               </div>
             ) : filteredCompanies.length > 0 ? (
               filteredCompanies.map((company) => {
-                const isSelected = selectedCompany?._id === company._id;
+                const isSelected = selectedCompany?._id === company?._id;
                 return (
                   <div
                     key={company._id}

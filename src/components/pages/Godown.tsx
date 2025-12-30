@@ -34,6 +34,7 @@ import EmptyStateCard from "../customComponents/EmptyStateCard";
 import { set } from "react-hook-form";
 import UniversalInventoryDetailsModal from "../customComponents/UniversalInventoryDetailsModal";
 import CommonStats from "../customComponents/CommonStats";
+import SelectedCompany from "../customComponents/SelectedCompany";
 
 // Godown interface
 interface Godown {
@@ -313,32 +314,35 @@ const GodownRegistration: React.FC = () => {
     { id: "basic", label: "Basic Info" },
     { id: "location", label: "Location" },
   ];
-  const godownStats = useMemo(() => [
-  {
-    title: "Total Godowns",
-    value: stats?.totalGodowns || 0,
-    icon: Warehouse,
-    variant: "teal",
-  },
-  {
-    title: "Primary Godowns",
-    value: stats?.primaryGodowns || 0,
-    icon: Star,
-    variant: "blue",
-  },
-  {
-    title: "Active Godowns",
-    value: stats?.activeGodowns || 0,
-    variant: "green",
-    showPulse: true, // Ye "Active" wale dot ke liye hai
-  },
-  {
-    title: "Total Capacity",
-    value: `${stats?.totalCapacity || 0} sq.ft`,
-    icon: Building2,
-    variant: "purple",
-  },
-], [stats]);
+  const godownStats = useMemo(
+    () => [
+      {
+        title: "Total Godowns",
+        value: stats?.totalGodowns || 0,
+        icon: Warehouse,
+        variant: "teal",
+      },
+      {
+        title: "Primary Godowns",
+        value: stats?.primaryGodowns || 0,
+        icon: Star,
+        variant: "blue",
+      },
+      {
+        title: "Active Godowns",
+        value: stats?.activeGodowns || 0,
+        variant: "green",
+        showPulse: true, // Ye "Active" wale dot ke liye hai
+      },
+      {
+        title: "Total Capacity",
+        value: `${stats?.totalCapacity || 0} sq.ft`,
+        icon: Building2,
+        variant: "purple",
+      },
+    ],
+    [stats]
+  );
 
   const headers = [
     "Godown",
@@ -616,13 +620,7 @@ const GodownRegistration: React.FC = () => {
         </CheckAccess>
       </div>
 
-      <CommonStats 
-  stats={godownStats} 
-  columns={4} 
-  loading={loading} 
-/>
-
-   
+      <CommonStats stats={godownStats} columns={4} loading={loading} />
 
       <FilterBar
         searchTerm={searchTerm}
@@ -641,36 +639,35 @@ const GodownRegistration: React.FC = () => {
 
       {loading && <TableViewSkeleton />}
 
-   
-
-      {!loading && ( pagination.total === 0 ? (
-        <EmptyStateCard
-          icon={Warehouse}
-          title="No godowns registered yet"
-          description="Create your first godown to get started"
-          buttonLabel="Add Your First Godown"
-          module="InventoryManagement"
-          subModule="godown"
-          type="create"
-          onButtonClick={() => setOpen(true)}
-        />
-      ) : (
-        <>
-           <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
-          {viewMode === "table" ? <TableView /> : <CardView />}
-
-          <PaginationControls
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            pagination={pagination}
-            itemName="godowns"
+      {!loading &&
+        (pagination.total === 0 ? (
+          <EmptyStateCard
+            icon={Warehouse}
+            title="No godowns registered yet"
+            description="Create your first godown to get started"
+            buttonLabel="Add Your First Godown"
+            module="InventoryManagement"
+            subModule="godown"
+            type="create"
+            onButtonClick={() => setOpen(true)}
           />
-        </>
-      ))}
+        ) : (
+          <>
+            <ViewModeToggle
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              totalItems={pagination?.total}
+            />
+            {viewMode === "table" ? <TableView /> : <CardView />}
+
+            <PaginationControls
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pagination={pagination}
+              itemName="godowns"
+            />
+          </>
+        ))}
 
       <Dialog
         open={open}
@@ -716,6 +713,7 @@ const GodownRegistration: React.FC = () => {
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <SelectedCompany />
                   <CustomInputBox
                     label="Godown Code"
                     placeholder="e.g., GDN001"
@@ -733,9 +731,6 @@ const GodownRegistration: React.FC = () => {
                     onChange={handleChange}
                     required={true}
                   />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Parent Godown
@@ -758,6 +753,7 @@ const GodownRegistration: React.FC = () => {
                     </select>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                   <CustomInputBox
                     label="Manager Name"
@@ -819,7 +815,7 @@ const GodownRegistration: React.FC = () => {
                   totalSteps={2}
                   showPrevious={false}
                   onNext={() => {
-                    if ( !formData.name) {
+                    if (!formData.name) {
                       toast.error("Please enter Godown Name");
                       return;
                     }

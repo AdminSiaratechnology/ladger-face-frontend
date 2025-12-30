@@ -39,7 +39,6 @@ import MultiStepNav from "../customComponents/MultiStepNav";
 import PaginationControls from "../customComponents/CustomPaginationControls";
 import ViewModeToggle from "../customComponents/ViewModeToggle";
 
-
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import ImagePreviewDialog from "../customComponents/ImagePreviewDialog";
 import SelectedCompany from "../customComponents/SelectedCompany";
@@ -48,7 +47,12 @@ import imageCompression from "browser-image-compression";
 import CommonTable from "../TableView/CommonTable";
 import CommonCard from "../CardViews/CommonCard";
 import CommonStats from "../customComponents/CommonStats";
-import type {Bank,RegistrationDocument,Agent,AgentForm} from  "@/types/agentRegistration"
+import type {
+  Bank,
+  RegistrationDocument,
+  Agent,
+  AgentForm,
+} from "@/types/agentRegistration";
 const stepIcons = {
   basic: <Users className="w-2 h-2 md:w-5 md:h-5" />,
   contact: <Phone className="w-2 h-2 md:w-5 md:h-5" />,
@@ -858,48 +862,50 @@ const AgentRegistrationPage: React.FC = () => {
   );
 
   const TableView = () => (
-  
     <CommonTable<Agent>
       headers={headers}
       data={filteredAgents}
       actions={tableActions}
       module="BusinessManagement"
       subModule="Agent"
-
     />
   );
-  const renderAgentExtra = useCallback((agent: Agent) => (
-    <>
-      <div className="flex justify-between items-center">
-        <span className="text-xs font-medium text-gray-500">Performance</span>
-        <div className="flex items-center">
-          {[...Array(5)].map((_, i) => (
-            <Star
-              key={i}
-              className={`w-3 h-3 ${
-                i < agent.performanceRating
-                  ? "text-yellow-500 fill-yellow-500"
-                  : "text-gray-300"
-              }`}
-            />
-          ))}
+  const renderAgentExtra = useCallback(
+    (agent: Agent) => (
+      <>
+        <div className="flex justify-between items-center">
+          <span className="text-xs font-medium text-gray-500">Performance</span>
+          <div className="flex items-center">
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                className={`w-3 h-3 ${
+                  i < agent.performanceRating
+                    ? "text-yellow-500 fill-yellow-500"
+                    : "text-gray-300"
+                }`}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="flex justify-between items-center mt-2">
-        <span className="text-xs font-medium text-gray-500">
-          Active Contracts
-        </span>
-        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-          {agent.activeContracts}
-        </span>
-      </div>
-    </>
-  ), []);
+        <div className="flex justify-between items-center mt-2">
+          <span className="text-xs font-medium text-gray-500">
+            Active Contracts
+          </span>
+          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+            {agent.activeContracts}
+          </span>
+        </div>
+      </>
+    ),
+    []
+  );
 
   // 2. Define Bottom Section for Agents (Tax Info)
-  const renderAgentBottom = useCallback((agent: Agent) => (
-    <>
-       {agent.gstNumber && (
+  const renderAgentBottom = useCallback(
+    (agent: Agent) => (
+      <>
+        {agent.gstNumber && (
           <div className="flex justify-between items-center">
             <span className="text-xs font-medium text-gray-500">GST</span>
             <span className="text-xs bg-blue-100 text-teal-700 px-2 py-1 rounded font-mono">
@@ -908,13 +914,19 @@ const AgentRegistrationPage: React.FC = () => {
           </div>
         )}
         {agent.commissionRate && (
-           <div className="flex justify-between items-center mt-2">
-             <span className="text-xs font-medium text-gray-500">Commission</span>
-             <span className="text-xs font-semibold text-teal-700">{agent.commissionRate}%</span>
-           </div>
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-xs font-medium text-gray-500">
+              Commission
+            </span>
+            <span className="text-xs font-semibold text-teal-700">
+              {agent.commissionRate}%
+            </span>
+          </div>
         )}
-    </>
-  ), []);
+      </>
+    ),
+    []
+  );
 
   const CardView = () => (
     <CommonCard<Agent>
@@ -965,11 +977,7 @@ const AgentRegistrationPage: React.FC = () => {
         </CheckAccess>
       </div>
 
-      <CommonStats 
-         stats={agentStats} 
-         columns={4} 
-         loading={loading} 
-      />
+      <CommonStats stats={agentStats} columns={4} loading={loading} />
 
       <FilterBar
         searchTerm={searchTerm}
@@ -987,35 +995,34 @@ const AgentRegistrationPage: React.FC = () => {
       />
       {loading && <TableViewSkeleton />}
 
-   
-
-      {!loading && ( pagination.total === 0 ? (
-        <EmptyStateCard
-          icon={UserCheck}
-          title="No agents registered yet"
-          description="Create your first agent to get started"
-          buttonLabel="Add Your First Agent"
-          module="BusinessManagement"
-          subModule="Agent"
-          type="create"
-          onButtonClick={() => setOpen(true)}
-        />
-      ) : (
-        <>
-           <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
-          {viewMode === "table" ? <TableView /> : <CardView />}
-          <PaginationControls
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            pagination={pagination}
-            itemName="agents"
+      {!loading &&
+        (pagination.total === 0 ? (
+          <EmptyStateCard
+            icon={UserCheck}
+            title="No agents registered yet"
+            description="Create your first agent to get started"
+            buttonLabel="Add Your First Agent"
+            module="BusinessManagement"
+            subModule="Agent"
+            type="create"
+            onButtonClick={() => setOpen(true)}
           />
-        </>
-      ))}
+        ) : (
+          <>
+            <ViewModeToggle
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              totalItems={pagination?.total}
+            />
+            {viewMode === "table" ? <TableView /> : <CardView />}
+            <PaginationControls
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pagination={pagination}
+              itemName="agents"
+            />
+          </>
+        ))}
 
       <Dialog
         open={open}
@@ -1100,6 +1107,15 @@ const AgentRegistrationPage: React.FC = () => {
             {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <SelectedCompany />
+                  <CustomInputBox
+                    label="Agent Code"
+                    placeholder="e.g., PRD001"
+                    name="code"
+                    value={formData.code}
+                    disabled={true}
+                    readOnly={true}
+                  />
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700">
                       Agent Type <span className="text-red-500">*</span>
@@ -1125,7 +1141,6 @@ const AgentRegistrationPage: React.FC = () => {
                     onChange={handleChange}
                     required={true}
                   />
-                  <SelectedCompany />
                   <CustomInputBox
                     label="Short Name"
                     placeholder="e.g., ABC"
@@ -1133,9 +1148,6 @@ const AgentRegistrationPage: React.FC = () => {
                     value={formData.shortName}
                     onChange={handleChange}
                   />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <CustomInputBox
                     label="Supervisor"
                     placeholder="Supervisor"
@@ -1143,6 +1155,9 @@ const AgentRegistrationPage: React.FC = () => {
                     value={formData.supervisor}
                     onChange={handleChange}
                   />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <CustomInputBox
                     label=" Agent Category"
                     placeholder="group"
@@ -1169,24 +1184,23 @@ const AgentRegistrationPage: React.FC = () => {
                       <option value="expert">Expert</option>
                     </select>
                   </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Agent Status
+                      </label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) =>
+                          handleSelectChange("status", e.target.value)
+                        }
+                        className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-semibold text-gray-700">
-                      Agent Status
-                    </label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) =>
-                        handleSelectChange("status", e.target.value)
-                      }
-                      className="h-11 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none bg-white transition-all"
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-                </div>
+
                 <CustomStepNavigation
                   currentStep={1}
                   totalSteps={6}
