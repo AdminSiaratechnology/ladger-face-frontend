@@ -12,12 +12,13 @@ import DraftBillModal from "./DraftBillModal";
 import ShiftEndModal from "./ShiftEndModal";
 import { generateInvoicePdf } from "../../lib/invoice";
 import { toast } from "sonner";
+import { useProductStore } from "../../../store/productStore";
 
 export default function PosBilling() {
-  const { stockItems, fetchStockItems } = useStockItemStore();
   const { defaultSelected } = useCompanyStore();
   const { customers, fetchCustomers } = useCustomerStore();
   const defaultCurrency = defaultSelected?.defaultCurrencySymbol || "₹";
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   const {
     cart,
@@ -36,7 +37,7 @@ export default function PosBilling() {
     increaseQty,
     decreaseQty,
     removeItem,
-    clearCart
+    clearCart,
   } = usePosStore();
 
   const [billNumber, setBillNumber] = useState("");
@@ -49,27 +50,55 @@ export default function PosBilling() {
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewBill, setPreviewBill] = useState<any>(null);
+  const [searchResults,setSearchResult]=useState([]);
 
   const [bogoCoupons, setBogoCoupons] = useState([]);
+  const {
+    fetchProducts,
+    filterProducts,
+    products: stockItems,
+    pagination,
+  } = useProductStore();
+  const [batches, setBatches] = useState([]);
+  const [batchLoading, setBatchLoading] = useState(false);
 
   useEffect(() => {
     if (!defaultSelected?._id) return;
 
-    fetchStockItems(1, 1000, defaultSelected._id);
+    fetchProducts(1, 1000, defaultSelected._id);
     fetchCustomers(1, 1000, defaultSelected._id, true);
-    api.getBogoCoupons(defaultSelected._id)
-      .then(res => {
-        console.log("✅ BOGO API RESPONSE:", res.data);
+    api.getBogoCoupons(defaultSelected._id).then((res) => {
+      console.log("✅ BOGO API RESPONSE:", res.data);
 
-        setBogoCoupons(res.data || []);
-      });
-
+      setBogoCoupons(res.data || []);
+    });
 
     const drawer = Number(localStorage.getItem("drawerCash") || 0);
     setDrawerCash(drawer);
   }, [defaultSelected?._id]);
+  const fetchProductBatches = async (product) => {
+    try {
+      setBatchLoading(true);
 
-  // MEMOIZED DATA
+      const res = await api.fetchBatches(product._id, defaultSelected?._id);
+
+      const list = res?.data || [];
+
+      if (list.length === 0) {
+        addProductToCart(product, null);
+        return;
+      }
+
+      setBatches(list);
+      setBatchProduct(product);
+    } catch (err) {
+      console.error("❌ Failed to fetch batches", err);
+      toast.error("Failed to fetch batch details");
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
   const products = useMemo(
     () => (Array.isArray(stockItems) ? stockItems : []),
     [stockItems]
@@ -88,243 +117,254 @@ export default function PosBilling() {
     });
   }, [customerSearch, customers]);
 
-  const searchResults = useMemo(() => {
-    if (!searchText) return [];
-    const s = searchText.toLowerCase();
-    return products.filter(
-      (p) =>
-        p.ItemName.toLowerCase().includes(s) ||
-        (p.ItemCode || "").toLowerCase().includes(s)
-    );
-  }, [searchText, products]);
+  // const searchResults = useMemo(() => {
+  //   if (!searchText) return [];
+  //   const s = searchText.toLowerCase();
+  //   console.log(s);
+  //   return products.filter(
+  //     (p) =>
+  //       p.name.toLowerCase().includes(s) ||
+  //       (p.code || "").toLowerCase().includes(s)
+  //   );
+  // }, [searchText, products]);
 
-  // ------------------------
-  // CART LOGIC--
+  const buyItemsKey = useMemo(() => {
+    return cart
+      .filter((i) => i.isFreeItem !== true)
+      .map((i) => `${i.cartId}:${i.qty}`)
+      .join("|");
+  }, [cart]);
 
-const buyItemsKey = useMemo(() => {
-  return cart
-    .filter(i => i.isFreeItem !== true)
-    .map(i => `${i.cartId}:${i.qty}`)
-    .join("|");
-}, [cart]);
+  useEffect(() => {
+    if (!bogoCoupons?.length) return;
 
-useEffect(() => {
-  if (!bogoCoupons?.length) return;
+    const updated = applyBogoRules(cart, bogoCoupons, products);
 
-  const updated = applyBogoRules(cart, bogoCoupons, products);
+    // 🔥 VERY IMPORTANT CHECK
+    if (JSON.stringify(updated) !== JSON.stringify(cart)) {
+      setCart(updated);
+    }
+  }, [buyItemsKey, bogoCoupons, products]);
 
-  // 🔥 VERY IMPORTANT CHECK
-  if (JSON.stringify(updated) !== JSON.stringify(cart)) {
-    setCart(updated);
-  }
-}, [buyItemsKey, bogoCoupons, products]);
+   useEffect(() => {
+      const handler = setTimeout(() => {
+        if (searchText.length >= 3) {
+          filterProducts(
+            searchText,
+            "",
+            "",
+            "1",
+            "10",
+            defaultSelected?._id
+          )
+            .then((result) => {
+              setSearchResult(result);
+            })
+            .catch((err) => {
+              console.error("Error filtering products:", err);
+            });
+        } else if (searchText.length === 0) {
+          filterProducts(
+            "",
+            "",
+            "",
+            "",
+            "10",
+            defaultSelected?._id
+          );
+        }
+      }, 500);
+  
+      return () => {
+        clearTimeout(handler);
+      };
+    }, [
+   searchText
+    ]);
 
+  function applyBogoRules(cart, bogoCoupons, products) {
+    console.log("🧠 applyBogoRules START");
 
-function applyBogoRules(cart, bogoCoupons, products) {
-  console.log("🧠 applyBogoRules START");
+    // 0️⃣ remove old free items
+    let updatedCart = cart.filter((i) => !i.isFreeItem);
 
-  // 0️⃣ remove old free items
-  let updatedCart = cart.filter(i => !i.isFreeItem);
+    bogoCoupons.forEach((coupon, cIndex) => {
+      if (coupon.status !== "active") return;
+      if (!coupon?.bogoConfig?.rules) return;
 
-  bogoCoupons.forEach((coupon, cIndex) => {
-    if (coupon.status !== "active") return;
-    if (!coupon?.bogoConfig?.rules) return;
+      const today = new Date();
+      const from = new Date(coupon.validFrom);
+      const to = new Date(coupon.validTo);
+      to.setHours(23, 59, 59, 999);
+      if (today < from || today > to) return;
 
-    const today = new Date();
-    const from = new Date(coupon.validFrom);
-    const to = new Date(coupon.validTo);
-    to.setHours(23, 59, 59, 999);
-    if (today < from || today > to) return;
+      coupon.bogoConfig.rules.forEach((rule, rIndex) => {
+        const matchedBuyItems = updatedCart.filter((i) => {
+          if (i.isFreeItem) return false;
 
-    coupon.bogoConfig.rules.forEach((rule, rIndex) => {
-      console.log(`📜 Rule [${rIndex}]`, rule);
+          const key = `${i.name} (${i.code})`;
+          return (
+            rule.buyProducts.includes(key) ||
+            rule.buyProducts.includes(i.ItemCode) ||
+            rule.buyProducts.includes(String(i._id))
+          );
+        });
 
-      // 1️⃣ match buy items
-      const matchedBuyItems = updatedCart.filter(i => {
-        if (i.isFreeItem) return false;
+        if (matchedBuyItems.length !== rule.buyProducts.length) {
+          console.log("⛔ Missing buy products");
+          return;
+        }
+        let valid = true;
 
-        const key = `${i.ItemName} (${i.ItemCode})`;
-        return (
-          rule.buyProducts.includes(key) ||
-          rule.buyProducts.includes(i.ItemCode) ||
-          rule.buyProducts.includes(String(i._id))
+        if (rule.buyProducts.length === 1) {
+          if (matchedBuyItems[0].qty < rule.buyQty) valid = false;
+        } else {
+          matchedBuyItems.forEach((i) => {
+            if (i.qty < 1) valid = false;
+          });
+        }
+
+        if (!valid) {
+          console.log("⛔ Quantity condition failed");
+          return;
+        }
+
+        let sets = 1;
+        if (rule.buyProducts.length === 1) {
+          sets = Math.floor(matchedBuyItems[0].qty / rule.buyQty);
+        }
+
+        const freeQty = sets * rule.getQty;
+        if (freeQty <= 0) return;
+
+        console.log("🎁 freeQty:", freeQty);
+
+        const parentId = `BOGO-GROUP-${coupon._id}-${rIndex}`;
+        const buyNames = matchedBuyItems.map((b) => b.ItemName).join(" and ");
+
+        updatedCart = updatedCart.filter(
+          (i) => !(i.isFreeItem && i.bogoParentId === parentId)
         );
+
+        const freeProductId =
+          rule.freeMode === "same"
+            ? matchedBuyItems[0]._id
+            : rule.freeProducts[0];
+
+        const freeProduct = products.find(
+          (p) =>
+            String(p._id) === String(freeProductId) ||
+            p.ItemCode === freeProductId ||
+            `${p.ItemName} (${p.ItemCode})` === freeProductId
+        );
+
+        if (!freeProduct) {
+          console.warn("⛔ Free product not found");
+          return;
+        }
+
+        const lastBuyIndex = Math.max(
+          ...matchedBuyItems.map((b) =>
+            updatedCart.findIndex((i) => i.cartId === b.cartId)
+          )
+        );
+
+        const freeItem = {
+          cartId: `FREE-${freeProduct._id}-${parentId}`,
+          _id: freeProduct._id,
+          ItemName: `${freeProduct.ItemName} (FREE)`,
+          ItemCode: freeProduct.ItemCode,
+          price: 0,
+          qty: freeQty,
+          isFreeItem: true,
+          bogoParentId: parentId,
+          freeDescription: `This item is free with ${buyNames}`,
+        };
+
+        updatedCart.splice(lastBuyIndex + 1, 0, freeItem);
+
+        console.log("✅ FREE ITEM ADDED:", freeItem);
+      });
+    });
+
+    console.log("🏁 FINAL CART:", updatedCart);
+    return updatedCart;
+  }
+
+  const addProductToCart = useCallback(
+    (product, batch) => {
+      console.log("🛒 addProductToCart CALLED:", product.code);
+      const id = batch ? `${product._id}-${batch.BatchName}` : product._id;
+
+      setCart((prev) => {
+        let updatedCart = [...prev];
+        const exists = updatedCart.find((x) => x.cartId === id);
+
+        if (exists) {
+          updatedCart = updatedCart.map((x) =>
+            x.cartId === id ? { ...x, qty: x.qty + 1 } : x
+          );
+        } else {
+          updatedCart.push({
+            cartId: id,
+            _id: product._id,
+            ItemName: product.name,
+            ItemCode: product.code,
+            price: product.minimumRate,
+            qty: 1,
+
+            batch: batch
+              ? {
+                  stockItemId: batch._id,
+                  batchName: batch.batchName,
+                  godownName: batch.godownName,
+                  availableQty: batch.availableQty,
+                }
+              : null,
+
+            isFreeItem: false,
+            bogoParentId: null,
+          });
+        }
+        console.log("🛒 updatedCart:", updatedCart);
+        return applyBogoRules(updatedCart, bogoCoupons, products);
       });
 
-      console.log("🧾 matchedBuyItems:", matchedBuyItems);
-
-      // ❗ ALL buyProducts must be present
-      if (matchedBuyItems.length !== rule.buyProducts.length) {
-        console.log("⛔ Missing buy products");
-        return;
-      }
-
-      // 2️⃣ quantity validation
-      let valid = true;
-
-      if (rule.buyProducts.length === 1) {
-        // SAME PRODUCT
-        if (matchedBuyItems[0].qty < rule.buyQty) valid = false;
-      } else {
-        // DIFFERENT PRODUCTS
-        matchedBuyItems.forEach(i => {
-          if (i.qty < 1) valid = false;
-        });
-      }
-
-      if (!valid) {
-        console.log("⛔ Quantity condition failed");
-        return;
-      }
-
-      // 3️⃣ calculate sets
-      let sets = 1;
-      if (rule.buyProducts.length === 1) {
-        sets = Math.floor(matchedBuyItems[0].qty / rule.buyQty);
-      }
-
-      const freeQty = sets * rule.getQty;
-      if (freeQty <= 0) return;
-
-      console.log("🎁 freeQty:", freeQty);
-
-      // 4️⃣ parent group
-      const parentId = `BOGO-GROUP-${coupon._id}-${rIndex}`;
-      const buyNames = matchedBuyItems.map(b => b.ItemName).join(" and ");
-
-      // 5️⃣ clean old free of same rule
-      updatedCart = updatedCart.filter(
-        i => !(i.isFreeItem && i.bogoParentId === parentId)
-      );
-
-      // 6️⃣ find free product
-      const freeProductId =
-        rule.freeMode === "same"
-          ? matchedBuyItems[0]._id
-          : rule.freeProducts[0];
-
-      const freeProduct = products.find(p =>
-        String(p._id) === String(freeProductId) ||
-        p.ItemCode === freeProductId ||
-        `${p.ItemName} (${p.ItemCode})` === freeProductId
-      );
-
-      if (!freeProduct) {
-        console.warn("⛔ Free product not found");
-        return;
-      }
-
-      // 7️⃣ insert after last buy item
-      const lastBuyIndex = Math.max(
-        ...matchedBuyItems.map(b =>
-          updatedCart.findIndex(i => i.cartId === b.cartId)
-        )
-      );
-
-      const freeItem = {
-        cartId: `FREE-${freeProduct._id}-${parentId}`,
-        _id: freeProduct._id,
-        ItemName: `${freeProduct.ItemName} (FREE)`,
-        ItemCode: freeProduct.ItemCode,
-        price: 0,
-        qty: freeQty,
-        isFreeItem: true,
-        bogoParentId: parentId,
-        freeDescription: `This item is free with ${buyNames}`,
-      };
-
-      updatedCart.splice(lastBuyIndex + 1, 0, freeItem);
-
-      console.log("✅ FREE ITEM ADDED:", freeItem);
-    });
-  });
-
-  console.log("🏁 FINAL CART:", updatedCart);
-  return updatedCart;
-}
-
-
-
-
-
-  const addProductToCart = useCallback((product, batch) => {
-    console.log("🛒 addProductToCart CALLED:", product.ItemName);
-    const id = batch ? `${product._id}-${batch.BatchName}` : product._id;
-
-    setCart((prev) => {
-      let updatedCart = [...prev];
-
-      // -------------------------
-      // 1️⃣ NORMAL PRODUCT ADD
-      // -------------------------
-      const exists = updatedCart.find((x) => x.cartId === id);
-
-      if (exists) {
-        updatedCart = updatedCart.map((x) =>
-          x.cartId === id ? { ...x, qty: x.qty + 1 } : x
-        );
-      } else {
-        updatedCart.push({
-          cartId: id,
-          _id: product._id,
-          ItemName: product.ItemName,
-          ItemCode: product.ItemCode,
-          price: product.Price,
-          qty: 1,
-          batch: batch?.BatchName || null,
-          availableQty: batch?.Qty || null,
-          isFreeItem: false,
-          bogoParentId: null,
-        });
-      }
-      return applyBogoRules(updatedCart, bogoCoupons, products);
-
-    });
-
-    setBatchProduct(null);
-    setSearchText("");
-  }, [bogoCoupons, products]);
-
-
-
-
-  const addToCart = useCallback(
-    (prod) => {
-      const validBatches =
-        prod.GodownDetails?.filter(
-          (b) => b.BatchName && b.BatchName !== "No Batch" && b.Qty > 0
-        ) || [];
-
-      if (validBatches.length === 0) {
-        addProductToCart(prod, null);
-      } else {
-        setBatchProduct({ ...prod, GodownDetails: validBatches });
-      }
+      setBatchProduct(null);
+      setSearchText("");
     },
-    [addProductToCart]
+    [bogoCoupons, products]
   );
 
-  // ------------------------
-  // TOTALS
-  // ------------------------
+  const addToCart = useCallback(
+    (product) => {
+      if (product.batch) {
+        fetchProductBatches(product);
+      } else {
+        addProductToCart(product, null);
+      }
+    },
+    [addProductToCart, defaultSelected]
+  );
+
   const subtotal = useMemo(
     () =>
       Number(
-        cart.reduce((s, p) => {
-          if (p.isFreeItem) return s;
-          return s + p.qty * p.price;
-        }, 0).toFixed(2)
+        cart
+          .reduce((s, p) => {
+            if (p.isFreeItem) return s;
+            return s + p.qty * p.price;
+          }, 0)
+          .toFixed(2)
       ),
     [cart]
   );
 
-  const gstAmount = useMemo(() => Number((subtotal * 0.18).toFixed(2)), [subtotal]);
+  const gstAmount = useMemo(
+    () => Number((subtotal * 0.18).toFixed(2)),
+    [subtotal]
+  );
   const totalAmount = subtotal + gstAmount;
-
-  // ------------------------
-  // BILL ACTIONS
-  // ------------------------
-  
   const handleHoldBill = () => {
     addDraftBill({
       id: Date.now(),
@@ -334,7 +374,7 @@ function applyBogoRules(cart, bogoCoupons, products) {
       subtotal,
       gstAmount,
       totalAmount,
-      createdAt:  new Date().toLocaleDateString("en-CA"),
+      createdAt: new Date().toLocaleDateString("en-CA"),
     });
 
     setCart([]);
@@ -352,16 +392,38 @@ function applyBogoRules(cart, bogoCoupons, products) {
     setCashReceived("");
     setShowDraftModal(false);
   };
+  const createCustomerIfNeeded = async () => {
+    if (selectedCustomer?._id) {
+      return selectedCustomer._id;
+    }
+
+    if (customerName || customerPhone) {
+      try {
+        const res = await api.createCounterCustomer({
+          customerName: customerName?.trim(),
+          name: customerName?.trim(),
+          contactPerson: customerName?.trim(),
+          phoneNumber: customerPhone?.trim(),
+          companyId: defaultSelected?._id,
+        });
+
+        return res?.data?._id || null;
+      } catch (err) {
+        console.error("Customer create failed", err);
+        toast.error("Failed to create customer");
+        return null;
+      }
+    }
+
+    return null;
+  };
 
   const handleCompleteBill = async (paymentData) => {
     if (!cart || cart.length === 0) return;
-
+    
     const paymentType = paymentData.paymentType; // Cash | Card | UPI | SPLIT
     const payments = paymentData.payments || { cash: 0, card: 0, upi: 0 };
 
-    // ---------------------------
-    // 1️⃣ ADD ONLY CASH TO DRAWER
-    // ---------------------------
     let cashAmount = 0;
 
     if (paymentType === "SPLIT") {
@@ -374,14 +436,8 @@ function applyBogoRules(cart, bogoCoupons, products) {
       addToDrawerCash(cashAmount);
     }
 
-    // ---------------------------
-    // 2️⃣ BILL NUMBER
-    // ---------------------------
     const newBillNo = "INV-" + Math.floor(100000 + Math.random() * 900000);
 
-    // ---------------------------
-    // 3️⃣ BUILD PAYMENT INFO (DB SAFE)
-    // ---------------------------
     const paymentInfo = {
       paymentType,
       payments: {
@@ -390,20 +446,19 @@ function applyBogoRules(cart, bogoCoupons, products) {
         upi: Number(payments.upi || 0),
       },
     };
-
+    const customerId = await createCustomerIfNeeded();
+    console.log(customerId)
     const payload = {
       billNumber: newBillNo,
       createdAt: new Date().toLocaleDateString("en-CA"),
       companyId: defaultSelected?._id,
-
-      // ⭐ CUSTOMER MUST MATCH SCHEMA
-     customer: customerSearch || customerPhone
-  ? {
-      name: customerSearch?.trim() || null,
-      phone: customerPhone?.trim() || null,
-    }
-  : null,
-
+      customer: customerId
+        ? {
+            customerId: customerId,
+            name: customerName || null,
+            phone: customerPhone || null,
+          }
+        : null,
       items: cart.map((i) => ({
         itemId: i._id,
         name: i.ItemName,
@@ -411,14 +466,17 @@ function applyBogoRules(cart, bogoCoupons, products) {
         qty: i.qty,
         price: i.price,
         total: i.qty * i.price,
+        batch: {
+          stockItemId: i.batch?.stockItemId.split("_")[0],
+          batchName: i.batch?.batchName,
+          godownName: i.batch?.godownName,
+        },
       })),
 
       subtotal: Number(subtotal || 0),
 
-      // ⭐ VERY IMPORTANT (NAME MATCH)
       gstAmount: Number(paymentData.taxAmount || 0),
 
-      // ⭐ THIS FIXES YOUR ERROR
       totalAmount: Number(paymentData.grandTotal || 0),
 
       paymentInfo: {
@@ -430,22 +488,11 @@ function applyBogoRules(cart, bogoCoupons, products) {
         },
       },
     };
-
-
-    console.log("FINAL PAYLOAD →", payload);
-
-    // ---------------------------
-    // 5️⃣ API CALL
-    // ---------------------------
     try {
       await api.PosBillToServer(payload);
     } catch (err) {
       console.log("API ERROR:", err);
     }
-
-    // ---------------------------
-    // 6️⃣ ADD SALE TO SESSION (REPORT SAFE)
-    // ---------------------------
     usePosStore.getState().addSale({
       time: new Date().toISOString(),
       amount: Number(paymentData.grandTotal || 0),
@@ -453,21 +500,16 @@ function applyBogoRules(cart, bogoCoupons, products) {
       paymentMode: paymentType.toLowerCase(), // cash | card | upi | split
       split: paymentType === "SPLIT" ? paymentInfo.payments : null,
     });
-
-    // ---------------------------
-    // 7️⃣ UPDATE UI PREVIEW
-    // ---------------------------
     setBillNumber(newBillNo);
     setPreviewBill(payload);
     setShowPreview(true);
 
     setCart([]);
-setCustomerName("");
-setCustomerPhone("");
-setCustomerSearch(""); // ✅ MUST
-setPayment("");
-setCashReceived("");
-
+    setCustomerName("");
+    setCustomerPhone("");
+    setCustomerSearch("");
+    setPayment("");
+    setCashReceived("");
   };
 
   const handleDownloadInvoice = async () => {
@@ -490,16 +532,14 @@ setCashReceived("");
     setShowPreview(false);
   };
 
-
-
   return (
     <div className="w-full min-h-screen bg-gray-100">
-      {/* HEADER */}
       <div className="bg-blue-600 text-white p-2 flex justify-between">
         <h1 className="text-lg md:text-xl font-semibold">POS Billing</h1>
         <div className="flex items-center gap-3">
           <div className="bg-white/20 px-3 py-1 rounded-lg text-sm">
-            Drawer: {defaultCurrency+" "}{drawerCash.toFixed(2)}
+            Drawer: {defaultCurrency + " "}
+            {drawerCash.toFixed(2)}
           </div>
           <button
             onClick={() => setShowShiftModal(true)}
@@ -509,54 +549,61 @@ setCashReceived("");
           </button>
         </div>
       </div>
-     <div className="bg-white mx-3 mt-3 px-4 py-2 shadow-sm rounded-xl
-                grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+      <div className="bg-white mx-3 mt-3 px-4 py-2 shadow-sm rounded-xlgrid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+        <div className="sm:justify-self-start text-center sm:text-leftpx-4 py-2 rounded-md text-sm shadow-sm">
+          <span className="font-semibold">Bill No:</span> {billNumber || "----"}
+        </div>
 
-  {/* BILL NO */}
-  <div className="sm:justify-self-start text-center sm:text-left
-                  px-4 py-2 rounded-md text-sm shadow-sm">
-    <span className="font-semibold">Bill No:</span> {billNumber || "----"}
-  </div>
+        <div className="sm:justify-self-center text-centerpx-4 py-2 rounded-md text-sm shadow-sm">
+          <span className="font-semibold">Date:</span>{" "}
+          {new Date().toLocaleDateString("en-CA")}
+        </div>
 
-  {/* DATE */}
-  <div className="sm:justify-self-center text-center
-                  px-4 py-2 rounded-md text-sm shadow-sm">
-    <span className="font-semibold">Date:</span>{" "}
-    {new Date().toLocaleDateString("en-CA")}
-  </div>
+        <div className="sm:justify-self-end text-center">
+          <button
+            onClick={() => setShowDraftModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg w-full sm:w-auto"
+          >
+            Draft Bills
+          </button>
+        </div>
+      </div>
 
-  {/* BUTTON */}
-  <div className="sm:justify-self-end text-center">
-    <button
-      onClick={() => setShowDraftModal(true)}
-      className="bg-blue-600 text-white px-4 py-2 rounded-lg w-full sm:w-auto"
-    >
-      Draft Bills
-    </button>
-  </div>
-
-</div>
- 
-
-      {/* BODY */}
       <div className="p-3 grid grid-cols-1 md:grid-cols-12 gap-4">
         <div className="md:col-span-8 space-y-4">
-          {/* CUSTOMER SEARCH */}
           <div className="bg-white p-3 rounded-xl shadow grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold">
+                Enter Phone Number
+              </label>
+              <input
+                value={customerPhone}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setCustomerPhone(val);
+                }}
+                placeholder="Enter Phone Number"
+                className="w-full border rounded-xl px-2 py-1"
+              />
+            </div>
+
             <div className="relative">
-              <label className="text-xs font-semibold"> Enter Customer Name</label>
+              <label className="text-xs font-semibold">
+                Enter Customer Name
+              </label>
               <input
                 value={customerSearch}
-              onChange={(e) => {
-  const val = e.target.value;
-  setCustomerSearch(val);
-  setCustomerName(val);     // ✅ manual entry allowed
-  setShowCustomerDropdown(true);
-}}
-
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCustomerSearch(val);
+                  setCustomerName(val);
+                  setShowCustomerDropdown(true);
+                  setSelectedCustomer(null);
+                }}
                 placeholder="Enter customer Name"
                 className="w-full border rounded-xl px-2 py-1"
               />
+
               {showCustomerDropdown && customerResults.length > 0 && (
                 <div className="absolute z-50 bg-white border rounded-xl w-full max-h-48 overflow-y-auto">
                   {customerResults.map((c) => (
@@ -566,6 +613,7 @@ setCashReceived("");
                         setCustomerName(c.customerName);
                         setCustomerPhone(c.phoneNumber || c.mobileNumber);
                         setCustomerSearch(c.customerName);
+                        setSelectedCustomer(c);
                         setShowCustomerDropdown(false);
                       }}
                       className="p-2 hover:bg-gray-100 cursor-pointer"
@@ -576,25 +624,12 @@ setCashReceived("");
                 </div>
               )}
             </div>
-            <div >
-              <label htmlFor="" className="text-xs font-semibold">Enter Phone Number</label>
-              <br />
-            <input
-  value={customerPhone}
-  onChange={(e) => {
-    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-    setCustomerPhone(val);
-  }}
-  placeholder="Enter Phone Number"
-  className="w-full border rounded-xl px-2 py-1"
-/>
-
-            </div>
           </div>
 
-          {/* PRODUCT SEARCH */}
           <div className="bg-white p-3 rounded-xl shadow">
-            <label htmlFor="" className="text-xs font-semibold">Search Products</label>
+            <label htmlFor="" className="text-xs font-semibold">
+              Search Products
+            </label>
             <input
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
@@ -609,7 +644,7 @@ setCashReceived("");
                     onClick={() => addToCart(p)}
                     className="p-2 hover:bg-gray-100 cursor-pointer"
                   >
-                    {p.ItemName}
+                    {p.name}
                   </div>
                 ))}
               </div>
@@ -645,6 +680,7 @@ setCashReceived("");
           product={batchProduct}
           onSelectBatch={(b) => addProductToCart(batchProduct, b)}
           onClose={() => setBatchProduct(null)}
+          batches={batches}
         />
       )}
 
@@ -663,42 +699,47 @@ setCashReceived("");
       {showPreview && previewBill && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white w-[750px] max-h-[90vh] overflow-y-auto p-8 rounded-2xl shadow-xl border">
-
-            {/* HEADER */}
             <div className="flex justify-between items-start border-b pb-4">
-
-              {/* LEFT COMPANY INFO */}
               <div>
                 <h1 className="text-2xl font-bold">
                   {defaultSelected?.namePrint || "Company Name"}
                 </h1>
 
                 <p className="text-sm text-gray-700">
-                  {defaultSelected?.address1}, {defaultSelected?.address2}, {defaultSelected?.address3}
+                  {defaultSelected?.address1}, {defaultSelected?.address2},{" "}
+                  {defaultSelected?.address3}
                 </p>
 
                 <p className="text-sm text-gray-700">
-                  {defaultSelected?.city}, {defaultSelected?.state} - {defaultSelected?.pincode}
+                  {defaultSelected?.city}, {defaultSelected?.state} -{" "}
+                  {defaultSelected?.pincode}
                 </p>
 
                 {defaultSelected?.mobile && (
-                  <p className="text-sm text-gray-700">Mobile: {defaultSelected.mobile}</p>
+                  <p className="text-sm text-gray-700">
+                    Mobile: {defaultSelected.mobile}
+                  </p>
                 )}
 
                 {defaultSelected?.telephone && (
-                  <p className="text-sm text-gray-700">Phone: {defaultSelected.telephone}</p>
+                  <p className="text-sm text-gray-700">
+                    Phone: {defaultSelected.telephone}
+                  </p>
                 )}
 
                 {defaultSelected?.gstNumber && (
-                  <p className="text-sm text-gray-700">GST: {defaultSelected.gstNumber}</p>
+                  <p className="text-sm text-gray-700">
+                    GST: {defaultSelected.gstNumber}
+                  </p>
                 )}
 
                 {defaultSelected?.website && (
-                  <p className="text-sm text-gray-700">Website: {defaultSelected.website}</p>
+                  <p className="text-sm text-gray-700">
+                    Website: {defaultSelected.website}
+                  </p>
                 )}
               </div>
 
-              {/* LOGO */}
               {defaultSelected?.logo && (
                 <img
                   src={defaultSelected.logo}
@@ -708,22 +749,26 @@ setCashReceived("");
               )}
             </div>
 
-            {/* BILL INFO */}
             <div className="flex justify-between mt-4 border-b pb-3">
               <div>
-                <p><b>Invoice No:</b> {previewBill.billNumber}</p>
+                <p>
+                  <b>Invoice No:</b> {previewBill.billNumber}
+                </p>
                 <p className="text-sm text-gray-600">
-               {new Date(previewBill.createdAt).toLocaleDateString("en-CA")}
+                  {new Date(previewBill.createdAt).toLocaleDateString("en-CA")}
                 </p>
               </div>
 
               <div>
-                <p><b>Customer:</b> {previewBill.customer?.name || "N/A"}</p>
-                <p><b>Phone:</b> {previewBill.customer?.phone || "N/A"}</p>
+                <p>
+                  <b>Customer:</b> {previewBill.customer?.name || "N/A"}
+                </p>
+                <p>
+                  <b>Phone:</b> {previewBill.customer?.phone || "N/A"}
+                </p>
               </div>
             </div>
 
-            {/* ITEMS TABLE */}
             <table className="w-full mt-5 border">
               <thead>
                 <tr className="bg-gray-100 text-left">
@@ -743,13 +788,17 @@ setCashReceived("");
                     <td className="border p-2">
                       {it.ItemName || it.name || "-"}
                     </td>
-                    <td className="border p-2">{it.batch || "-"}</td>
+                    <td className="border p-2">
+                      {it?.batch?.batchName || "-"}
+                    </td>
                     <td className="border p-2">{it.qty}</td>
                     <td className="border p-2">
-                      {defaultCurrency+" "}{Number(it.price || 0).toFixed(2)}
+                      {defaultCurrency + " "}
+                      {Number(it.price || 0).toFixed(2)}
                     </td>
                     <td className="border p-2 font-semibold">
-                      {defaultCurrency+" "}{Number((it.price || 0) * (it.qty || 0)).toFixed(2)}
+                      {defaultCurrency + " "}
+                      {Number((it.price || 0) * (it.qty || 0)).toFixed(2)}
                     </td>
                   </tr>
                 ))}
@@ -759,13 +808,16 @@ setCashReceived("");
             {/* TOTALS */}
             <div className="mt-6 text-right pr-3">
               <p className="text-sm">
-                Subtotal: {defaultCurrency+" "}{Number(previewBill.subtotal || 0).toFixed(2)}
+                Subtotal: {defaultCurrency + " "}
+                {Number(previewBill.subtotal || 0).toFixed(2)}
               </p>
               <p className="text-sm">
-                Tax: {defaultCurrency+" "}{Number(previewBill.gstAmount || 0).toFixed(2)}
+                Tax: {defaultCurrency + " "}
+                {Number(previewBill.gstAmount || 0).toFixed(2)}
               </p>
               <p className="text-xl font-bold text-green-700">
-                Grand Total: {defaultCurrency+" "}{Number(previewBill.totalAmount || 0).toFixed(2)}
+                Grand Total: {defaultCurrency + " "}
+                {Number(previewBill.totalAmount || 0).toFixed(2)}
               </p>
             </div>
 
@@ -780,20 +832,27 @@ setCashReceived("");
 
                 {previewBill.paymentInfo?.paymentType === "SPLIT" && (
                   <>
-                    <p>Cash: {defaultCurrency+" "}{previewBill.paymentInfo.payments.cash}</p>
-                    <p>Card: {defaultCurrency+" "}{previewBill.paymentInfo.payments.card}</p>
-                    <p>UPI: {defaultCurrency+" "}{previewBill.paymentInfo.payments.upi}</p>
+                    <p>
+                      Cash: {defaultCurrency + " "}
+                      {previewBill.paymentInfo.payments.cash}
+                    </p>
+                    <p>
+                      Card: {defaultCurrency + " "}
+                      {previewBill.paymentInfo.payments.card}
+                    </p>
+                    <p>
+                      UPI: {defaultCurrency + " "}
+                      {previewBill.paymentInfo.payments.upi}
+                    </p>
                   </>
                 )}
               </div>
             </div>
 
-            {/* FOOTER */}
             <p className="text-center mt-8 text-sm text-gray-500">
               Thank you for shopping with us!
             </p>
 
-            {/* BUTTONS */}
             <div className="mt-6 flex gap-4">
               <button
                 onClick={handleDownloadInvoice}
@@ -808,7 +867,6 @@ setCashReceived("");
                 Close
               </button>
             </div>
-
           </div>
         </div>
       )}

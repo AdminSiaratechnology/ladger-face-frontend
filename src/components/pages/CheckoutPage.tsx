@@ -16,8 +16,6 @@ export default function CheckoutPage() {
     company,
     totalAmount = 0,
   } = location.state || {};
-
-  // State for delivery address editing
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState({
     name: selectedCustomer?.customerName || "",
@@ -28,7 +26,6 @@ export default function CheckoutPage() {
     phone: selectedCustomer?.phone || "",
   });
 
-  // State for payment method
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState("Cash on Delivery");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,9 +35,8 @@ export default function CheckoutPage() {
     setDeliveryAddress({ ...deliveryAddress, [e.target.name]: e.target.value });
   };
 
-  // Place order
   const handlePayment = async () => {
-    if (isSubmitting) return; // ⛔ prevent multiple rapid clicks
+    if (isSubmitting) return;
     setIsSubmitting(true);
     console.log(cart);
     const orderData = {
@@ -63,6 +59,13 @@ export default function CheckoutPage() {
         price: item.minimumRate,
         total: item.minimumRate * item.quantity,
         discount: 0,
+        batch: item.batch
+          ? {
+              stockItemId: item.batch.stockItemId,
+              batchName: item.batch.batchName,
+              godownName: item.batch.godownName,
+            }
+          : undefined,
       })),
     };
 
@@ -80,7 +83,6 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-full mx-auto p-2">
-      {/* Header */}
       <div className="flex items-center gap-3 border-b pb-3 mb-4">
         <div>
           <h1 className="text-2xl font-semibold text-teal-600">New Order</h1>
@@ -92,21 +94,32 @@ export default function CheckoutPage() {
       </div>
 
       <div className="space-y-6">
-        {/* Order Items */}
         <div className="border rounded-lg p-4">
           <h2 className="font-semibold text-lg text-gray-700">Order Items</h2>
           <div className="divide-y">
             {cart.map((item) => (
               <div
                 key={item._id}
-                className="flex justify-between items-center py-2"
+                className="flex justify-between items-start py-3"
               >
                 <div>
                   <h3 className="font-medium text-gray-800">{item.name}</h3>
+
+                  {item.batch?.batchName && item.batch?.godownName && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Batch:{" "}
+                      <span className="font-medium">
+                        {item.batch.batchName}
+                      </span>{" "}
+                      • {item.batch.godownName}
+                    </p>
+                  )}
+
                   <p className="text-sm text-gray-500">
                     ₹{item.minimumRate?.toFixed(2)} × {item.quantity}
                   </p>
                 </div>
+
                 <p className="font-semibold text-gray-700">
                   ₹{(item.minimumRate * item.quantity).toFixed(2)}
                 </p>

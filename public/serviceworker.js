@@ -17,17 +17,43 @@ self.addEventListener("install", (event) => {
 });
 
 // 🔹 FETCH
+// self.addEventListener("fetch", (event) => {
+//   event.respondWith(
+//     fetch(event.request).catch(() => {
+//       return caches.match(event.request).then((response) => {
+//         return response || caches.match("/offline.html");
+//       }).catch((err)=>{
+//         return aches.match("/offline.html")
+//       });
+//     })
+//   );
+// });
+
 self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // 🚫 API calls ko ignore karo
+  if (
+    url.pathname.startsWith("/api") ||
+    request.method !== "GET"
+  ) {
+    return; // browser direct handle karega
+  }
+
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request).then((response) => {
-        return response || caches.match("/offline.html");
-      }).catch((err)=>{
-        return aches.match("/offline.html")
-      });
-    })
+    fetch(request)
+      .then((response) => {
+        return response;
+      })
+      .catch(() => {
+        return caches.match(request).then((cached) => {
+          return cached || caches.match("/offline.html");
+        });
+      })
   );
 });
+
 
 // 🔹 ACTIVATE
 self.addEventListener("activate", (event) => {

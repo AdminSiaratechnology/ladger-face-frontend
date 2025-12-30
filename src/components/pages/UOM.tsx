@@ -289,7 +289,7 @@ const UnitManagement: React.FC = () => {
 
       if (editingUnit) {
         await updateUnit({ unitId: editingUnit._id, data: submitData });
-        toast.success("Unit updated successfully");
+        // toast.success("Unit updated successfully");
       } else {
         await addUnit(submitData);
         filterUnits(
@@ -300,7 +300,7 @@ const UnitManagement: React.FC = () => {
           limit,
           defaultSelected?._id
         );
-        toast.success("Unit added successfully");
+        // toast.success("Unit added successfully");
       }
       setOpen(false);
       resetForm();
@@ -609,13 +609,9 @@ const UnitManagement: React.FC = () => {
       />
       {loading && <TableViewSkeleton />}
 
-      <ViewModeToggle
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        totalItems={pagination?.total}
-      />
+    
 
-      {pagination?.total === 0 ? (
+      {!loading && ( pagination?.total === 0 ? (
         <EmptyStateCard
           icon={Calculator}
           title="No units registered yet"
@@ -628,6 +624,11 @@ const UnitManagement: React.FC = () => {
         />
       ) : (
         <>
+          <ViewModeToggle
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalItems={pagination?.total}
+      />
           {viewMode === "table" ? <TableView /> : <CardView />}
           <PaginationControls
             currentPage={currentPage}
@@ -636,7 +637,7 @@ const UnitManagement: React.FC = () => {
             itemName="units"
           />
         </>
-      )}
+      ))}
 
       <Dialog
         open={open}

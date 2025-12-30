@@ -1,19 +1,12 @@
 // src/pages/CustomerGroupManagement.tsx
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
-import {
-  Users,
-  Hash,
-  FileText,
-  Edit,
-  Trash2,
-  Plus,
-} from "lucide-react";
+import { Users, Hash, FileText, Edit, Trash2, Plus } from "lucide-react";
 
 import CustomInputBox from "../customComponents/CustomInputBox";
 import { useCustomerGroupStore } from "../../../store/CustomerGroupStore"; // Adjust path if needed
@@ -31,11 +24,22 @@ import CustomFormDialogHeader from "../customComponents/CustomFromDialogHeader";
 import EmptyStateCard from "../customComponents/EmptyStateCard";
 import SelectedCompany from "../customComponents/SelectedCompany";
 import UniversalInventoryDetailsModal from "../customComponents/UniversalInventoryDetailsModal";
+import CommonStats from "../customComponents/CommonStats";
+
+interface StatItem {
+  title: string;
+  value: string | number;
+  icon?: any;
+  variant: string;
+  showPulse?: boolean;
+  description?: string;
+}
 
 interface CustomerGroup {
   _id: string;
-  groupName: string;
-  groupCode: string;
+  name?: string;
+
+  code?: string;
   status: "active" | "inactive";
   createdAt: string;
   companyId: string;
@@ -47,10 +51,16 @@ const CustomerGroupManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [editingGroup, setEditingGroup] = useState<CustomerGroup | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
-  const [sortBy, setSortBy] = useState<"nameAsc" | "nameDesc" | "dateAsc" | "dateDesc">("dateDesc");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+  const [sortBy, setSortBy] = useState<
+    "nameAsc" | "nameDesc" | "dateAsc" | "dateDesc"
+  >("dateDesc");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedGroup, setSelectedGroup] = useState<CustomerGroup | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<CustomerGroup | null>(
+    null
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -67,27 +77,49 @@ const CustomerGroupManagement: React.FC = () => {
     updateGroup,
     deleteGroup,
   } = useCustomerGroupStore();
+  console.log(counts, "counts");
+  const groupStats: StatItem[] = useMemo(() => {
+    return [
+      {
+        title: "Total Groups",
+        value: counts?.total,
+        icon: Users,
+        variant: "indigo", // Mapped to from-indigo-500 to-indigo-600
+      },
+      {
+        title: "Active",
+        value: counts?.active,
+        variant: "green", // Mapped to from-green-500 to-green-600
+        showPulse: true,
+      },
+      {
+        title: "Inactive",
+        value: counts?.inactive,
+        variant: "red", // Mapped to from-red-500 to-red-600
+      },
+    ];
+  }, [counts?.totalGroups, counts?.activeGroups, counts?.inactiveGroups]);
 
   const { defaultSelected } = useCompanyStore();
 
   // Form state
-const [formData, setFormData] = useState({
-  groupName: "",
-  status: "active" as const,
-  parentGroup: null as string | null,
-  companyId: "",
-});
+  const [formData, setFormData] = useState({
+    name: "",
+    status: "active" as const,
+    parentGroup: null as string | null,
+    companyId: "",
+  });
 
   // Reset form
   const resetForm = useCallback(() => {
-    setFormData({ groupName: "", status: "active", companyId: "" });
+    setFormData({ name: "", status: "active", companyId: "" });
     setEditingGroup(null);
   }, []);
 
   // Load data when company changes
   useEffect(() => {
     if (defaultSelected?._id) {
-      setFormData(prev => ({ ...prev, companyId: defaultSelected._id }));
+      setFormData((prev) => ({ ...prev, companyId: defaultSelected._id }));
       fetchGroups(defaultSelected._id);
     }
   }, [defaultSelected]);
@@ -99,7 +131,7 @@ const [formData, setFormData] = useState({
         fetchGroups(defaultSelected._id, {
           search: searchTerm,
           status: statusFilter === "all" ? "" : statusFilter,
-          sortBy: sortBy.includes("name") ? "groupName" : "createdAt",
+          sortBy: sortBy.includes("name") ? "name" : "createdAt",
           sortOrder: sortBy.includes("Desc") ? "desc" : "asc",
           page: currentPage,
           limit,
@@ -116,24 +148,24 @@ const [formData, setFormData] = useState({
     setIsSubmitting(true);
 
     try {
-      if (!formData.groupName.trim()) {
+      if (!formData.name.trim()) {
         toast.error("Group name is required");
         return;
       }
 
-    const payload = {
-  groupName: formData.groupName.trim(),
-  status: formData.status,
-  parentGroup: formData.parentGroup,
-  companyId: formData.companyId,
-};
+      const payload = {
+        name: formData.name.trim(),
+        status: formData.status,
+        parentGroup: formData.parentGroup,
+        companyId: formData.companyId,
+      };
 
       if (editingGroup) {
         await updateGroup(editingGroup._id, payload);
-        toast.success("Customer group updated successfully");
+        // toast.success("Customer group updated successfully");
       } else {
         await createGroup(payload);
-        toast.success("Customer group created successfully");
+        // toast.success("Customer group created successfully");
       }
 
       setOpen(false);
@@ -147,15 +179,15 @@ const [formData, setFormData] = useState({
 
   // Handle Edit
   const handleEdit = (group: CustomerGroup) => {
-  setEditingGroup(group);
-  setFormData({
-    groupName: group.groupName,
-    status: group.status,
-    parentGroup: group.parentGroup,
-    companyId: group.companyId,
-  });
-  setOpen(true);
-};
+    setEditingGroup(group);
+    setFormData({
+      name: group.name,
+      status: group.status,
+      parentGroup: group.parentGroup,
+      companyId: group.companyId,
+    });
+    setOpen(true);
+  };
 
   // Handle View
   const handleView = (group: CustomerGroup) => {
@@ -176,15 +208,26 @@ const [formData, setFormData] = useState({
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <TableHeader
-            headers={["Group Name", "Group Code", "Status", "Created Date", "Actions"]}
+            headers={[
+              "Group Name",
+              "Group Code",
+              "Status",
+              "Created Date",
+              "Actions",
+            ]}
           />
           <tbody className="bg-white divide-y divide-gray-200">
             {groups.map((group) => (
-              <tr key={group._id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 font-medium text-gray-900">{group.groupName}</td>
+              <tr
+                key={group._id}
+                className="hover:bg-gray-50 transition-colors"
+              >
+                <td className="px-6 py-4 font-medium text-gray-900">
+                  {group.name}
+                </td>
                 <td className="px-6 py-4">
                   <Badge variant="secondary" className="font-mono">
-                    {group.groupCode}
+                    {group?.code}
                   </Badge>
                 </td>
                 <td className="px-6 py-4">
@@ -206,7 +249,9 @@ const [formData, setFormData] = useState({
                     onView={() => handleView(group)}
                     onEdit={() => handleEdit(group)}
                     onDelete={() => {
-                      if (confirm("Are you sure you want to delete this group?")) {
+                      if (
+                        confirm("Are you sure you want to delete this group?")
+                      ) {
                         deleteGroup(group._id);
                         toast.success("Group deleted");
                       }
@@ -227,11 +272,14 @@ const [formData, setFormData] = useState({
   const CardView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {groups.map((group) => (
-        <Card key={group._id} className="hover:shadow-xl transition-all duration-300 border border-gray-100">
+        <Card
+          key={group._id}
+          className="hover:shadow-xl transition-all duration-300 border border-gray-100"
+        >
           <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
             <div className="flex justify-between items-start">
               <CardTitle className="text-lg font-semibold text-gray-800">
-                {group.groupName}
+                {group.name}
               </CardTitle>
               <Badge
                 className={
@@ -245,7 +293,7 @@ const [formData, setFormData] = useState({
             </div>
             <div className="flex items-center gap-2 mt-3 text-sm text-gray-600">
               <Hash className="w-4 h-4" />
-              <span className="font-mono">{group.groupCode}</span>
+              <span className="font-mono">{group?.code}</span>
             </div>
           </CardHeader>
           <CardContent className="pt-4">
@@ -268,7 +316,7 @@ const [formData, setFormData] = useState({
               >
                 <Edit className="w-4 h-4" />
               </Button>
-              <Button
+              {/* <Button
                 size="sm"
                 variant="destructive"
                 onClick={() => {
@@ -279,7 +327,7 @@ const [formData, setFormData] = useState({
                 }}
               >
                 <Trash2 className="w-4 h-4" />
-              </Button>
+              </Button> */}
             </div>
           </CardContent>
         </Card>
@@ -297,25 +345,32 @@ const [formData, setFormData] = useState({
           icon={Users}
         />
 
-        <CheckAccess module="CustomerManagement" subModule="CustomerGroup" type="create">
+        <CheckAccess
+          module="CustomerManagement"
+          subModule="CustomerGroup"
+          type="create"
+        >
           <Button
             onClick={() => {
               resetForm();
               if (defaultSelected?._id) {
-                setFormData(prev => ({ ...prev, companyId: defaultSelected._id }));
+                setFormData((prev) => ({
+                  ...prev,
+                  companyId: defaultSelected._id,
+                }));
               }
               setOpen(true);
             }}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all"
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
           >
-            <Plus className="w-5 h-5 mr-2" />
+            <Plus className="w-4 h-4" />
             Add Customer Group
           </Button>
         </CheckAccess>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -350,17 +405,8 @@ const [formData, setFormData] = useState({
           </CardContent>
         </Card>
 
-        {/* <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-xl">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <p className="text-purple-100 text-sm">Last Updated</p>
-              <p className="text-lg font-semibold mt-2">
-                {new Date().toLocaleTimeString()}
-              </p>
-            </div>
-          </CardContent>
-        </Card> */}
-      </div>
+      </div> */}
+      <CommonStats stats={groupStats} columns={4} loading={loading} />
 
       {/* Filters */}
       <FilterBar
@@ -386,10 +432,12 @@ const [formData, setFormData] = useState({
         <p className="text-sm text-gray-600">
           Showing {groups.length} of {pagination?.total || 0} groups
         </p>
-        <ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} totalItems={pagination?.total} />
+        <ViewModeToggle
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          totalItems={pagination?.total}
+        />
       </div>
-
-      
 
       {!loading && groups.length === 0 && (
         <EmptyStateCard
@@ -424,7 +472,9 @@ const [formData, setFormData] = useState({
       }}>
         <DialogContent className="custom-dialog-container">
           <CustomFormDialogHeader
-            title={editingGroup ? "Edit Customer Group" : "Create Customer Group"}
+            title={
+              editingGroup ? "Edit Customer Group" : "Create Customer Group"
+            }
             subtitle={
               editingGroup
                 ? "Update group information"
@@ -432,69 +482,83 @@ const [formData, setFormData] = useState({
             }
           />
 
-       {/* Inside DialogContent */}
-<div className="space-y-6 py-4">
-  <SelectedCompany />
+          {/* Inside DialogContent */}
+          <div className="space-y-6 py-4">
+            <SelectedCompany />
 
-  <CustomInputBox
-    label="Group Name *"
-    placeholder="e.g., South India Dealers"
-    value={formData.groupName}
-    onChange={(e) => setFormData({ ...formData, groupName: e.target.value })}
-    required
-  />
+            <CustomInputBox
+              label="Group Name"
+              placeholder="e.g., South India Dealers"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              required
+            />
 
-  {/* NEW: Parent Group Dropdown */}
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">
-      Parent Group (Optional)
-    </label>
-    <select
-      value={formData.parentGroup || ""}
-      onChange={(e) => setFormData({ ...formData, parentGroup: e.target.value || null })}
-      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-    >
-      <option value="">None (Root Group)</option>
-      {groups
-        .filter((g) => g._id !== editingGroup?._id)
-        .map((group => (
-          <option key={group._id} value={group._id}>
-            {group.groupName} ({group.groupCode})
-          </option>
-        )))}
-    </select>
-    <p className="text-xs text-gray-500 mt-1">
-      Choose a parent to create a sub-group (e.g., "South India" under "India")
-    </p>
-  </div>
+            {/* NEW: Parent Group Dropdown */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Parent Group (Optional)
+              </label>
+              <select
+                value={formData.parentGroup || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    parentGroup: e.target.value || null,
+                  })
+                }
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+              >
+                <option value="">None (Root Group)</option>
+                {groups
+                  .filter((g) => g._id !== editingGroup?._id)
+                  .map((group) => (
+                    <option key={group._id} value={group._id}>
+                      {group.name} ({group.code})
+                    </option>
+                  ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Choose a parent to create a sub-group (e.g., "South India" under
+                "India")
+              </p>
+            </div>
 
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">
-      Status
-    </label>
-    <select
-      value={formData.status}
-      onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-    >
-      <option value="active">Active</option>
-      <option value="inactive">Inactive</option>
-    </select>
-  </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value as any })
+                }
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
 
-  <div className="flex justify-end gap-3 pt-4">
-    <Button variant="outline" onClick={() => setOpen(false)}>
-      Cancel
-    </Button>
-    <Button
-      onClick={handleSubmit}
-      disabled={isSubmitting}
-      className="bg-indigo-600 hover:bg-indigo-700 text-white"
-    >
-      {isSubmitting ? "Saving..." : editingGroup ? "Update Group" : "Create Group"}
-    </Button>
-  </div>
-</div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                {isSubmitting
+                  ? "Saving..."
+                  : editingGroup
+                  ? "Update Group"
+                  : "Create Group"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -3,9 +3,9 @@ import { useCompanyStore } from "../../../store/companyStore";
 import CustomInputBox from "./CustomInputBox";
 
 interface SelectedCompanyProps {
-  editing: boolean | null;
-  handleSelectChange: (name: string, value: string) => void;
-  companyId: string;
+  editing?: boolean | null;
+  handleSelectChange?: (name: string, value: string) => void;
+  companyId?: string;
 }
 
 const SelectedCompany: React.FC<SelectedCompanyProps> = ({}) => {

@@ -22,7 +22,6 @@ const ProductCard = ({
   onIncrease,
   onDecrease,
 }: any) => {
-  console.log(product);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const nextImage = (e: React.MouseEvent) => {
@@ -133,8 +132,7 @@ const ProductSelection = () => {
   const location = useLocation();
   const { selectedCustomer, selectedRoute, company } = location.state || {};
   const { defaultSelected } = useCompanyStore();
-  const { fetchProducts, filterProducts, products, pagination } =
-    useProductStore();
+  const { fetchProducts, filterProducts, products, pagination } = useProductStore();
   const [cart, setCart] = useState<any[]>([]);
   const [showReview, setShowReview] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -153,7 +151,6 @@ const ProductSelection = () => {
     }
   }, [defaultSelected]);
 
-  // ✅ Search & Filter
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (searchTerm.trim()) {
@@ -161,7 +158,7 @@ const ProductSelection = () => {
           searchTerm,
           "",
           "nameAsc",
-          defaultSelected?._id, // ✅ Option A order
+          defaultSelected?._id,
           currentPage,
           10
         );
@@ -180,7 +177,6 @@ const ProductSelection = () => {
         const serverCart = await api.fetchCart({
           companyId: defaultSelected._id,
         });
-
         const normalized = serverCart.cart.map((c: any) => ({
           _id: c.product._id,
           name: c.product.name,
@@ -190,7 +186,8 @@ const ProductSelection = () => {
           minimumRate: c.product.minimumRate,
           quantity: c.quantity,
           images: c.product.productId?.images ?? [],
-          batch: c.product.batch,
+          batch: c.batch,
+          
         }));
 
         setCart(normalized);
@@ -203,15 +200,12 @@ const ProductSelection = () => {
     loadCart();
   }, [defaultSelected?._id]);
 
-  // ✅ Handle Search Input
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
   };
 
-  // ✅ Add to Cart
   const handleAddToCart = async (product: any) => {
-    // 🔴 CASE 1: Batch product → Preview page
     if (product.batch === true) {
       navigate(`/preview-products/${product._id}`, {
         state: {
@@ -224,12 +218,10 @@ const ProductSelection = () => {
       return;
     }
 
-    // 🟢 CASE 2: Normal product → Direct cart add
     const payload = {
       items: [{ productId: product._id, quantity: 1 }],
     };
 
-    // optimistic UI
     setCart((prev) => [...prev, { ...product, quantity: 1 }]);
     setShowReview(true);
 
@@ -339,8 +331,8 @@ const ProductSelection = () => {
     _id: item._id,
     name: item.name,
     code: item.code,
-    stockGroup: item.stockGroup.name,
-    stockCategory: item.stockCategory.name,
+    stockGroup: item.stockGroup?.name,
+    stockCategory: item.stockCategory?.name,
     minimumRate: item.minimumRate,
     batch: item.batch,
     images: item.images,
@@ -446,9 +438,7 @@ const ProductSelection = () => {
         </select>
       </div>
 
-      {/* Main Layout */}
       <div className="flex relative transition-all duration-500 shadow-sm p-2 gap-8">
-        {/* Product Section */}
         <motion.div
           animate={{ width: showReview ? "calc(100% - 400px)" : "100%" }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}

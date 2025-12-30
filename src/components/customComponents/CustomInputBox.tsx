@@ -19,7 +19,7 @@ type InputType =
 interface CustomInputBoxProps {
   label?: string;
   placeholder: string;
-  name: string;
+  name?: string;
   value: string | number | null;
   onChange?: (e: React.ChangeEvent<HTMLInputElement> | string) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
