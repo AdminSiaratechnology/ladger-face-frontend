@@ -17,7 +17,9 @@ import {
   Users,
   Calendar,
   Eye,
+  Trash2
 } from "lucide-react";
+
 
 import { useStockGroup } from "../../../store/stockGroupStore";
 import { useCompanyStore } from "../../../store/companyStore";
@@ -28,7 +30,7 @@ import EmptyStateCard from "../customComponents/EmptyStateCard";
 import TableHeader from "../customComponents/CustomTableHeader";
 import SettingsDropdown from "../customComponents/SettingsDropdown";
 
-import { createPriceLevel, fetchPriceLevels, fetchPriceList, fetchPriceListById, importPriceListFromCSV } from "../../api/api";
+import { createPriceLevel, deletePriceList, fetchPriceLevels, fetchPriceList, fetchPriceListById, importPriceListFromCSV } from "../../api/api";
 import { exportToExcel } from "../../lib/exportToExcel";
 import { ImportCSVModal } from "../customComponents/ImportCSVModal";
 import UniversalInventoryDetailsModal from "../customComponents/UniversalInventoryDetailsModal";
@@ -79,6 +81,8 @@ export default function PriceListManagement() {
   });
 
   const todayDate = () => new Date().toISOString().split("T")[0];
+  const today = new Date().toISOString().split("T")[0];
+
 
   //fetch date
   useEffect(() => {
@@ -94,17 +98,48 @@ export default function PriceListManagement() {
   /* =========================
      FETCH DATA
   ========================= */
-  useEffect(() => {
+  const loadPriceLists = async () => {
     if (!defaultSelected?._id) return;
 
-    fetchPriceLevels(defaultSelected._id)
-      .then((res) => {
-        const data = res.data.data || [];
+    try {
+      const res = await fetchPriceList(defaultSelected._id);
+      const data = res.data.data || [];
 
-        // 👇 ONLY dropdown ke liye
-        setPriceLevels(data);   // [{ _id, name }]
-      })
-      .catch(() => toast.error("Failed to load price levels"));
+      setPriceLevelLists(
+        data.map((pl: any, i: number) => ({
+          id: pl._id || i,
+          name: pl.priceLevel,
+          status: "active",
+          clientId: pl.clientId || "",
+          validFrom: pl.applicableFrom,
+          stockGroupName: pl.stockGroupName,
+          page: pl.page,
+          itemCount: pl.items?.length || 0,
+        }))
+      );
+    } catch {
+      toast.error("Failed to load price lists");
+    }
+  };
+  const loadPriceLevels = async () => {
+    if (!defaultSelected?._id) return;
+
+    try {
+      const res = await fetchPriceLevels(defaultSelected._id);
+      setPriceLevels(res.data.data || []);
+    } catch {
+      toast.error("Failed to load price levels");
+    }
+  };
+
+  useEffect(() => {
+    loadPriceLists();
+    loadPriceLevels();
+  }, [defaultSelected?._id]);
+
+
+  useEffect(() => {
+    loadPriceLists();
   }, [defaultSelected?._id]);
 
 
@@ -167,16 +202,33 @@ export default function PriceListManagement() {
     );
   }, [stockGroups, groupSearch]);
 
-  const stats = useMemo(() => ({
-    total: priceLevelLists.length,
-    active: priceLevelLists.filter(p => p.status === "active").length,
-    draft: priceLevelLists.filter(p => p.status === "draft").length,
-    client: new Set(
-      priceLevelLists
-        .map(p => p.clientId)
-        .filter(id => id && id !== "0")
-    ).size,
-  }), [priceLevelLists]);
+  const stats = useMemo(() => {
+    const active = priceLevelLists.filter(
+      (p: any) =>
+        p.validFrom &&
+        p.validFrom <= today &&
+        p.status !== "draft"
+    ).length;
+
+    const upcoming = priceLevelLists.filter(
+      (p: any) =>
+        p.validFrom &&
+        p.validFrom > today &&
+        p.status !== "draft"
+    ).length;
+
+    const draft = priceLevelLists.filter(
+      (p: any) => p.status === "draft"
+    ).length;
+
+    return {
+      total: priceLevelLists.length,
+      active,
+      upcoming,
+      draft,
+    };
+  }, [priceLevelLists, today]);
+
 
   /* =========================
      ACTIONS
@@ -318,6 +370,32 @@ export default function PriceListManagement() {
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
+                  {/* DELETE */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700  cursor-pointer"
+                    onClick={async () => {
+                      const confirmed = window.confirm(
+                        "Are you sure you want to delete this price list?"
+                      );
+
+                      if (!confirmed) return;
+
+                      try {
+                        await deletePriceList(pl.id);
+                        toast.success("Price list deleted successfully");
+
+                        // 🔥 UI turant update
+                        await loadPriceLists();
+
+                      } catch {
+                        toast.error("Failed to delete price list");
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
 
 
                 </div>
@@ -372,20 +450,20 @@ export default function PriceListManagement() {
                 size="sm"
                 className="text-blue-600 hover:text-blue-700 cursor-pointer"
               >
-               onClick={async () => {
-  try {
-    const res = await fetchPriceListById(pl.id);
+                onClick={async () => {
+                  try {
+                    const res = await fetchPriceListById(pl.id);
 
-    navigate("/price-list/create", {
-      state: {
-        mode: "view",
-        priceListData: res.data.data,
-      },
-    });
-  } catch {
-    toast.error("Failed to load price list");
-  }
-}}
+                    navigate("/price-list/create", {
+                      state: {
+                        mode: "view",
+                        priceListData: res.data.data,
+                      },
+                    });
+                  } catch {
+                    toast.error("Failed to load price list");
+                  }
+                }}
 
 
                 <Eye className="w-4 h-4" />
@@ -415,6 +493,32 @@ export default function PriceListManagement() {
                 <Edit className="w-4 h-4" />
               </Button>
 
+              {/* DELETE */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:text-red-700  cursor-pointer"
+                onClick={async () => {
+                  const confirmed = window.confirm(
+                    "Are you sure you want to delete this price list?"
+                  );
+
+                  if (!confirmed) return;
+
+                  try {
+                    await deletePriceList(pl.id);
+                    toast.success("Price list deleted successfully");
+
+                    // 🔥 UI turant update
+                    await loadPriceLists();
+
+                  } catch {
+                    toast.error("Failed to delete price list");
+                  }
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
 
 
             </div>
@@ -478,12 +582,13 @@ export default function PriceListManagement() {
         <Card className="bg-purple-600 text-white">
           <CardContent className="p-4 flex justify-between">
             <div>
-              <p>client</p>
-              <p className="text-2xl font-bold">{stats.client}</p>
+              <p>Upcoming</p>
+              <p className="text-2xl font-bold">{stats.upcoming}</p>
             </div>
-            <Users />
+            <Calendar />
           </CardContent>
         </Card>
+
 
         <Card className="bg-teal-600 text-white">
           <CardContent className="p-4 flex justify-between">
@@ -771,10 +876,15 @@ export default function PriceListManagement() {
       <ImportCSVModal
         open={importModalOpen}
         onOpenChange={setImportModalOpen}
-        onSuccess={() => {
+        onSuccess={async () => {
           toast.success("Price list imported successfully");
-          fetchPriceList(defaultSelected?._id);
+
+          await Promise.all([
+            loadPriceLists(),
+            loadPriceLevels(),
+          ]);
         }}
+
         title="Import Price List from CSV"
         resourceName="price-list"
         importFn={importPriceListFromCSV}

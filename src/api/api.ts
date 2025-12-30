@@ -1064,12 +1064,36 @@ export const fetchPriceList = (companyId: string) => {
 };
 export const importPriceListFromCSV = async (formData: FormData) => {
   try {
-    const res = await apiClient.post("/price-list/import-csv", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return res.data;
+    const res = await apiClient.post(
+      "/price-list/import-csv",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        responseType: "blob",
+      }
+    );
+
+    const contentType = res.headers["content-type"];
+
+    // ZIP response
+    if (contentType?.includes("application/zip")) {
+      const blob = new Blob([res.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "price-list-import-report.zip";
+      a.click();
+      return { downloaded: true };
+    }
+
+    // JSON response
+    const text = await res.data.text();
+    const json = JSON.parse(text);
+    return json;
+
   } catch (error: any) {
     console.error(
       "❌ Failed to import price list:",
@@ -1077,6 +1101,10 @@ export const importPriceListFromCSV = async (formData: FormData) => {
     );
     throw error;
   }
+};
+
+export const deletePriceList = (id: string) => {
+  return apiClient.delete(`/price-list/${id}`);
 };
 
 export const fetchPriceListById = (id: string) => {

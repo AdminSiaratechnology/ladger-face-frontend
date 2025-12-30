@@ -422,7 +422,7 @@ const [formData, setFormData] = useState({
         setOpen(o);
         if (!o) resetForm();
       }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="custom-dialog-container">
           <CustomFormDialogHeader
             title={editingGroup ? "Edit Customer Group" : "Create Customer Group"}
             subtitle={
