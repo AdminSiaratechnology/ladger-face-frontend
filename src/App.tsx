@@ -55,6 +55,7 @@ import Coupon from "./components/pages/Coupon";
 import PosReport from "./components/pages/PosReport";
 import CreatePriceListPage from "./components/pages/CreatePriceListEditor";
 import ProductPreview from "./components/pages/ProductPreview";
+import NotFound from "./components/pages/NotFound";
 
 function UnauthorizedAccess() {
   return (
@@ -542,7 +543,8 @@ export default function App() {
           <Route path="/demo-expired" element={<DemoExpired />} />
 
           {/* Default redirect */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* <Route path="/login" element={<Navigate to="/login" replace />} /> */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </Router>

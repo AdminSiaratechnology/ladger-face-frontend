@@ -105,7 +105,9 @@ export const useStockCategory = create<StockCategoryStore>()(
           toast.success("Stock Category added successfully");
         } catch (err: any) {
           set({ loading: false, error: true, errormessage: err.message });
-          toast.error(err.message || "Failed to add Stock Category");
+          
+          toast.error(err?.response?.data?.message 
+            || err?.message || "Failed to add Stock Category");
         }
       },
 
@@ -125,8 +127,9 @@ export const useStockCategory = create<StockCategoryStore>()(
           });
           toast.success("Stock Category updated successfully");
         } catch (err: any) {
+          console.log(err,"errorrrr")
           set({ loading: false, error: true, errormessage: err.message });
-          toast.error(err.message || "Failed to update Stock Category");
+          toast.error(err?.response?.data?.message || err?.message || "Failed to update Stock Category");
         }
       },
 

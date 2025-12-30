@@ -7,8 +7,8 @@ const apiClient = axios.create({
   baseURL: baseUrl,
   headers: {
     // "Content-Type": "application/json",
-        "auth-source": "api",
-
+    // "auth-source": "Api",
+    "auth-source": "client-portal",
   },
 });
 
@@ -35,8 +35,7 @@ apiClient.interceptors.response.use(
     const authStore = useAuthStore.getState();
     if (error.response?.status === 401 && msg?.includes("another device")) {
       authStore.setNewDeviceLogin(true);
-    }
-    if (error.response?.status === 401) {
+    } else if (error.response?.status === 401) {
       authStore.logout();
     }
     return Promise.reject(error);
@@ -46,6 +45,10 @@ apiClient.interceptors.response.use(
 
 const createUser = async (userData: any) => {
   const res = await apiClient.post("/auth/register", userData);
+  return res.data;
+};
+const loginUser = async (userData: any) => {
+  const res = await apiClient.post("/auth/login", userData);
   return res.data;
 };
 
@@ -172,8 +175,12 @@ const getStockGroup = async (
   return res?.data;
 };
 const createSockGroup = async (data: any) => {
-  const res = await apiClient.post("/stock-groups", data);
-  return res?.data;
+  try {
+    const res = await apiClient.post("/stock-groups", data);
+    return res?.data;
+  } catch (err) {
+    throw err;
+  }
 };
 const updateStockGroup = async ({
   stockGroupId,
@@ -206,8 +213,12 @@ const getStockCategory = async (
 };
 
 const createStockCategory = async (data: any) => {
-  const res = await apiClient.post("/stock-categories", data);
-  return res?.data;
+  try {
+    const res = await apiClient.post("/stock-categories", data);
+    return res?.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
 const updateStockCategory = async ({
@@ -217,8 +228,15 @@ const updateStockCategory = async ({
   stockCategoryId: string;
   data: any;
 }) => {
-  const res = await apiClient.put(`/stock-categories/${stockCategoryId}`, data);
-  return res?.data;
+  try {
+    const res = await apiClient.put(
+      `/stock-categories/${stockCategoryId}`,
+      data
+    );
+    return res?.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
 const deleteStockCategory = async (stockCategoryId: string) => {
@@ -237,12 +255,20 @@ const fetchUOM = async (
 };
 
 const createUOM = async (data: any) => {
-  const res = await apiClient.post("/units", data);
-  return res?.data;
+  try {
+    const res = await apiClient.post("/units", data);
+    return res?.data;
+  } catch (error) {
+    throw error;
+  }
 };
 const updateUOM = async ({ unitId, data }: { unitId: string; data: any }) => {
-  const res = await apiClient.put(`/units/${unitId}`, data);
-  return res?.data;
+  try {
+    const res = await apiClient.put(`/units/${unitId}`, data);
+    return res?.data;
+  } catch (error) {
+    throw error;
+  }
 };
 const deleteUOM = async (id: string) => {
   const res = await apiClient.delete(`/units/${id}`);
@@ -1010,49 +1036,49 @@ const importProductsFromCSV = async (formData: FormData) => {
     throw error;
   }
 };
-export const fetchItemsByStockGroup = async ( 
-  groupId: string, 
-  companyId: string, 
-  page: number 
-) => { 
-  const res = await apiClient.get( 
-    `products/stock-group/${companyId}/${groupId}?page=${page}&limit=40` 
-  ); 
- 
-  return res.data;  
-}; 
- 
-export const fetchPriceLevels = (companyId: string) => { 
-  return apiClient.get("/price-level", { 
-    params: { companyId }, 
-  }); 
-}; 
- 
-export const createPriceLevel = (data: { 
-  name: string; 
-  companyId: string; 
-}) => { 
-  return apiClient.post("/price-level", data); 
+export const fetchItemsByStockGroup = async (
+  groupId: string,
+  companyId: string,
+  page: number
+) => {
+  const res = await apiClient.get(
+    `products/stock-group/${companyId}/${groupId}?page=${page}&limit=40`
+  );
+
+  return res.data;
+};
+
+export const fetchPriceLevels = (companyId: string) => {
+  return apiClient.get("/price-level", {
+    params: { companyId },
+  });
+};
+
+export const createPriceLevel = (data: { name: string; companyId: string }) => {
+  return apiClient.post("/price-level", data);
 };
 
 const fetchBatches = async (productId, companyId) => {
   const res = await apiClient.get(`/products/batches/stock-item/${productId}`, {
     params: {
-      companyId
-    }
+      companyId,
+    },
   });
   return res.data;
-}
+};
 
-const updateCartItem = async (companyId: string, payload: { productId: string; quantity: number }) => {
-    try {
-      const response = await apiClient.put(`/cart/update/${companyId}`, payload);
-      return response.data;
-    } catch (error: any) {
-      console.error("Failed to update cart item:", error);
-      throw error.response?.data || error;
-    }
-}
+const updateCartItem = async (
+  companyId: string,
+  payload: { productId: string; quantity: number }
+) => {
+  try {
+    const response = await apiClient.put(`/cart/update/${companyId}`, payload);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to update cart item:", error);
+    throw error.response?.data || error;
+  }
+};
 export const savePriceListPage = (payload: any) => {
   console.log(payload);
   return apiClient.post("/price-list/items", payload);
@@ -1062,14 +1088,45 @@ export const fetchPriceList = (companyId: string) => {
     params: { companyId },
   });
 };
+
+export const fetchPriceListById = (id: string) => {
+  return apiClient.get(`/price-list/${id}`);
+};
+export const updatePriceListPage = (id, payload) => {
+  return apiClient.put(`/price-list/${id}`, payload);
+};
+const createCounterCustomer = async (customer: any) => {
+  const res = await apiClient.post("/customers/counter", customer);
+  return res.data;
+};
+
 export const importPriceListFromCSV = async (formData: FormData) => {
   try {
     const res = await apiClient.post("/price-list/import-csv", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      responseType: "blob",
     });
-    return res.data;
+
+    const contentType = res.headers["content-type"];
+
+    // ZIP response
+    if (contentType?.includes("application/zip")) {
+      const blob = new Blob([res.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "price-list-import-report.zip";
+      a.click();
+      return { downloaded: true };
+    }
+
+    // JSON response
+    const text = await res.data.text();
+    const json = JSON.parse(text);
+    return json;
   } catch (error: any) {
     console.error(
       "❌ Failed to import price list:",
@@ -1078,16 +1135,13 @@ export const importPriceListFromCSV = async (formData: FormData) => {
     throw error;
   }
 };
-
-export const fetchPriceListById = (id: string) => {
-  return apiClient.get(`/price-list/${id}`);
+export const deletePriceList = (id: string) => {
+  return apiClient.delete(`/price-list/${id}`);
 };
-export const updatePriceListPage = (id, payload) =>
-  apiClient.put(`/price-list/${id}`, payload);
-
 
 // Export API
 const api = {
+  loginUser,
   closeShiftApi,
   getBogoCoupons,
   getCompanyPosReport,
@@ -1191,7 +1245,9 @@ const api = {
   uploadCsvCustomers,
   importProductsFromCSV,
   fetchBatches,
-  updateCartItem
+  updateCartItem,
+  createCounterCustomer,
+  importPriceListFromCSV,
 };
 
 export default api;

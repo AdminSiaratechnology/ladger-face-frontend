@@ -107,8 +107,9 @@ export const useStockGroup = create<StockGroupStore>()(
           });
           toast.success("Stock Group added successfully");
         } catch (error) {
+          console.log(error)
+          toast.error(error?.response?.data?.message || error?.message || "Failed to add Stock Group");
           set({ loading: false, error: true, errormessage: error.message });
-          toast.error(error.message || "Failed to add Stock Group");
         }
       },
       updateStockGroup: async (stockGroupId, stockGroupData) => {
@@ -131,7 +132,9 @@ export const useStockGroup = create<StockGroupStore>()(
           toast.success("Stock Group updated successfully");
         } catch (error) {
           set({ loading: false, error: true, errormessage: error.message });
-          toast.error(error.message || "Failed to update Stock Group");
+          console.log(error,"error")
+            toast.error(error?.response?.data?.message || error?.message || "Failed to update Stock Group");
+         
         }
       },
       deleteStockGroup: async (stockGroupId: string) => {

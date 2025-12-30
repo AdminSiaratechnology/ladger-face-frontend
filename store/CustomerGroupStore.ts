@@ -3,11 +3,12 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../src/api/api";
+import { toast } from "sonner";
 
 interface CustomerGroup {
   _id: string;
-  groupName: string;
-  groupCode: string;
+  name: string;
+  code: string;
   status: "active" | "inactive";
   createdAt: string;
   companyId: string;
@@ -32,6 +33,8 @@ interface CustomerGroupStore {
   listTotal: number;            // Filtered total (for pagination)
   pagination: Pagination | null;
   loading: boolean;
+  error:any;
+  errorMessage:any;
 
   fetchGroups: (companyId: string, params?: any) => Promise<void>;
   createGroup: (data: any) => Promise<CustomerGroup>;
@@ -48,6 +51,8 @@ export const useCustomerGroupStore = create<CustomerGroupStore>()(
       listTotal: 0,
       pagination: null,
       loading: false,
+      error:null,
+      errorMessage:"",
 
       fetchGroups: async (companyId, params = {}) => {
         set({ loading: true });
@@ -85,6 +90,9 @@ export const useCustomerGroupStore = create<CustomerGroupStore>()(
       },
 
       createGroup: async (data) => {
+        try {
+          
+       
         const res = await api.createCustomerGroup(data);
         const newGroup = res.data;
 
@@ -97,10 +105,23 @@ export const useCustomerGroupStore = create<CustomerGroupStore>()(
             inactive: data.status === "inactive" ? state.counts!.inactive + 1 : state.counts!.inactive,
           },
         }));
+         toast.success("Stock Group updated successfully");
         return newGroup;
+         } catch (error) {
+         set({
+            loading: false,
+            error: true,
+            errorMessage:
+              error?.response?.data?.message || "Failed to update ",
+          });
+          toast.error(  error?.response?.data?.message || error?.message || "Failed to update ",)
+        }
       },
 
       updateGroup: async (id, data) => {
+        try {
+          
+      
         const res = await api.updateCustomerGroup({ groupId: id, data });
         const updated = res.data;
 
@@ -122,7 +143,17 @@ export const useCustomerGroupStore = create<CustomerGroupStore>()(
             },
           };
         });
+        toast.success("Stock Group updated successfully");
         return updated;
+          } catch (error) {
+            set({
+            loading: false,
+            error: true,
+            errorMessage:
+              error?.response?.data?.message || "Failed to update ",
+          });
+          toast.error(  error?.response?.data?.message || error?.message || "Failed to update ",)
+        }
       },
 
       deleteGroup: async (id) => {
